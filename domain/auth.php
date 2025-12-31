@@ -85,7 +85,11 @@ function is_logged_in() {
  */
 function require_login() {
     if (!is_logged_in()) {
-        header('Location: /presentation/login.html');
+        // Use relative path from the domain folder to presentation folder
+        // This avoids issues with URL encoding of special characters in folder names
+        $base_path = dirname($_SERVER['SCRIPT_NAME']);
+        $login_path = dirname($base_path) . '/presentation/login.html';
+        header('Location: ' . $login_path);
         exit;
     }
 }
