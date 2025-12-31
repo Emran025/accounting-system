@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المنتجات - نظام إدارة السوبر ماركت</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="main-container">
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="assets/images/logo.svg" alt="Market Logo" class="logo-img">
+                <h2>السوبر ماركت</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="products.html" class="active">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                            </path>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                        </svg>
+                        <span>المنتجات</span>
+                    </a></li>
+                <li><a href="purchases.html">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span>المشتريات</span>
+                    </a></li>
+                <li><a href="sales.html">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="21" r="1"></circle>
+                            <circle cx="20" cy="21" r="1"></circle>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                        </svg>
+                        <span>المبيعات</span>
+                    </a></li>
+                <li><a href="#" class="logout-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        <span>تسجيل الخروج</span>
+                    </a></li>
+            </ul>
+        </aside>
+
+        <main class="content animate-fade">
+            <div class="page-header">
+                <h1>إدارة المنتجات</h1>
+                <button class="btn btn-primary" onclick="openAddDialog()" data-icon="plus">
+                    إضافة منتج جديد
+                </button>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <div class="table-container">
+                <div class="table-wrapper">
+                    <table id="products-table">
+                        <thead>
+                            <tr>
+                                <th>الرقم</th>
+                                <th>الاسم</th>
+                                <th>الفئة</th>
+                                <th>سعر الوحدة</th>
+                                <th>الحد الأدنى للربح</th>
+                                <th>المخزون</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-tbody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 2rem;">جاري التحميل...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Product Dialog -->
+    <div class="dialog-overlay" id="product-dialog">
+        <div class="dialog">
+            <div class="dialog-header">
+                <h2 id="dialog-title">إضافة منتج</h2>
+                <button class="close-btn" onclick="closeDialog('product-dialog')">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <form id="product-form">
+                    <input type="hidden" id="product-id">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-name">اسم المنتج *</label>
+                            <input type="text" id="product-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-category">الفئة *</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <select id="product-category" required>
+                                    <option value="">اختر الفئة...</option>
+                                </select>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="openAddCategoryDialog()"
+                                    title="إضافة فئة جديدة" style="padding: 0.5rem;">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="product-description">الوصف</label>
+                        <input type="text" id="product-description">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-unit-price">سعر بيع الوحدة (الحبة) *</label>
+                            <input type="number" id="product-unit-price" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-min-margin">الحد الأدنى للربح (للمنتج الواحد) *</label>
+                            <input type="number" id="product-min-margin" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-unit-name">اسم الوحدة الكبرى (مثل: كرتون)</label>
+                            <input type="text" id="product-unit-name" value="كرتون">
+                        </div>
+                        <div class="form-group">
+                            <label for="product-items-per-unit">عدد الوحدات الصغرى في الكبرى</label>
+                            <input type="number" id="product-items-per-unit" min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="product-sub-unit-name">اسم الوحدة الصغرى (مثل: حبة)</label>
+                            <input type="text" id="product-sub-unit-name" value="حبة">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-stock">الكمية في المخزون (بالوحدة الصغرى) *</label>
+                        <input type="number" id="product-stock" min="0" required>
+                    </div>
+                </form>
+            </div>
+            <div class="dialog-footer">
+                <button type="button" class="btn btn-primary" onclick="saveProduct()" id="save-product-btn">حفظ</button>
+                <button type="button" class="btn" onclick="closeDialog('product-dialog')">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Dialog -->
+    <div class="dialog-overlay" id="category-dialog">
+        <div class="dialog" style="max-width: 400px;">
+            <div class="dialog-header">
+                <h2>إضافة فئة جديدة</h2>
+                <button class="close-btn" onclick="closeDialog('category-dialog')">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <form id="category-form">
+                    <div class="form-group">
+                        <label for="new-category-name">اسم الفئة *</label>
+                        <input type="text" id="new-category-name" required>
+                    </div>
+                </form>
+            </div>
+            <div class="dialog-footer">
+                <button type="button" class="btn btn-primary" onclick="saveCategory()">إضافة</button>
+                <button type="button" class="btn" onclick="closeDialog('category-dialog')">إلغاء</button>
+            </div>
+        </div>
+    </div>
+    <div class="dialog-overlay" id="confirm-dialog">
+        <div class="dialog" style="max-width: 400px; width: 90%;">
+            <div class="dialog-header" style="margin-bottom: 1rem; border-bottom: none;">
+                <h2 id="confirm-title"
+                    style="color: var(--danger-color); display: flex; align-items: center; gap: 0.5rem;">
+                    <svg class="icon" viewBox="0 0 24 24" style="width: 24px; height: 24px;">
+                        <path
+                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                        </path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    تأكيد الإجراء
+                </h2>
+                <button class="close-btn" onclick="closeConfirmDialog(false)">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <p id="confirm-message"
+                    style="font-size: 1.1rem; color: var(--text-primary); margin: 0 0 2rem 0; line-height: 1.6;">هل أنت
+                    متأكد؟</p>
+            </div>
+            <div class="dialog-footer" style="margin-top: 1rem; border-top: none;">
+                <button type="button" class="btn" style="background-color: var(--danger-color); color: white;"
+                    id="confirm-yes-btn">نعم، متابعة</button>
+                <button type="button" class="btn btn-secondary" onclick="closeConfirmDialog(false)">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Dialog -->
+    <div class="dialog-overlay" id="view-dialog">
+        <div class="dialog">
+            <div class="dialog-header">
+                <h2>تفاصيل المنتج</h2>
+                <button class="close-btn" onclick="closeDialog('view-dialog')">&times;</button>
+            </div>
+            <div class="dialog-body" id="view-dialog-body">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="dialog-footer">
+                <button type="button" class="btn" onclick="closeDialog('view-dialog')">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="common.js"></script>
+    <script src="products.js"></script>
+</body>
+
+</html>
