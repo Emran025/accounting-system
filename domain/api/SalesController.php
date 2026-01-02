@@ -35,13 +35,15 @@ class SalesController extends Controller {
         $total = mysqli_fetch_assoc($countResult)['total'];
 
         $result = mysqli_query($this->conn, "
-            SELECT i.*, COUNT(ii.id) as item_count
+            SELECT i.*, COUNT(ii.id) as item_count, u.username as salesperson_name
             FROM invoices i
             LEFT JOIN invoice_items ii ON i.id = ii.invoice_id
+            LEFT JOIN users u ON i.user_id = u.id
             GROUP BY i.id
             ORDER BY i.created_at DESC
             LIMIT $limit OFFSET $offset
         ");
+
         $invoices = [];
         while ($row = mysqli_fetch_assoc($result)) {
             $invoices[] = $row;
@@ -92,11 +94,13 @@ class SalesController extends Controller {
                 $total += $subtotal;
             }
             
-            $stmt = mysqli_prepare($this->conn, "INSERT INTO invoices (invoice_number, total_amount) VALUES (?, ?)");
-            mysqli_stmt_bind_param($stmt, "sd", $invoice_number, $total);
+            $user_id = $_SESSION['user_id'];
+            $stmt = mysqli_prepare($this->conn, "INSERT INTO invoices (invoice_number, total_amount, user_id) VALUES (?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "sdi", $invoice_number, $total, $user_id);
             mysqli_stmt_execute($stmt);
             $invoice_id = mysqli_insert_id($this->conn);
             mysqli_stmt_close($stmt);
+
             
             foreach ($items as $item) {
                 $product_id = intval($item['product_id']);

@@ -34,15 +34,23 @@ class ProductsController extends Controller {
 
         if ($include_purchase_price) {
             $sql = "
-                SELECT p.*, 
+                SELECT p.*, u.username as creator_name,
                        (SELECT invoice_price FROM purchases WHERE product_id = p.id ORDER BY purchase_date DESC LIMIT 1) as latest_purchase_price
                 FROM products p
+                LEFT JOIN users u ON p.created_by = u.id
                 ORDER BY p.id DESC
                 LIMIT $limit OFFSET $offset
             ";
         } else {
-            $sql = "SELECT * FROM products ORDER BY id DESC LIMIT $limit OFFSET $offset";
+            $sql = "
+                SELECT p.*, u.username as creator_name 
+                FROM products p 
+                LEFT JOIN users u ON p.created_by = u.id 
+                ORDER BY p.id DESC 
+                LIMIT $limit OFFSET $offset
+            ";
         }
+
         
         $result = mysqli_query($this->conn, $sql);
         $products = [];
@@ -65,9 +73,11 @@ class ProductsController extends Controller {
         $unit_name = mysqli_real_escape_string($this->conn, $data['unit_name'] ?? 'كرتون');
         $items_per_unit = intval($data['items_per_unit'] ?? 1);
         $sub_unit_name = mysqli_real_escape_string($this->conn, $data['sub_unit_name'] ?? 'حبة');
+        $user_id = $_SESSION['user_id'];
         
-        $stmt = mysqli_prepare($this->conn, "INSERT INTO products (name, description, category, unit_price, minimum_profit_margin, stock_quantity, unit_name, items_per_unit, sub_unit_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        mysqli_stmt_bind_param($stmt, "sssddisis", $name, $description, $category, $unit_price, $min_margin, $stock, $unit_name, $items_per_unit, $sub_unit_name);
+        $stmt = mysqli_prepare($this->conn, "INSERT INTO products (name, description, category, unit_price, minimum_profit_margin, stock_quantity, unit_name, items_per_unit, sub_unit_name, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        mysqli_stmt_bind_param($stmt, "sssddisisi", $name, $description, $category, $unit_price, $min_margin, $stock, $unit_name, $items_per_unit, $sub_unit_name, $user_id);
+
         
         if (mysqli_stmt_execute($stmt)) {
             $this->successResponse(['id' => mysqli_insert_id($this->conn)]);

@@ -371,7 +371,7 @@ function renderInvoiceHistory() {
 
   if (invoices.length === 0) {
     tbody.innerHTML =
-      '<tr><td colspan="5" style="text-align: center; padding: 2rem;">لا توجد فواتير سابقة</td></tr>';
+      '<tr><td colspan="6" style="text-align: center; padding: 2rem;">لا توجد فواتير سابقة</td></tr>';
     return;
   }
 
@@ -388,7 +388,11 @@ function renderInvoiceHistory() {
                 <td>${formatCurrency(inv.total_amount)}</td>
                 <td>${inv.item_count}</td>
                 <td>${formatDate(inv.created_at, true)}</td>
+                <td><span class="badge badge-secondary">${
+                  inv.salesperson_name || "النظام"
+                }</span></td>
                 <td>
+
                     <div class="action-buttons">
                         <button class="icon-btn view" onclick="viewInvoice(${
                           inv.id

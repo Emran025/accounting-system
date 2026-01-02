@@ -52,9 +52,12 @@ function init_database() {
         role VARCHAR(20) DEFAULT 'admin',
         is_active TINYINT(1) DEFAULT 1,
         manager_id INT DEFAULT NULL,
+        created_by INT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
     
     if (!mysqli_query($conn, $users_sql)) {
         error_log("Failed to create users table: " . mysqli_error($conn));
@@ -136,9 +139,12 @@ function init_database() {
         unit_price DECIMAL(10, 2) DEFAULT 0.00,
         minimum_profit_margin DECIMAL(10, 2) DEFAULT 0.00,
         stock_quantity INT DEFAULT 0,
+        created_by INT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
     
     if (!mysqli_query($conn, $products_sql)) {
         error_log("Failed to create products table: " . mysqli_error($conn));
@@ -151,10 +157,13 @@ function init_database() {
         product_id INT NOT NULL,
         quantity INT NOT NULL,
         invoice_price DECIMAL(10, 2) NOT NULL,
+        user_id INT DEFAULT NULL,
         purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
     
     if (!mysqli_query($conn, $purchases_sql)) {
         error_log("Failed to create purchases table: " . mysqli_error($conn));
@@ -166,9 +175,12 @@ function init_database() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         invoice_number VARCHAR(50) UNIQUE NOT NULL,
         total_amount DECIMAL(10, 2) NOT NULL,
+        user_id INT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
     
     if (!mysqli_query($conn, $invoices_sql)) {
         error_log("Failed to create invoices table: " . mysqli_error($conn));
@@ -191,8 +203,11 @@ function init_database() {
     $categories_table_sql = "CREATE TABLE IF NOT EXISTS categories (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(100) UNIQUE NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_by INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
     
     if (!mysqli_query($conn, $categories_table_sql)) {
         error_log("Failed to create categories table: " . mysqli_error($conn));
@@ -222,6 +237,39 @@ function init_database() {
     if (mysqli_num_rows($check_purchases) == 0) {
         mysqli_query($conn, "ALTER TABLE purchases ADD COLUMN unit_type VARCHAR(20) DEFAULT 'sub'");
     }
+
+    // Add tracking columns to existing tables
+    $check_prod_tracking = mysqli_query($conn, "SHOW COLUMNS FROM products LIKE 'created_by'");
+    if (mysqli_num_rows($check_prod_tracking) == 0) {
+        mysqli_query($conn, "ALTER TABLE products ADD COLUMN created_by INT DEFAULT NULL");
+        mysqli_query($conn, "ALTER TABLE products ADD CONSTRAINT fk_products_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL");
+    }
+
+    $check_cat_tracking = mysqli_query($conn, "SHOW COLUMNS FROM categories LIKE 'created_by'");
+    if (mysqli_num_rows($check_cat_tracking) == 0) {
+        mysqli_query($conn, "ALTER TABLE categories ADD COLUMN created_by INT DEFAULT NULL");
+        mysqli_query($conn, "ALTER TABLE categories ADD CONSTRAINT fk_categories_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL");
+    }
+
+    $check_purch_tracking = mysqli_query($conn, "SHOW COLUMNS FROM purchases LIKE 'user_id'");
+    if (mysqli_num_rows($check_purch_tracking) == 0) {
+        mysqli_query($conn, "ALTER TABLE purchases ADD COLUMN user_id INT DEFAULT NULL");
+        mysqli_query($conn, "ALTER TABLE purchases ADD CONSTRAINT fk_purchases_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL");
+    }
+
+    $check_inv_tracking = mysqli_query($conn, "SHOW COLUMNS FROM invoices LIKE 'user_id'");
+    if (mysqli_num_rows($check_inv_tracking) == 0) {
+        mysqli_query($conn, "ALTER TABLE invoices ADD COLUMN user_id INT DEFAULT NULL");
+        mysqli_query($conn, "ALTER TABLE invoices ADD CONSTRAINT fk_invoices_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL");
+    }
+
+    $check_user_tracking = mysqli_query($conn, "SHOW COLUMNS FROM users LIKE 'created_by'");
+    if (mysqli_num_rows($check_user_tracking) == 0) {
+        mysqli_query($conn, "ALTER TABLE users ADD COLUMN created_by INT DEFAULT NULL");
+        mysqli_query($conn, "ALTER TABLE users ADD CONSTRAINT fk_users_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL");
+    }
+
+
     
     // Seed default user if not exists
     try {

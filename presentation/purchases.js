@@ -103,7 +103,7 @@ function renderPurchases() {
 
   if (purchases.length === 0) {
     tbody.innerHTML =
-      '<tr><td colspan="6" style="text-align: center; padding: 2rem;">لا توجد مشتريات مسجلة</td></tr>';
+      '<tr><td colspan="7" style="text-align: center; padding: 2rem;">لا توجد مشتريات مسجلة</td></tr>';
     return;
   }
 
@@ -124,7 +124,11 @@ function renderPurchases() {
       }</td>
                 <td>${formatCurrency(p.invoice_price)}</td>
                 <td>${formatDate(p.purchase_date)}</td>
+                <td><span class="badge badge-secondary">${
+                  p.recorder_name || "النظام"
+                }</span></td>
                 <td>
+
                     <div class="action-buttons">
                         <button class="icon-btn view" onclick="viewPurchase(${
                           p.id

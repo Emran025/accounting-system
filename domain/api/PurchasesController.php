@@ -32,12 +32,14 @@ class PurchasesController extends Controller {
         $total = mysqli_fetch_assoc($countResult)['total'];
 
         $result = mysqli_query($this->conn, "
-            SELECT p.*, pr.name as product_name, pr.unit_price as product_unit_price, pr.unit_name, pr.sub_unit_name
+            SELECT p.*, pr.name as product_name, pr.unit_price as product_unit_price, pr.unit_name, pr.sub_unit_name, u.username as recorder_name
             FROM purchases p
             JOIN products pr ON p.product_id = pr.id
+            LEFT JOIN users u ON p.user_id = u.id
             ORDER BY p.purchase_date DESC, p.id DESC
             LIMIT $limit OFFSET $offset
         ");
+
         $purchases = [];
         while ($row = mysqli_fetch_assoc($result)) {
             $purchases[] = $row;
@@ -78,9 +80,11 @@ class PurchasesController extends Controller {
         
         try {
             // Insert purchase
-            $stmt = mysqli_prepare($this->conn, "INSERT INTO purchases (product_id, quantity, invoice_price, purchase_date, unit_type) VALUES (?, ?, ?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, "iidss", $product_id, $quantity, $total_invoice_price, $purchase_date, $unit_type);
+            $user_id = $_SESSION['user_id'];
+            $stmt = mysqli_prepare($this->conn, "INSERT INTO purchases (product_id, quantity, invoice_price, purchase_date, unit_type, user_id) VALUES (?, ?, ?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "iidssi", $product_id, $quantity, $total_invoice_price, $purchase_date, $unit_type, $user_id);
             mysqli_stmt_execute($stmt);
+
             $purchase_id = mysqli_insert_id($this->conn);
             mysqli_stmt_close($stmt);
             

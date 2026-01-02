@@ -63,11 +63,13 @@ class UsersController extends Controller {
         $countResult = mysqli_query($this->conn, "SELECT COUNT(*) as total FROM users");
         $total = mysqli_fetch_assoc($countResult)['total'];
 
-        $sql = "SELECT u.id, u.username, u.role, u.is_active, u.created_at, u.manager_id, m.username as manager_name 
+        $sql = "SELECT u.id, u.username, u.role, u.is_active, u.created_at, u.manager_id, m.username as manager_name, c.username as creator_name
                 FROM users u 
                 LEFT JOIN users m ON u.manager_id = m.id 
+                LEFT JOIN users c ON u.created_by = c.id
                 ORDER BY u.created_at DESC
                 LIMIT $limit OFFSET $offset";
+
         $result = mysqli_query($this->conn, $sql);
         $users = [];
         while ($row = mysqli_fetch_assoc($result)) {
@@ -94,10 +96,12 @@ class UsersController extends Controller {
         }
 
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+        $current_user_id = $_SESSION['user_id'];
         
-        $sql = "INSERT INTO users (username, password, role, is_active, manager_id) VALUES (?, ?, ?, 1, ?)";
+        $sql = "INSERT INTO users (username, password, role, is_active, manager_id, created_by) VALUES (?, ?, ?, 1, ?, ?)";
         $stmt = mysqli_prepare($this->conn, $sql);
-        mysqli_stmt_bind_param($stmt, "sssi", $username, $hashed_password, $role, $manager_id);
+        mysqli_stmt_bind_param($stmt, "sssi i", $username, $hashed_password, $role, $manager_id, $current_user_id);
+
         
         if (mysqli_stmt_execute($stmt)) {
             $this->successResponse(['id' => mysqli_insert_id($this->conn)]);
