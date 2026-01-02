@@ -326,7 +326,14 @@ function init_database() {
     } catch (Exception $e) {
         error_log("Failed to seed settings: " . $e->getMessage());
     }
+    // Seed invoices if table is empty
+    try {
+        seed_invoices();
+    } catch (Exception $e) {
+        error_log("Failed to seed invoices: " . $e->getMessage());
+    }
 }
+
 
 
 /**
@@ -510,5 +517,59 @@ function log_operation($operation, $table_name, $record_id = null, $old_values =
     }
 }
 
+/**
+ * Seed invoices
+ */
+function seed_invoices() {
+    $conn = get_db_connection();
+    
+    $result = mysqli_query($conn, "SELECT COUNT(*) as count FROM invoices");
+    $row = mysqli_fetch_assoc($result);
+    
+    if ($row['count'] == 0) {
+        $result = mysqli_query($conn, "SELECT id, unit_price FROM products LIMIT 5");
+        $products = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $products[] = $row;
+        }
+
+        if (empty($products)) return;
+
+        // Get admin user
+        $user_res = mysqli_query($conn, "SELECT id FROM users LIMIT 1");
+        $user_row = mysqli_fetch_assoc($user_res);
+        $user_id = $user_row['id'] ?? null;
+
+        for ($i = 0; $i < 3; $i++) {
+            $invoice_number = "INV-PREVIEW-" . (1000 + $i);
+            $total = 0;
+            $items = [];
+            
+            // Randomly pick 2 products
+            $keys = array_rand($products, 2);
+            foreach ($keys as $k) {
+                $p = $products[$k];
+                $qty = rand(1, 5);
+                $subtotal = $qty * $p['unit_price'];
+                $total += $subtotal;
+                $items[] = [
+                    'product_id' => $p['id'],
+                    'quantity' => $qty,
+                    'unit_price' => $p['unit_price'],
+                    'subtotal' => $subtotal
+                ];
+            }
+
+            mysqli_query($conn, "INSERT INTO invoices (invoice_number, total_amount, user_id) VALUES ('$invoice_number', $total, $user_id)");
+            $inv_id = mysqli_insert_id($conn);
+
+            foreach ($items as $item) {
+                mysqli_query($conn, "INSERT INTO invoice_items (invoice_id, product_id, quantity, unit_price, subtotal) VALUES ($inv_id, {$item['product_id']}, {$item['quantity']}, {$item['unit_price']}, {$item['subtotal']})");
+            }
+        }
+    }
+}
+
 ?>
+
 

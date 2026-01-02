@@ -33,7 +33,14 @@
           <div class="header-actions">
             <div
               class="user-info-header"
-              style="display: flex; align-items: center; gap: 1rem"
+              style="
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                border-left: 1px solid var(--border-color);
+                padding-left: 1rem;
+                margin-left: 1rem;
+              "
             >
               <span
                 id="userNameDisplay"
@@ -45,6 +52,9 @@
                 style="display: none"
               ></span>
             </div>
+            <button id="addUserBtn" class="btn btn-primary">
+              <i class="fas fa-user-plus"></i> إضافة مستخدم
+            </button>
           </div>
         </div>
 
@@ -53,9 +63,6 @@
           <div class="card">
             <div class="card-header">
               <h3>قائمة المستخدمين</h3>
-              <button id="addUserBtn" class="btn btn-primary">
-                <i class="fas fa-user-plus"></i> إضافة مستخدم
-              </button>
             </div>
             <div class="table-responsive">
               <table class="data-table">

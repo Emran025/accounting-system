@@ -48,7 +48,10 @@ async function fetchAPI(action, method = "GET", body = null) {
   }
 
   try {
-    const response = await fetch(`${API_BASE}?action=${action}`, options);
+    const response = await fetch(
+      `${API_BASE}?action=${action.replace("?", "&")}`,
+      options
+    );
 
     if (response.status === 401) {
       window.location.href = "login.html";
@@ -142,13 +145,10 @@ function setupSidebar(user) {
     { href: "settings.html", icon: "settings", text: "الإعدادات" },
   ];
 
-  const accountLink = { href: "account.html", icon: "user", text: "حسابي" };
-
   let links = [...commonLinks];
   if (user.role === "admin") {
     links = [...links, ...adminLinks];
   }
-  links.push(accountLink);
 
   const currentPath =
     window.location.pathname.split("/").pop() || "dashboard.html";
@@ -269,16 +269,18 @@ function showAlert(containerId, message, type = "success") {
 
 // Format currency
 function formatCurrency(amount) {
-  return new Intl.NumberFormat("ar-YE", {
-    style: "currency",
-    currency: "YER",
-  }).format(amount);
+  return (
+    new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount) + " ر.ي"
+  );
 }
 
 // Format date
 function formatDate(dateString) {
   if (!dateString) return "-";
-  return new Date(dateString).toLocaleString("ar-YE");
+  return new Date(dateString).toLocaleString("en-US");
 }
 
 // Sidebar Toggle (Mobile)
@@ -459,32 +461,93 @@ function renderPagination(pagination, containerId, onPageChange) {
 }
 
 /**
- * Generates the HTML content for an invoice based on provided settings and data.
- * Useful for both printing and previewing.
+ * Generates a Base64 encoded TLV string for E-Invoicing compliance (e.g., ZATCA Phase 1)
  */
-function generateInvoiceHTML(inv, settings) {
+function generateTLV(tags) {
+  const binaryParts = [];
+
+  for (const tagId in tags) {
+    const tag = parseInt(tagId);
+    const value = String(tags[tagId]);
+
+    // Tag Id
+    binaryParts.push(tag);
+
+    // Value Length
+    const encodedValue = new TextEncoder().encode(value);
+    binaryParts.push(encodedValue.length);
+
+    // Value Bytes
+    for (const byte of encodedValue) {
+      binaryParts.push(byte);
+    }
+  }
+
+  // Convert to binary string correctly for btoa
+  const uint8Array = new Uint8Array(binaryParts);
+  let binaryString = "";
+  for (let i = 0; i < uint8Array.length; i++) {
+    binaryString += String.fromCharCode(uint8Array[i]);
+  }
+
+  return btoa(binaryString);
+}
+
+/**
+ * Helper to generate QR Code using local library
+ */
+function generateQRCode(text) {
+  if (typeof window.createBase64QR === "function") {
+    try {
+      // Use Type 4 or auto, Error Correction M
+      return window.createBase64QR(text, 5);
+    } catch (e) {
+      console.error("QR Generation error", e);
+      return "";
+    }
+  }
+  return "";
+}
+
+/**
+ * Generates the HTML content for an invoice based on provided settings and data.
+ * @param {Object} inv - Invoice data
+ * @param {Object} settings - System settings
+ * @param {String} [qrDataUrl] - Optional pre-generated QR code data URL. If not provided, it will be generated.
+ */
+function generateInvoiceHTML(inv, settings, qrDataUrl) {
   const isThermal = (settings.invoice_size || "thermal") === "thermal";
   const currencySymbol = settings.currency_symbol || "ر.ي";
 
-  // Format currency locally for the invoice
+  // Format currency locally for the invoice (using saved symbol)
   const localFormatCurrency = (amount) => {
     return (
-      new Intl.NumberFormat("ar-YE", {
-        style: "currency",
-        currency: "YER",
-      })
-        .format(amount)
-        .replace("YER", "")
-        .trim() +
+      new Intl.NumberFormat("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount) +
       " " +
       currencySymbol
     );
   };
 
-  const qrData = `Invoice:${inv.invoice_number}|Total:${inv.total_amount}|Date:${inv.created_at}`;
-  const qrUrl = `https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=${encodeURIComponent(
-    qrData
-  )}&choe=UTF-8`;
+  // E-Invoicing Data Preparation
+  // Ensure the date is in valid ISO 8601 format (KSA/GCC Standard)
+  const dateObj = inv.created_at ? new Date(inv.created_at) : new Date();
+  const isoTimestamp = dateObj.toISOString().split(".")[0] + "Z";
+  const formattedTotal = parseFloat(inv.total_amount).toFixed(2);
+  const formattedVat = "0.00"; // Assuming tax is inclusive or already in total
+
+  const tlvData = generateTLV({
+    1: settings.store_name || "سوبر ماركت الوفاء",
+    2: settings.tax_number || "310122393500003", // Official Sample TRN if empty
+    3: isoTimestamp,
+    4: formattedTotal,
+    5: formattedVat,
+  });
+
+  // Generate QR locally if not provided
+  const qrUrl = qrDataUrl || generateQRCode(tlvData);
 
   const style = `
         <style>

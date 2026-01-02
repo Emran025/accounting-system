@@ -14,12 +14,16 @@
     <div class="main-container">
       <aside class="sidebar">
         <div class="sidebar-header">
-          <div class="logo-circle">🛒</div>
+          <img
+            src="assets/images/logo.svg"
+            alt="Market Logo"
+            class="logo-img"
+          />
           <h2>السوبر ماركت</h2>
         </div>
-        <nav class="sidebar-nav">
-          <!-- Dynamically injected by common.js -->
-        </nav>
+        <div class="sidebar-nav">
+          <!-- Links will be injected by common.js -->
+        </div>
       </aside>
 
       <main class="content">
@@ -44,73 +48,216 @@
               ></span>
               <span id="userRoleBadge" class="badge"></span>
             </div>
-            <button
-              class="btn btn-secondary"
-              id="preview-invoice-btn"
-              style="margin-left: 10px"
-            >
-              <i class="fas fa-eye"></i> معاينة الفاتورة
-            </button>
-            <button class="btn btn-primary" id="save-settings-btn">
-              حفظ التغييرات
-            </button>
           </div>
         </header>
 
-        <div id="alert-container"></div>
+        <div class="settings-wrapper animate-fade">
+          <!-- Settings Sidebar -->
+          <nav class="settings-tabs">
+            <button class="tab-btn active" data-tab="store">
+              <i class="fas fa-store"></i> <span>بيانات المتجر</span>
+            </button>
+            <button class="tab-btn" data-tab="invoices">
+              <i class="fas fa-file-invoice-dollar"></i>
+              <span>إعدادات الفواتير</span>
+            </button>
+            <button class="tab-btn" data-tab="account">
+              <i class="fas fa-user-shield"></i> <span>الحساب والأمان</span>
+            </button>
+            <button class="tab-btn" data-tab="sessions">
+              <i class="fas fa-history"></i> <span>الجلسات النشطة</span>
+            </button>
+          </nav>
 
-        <div class="settings-grid">
-          <div class="section-card">
-            <div class="section-header">
-              <h3>بيانات المتجر</h3>
+          <!-- Settings Content Area -->
+          <div class="settings-content-cards">
+            <!-- Section: Store Information -->
+            <div class="tab-content active" id="tab-store">
+              <div class="section-card">
+                <div class="section-header">
+                  <div>
+                    <h3>بيانات المتجر</h3>
+                    <p class="text-muted">
+                      المعلومات الأساسية التي تظهر في ترويسة الفاتورة
+                    </p>
+                  </div>
+                  <button class="btn btn-primary btn-sm save-trigger">
+                    حفظ البيانات
+                  </button>
+                </div>
+                <div class="settings-form-grid">
+                  <div class="form-group">
+                    <label for="store_name">اسم المتجر</label>
+                    <div class="input-with-icon">
+                      <i class="fas fa-shop"></i>
+                      <input
+                        type="text"
+                        id="store_name"
+                        placeholder="سوبر ماركت الوفاء"
+                      />
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="store_phone">رقم الهاتف</label>
+                    <div class="input-with-icon">
+                      <i class="fas fa-phone"></i>
+                      <input
+                        type="text"
+                        id="store_phone"
+                        placeholder="777XXXXXX"
+                      />
+                    </div>
+                  </div>
+                  <div class="form-group full-width">
+                    <label for="store_address">عنوان المتجر</label>
+                    <div class="input-with-icon">
+                      <i class="fas fa-location-dot"></i>
+                      <input
+                        type="text"
+                        id="store_address"
+                        placeholder="اليمن - صنعاء - شارع الستين"
+                      />
+                    </div>
+                  </div>
+                  <div class="form-group full-width">
+                    <label for="tax_number">الرقم الضريبي (اختياري)</label>
+                    <div class="input-with-icon">
+                      <i class="fas fa-id-card"></i>
+                      <input
+                        type="text"
+                        id="tax_number"
+                        placeholder="مثلاً: 310122393500003"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="settings-form">
-              <div class="form-group">
-                <label for="store_name">اسم المتجر</label>
-                <input
-                  type="text"
-                  id="store_name"
-                  placeholder="مثلاً: سوبر ماركت الوفاء"
-                />
-              </div>
-              <div class="form-group">
-                <label for="store_address">العنوان</label>
-                <input
-                  type="text"
-                  id="store_address"
-                  placeholder="اليمن - صنعاء"
-                />
-              </div>
-              <div class="form-group">
-                <label for="store_phone">رقم الهاتف</label>
-                <input type="text" id="store_phone" placeholder="777XXXXXX" />
-              </div>
-              <div class="form-group">
-                <label for="tax_number">الرقم الضريبي (اختياري)</label>
-                <input type="text" id="tax_number" />
-              </div>
-            </div>
-          </div>
 
-          <div class="section-card">
-            <div class="section-header">
-              <h3>إعدادات الفواتير</h3>
+            <!-- Section: Invoice Settings -->
+            <div class="tab-content" id="tab-invoices">
+              <div class="section-card">
+                <div class="section-header">
+                  <div>
+                    <h3>تخصيص الفواتير</h3>
+                    <p class="text-muted">
+                      التحكم في شكل وحجم الفواتير المطبوعة
+                    </p>
+                  </div>
+                  <div class="header-actions">
+                    <button
+                      class="btn btn-secondary btn-sm"
+                      id="preview-invoice-btn"
+                    >
+                      <i class="fas fa-eye"></i> معاينة مباشرة
+                    </button>
+                    <button class="btn btn-primary btn-sm save-trigger">
+                      حفظ الإعدادات
+                    </button>
+                  </div>
+                </div>
+                <div class="settings-form-grid">
+                  <div class="form-group">
+                    <label for="invoice_size">حجم ورق الطباعة</label>
+                    <select id="invoice_size" class="custom-select">
+                      <option value="thermal">
+                        حراري (80mm) - الأفضل لنقاط البيع
+                      </option>
+                      <option value="a4">
+                        ورق عادي (A4) - للتقارير وفواتير الجملة
+                      </option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="currency_symbol">رمز العملة الافتراضي</label>
+                    <input type="text" id="currency_symbol" value="ر.ي" />
+                  </div>
+                  <div class="form-group full-width">
+                    <label for="footer_message">رسالة تذييل الفاتورة</label>
+                    <textarea
+                      id="footer_message"
+                      rows="4"
+                      placeholder="شكراً لزيارتكم، يرجى الاحتفاظ بالفاتورة في حال الاسترجاع"
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="settings-form">
-              <div class="form-group">
-                <label for="invoice_size">حجم ورق الطباعة</label>
-                <select id="invoice_size">
-                  <option value="thermal">حراري (80mm)</option>
-                  <option value="a4">ورق عادي (A4)</option>
-                </select>
+
+            <!-- Section: Account & Password -->
+            <div class="tab-content" id="tab-account">
+              <div class="section-card">
+                <div class="section-header">
+                  <div>
+                    <h3>تغيير كلمة المرور</h3>
+                    <p class="text-muted">
+                      ننصح بتغيير كلمة المرور بشكل دوري للحفاظ على أمان حسابك
+                    </p>
+                  </div>
+                </div>
+                <form id="changePasswordForm" class="settings-form-narrow">
+                  <div class="form-group">
+                    <label for="currentPassword">كلمة المرور الحالية</label>
+                    <input type="password" id="currentPassword" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="newPassword">كلمة المرور الجديدة</label>
+                    <input
+                      type="password"
+                      id="newPassword"
+                      required
+                      minlength="6"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="confirmPassword">تأكيد كلمة المرور</label>
+                    <input type="password" id="confirmPassword" required />
+                  </div>
+                  <button
+                    type="submit"
+                    class="btn btn-primary"
+                    style="width: 100%"
+                  >
+                    <i class="fas fa-key"></i> تحديث كلمة المرور
+                  </button>
+                </form>
               </div>
-              <div class="form-group">
-                <label for="footer_message">رسالة تذييل الفاتورة</label>
-                <textarea id="footer_message" rows="3"></textarea>
-              </div>
-              <div class="form-group">
-                <label for="currency_symbol">رمز العملة</label>
-                <input type="text" id="currency_symbol" value="ر.ي" />
+            </div>
+
+            <!-- Section: Active Sessions -->
+            <div class="tab-content" id="tab-sessions">
+              <div class="section-card">
+                <div class="section-header">
+                  <div>
+                    <h3>الجلسات النشطة</h3>
+                    <p class="text-muted">
+                      الأجهزة والمتصفحات التي سجلت دخولها لحسابك مؤخراً
+                    </p>
+                  </div>
+                </div>
+                <div class="table-container">
+                  <table class="modern-table">
+                    <thead>
+                      <tr>
+                        <th>الجهاز / المتصفح</th>
+                        <th>IP Address</th>
+                        <th>التاريخ والوقت</th>
+                        <th>الحالة</th>
+                      </tr>
+                    </thead>
+                    <tbody id="sessionsTable">
+                      <tr>
+                        <td colspan="4" class="text-center py-4">
+                          جاري تحميل البيانات...
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div
+                  id="pagination-controls"
+                  class="pagination-container mt-4"
+                ></div>
               </div>
             </div>
           </div>
@@ -120,7 +267,51 @@
 
     <div id="toast" class="toast"></div>
 
+    <!-- Invoice Preview Dialog -->
+    <div class="dialog-overlay" id="preview-invoice-dialog">
+      <div class="dialog" style="max-width: 900px; width: 95%; height: 90vh">
+        <div class="dialog-header">
+          <h2><i class="fas fa-eye"></i> معاينة الفاتورة</h2>
+          <button
+            class="close-btn"
+            onclick="closeDialog('preview-invoice-dialog')"
+          >
+            &times;
+          </button>
+        </div>
+        <div
+          class="dialog-body"
+          style="
+            padding: 0;
+            background: #e2e8f0;
+            position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+          "
+        >
+          <iframe
+            id="preview-iframe"
+            style="width: 100%; height: 100%; border: none; background: white"
+          ></iframe>
+        </div>
+        <div class="dialog-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="closeDialog('preview-invoice-dialog')"
+          >
+            إغلاق
+          </button>
+          <button type="button" class="btn btn-primary" id="print-test-btn">
+            <i class="fas fa-print"></i> طباعة اختبارية
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script src="common.js"></script>
+    <script src="qrcode.js"></script>
     <script src="settings.js"></script>
   </body>
 </html>

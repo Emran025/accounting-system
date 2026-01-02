@@ -15,9 +15,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   updateDateTime();
   setInterval(updateDateTime, 1000);
 
-  updateDateTime();
-  setInterval(updateDateTime, 1000);
-
   await loadProducts();
   await loadInvoices();
   generateInvoiceNumber();
@@ -25,8 +22,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 function updateDateTime() {
   const now = new Date();
-  document.getElementById("current-date").textContent =
-    now.toLocaleString("ar-YE");
+  const dateEl = document.getElementById("current-date");
+  if (dateEl) {
+    dateEl.textContent = now.toLocaleString("en-US");
+  }
 }
 
 function generateInvoiceNumber() {
