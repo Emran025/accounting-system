@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 function updateDateTime() {
   const now = new Date();
   document.getElementById("current-date").textContent =
-    now.toLocaleString("ar-EG");
+    now.toLocaleString("ar-YE");
 }
 
 function generateInvoiceNumber() {

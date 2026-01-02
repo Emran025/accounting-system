@@ -239,6 +239,19 @@ function init_database() {
         throw new Exception("Failed to create telescope table: " . mysqli_error($conn));
     }
 
+    // Settings table
+    $settings_sql = "CREATE TABLE IF NOT EXISTS settings (
+        setting_key VARCHAR(50) PRIMARY KEY,
+        setting_value TEXT,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!mysqli_query($conn, $settings_sql)) {
+        error_log("Failed to create settings table: " . mysqli_error($conn));
+        throw new Exception("Failed to create settings table: " . mysqli_error($conn));
+    }
+
+
     
     // Migrations for existing tables
     // Update products table

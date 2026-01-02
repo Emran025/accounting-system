@@ -231,16 +231,16 @@ function showAlert(containerId, message, type = "success") {
 
 // Format currency
 function formatCurrency(amount) {
-  return new Intl.NumberFormat("ar-EG", {
+  return new Intl.NumberFormat("ar-YE", {
     style: "currency",
-    currency: "EGP",
+    currency: "YER",
   }).format(amount);
 }
 
 // Format date
 function formatDate(dateString) {
   if (!dateString) return "-";
-  return new Date(dateString).toLocaleString("ar-EG");
+  return new Date(dateString).toLocaleString("ar-YE");
 }
 
 // Sidebar Toggle (Mobile)
