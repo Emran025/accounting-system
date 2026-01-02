@@ -75,13 +75,16 @@
               <form id="invoice-form">
                 <div class="form-group">
                   <label for="product-select">اختر المنتج *</label>
-                  <select
-                    id="product-select"
-                    onchange="onProductSelect()"
-                    required
-                  >
-                    <option value="">-- اختر منتجاً --</option>
-                  </select>
+                  <div class="searchable-select" id="product-search-container">
+                    <input
+                      type="text"
+                      id="product-search-input"
+                      placeholder="ابحث عن منتج..."
+                      autocomplete="off"
+                    />
+                    <div class="options-list" id="product-options-list"></div>
+                    <input type="hidden" id="product-select" required />
+                  </div>
                 </div>
 
                 <div class="form-row">

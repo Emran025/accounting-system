@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   updateDateTime();
   setInterval(updateDateTime, 1000);
 
+  initProductSearch();
   await loadProducts();
   await loadInvoices();
   generateInvoiceNumber();
@@ -47,17 +48,7 @@ async function loadProducts() {
     const result = await response.json();
     if (result.success) {
       products = result.data.filter((p) => p.stock_quantity > 0);
-      const select = document.getElementById("product-select");
-
-      // Clear except first option
-      select.innerHTML = '<option value="">-- اختر منتجاً --</option>';
-
-      products.forEach((product) => {
-        const option = document.createElement("option");
-        option.value = product.id;
-        option.textContent = `${product.name} (المخزون: ${product.stock_quantity})`;
-        select.appendChild(option);
-      });
+      // Removed select filling - handled by searchable search input
     }
   } catch (error) {
     showAlert(
@@ -125,7 +116,109 @@ function onProductSelect() {
     document.getElementById("item-quantity").disabled = false;
     document.getElementById("item-unit-type").innerHTML =
       '<option value="sub">حبة</option><option value="main">كرتون</option>';
+
+    // Reset search input if selection cleared
+    const hiddenInput = document.getElementById("product-select");
+    if (!hiddenInput.value) {
+      document.getElementById("product-search-input").value = "";
+    }
   }
+}
+
+// --- Product Search Functions ---
+function initProductSearch() {
+  const searchInput = document.getElementById("product-search-input");
+  const optionsList = document.getElementById("product-options-list");
+
+  searchInput.addEventListener("focus", () => {
+    if (products.length > 0) renderProductOptions(products);
+    optionsList.classList.add("active");
+  });
+
+  searchInput.addEventListener("input", (e) => {
+    const query = e.target.value.toLowerCase();
+    const filtered = products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(query) ||
+        (p.barcode && p.barcode.includes(query))
+    );
+    renderProductOptions(filtered);
+    optionsList.classList.add("active");
+  });
+
+  searchInput.addEventListener("keydown", (e) => {
+    const items = optionsList.querySelectorAll(".option-item");
+    let activeIndex = Array.from(items).findIndex((item) =>
+      item.classList.contains("selected")
+    );
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (activeIndex < items.length - 1) {
+        if (activeIndex >= 0) items[activeIndex].classList.remove("selected");
+        activeIndex++;
+        items[activeIndex].classList.add("selected");
+        items[activeIndex].scrollIntoView({ block: "nearest" });
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (activeIndex > 0) {
+        items[activeIndex].classList.remove("selected");
+        activeIndex--;
+        items[activeIndex].classList.add("selected");
+        items[activeIndex].scrollIntoView({ block: "nearest" });
+      }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeIndex >= 0) {
+        items[activeIndex].click();
+      }
+    }
+  });
+
+  // Close when clicking outside
+  document.addEventListener("click", (e) => {
+    const container = document.getElementById("product-search-container");
+    if (container && !container.contains(e.target)) {
+      optionsList.classList.remove("active");
+    }
+  });
+}
+
+function renderProductOptions(filteredProducts) {
+  const optionsList = document.getElementById("product-options-list");
+  optionsList.innerHTML = "";
+
+  if (filteredProducts.length === 0) {
+    optionsList.innerHTML =
+      '<div class="no-results">لا توجد منتجات مطابقة</div>';
+    return;
+  }
+
+  filteredProducts.slice(0, 50).forEach((product) => {
+    const div = document.createElement("div");
+    div.className = "option-item";
+    div.innerHTML = `
+            <span class="option-name">${product.name}</span>
+            <span class="option-stock">${product.stock_quantity} ${
+      product.sub_unit_name || "حبة"
+    }</span>
+        `;
+    div.onclick = () => selectProduct(product);
+    optionsList.appendChild(div);
+  });
+}
+
+function selectProduct(product) {
+  const searchInput = document.getElementById("product-search-input");
+  const hiddenInput = document.getElementById("product-select");
+  const optionsList = document.getElementById("product-options-list");
+
+  searchInput.value = product.name;
+  hiddenInput.value = product.id;
+  optionsList.classList.remove("active");
+
+  onProductSelect();
 }
 
 function calculateSubtotal() {
@@ -231,6 +324,7 @@ async function addItemToInvoice() {
 
   // Reset selection form
   document.getElementById("product-select").value = "";
+  document.getElementById("product-search-input").value = "";
   onProductSelect();
 }
 
