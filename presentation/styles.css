@@ -753,6 +753,36 @@ tbody tr:hover {
   color: var(--text-primary);
 }
 
+.close-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--text-light);
+  font-size: 1.5rem;
+  font-weight: 300;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.close-btn:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.close-btn:active {
+  background: rgba(220, 38, 38, 0.15);
+  transform: scale(0.96);
+}
+
 .dialog-body {
   padding: 2rem;
   max-height: 70vh;

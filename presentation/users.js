@@ -18,35 +18,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadManagers();
   await loadUsers();
 
-  // Modal logic
-  const modal = document.getElementById("userModal");
+  // Add User button
   const btn = document.getElementById("addUserBtn");
-  const span = document.getElementsByClassName("close")[0];
-
   btn.onclick = function () {
     populateManagerDropdown("manager", null);
-    modal.style.display = "block";
-  };
-  span.onclick = function () {
-    modal.style.display = "none";
-  };
-
-  const editModal = document.getElementById("editUserModal");
-  const editSpan = document.getElementsByClassName("close-edit")[0];
-
-  editSpan.onclick = function () {
-    editModal.style.display = "none";
-  };
-
-  window.onclick = function (event) {
-    if (event.target == modal) {
-      modal.style.display = "none";
-    }
-    if (event.target == editModal) {
-      editModal.style.display = "none";
-    }
+    openDialog("userModal");
   };
 });
+
+// Dialog helper functions
+function closeUserModal() {
+  closeDialog("userModal");
+}
+
+function submitUserForm() {
+  document.getElementById("userForm").requestSubmit();
+}
+
+function closeEditUserModal() {
+  closeDialog("editUserModal");
+}
+
+function submitEditUserForm() {
+  document.getElementById("editUserForm").requestSubmit();
+}
 
 document.getElementById("userForm").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -67,7 +62,7 @@ document.getElementById("userForm").addEventListener("submit", async (e) => {
     if (response.success) {
       showToast("تمت إضافة المستخدم بنجاح", "success");
       document.getElementById("userForm").reset();
-      document.getElementById("userModal").style.display = "none";
+      closeDialog("userModal");
       await loadManagers(); // Refresh managers list
       await loadUsers();
     } else {
@@ -99,7 +94,7 @@ document
 
       if (response.success) {
         showToast("تم تحديث المستخدم بنجاح", "success");
-        document.getElementById("editUserModal").style.display = "none";
+        closeDialog("editUserModal");
         await loadManagers(); // Refresh managers list
         await loadUsers();
       } else {
@@ -226,5 +221,5 @@ window.openEditModal = function (id, role, isActive, managerId) {
     document.getElementById("editManager").value = managerId;
   }
 
-  document.getElementById("editUserModal").style.display = "block";
+  openDialog("editUserModal");
 };
