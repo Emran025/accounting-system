@@ -589,15 +589,50 @@ function generateInvoiceHTML(inv, settings, qrDataUrl) {
   // Ensure the date is in valid ISO 8601 format (KSA/GCC Standard)
   const dateObj = inv.created_at ? new Date(inv.created_at) : new Date();
   const isoTimestamp = dateObj.toISOString().split(".")[0] + "Z";
-  const formattedTotal = parseFloat(inv.total_amount).toFixed(2);
-  const formattedVat = "0.00"; // Assuming tax is inclusive or already in total
+  const formattedTotal = parseFloat(inv.total_amount || 0).toFixed(2);
+  const formattedVat = parseFloat(
+    inv.vat_amount || inv.tax_amount || 0
+  ).toFixed(2); // prefer explicit VAT if provided
+
+  // Compute amounts (fallbacks if specific fields are missing)
+  const subtotalAmount =
+    inv.subtotal !== undefined
+      ? parseFloat(inv.subtotal)
+      : inv.items
+      ? inv.items.reduce(
+          (s, it) =>
+            s +
+            parseFloat(
+              it.subtotal ?? (it.quantity * (it.unit_price || 0) || 0)
+            ),
+          0
+        )
+      : parseFloat(inv.total_amount || 0);
+
+  const taxAmount =
+    inv.vat_amount !== undefined
+      ? parseFloat(inv.vat_amount)
+      : inv.tax_amount !== undefined
+      ? parseFloat(inv.tax_amount)
+      : 0;
+
+  const discountAmount =
+    inv.discount_amount !== undefined
+      ? parseFloat(inv.discount_amount)
+      : inv.discount !== undefined
+      ? parseFloat(inv.discount)
+      : 0;
+
+  const finalTotal = parseFloat(
+    inv.total_amount || subtotalAmount - discountAmount + taxAmount
+  );
 
   const tlvData = generateTLV({
     1: settings.store_name || "سوبر ماركت الوفاء",
     2: settings.tax_number || "310122393500003", // Official Sample TRN if empty
     3: isoTimestamp,
-    4: formattedTotal,
-    5: formattedVat,
+    4: finalTotal.toFixed(2),
+    5: (taxAmount || 0).toFixed(2),
   });
 
   // Generate QR locally if not provided (increase quiet zone for printed invoices)
@@ -605,6 +640,7 @@ function generateInvoiceHTML(inv, settings, qrDataUrl) {
 
   const style = `
         <style>
+            :root{ --accent: #0f172a; --muted:#6b7280; --surface:#ffffff }
             @page { 
                 margin: 0; 
                 size: ${isThermal ? "80mm auto" : "A4"};
@@ -613,89 +649,140 @@ function generateInvoiceHTML(inv, settings, qrDataUrl) {
                 font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif; 
                 direction: rtl; 
                 margin: 0; 
-                padding: ${isThermal ? "5mm" : "15mm"};
-                color: #1a1a1a;
-                background: white;
-                line-height: 1.4;
-            }
-            .invoice-container {
-                width: ${isThermal ? "70mm" : "auto"};
-                max-width: ${isThermal ? "70mm" : "800px"};
-                margin: 0 auto;
-            }
-            .header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-            .header h1 { margin: 0 0 5px 0; font-size: ${
-              isThermal ? "1.4rem" : "2rem"
-            }; font-weight: 800; }
-            .header p { margin: 2px 0; font-size: 0.85rem; color: #444; }
-            
-            .invoice-meta { 
-                display: flex; 
-                justify-content: space-between; 
-                margin: 15px 0; 
-                font-size: 0.85rem;
-                background: #f9f9f9;
-                padding: 8px;
-                border-radius: 4px;
-            }
-            
-            table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.85rem; }
-            th { text-align: right; border-bottom: 1px solid #000; padding: 8px 2px; font-weight: 700; }
-            td { padding: 8px 2px; border-bottom: 1px solid #eee; }
-            
-            .totals { 
-                margin-top: 10px;
-                border-top: 2px solid #000;
-                padding-top: 8px;
-            }
-            .total-row { 
-                display: flex; 
-                justify-content: space-between; 
-                padding: 4px 0;
-            }
-            .total-row.grand-total { 
-                font-weight: 800; 
-                font-size: 1.2rem; 
-                margin-top: 5px;
-                background: #000;
-                color: #fff;
-                padding: 8px;
-                border-radius: 4px;
-            }
-            
-            .footer { 
-                text-align: center; 
-                margin-top: 25px; 
-                font-size: 0.8rem;
-                border-top: 1px dashed #ccc;
-                padding-top: 15px;
-            }
-            .qr-code {
-                margin: 15px auto;
-                width: 100%;
-                max-width: ${isThermal ? "140px" : "320px"};
-                height: auto;
-                display: block;
-            }
-            .barcode {
-                /* increase spacing so barcode isn't cramped against previous section */
-                margin: 20px auto 16px;
-                width: 100%;
-                max-width: 100%;
-                height: auto;
-                display: block;
-            }
-            .watermark {
-                position: fixed;
-                bottom: 10px;
-                left: 10px;
-                font-size: 0.6rem;
-                color: #ccc;
+                padding: ${isThermal ? "6mm" : "18mm"};
+                color: #0b1220;
+                background: var(--surface);
+                line-height: 1.45;
+                -webkit-font-smoothing:antialiased;
             }
 
-            @media print {
-                body { padding: ${isThermal ? "0" : "15mm"}; }
-                .invoice-container { width: 100%; }
+            .invoice-container{
+                width: ${isThermal ? "70mm" : "100%"};
+                max-width: ${isThermal ? "70mm" : "820px"};
+                margin: 0 auto;
+                box-sizing: border-box;
+                color: inherit;
+            }
+
+            .header{
+              text-align:center;
+              margin-bottom:14px;
+              padding-bottom:10px;
+              border-bottom:1px solid #e6e9ef
+            }
+
+            .header h1{
+              margin:0 0 6px 0;
+              font-size:${isThermal ? "1rem" : "1.6rem"};
+              font-weight:700;
+              color:var(--accent)
+            }
+            .header p{
+              margin:0;
+              font-size:0.85rem;
+              color:var(--muted)
+            }
+
+            .invoice-meta{
+              display:flex;
+              justify-content:space-between;
+              gap:12px;
+              margin:14px 0;
+              font-size:0.86rem
+            }
+            .invoice-meta div{
+              color:var(--muted)
+            }
+
+            table{ width:100%;
+              border-collapse:collapse;
+              margin-bottom:14px;
+              font-size:0.9rem
+            }
+            thead th{ text-align:right;
+              font-weight:700;
+              padding:8px 6px;
+              background:#f7fafc;
+              color:#0b1220;
+              border-bottom:1px solid #e6e9ef }
+            tbody td{
+              padding:10px 6px;
+              border-bottom:1px solid #f1f5f9;
+              vertical-align:middle
+            }
+
+            tbody tr:nth-child(even) td{
+              background: #fbfdff
+            }
+
+            td.numeric{
+              text-align:left;
+              font-variant-numeric: tabular-nums
+            }
+            td.center{
+              text-align:center
+            }
+
+            .totals{
+              margin-top:10px;
+              padding-top:10px;
+              border-top:1px solid #e6e9ef
+            }
+            .total-row{
+              display:flex;
+              justify-content:space-between;
+              align-items:center;
+              padding:6px 0;
+              color:var(--muted)
+            }
+            .total-row small{
+              display:block;
+              font-size:0.8rem;
+              color:#94a3b8 }
+
+            .total-row.grand-total{
+              font-weight:800;
+              font-size:1.05rem;
+              color:var(--accent);
+              border-top:2px dashed #e6e9ef;
+              padding-top:10px
+            }
+
+            .footer{
+              text-align:center;
+              margin-top:22px;
+              font-size:0.82rem;
+              color:var(--muted);
+              border-top:1px dashed #e6e9ef;
+              padding-top:12px
+            }
+
+            .barcode{
+              margin:16px auto;
+              display:block;
+              max-width: 100%;
+              height:50px;
+            }
+
+            .watermark{
+              position:fixed;
+              bottom:10px;
+              left:10px;
+              font-size:0.62rem;
+              color:#e6e9ef
+            }
+
+            @media print{
+                body{
+                  padding:${isThermal ? "2mm" : "15mm"}
+                }
+                .invoice-container{
+                  width:100%
+                }
+                thead th{
+                  background-color:#f7fafc;
+                  -webkit-print-color-adjust:exact
+                }
             }
         </style>
     `;
@@ -757,13 +844,9 @@ function generateInvoiceHTML(inv, settings, qrDataUrl) {
                 </table>
 
                 <div class="totals">
-                    <div class="total-row">
-                        <span>المجموع الفرعي:</span>
-                        <span>${localFormatCurrency(inv.total_amount)}</span>
-                    </div>
                     <div class="total-row grand-total">
                         <span>الإجمالي النهائي:</span>
-                        <span>${localFormatCurrency(inv.total_amount)}</span>
+                        <span>${localFormatCurrency(finalTotal)}</span>
                     </div>
                 </div>
 
@@ -775,7 +858,8 @@ function generateInvoiceHTML(inv, settings, qrDataUrl) {
                       settings.footer_message || "شكراً لزيارتكم!"
                     }</strong></p>
                     <p>الموظف: ${inv.salesperson_name || "المسؤول"}</p>
-                    <p style="font-size: 0.7rem; color: #777;">نظام إدارة السوبر ماركت الذكي</p>
+                    <p style="font-size: 0.7rem;
+              color: #777;">نظام إدارة السوبر ماركت الذكي</p>
                 </div>
             </div>
             <div class="watermark">Supermarket System v1.0</div>
