@@ -173,18 +173,15 @@ function clear_failed_attempts($username) {
 function create_session($user_id) {
     $conn = get_db_connection();
     
-    // Delete all existing sessions for this user (one active session only)
-    $stmt = mysqli_prepare($conn, "DELETE FROM sessions WHERE user_id = ?");
-    mysqli_stmt_bind_param($stmt, "i", $user_id);
-    mysqli_stmt_execute($stmt);
-    mysqli_stmt_close($stmt);
-    
     // Create new session
     $session_token = bin2hex(random_bytes(32));
     $expires_at = date('Y-m-d H:i:s', time() + SESSION_LIFETIME);
+    $ip_address = $_SERVER['REMOTE_ADDR'] ?? '';
+    // Truncate user agent if too long
+    $user_agent = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255);
     
-    $stmt = mysqli_prepare($conn, "INSERT INTO sessions (user_id, session_token, expires_at) VALUES (?, ?, ?)");
-    mysqli_stmt_bind_param($stmt, "iss", $user_id, $session_token, $expires_at);
+    $stmt = mysqli_prepare($conn, "INSERT INTO sessions (user_id, session_token, expires_at, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)");
+    mysqli_stmt_bind_param($stmt, "issss", $user_id, $session_token, $expires_at, $ip_address, $user_agent);
     mysqli_stmt_execute($stmt);
     mysqli_stmt_close($stmt);
     

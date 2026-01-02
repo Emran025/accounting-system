@@ -1,241 +1,394 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>المبيعات / نقطة البيع - نظام إدارة السوبر ماركت</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
 
-<body>
+  <body>
     <div class="main-container">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <img
+            src="assets/images/logo.svg"
+            alt="Market Logo"
+            class="logo-img"
+          />
+          <h2>السوبر ماركت</h2>
+        </div>
+        <ul class="sidebar-nav">
+          <li>
+            <a href="products.html">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                ></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+              <span>المنتجات</span>
+            </a>
+          </li>
+          <li>
+            <a href="purchases.html">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>المشتريات</span>
+            </a>
+          </li>
+          <li>
+            <a href="sales.html" class="active">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path
+                  d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+                ></path>
+              </svg>
+              <span>المبيعات</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="logout-btn">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              <span>تسجيل الخروج</span>
+            </a>
+          </li>
+        </ul>
+      </aside>
 
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <img src="assets/images/logo.svg" alt="Market Logo" class="logo-img">
-                <h2>السوبر ماركت</h2>
-            </div>
-            <ul class="sidebar-nav">
-                <li><a href="products.html">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path
-                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
-                            </path>
-                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                        </svg>
-                        <span>المنتجات</span>
-                    </a></li>
-                <li><a href="purchases.html">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        <span>المشتريات</span>
-                    </a></li>
-                <li><a href="sales.html" class="active">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="9" cy="21" r="1"></circle>
-                            <circle cx="20" cy="21" r="1"></circle>
-                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                        </svg>
-                        <span>المبيعات</span>
-                    </a></li>
-                <li><a href="#" class="logout-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                        <span>تسجيل الخروج</span>
-                    </a></li>
-            </ul>
-        </aside>
+      <main class="content animate-fade">
+        <div class="page-header">
+          <h1>المبيعات / نقطة البيع</h1>
+          <div class="header-actions">
+            <span id="current-date" class="stat-label"></span>
+          </div>
+        </div>
 
-        <main class="content animate-fade">
-            <div class="page-header">
-                <h1>المبيعات / نقطة البيع</h1>
-                <div class="header-actions">
-                    <span id="current-date" class="stat-label"></span>
-                </div>
-            </div>
+        <div id="alert-container"></div>
 
-            <div id="alert-container"></div>
-
-            <div class="sales-layout">
-                <!-- Top Section: Input and Current Invoice -->
-                <div class="sales-top-grids">
-                    <!-- Left: Input Form -->
-                    <div class="sales-card compact animate-slide">
-                        <h3>إضافة منتج للفاتورة</h3>
-                        <form id="invoice-form">
-                            <div class="form-group">
-                                <label for="invoice-number">رقم الفاتورة</label>
-                                <input type="text" id="invoice-number" class="glass" readonly>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="product-select">اختر المنتج *</label>
-                                <select id="product-select" onchange="onProductSelect()" required>
-                                    <option onclick="onProductSelect()" value="">-- اختر منتجاً --</option>
-                                </select>
-                            </div>
-
-                            <div class="form-row tight" style="grid-template-columns: 1fr 1fr 1fr;">
-                                <div class="form-group">
-                                    <label for="item-unit-type">نوع الوحدة</label>
-                                    <select id="item-unit-type" onchange="calculateSubtotal()" class="glass">
-                                        <option value="sub">حبة</option>
-                                        <option value="main">كرتون</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="item-quantity">الكمية *</label>
-                                    <input type="number" id="item-quantity" min="1" value="1"
-                                        oninput="calculateSubtotal()" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="item-unit-price">سعر بيع الوحدة *</label>
-                                    <input type="number" id="item-unit-price" step="0.01" min="0"
-                                        oninput="calculateSubtotal()" required>
-                                </div>
-                            </div>
-                            <div class="form-row tight" style="grid-template-columns: 1fr;">
-                                <div class="form-group">
-                                    <label for="item-stock">المخزون المتوفر (حبة)</label>
-                                    <input type="text" id="item-stock" readonly class="glass"
-                                        style="background: #f8fafc;">
-                                </div>
-                            </div>
-
-                            <div class="summary-stat" style="margin-bottom: 1.5rem;">
-                                <span class="stat-label">المجموع الفرعي لهذا المنتج</span>
-                                <span id="item-subtotal" class="stat-value highlight">$0.00</span>
-                            </div>
-
-                            <button type="button" class="btn btn-secondary btn-sm" style="width: auto;"
-                                onclick="addItemToInvoice()" data-icon="plus">
-                                إضافة للفاتورة
-                            </button>
-                        </form>
-                    </div>
-
-                    <!-- Right: Current Invoice Items -->
-                    <div class="sales-card animate-slide" style="animation-delay: 0.1s;">
-                        <h3>عناصر الفاتورة الحالية</h3>
-                        <div class="table-container" style="max-height: 400px; overflow-y: auto;">
-                            <table id="invoice-items-table">
-                                <thead>
-                                    <tr>
-                                        <th>المنتج</th>
-                                        <th>الكمية</th>
-                                        <th>السعر</th>
-                                        <th>المجموع</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="invoice-items-tbody">
-                                    <tr>
-                                        <td colspan="5"
-                                            style="text-align: center; padding: 2rem; color: var(--text-secondary);">لا
-                                            توجد عناصر مضافة</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="sales-summary-bar">
-                            <div class="summary-stat">
-                                <span class="stat-label">إجمالي الفاتورة</span>
-                                <span id="total-amount" class="stat-value highlight">$0.00</span>
-                            </div>
-                            <button type="button" class="btn btn-primary" onclick="finishInvoice()" id="finish-btn"
-                                data-icon="check">
-                                إنهاء الفاتورة
-                            </button>
-                        </div>
-                    </div>
+        <div class="sales-layout">
+          <!-- Top Section: Input and Current Invoice -->
+          <div class="sales-top-grids">
+            <!-- Left: Input Form -->
+            <div class="sales-card compact animate-slide">
+              <h3>إضافة منتج للفاتورة</h3>
+              <form id="invoice-form">
+                <div class="form-group">
+                  <label for="invoice-number">رقم الفاتورة</label>
+                  <input
+                    type="text"
+                    id="invoice-number"
+                    class="glass"
+                    readonly
+                  />
                 </div>
 
-                <!-- Bottom Section: Invoice History -->
-                <div class="sales-card animate-slide" style="animation-delay: 0.2s;">
-                    <h3>سجل الفواتير السابقة</h3>
-                    <div class="table-container">
-                        <div class="table-wrapper">
-                            <table id="invoices-table">
-                                <thead>
-                                    <tr>
-                                        <th>رقم الفاتورة</th>
-                                        <th>المبلغ الإجمالي</th>
-                                        <th>عدد العناصر</th>
-                                        <th>التاريخ والوقت</th>
-                                        <th>الإجراءات</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="invoices-tbody">
-                                    <tr>
-                                        <td colspan="5" style="text-align: center; padding: 2rem;">جاري التحميل...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div class="form-group">
+                  <label for="product-select">اختر المنتج *</label>
+                  <select
+                    id="product-select"
+                    onchange="onProductSelect()"
+                    required
+                  >
+                    <option onclick="onProductSelect()" value="">
+                      -- اختر منتجاً --
+                    </option>
+                  </select>
                 </div>
+
+                <div
+                  class="form-row tight"
+                  style="grid-template-columns: 1fr 1fr 1fr"
+                >
+                  <div class="form-group">
+                    <label for="item-unit-type">نوع الوحدة</label>
+                    <select
+                      id="item-unit-type"
+                      onchange="calculateSubtotal()"
+                      class="glass"
+                    >
+                      <option value="sub">حبة</option>
+                      <option value="main">كرتون</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="item-quantity">الكمية *</label>
+                    <input
+                      type="number"
+                      id="item-quantity"
+                      min="1"
+                      value="1"
+                      oninput="calculateSubtotal()"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="item-unit-price">سعر بيع الوحدة *</label>
+                    <input
+                      type="number"
+                      id="item-unit-price"
+                      step="0.01"
+                      min="0"
+                      oninput="calculateSubtotal()"
+                      required
+                    />
+                  </div>
+                </div>
+                <div class="form-row tight" style="grid-template-columns: 1fr">
+                  <div class="form-group">
+                    <label for="item-stock">المخزون المتوفر (حبة)</label>
+                    <input
+                      type="text"
+                      id="item-stock"
+                      readonly
+                      class="glass"
+                      style="background: #f8fafc"
+                    />
+                  </div>
+                </div>
+
+                <div class="summary-stat" style="margin-bottom: 1.5rem">
+                  <span class="stat-label">المجموع الفرعي لهذا المنتج</span>
+                  <span id="item-subtotal" class="stat-value highlight"
+                    >$0.00</span
+                  >
+                </div>
+
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  style="width: auto"
+                  onclick="addItemToInvoice()"
+                  data-icon="plus"
+                >
+                  إضافة للفاتورة
+                </button>
+              </form>
             </div>
-        </main>
+
+            <!-- Right: Current Invoice Items -->
+            <div class="sales-card animate-slide" style="animation-delay: 0.1s">
+              <h3>عناصر الفاتورة الحالية</h3>
+              <div
+                class="table-container"
+                style="max-height: 400px; overflow-y: auto"
+              >
+                <table id="invoice-items-table">
+                  <thead>
+                    <tr>
+                      <th>المنتج</th>
+                      <th>الكمية</th>
+                      <th>السعر</th>
+                      <th>المجموع</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="invoice-items-tbody">
+                    <tr>
+                      <td
+                        colspan="5"
+                        style="
+                          text-align: center;
+                          padding: 2rem;
+                          color: var(--text-secondary);
+                        "
+                      >
+                        لا توجد عناصر مضافة
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="sales-summary-bar">
+                <div class="summary-stat">
+                  <span class="stat-label">إجمالي الفاتورة</span>
+                  <span id="total-amount" class="stat-value highlight"
+                    >$0.00</span
+                  >
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  onclick="finishInvoice()"
+                  id="finish-btn"
+                  data-icon="check"
+                >
+                  إنهاء الفاتورة
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Section: Invoice History -->
+          <div class="sales-card animate-slide" style="animation-delay: 0.2s">
+            <h3>سجل الفواتير السابقة</h3>
+            <div class="table-container">
+              <div class="table-wrapper">
+                <table id="invoices-table">
+                  <thead>
+                    <tr>
+                      <th>رقم الفاتورة</th>
+                      <th>المبلغ الإجمالي</th>
+                      <th>عدد العناصر</th>
+                      <th>التاريخ والوقت</th>
+                      <th>الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invoices-tbody">
+                    <tr>
+                      <td colspan="5" style="text-align: center; padding: 2rem">
+                        جاري التحميل...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div
+                class="pagination-container"
+                id="pagination-controls"
+                style="display: none"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
 
     <!-- View Invoice Dialog -->
     <div class="dialog-overlay" id="view-dialog">
-        <div class="dialog">
-            <div class="dialog-header">
-                <h2>تفاصيل الفاتورة</h2>
-                <button class="close-btn" onclick="closeDialog('view-dialog')">&times;</button>
-            </div>
-            <div class="dialog-body" id="view-dialog-body">
-                <!-- Content will be populated by JavaScript -->
-            </div>
-            <div class="dialog-footer">
-                <button type="button" class="btn" onclick="closeDialog('view-dialog')">إغلاق</button>
-            </div>
+      <div class="dialog">
+        <div class="dialog-header">
+          <h2>تفاصيل الفاتورة</h2>
+          <button class="close-btn" onclick="closeDialog('view-dialog')">
+            &times;
+          </button>
         </div>
+        <div class="dialog-body" id="view-dialog-body">
+          <!-- Content will be populated by JavaScript -->
+        </div>
+        <div class="dialog-footer">
+          <button
+            type="button"
+            class="btn"
+            onclick="closeDialog('view-dialog')"
+          >
+            إغلاق
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Confirm Dialog -->
     <div class="dialog-overlay" id="confirm-dialog">
-        <div class="dialog" style="max-width: 400px; width: 90%;">
-            <div class="dialog-header" style="margin-bottom: 1rem; border-bottom: none;">
-                <h2 id="confirm-title"
-                    style="color: var(--warning-color); display: flex; align-items: center; gap: 0.5rem;">
-                    <svg class="icon" viewBox="0 0 24 24" style="width: 24px; height: 24px;">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    تنبيه
-                </h2>
-                <button class="close-btn" onclick="closeConfirmDialog(false)">&times;</button>
-            </div>
-            <div class="dialog-body">
-                <p id="confirm-message"
-                    style="font-size: 1.1rem; color: var(--text-primary); margin: 0 0 2rem 0; line-height: 1.6;">هل أنت
-                    متأكد؟</p>
-            </div>
-            <div class="dialog-footer" style="margin-top: 1rem; border-top: none;">
-                <button type="button" class="btn btn-primary" id="confirm-yes-btn">نعم، متابعة</button>
-                <button type="button" class="btn btn-secondary" onclick="closeConfirmDialog(false)">إلغاء</button>
-            </div>
+      <div class="dialog" style="max-width: 400px; width: 90%">
+        <div
+          class="dialog-header"
+          style="margin-bottom: 1rem; border-bottom: none"
+        >
+          <h2
+            id="confirm-title"
+            style="
+              color: var(--warning-color);
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+            "
+          >
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              style="width: 24px; height: 24px"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            تنبيه
+          </h2>
+          <button class="close-btn" onclick="closeConfirmDialog(false)">
+            &times;
+          </button>
         </div>
+        <div class="dialog-body">
+          <p
+            id="confirm-message"
+            style="
+              font-size: 1.1rem;
+              color: var(--text-primary);
+              margin: 0 0 2rem 0;
+              line-height: 1.6;
+            "
+          >
+            هل أنت متأكد؟
+          </p>
+        </div>
+        <div class="dialog-footer" style="margin-top: 1rem; border-top: none">
+          <button type="button" class="btn btn-primary" id="confirm-yes-btn">
+            نعم، متابعة
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="closeConfirmDialog(false)"
+          >
+            إلغاء
+          </button>
+        </div>
+      </div>
     </div>
 
     <script src="common.js"></script>
     <script src="sales.js"></script>
-</body>
-
+  </body>
 </html>

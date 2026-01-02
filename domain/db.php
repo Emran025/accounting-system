@@ -49,7 +49,11 @@ function init_database() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        role VARCHAR(20) DEFAULT 'admin',
+        is_active TINYINT(1) DEFAULT 1,
+        manager_id INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     
     if (!mysqli_query($conn, $users_sql)) {
@@ -62,6 +66,8 @@ function init_database() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         session_token VARCHAR(64) UNIQUE NOT NULL,
+        ip_address VARCHAR(45),
+        user_agent VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         expires_at DATETIME NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -84,6 +90,26 @@ function init_database() {
                 // Don't throw - table exists, just log the warning
             }
         }
+    }
+    
+    // Check if new columns exist in users table
+    $check_users = mysqli_query($conn, "SHOW COLUMNS FROM users LIKE 'role'");
+    if (mysqli_num_rows($check_users) == 0) {
+        mysqli_query($conn, "ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'admin'");
+        mysqli_query($conn, "ALTER TABLE users ADD COLUMN is_active TINYINT(1) DEFAULT 1");
+    }
+
+    $check_manager = mysqli_query($conn, "SHOW COLUMNS FROM users LIKE 'manager_id'");
+    if (mysqli_num_rows($check_manager) == 0) {
+        mysqli_query($conn, "ALTER TABLE users ADD COLUMN manager_id INT DEFAULT NULL");
+        mysqli_query($conn, "ALTER TABLE users ADD CONSTRAINT fk_user_manager FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL");
+    }
+
+    // Check if new columns exist in sessions table
+    $check_sessions = mysqli_query($conn, "SHOW COLUMNS FROM sessions LIKE 'ip_address'");
+    if (mysqli_num_rows($check_sessions) == 0) {
+        mysqli_query($conn, "ALTER TABLE sessions ADD COLUMN ip_address VARCHAR(45)");
+        mysqli_query($conn, "ALTER TABLE sessions ADD COLUMN user_agent VARCHAR(255)");
     }
     
     // Login attempts table (for throttling)

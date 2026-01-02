@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>لوحة التحكم - نظام إدارة السوبر ماركت</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <h2>السوبر ماركت</h2>
+        </div>
+        <nav class="sidebar-nav">
+          <!-- Links will be injected by common.js -->
+        </nav>
+        <div class="sidebar-footer">
+          <button id="logoutBtn" class="btn btn-logout">
+            <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <header class="top-bar">
+          <button id="sidebarToggle" class="btn-icon">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1>لوحة التحكم</h1>
+          <div class="user-info">
+            <span id="userNameDisplay">المستخدم</span>
+          </div>
+        </header>
+
+        <div class="content-body">
+          <div class="dashboard-stats">
+            <div class="stat-card">
+              <div class="stat-icon sales">
+                <i class="fas fa-money-bill-wave"></i>
+              </div>
+              <div class="stat-info">
+                <h3>المبيعات اليومية</h3>
+                <p id="todaySales">0 ر.س</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon products"><i class="fas fa-box"></i></div>
+              <div class="stat-info">
+                <h3>إجمالي المنتجات</h3>
+                <p id="totalProducts">0</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon alert">
+                <i class="fas fa-exclamation-triangle"></i>
+              </div>
+              <div class="stat-info">
+                <h3>نقص المخزون</h3>
+                <p id="lowStock">0</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon total">
+                <i class="fas fa-chart-line"></i>
+              </div>
+              <div class="stat-info">
+                <h3>إجمالي المبيعات</h3>
+                <p id="totalSales">0 ر.س</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-sections">
+            <div class="section-card">
+              <div class="section-header">
+                <h3>أحدث العمليات</h3>
+                <a href="sales.html" class="btn btn-sm btn-primary">عرض الكل</a>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>رقم الفاتورة</th>
+                      <th>المبلغ</th>
+                      <th>التاريخ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentSalesTable">
+                    <tr>
+                      <td colspan="3" class="text-center">جاري التحميل...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="section-card quick-actions">
+              <h3>إجراءات سريعة</h3>
+              <div class="action-buttons">
+                <a href="sales.html" class="btn btn-primary"
+                  ><i class="fas fa-cash-register"></i> فاتورة جديدة</a
+                >
+                <a href="products.html" class="btn btn-secondary"
+                  ><i class="fas fa-plus"></i> إضافة منتج</a
+                >
+                <a href="purchases.html" class="btn btn-success"
+                  ><i class="fas fa-shopping-cart"></i> تسجيل مشتريات</a
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="common.js"></script>
+    <script src="dashboard.js"></script>
+  </body>
+</html>
