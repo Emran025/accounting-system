@@ -24,12 +24,22 @@ class ProductsController extends Controller {
 
     private function getProducts() {
         $include_purchase_price = isset($_GET['include_purchase_price']) && $_GET['include_purchase_price'] == '1';
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+        
         $params = $this->getPaginationParams();
         $limit = $params['limit'];
         $offset = $params['offset'];
         
+        // Build Where Clause
+        $whereClause = "";
+        if (!empty($search)) {
+            $searchSafe = mysqli_real_escape_string($this->conn, $search);
+            $whereClause = "WHERE p.name LIKE '%$searchSafe%' OR p.category LIKE '%$searchSafe%' OR p.description LIKE '%$searchSafe%' OR p.id LIKE '%$searchSafe%'";
+        }
+
         // Count total
-        $countResult = mysqli_query($this->conn, "SELECT COUNT(*) as total FROM products");
+        $countSql = "SELECT COUNT(*) as total FROM products p $whereClause";
+        $countResult = mysqli_query($this->conn, $countSql);
         $total = mysqli_fetch_assoc($countResult)['total'];
 
         if ($include_purchase_price) {
@@ -38,6 +48,7 @@ class ProductsController extends Controller {
                        (SELECT invoice_price FROM purchases WHERE product_id = p.id ORDER BY purchase_date DESC LIMIT 1) as latest_purchase_price
                 FROM products p
                 LEFT JOIN users u ON p.created_by = u.id
+                $whereClause
                 ORDER BY p.id DESC
                 LIMIT $limit OFFSET $offset
             ";
@@ -46,6 +57,7 @@ class ProductsController extends Controller {
                 SELECT p.*, u.username as creator_name 
                 FROM products p 
                 LEFT JOIN users u ON p.created_by = u.id 
+                $whereClause
                 ORDER BY p.id DESC 
                 LIMIT $limit OFFSET $offset
             ";

@@ -5,9 +5,23 @@ let itemsPerPage = 20;
 let totalItems = 0;
 
 // Initialize
+// Initialize
 document.addEventListener("DOMContentLoaded", async function () {
   const isAuthenticated = await checkAuth();
   if (!isAuthenticated) return;
+
+  // Setup Search
+  const searchInput = document.getElementById("params-search");
+  if (searchInput) {
+    let searchTimeout;
+    searchInput.addEventListener("input", (e) => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        currentPage = 1; // Reset to first page on search
+        loadProducts();
+      }, 400); // 400ms debounce
+    });
+  }
 
   await loadCategories();
   await loadProducts();
@@ -42,8 +56,13 @@ async function loadCategories() {
 // Load products
 async function loadProducts() {
   try {
+    const searchInput = document.getElementById("params-search");
+    const searchValue = searchInput ? searchInput.value : "";
+
     const response = await fetch(
-      `${API_BASE}?action=products&page=${currentPage}&limit=${itemsPerPage}`,
+      `${API_BASE}?action=products&page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(
+        searchValue
+      )}`,
       {
         method: "GET",
         credentials: "include",

@@ -10,6 +10,19 @@ document.addEventListener("DOMContentLoaded", async function () {
   const isAuthenticated = await checkAuth();
   if (!isAuthenticated) return;
 
+  // Setup Search
+  const searchInput = document.getElementById("params-search");
+  if (searchInput) {
+    let searchTimeout;
+    searchInput.addEventListener("input", (e) => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        currentPage = 1; // Reset to first page on search
+        loadPurchases();
+      }, 400); // 400ms debounce
+    });
+  }
+
   await loadProducts();
   await loadPurchases();
 });
@@ -17,8 +30,13 @@ document.addEventListener("DOMContentLoaded", async function () {
 // Load purchases
 async function loadPurchases() {
   try {
+    const searchInput = document.getElementById("params-search");
+    const searchValue = searchInput ? searchInput.value : "";
+
     const response = await fetch(
-      `${API_BASE}?action=purchases&page=${currentPage}&limit=${itemsPerPage}`,
+      `${API_BASE}?action=purchases&page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(
+        searchValue
+      )}`,
       {
         method: "GET",
         credentials: "include",

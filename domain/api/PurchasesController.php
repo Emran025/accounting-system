@@ -26,19 +26,35 @@ class PurchasesController extends Controller {
         $params = $this->getPaginationParams();
         $limit = $params['limit'];
         $offset = $params['offset'];
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+        $whereClause = "";
+        $joinClause = "JOIN products pr ON p.product_id = pr.id LEFT JOIN users u ON p.user_id = u.id";
+        
+        if (!empty($search)) {
+            $searchSafe = mysqli_real_escape_string($this->conn, $search);
+            $whereClause = "WHERE pr.name LIKE '%$searchSafe%' OR p.id LIKE '%$searchSafe%' OR u.username LIKE '%$searchSafe%'";
+        }
 
         // Count total
-        $countResult = mysqli_query($this->conn, "SELECT COUNT(*) as total FROM purchases");
+        $countSql = "SELECT COUNT(*) as total FROM purchases p $joinClause $whereClause";
+        $countResult = mysqli_query($this->conn, $countSql);
         $total = mysqli_fetch_assoc($countResult)['total'];
 
-        $result = mysqli_query($this->conn, "
+        $sql = "
             SELECT p.*, pr.name as product_name, pr.unit_price as product_unit_price, pr.unit_name, pr.sub_unit_name, u.username as recorder_name
             FROM purchases p
-            JOIN products pr ON p.product_id = pr.id
-            LEFT JOIN users u ON p.user_id = u.id
+            $joinClause
+            $whereClause
             ORDER BY p.purchase_date DESC, p.id DESC
             LIMIT $limit OFFSET $offset
-        ");
+        ";
+
+        $result = mysqli_query($this->conn, $sql);
+        if (!$result) {
+            $this->errorResponse(mysqli_error($this->conn));
+            return;
+        }
 
         $purchases = [];
         while ($row = mysqli_fetch_assoc($result)) {
