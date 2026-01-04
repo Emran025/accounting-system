@@ -43,6 +43,11 @@ async function loadDashboardStats() {
       document.getElementById("todaySales").textContent = formatCurrency(
         stats.todays_sales
       );
+      document.getElementById("todayCash").textContent =
+        "نقد: " + formatCurrency(stats.today_breakdown.cash || 0);
+      document.getElementById("todayCredit").textContent =
+        "آجل: " + formatCurrency(stats.today_breakdown.credit || 0);
+
       document.getElementById("totalProducts").textContent =
         stats.total_products;
       document.getElementById("lowStock").textContent =
@@ -50,6 +55,11 @@ async function loadDashboardStats() {
       document.getElementById("totalSales").textContent = formatCurrency(
         stats.total_sales
       );
+
+      document.getElementById("totalCash").textContent =
+        "نقد: " + formatCurrency(stats.sales_breakdown.cash.value || 0);
+      document.getElementById("totalCredit").textContent =
+        "آجل: " + formatCurrency(stats.sales_breakdown.credit.value || 0);
 
       // Recent Sales
       const tbody = document.getElementById("recentSalesTable");

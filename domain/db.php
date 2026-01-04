@@ -29,7 +29,6 @@ function get_db_connection() {
             throw new Exception("Failed to set charset: " . mysqli_error($conn));
         }
     }
-    
     return $conn;
 }
 
@@ -83,7 +82,7 @@ function init_database() {
     
     // Migrate existing sessions table if expires_at is TIMESTAMP
     $check_result = mysqli_query($conn, "SHOW COLUMNS FROM sessions WHERE Field = 'expires_at'");
-    if ($check_result && mysqli_num_rows($check_result) > 0) {
+    if ($check_result && $check_result instanceof mysqli_result && mysqli_num_rows($check_result) > 0) {
         $column = mysqli_fetch_assoc($check_result);
         if (stripos($column['Type'], 'timestamp') !== false) {
             // Alter the column to DATETIME
@@ -97,20 +96,20 @@ function init_database() {
     
     // Check if new columns exist in users table
     $check_users = mysqli_query($conn, "SHOW COLUMNS FROM users LIKE 'role'");
-    if (mysqli_num_rows($check_users) == 0) {
+    if ($check_users && $check_users instanceof mysqli_result && mysqli_num_rows($check_users) == 0) {
         mysqli_query($conn, "ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'admin'");
         mysqli_query($conn, "ALTER TABLE users ADD COLUMN is_active TINYINT(1) DEFAULT 1");
     }
 
     $check_manager = mysqli_query($conn, "SHOW COLUMNS FROM users LIKE 'manager_id'");
-    if (mysqli_num_rows($check_manager) == 0) {
+    if ($check_manager && $check_manager instanceof mysqli_result && mysqli_num_rows($check_manager) == 0) {
         mysqli_query($conn, "ALTER TABLE users ADD COLUMN manager_id INT DEFAULT NULL");
         mysqli_query($conn, "ALTER TABLE users ADD CONSTRAINT fk_user_manager FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL");
     }
 
     // Check if new columns exist in sessions table
     $check_sessions = mysqli_query($conn, "SHOW COLUMNS FROM sessions LIKE 'ip_address'");
-    if (mysqli_num_rows($check_sessions) == 0) {
+    if ($check_sessions && $check_sessions instanceof mysqli_result && mysqli_num_rows($check_sessions) == 0) {
         mysqli_query($conn, "ALTER TABLE sessions ADD COLUMN ip_address VARCHAR(45)");
         mysqli_query($conn, "ALTER TABLE sessions ADD COLUMN user_agent VARCHAR(255)");
     }
@@ -246,9 +245,53 @@ function init_database() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     
+    
     if (!mysqli_query($conn, $settings_sql)) {
         error_log("Failed to create settings table: " . mysqli_error($conn));
         throw new Exception("Failed to create settings table: " . mysqli_error($conn));
+    }
+
+    // AR Customers table
+    $ar_customers_sql = "CREATE TABLE IF NOT EXISTS ar_customers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        phone VARCHAR(50),
+        email VARCHAR(255),
+        address TEXT,
+        tax_number VARCHAR(50),
+        current_balance DECIMAL(10, 2) DEFAULT 0.00,
+        created_by INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!mysqli_query($conn, $ar_customers_sql)) {
+        error_log("Failed to create ar_customers table: " . mysqli_error($conn));
+        throw new Exception("Failed to create ar_customers table: " . mysqli_error($conn));
+    }
+
+    // AR Transactions table (Ledger)
+    $ar_transactions_sql = "CREATE TABLE IF NOT EXISTS ar_transactions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        customer_id INT NOT NULL,
+        type VARCHAR(20) NOT NULL COMMENT 'invoice, payment, return',
+        amount DECIMAL(10, 2) NOT NULL,
+        description TEXT,
+        reference_type VARCHAR(50) DEFAULT NULL COMMENT 'table name e.g. invoices',
+        reference_id INT DEFAULT NULL COMMENT 'record id in reference table',
+        transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_by INT DEFAULT NULL,
+        is_deleted TINYINT(1) DEFAULT 0,
+        deleted_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (customer_id) REFERENCES ar_customers(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!mysqli_query($conn, $ar_transactions_sql)) {
+        error_log("Failed to create ar_transactions table: " . mysqli_error($conn));
+        throw new Exception("Failed to create ar_transactions table: " . mysqli_error($conn));
     }
 
 
@@ -256,7 +299,7 @@ function init_database() {
     // Migrations for existing tables
     // Update products table
     $check_products = mysqli_query($conn, "SHOW COLUMNS FROM products LIKE 'unit_name'");
-    if (mysqli_num_rows($check_products) == 0) {
+    if ($check_products && $check_products instanceof mysqli_result && mysqli_num_rows($check_products) == 0) {
         mysqli_query($conn, "ALTER TABLE products ADD COLUMN unit_name VARCHAR(50) DEFAULT 'كرتون'");
         mysqli_query($conn, "ALTER TABLE products ADD COLUMN items_per_unit INT DEFAULT 1");
         mysqli_query($conn, "ALTER TABLE products ADD COLUMN sub_unit_name VARCHAR(50) DEFAULT 'حبة'");
@@ -268,37 +311,50 @@ function init_database() {
     
     // Update purchases table
     $check_purchases = mysqli_query($conn, "SHOW COLUMNS FROM purchases LIKE 'unit_type'");
-    if (mysqli_num_rows($check_purchases) == 0) {
+    if ($check_purchases && $check_purchases instanceof mysqli_result && mysqli_num_rows($check_purchases) == 0) {
         mysqli_query($conn, "ALTER TABLE purchases ADD COLUMN unit_type VARCHAR(20) DEFAULT 'sub'");
     }
 
     // Add tracking columns to existing tables
     $check_prod_tracking = mysqli_query($conn, "SHOW COLUMNS FROM products LIKE 'created_by'");
-    if (mysqli_num_rows($check_prod_tracking) == 0) {
+    if ($check_prod_tracking && $check_prod_tracking instanceof mysqli_result && mysqli_num_rows($check_prod_tracking) == 0) {
         mysqli_query($conn, "ALTER TABLE products ADD COLUMN created_by INT DEFAULT NULL");
         mysqli_query($conn, "ALTER TABLE products ADD CONSTRAINT fk_products_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL");
     }
 
     $check_cat_tracking = mysqli_query($conn, "SHOW COLUMNS FROM categories LIKE 'created_by'");
-    if (mysqli_num_rows($check_cat_tracking) == 0) {
+    if ($check_cat_tracking && $check_cat_tracking instanceof mysqli_result && mysqli_num_rows($check_cat_tracking) == 0) {
         mysqli_query($conn, "ALTER TABLE categories ADD COLUMN created_by INT DEFAULT NULL");
         mysqli_query($conn, "ALTER TABLE categories ADD CONSTRAINT fk_categories_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL");
     }
 
     $check_purch_tracking = mysqli_query($conn, "SHOW COLUMNS FROM purchases LIKE 'user_id'");
-    if (mysqli_num_rows($check_purch_tracking) == 0) {
+    if ($check_purch_tracking && $check_purch_tracking instanceof mysqli_result && mysqli_num_rows($check_purch_tracking) == 0) {
         mysqli_query($conn, "ALTER TABLE purchases ADD COLUMN user_id INT DEFAULT NULL");
         mysqli_query($conn, "ALTER TABLE purchases ADD CONSTRAINT fk_purchases_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL");
     }
 
     $check_inv_tracking = mysqli_query($conn, "SHOW COLUMNS FROM invoices LIKE 'user_id'");
-    if (mysqli_num_rows($check_inv_tracking) == 0) {
+    if ($check_inv_tracking && $check_inv_tracking instanceof mysqli_result && mysqli_num_rows($check_inv_tracking) == 0) {
         mysqli_query($conn, "ALTER TABLE invoices ADD COLUMN user_id INT DEFAULT NULL");
         mysqli_query($conn, "ALTER TABLE invoices ADD CONSTRAINT fk_invoices_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL");
     }
 
+    $check_inv_customer = mysqli_query($conn, "SHOW COLUMNS FROM invoices LIKE 'customer_id'");
+    if ($check_inv_customer && $check_inv_customer instanceof mysqli_result && mysqli_num_rows($check_inv_customer) == 0) {
+        mysqli_query($conn, "ALTER TABLE invoices ADD COLUMN customer_id INT DEFAULT NULL"); // For AR customer
+        mysqli_query($conn, "ALTER TABLE invoices ADD COLUMN payment_type VARCHAR(20) DEFAULT 'cash'"); // cash or credit
+        mysqli_query($conn, "ALTER TABLE invoices ADD COLUMN amount_paid DECIMAL(10, 2) DEFAULT 0.00");
+        mysqli_query($conn, "ALTER TABLE invoices ADD CONSTRAINT fk_invoices_customer FOREIGN KEY (customer_id) REFERENCES ar_customers(id) ON DELETE SET NULL");
+    }
+
+    $check_inv_paid = mysqli_query($conn, "SHOW COLUMNS FROM invoices LIKE 'amount_paid'");
+    if ($check_inv_paid && $check_inv_paid instanceof mysqli_result && mysqli_num_rows($check_inv_paid) == 0) {
+        mysqli_query($conn, "ALTER TABLE invoices ADD COLUMN amount_paid DECIMAL(10, 2) DEFAULT 0.00");
+    }
+
     $check_user_tracking = mysqli_query($conn, "SHOW COLUMNS FROM users LIKE 'created_by'");
-    if (mysqli_num_rows($check_user_tracking) == 0) {
+    if ($check_user_tracking && $check_user_tracking instanceof mysqli_result && mysqli_num_rows($check_user_tracking) == 0) {
         mysqli_query($conn, "ALTER TABLE users ADD COLUMN created_by INT DEFAULT NULL");
         mysqli_query($conn, "ALTER TABLE users ADD CONSTRAINT fk_users_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL");
     }

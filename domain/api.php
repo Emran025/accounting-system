@@ -100,6 +100,11 @@ try {
     // Settings
     $router->register('settings', 'SettingsController');
 
+    // AR Customers & Ledger
+    require_once 'api/ArController.php';
+    $router->register('ar_customers', 'ArController');
+    $router->register('ar_ledger', 'ArController');
+
     
     $router->dispatch();
 

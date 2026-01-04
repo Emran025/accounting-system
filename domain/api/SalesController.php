@@ -29,16 +29,25 @@ class SalesController extends Controller {
         $params = $this->getPaginationParams();
         $limit = $params['limit'];
         $offset = $params['offset'];
+        $payment_type = $_GET['payment_type'] ?? null;
+
+        $where = "";
+        if ($payment_type) {
+            $type = mysqli_real_escape_string($this->conn, $payment_type);
+            $where = " WHERE i.payment_type = '$type' ";
+        }
 
         // Count total
-        $countResult = mysqli_query($this->conn, "SELECT COUNT(*) as total FROM invoices");
+        $countResult = mysqli_query($this->conn, "SELECT COUNT(*) as total FROM invoices i $where");
         $total = mysqli_fetch_assoc($countResult)['total'];
 
         $result = mysqli_query($this->conn, "
-            SELECT i.*, COUNT(ii.id) as item_count, u.username as salesperson_name
+            SELECT i.*, COUNT(ii.id) as item_count, u.username as salesperson_name, c.name as customer_name
             FROM invoices i
             LEFT JOIN invoice_items ii ON i.id = ii.invoice_id
             LEFT JOIN users u ON i.user_id = u.id
+            LEFT JOIN ar_customers c ON i.customer_id = c.id
+            $where
             GROUP BY i.id
             ORDER BY i.created_at DESC
             LIMIT $limit OFFSET $offset
@@ -54,7 +63,12 @@ class SalesController extends Controller {
     private function getInvoiceDetails() {
         $invoice_id = intval($_GET['id'] ?? 0);
         
-        $result = mysqli_query($this->conn, "SELECT * FROM invoices WHERE id = $invoice_id");
+        $result = mysqli_query($this->conn, "
+            SELECT i.*, c.name as customer_name, c.phone as customer_phone, c.tax_number as customer_tax
+            FROM invoices i
+            LEFT JOIN ar_customers c ON i.customer_id = c.id
+            WHERE i.id = $invoice_id
+        ");
         $invoice = mysqli_fetch_assoc($result);
         
         if (!$invoice) {
@@ -80,6 +94,12 @@ class SalesController extends Controller {
         $data = $this->getJsonInput();
         $invoice_number = mysqli_real_escape_string($this->conn, $data['invoice_number'] ?? '');
         $items = $data['items'] ?? [];
+        $payment_type = mysqli_real_escape_string($this->conn, $data['payment_type'] ?? 'cash');
+        $customer_id = intval($data['customer_id'] ?? 0);
+        
+        if ($payment_type === 'credit' && $customer_id === 0) {
+            $this->errorResponse('Customer is required for credit sales', 400);
+        }
         
         if (empty($items)) {
             $this->errorResponse('Invoice must have at least one item', 400);
@@ -94,12 +114,38 @@ class SalesController extends Controller {
                 $total += $subtotal;
             }
             
+            $amount_paid = floatval($data['amount_paid'] ?? 0);
+
             $user_id = $_SESSION['user_id'];
-            $stmt = mysqli_prepare($this->conn, "INSERT INTO invoices (invoice_number, total_amount, user_id) VALUES (?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, "sdi", $invoice_number, $total, $user_id);
+            $stmt = mysqli_prepare($this->conn, "INSERT INTO invoices (invoice_number, total_amount, user_id, payment_type, customer_id, amount_paid) VALUES (?, ?, ?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "sdisid", $invoice_number, $total, $user_id, $payment_type, $customer_id, $amount_paid);
             mysqli_stmt_execute($stmt);
             $invoice_id = mysqli_insert_id($this->conn);
             mysqli_stmt_close($stmt);
+
+            // If Credit Sale, Add to AR Ledger
+            if ($payment_type === 'credit' && $customer_id > 0) {
+                // 1. Add Invoice Transaction (Debit)
+                $ar_sql = "INSERT INTO ar_transactions (customer_id, type, amount, description, reference_type, reference_id, created_by) VALUES (?, 'invoice', ?, ?, 'invoices', ?, ?)";
+                $desc = "فاتورة مبيعات آجلة رقم " . $invoice_number;
+                $stmt = mysqli_prepare($this->conn, $ar_sql);
+                mysqli_stmt_bind_param($stmt, "idsii", $customer_id, $total, $desc, $invoice_id, $user_id);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
+
+                // 2. Add Payment Transaction (Credit) if partial payment made
+                if ($amount_paid > 0) {
+                    $ar_pay_sql = "INSERT INTO ar_transactions (customer_id, type, amount, description, reference_type, reference_id, created_by) VALUES (?, 'payment', ?, ?, 'invoices', ?, ?)";
+                    $pay_desc = "دفعة مقدمة من الفاتورة رقم " . $invoice_number;
+                    $stmt = mysqli_prepare($this->conn, $ar_pay_sql);
+                    mysqli_stmt_bind_param($stmt, "idsii", $customer_id, $amount_paid, $pay_desc, $invoice_id, $user_id);
+                    mysqli_stmt_execute($stmt);
+                    mysqli_stmt_close($stmt);
+                }
+
+                // Update Customer Balance
+                $this->updateCustomerBalance($customer_id);
+            }
 
             
             foreach ($items as $item) {
@@ -132,7 +178,7 @@ class SalesController extends Controller {
     private function deleteInvoice() {
         $id = intval($_GET['id'] ?? 0);
         
-        $result = mysqli_query($this->conn, "SELECT created_at FROM invoices WHERE id = $id");
+        $result = mysqli_query($this->conn, "SELECT created_at, customer_id, payment_type FROM invoices WHERE id = $id");
         $row = mysqli_fetch_assoc($result);
         if ($row) {
             $invoice_time = strtotime($row['created_at']);
@@ -141,6 +187,7 @@ class SalesController extends Controller {
                 $this->errorResponse('Cannot delete invoice after 48 hours', 403);
             }
         }
+        $customer_id = isset($row['customer_id']) ? intval($row['customer_id']) : 0;
         
         $result = mysqli_query($this->conn, "SELECT product_id, quantity FROM invoice_items WHERE invoice_id = $id");
         $items = [];
@@ -162,14 +209,48 @@ class SalesController extends Controller {
                 mysqli_stmt_execute($stmt);
                 mysqli_stmt_close($stmt);
             }
+
+            // Delete associated AR transaction if exists
+            $stmt = mysqli_prepare($this->conn, "DELETE FROM ar_transactions WHERE reference_type = 'invoices' AND reference_id = ?");
+            mysqli_stmt_bind_param($stmt, "i", $id);
+            mysqli_stmt_execute($stmt);
             
             mysqli_commit($this->conn);
             log_operation('DELETE', 'invoices', $id);
+
+            // Update Customer Balance if applicable
+            if ($customer_id > 0) {
+                $this->updateCustomerBalance($customer_id);
+            }
+
             $this->successResponse();
 
         } catch (Exception $e) {
             mysqli_rollback($this->conn);
             $this->errorResponse($e->getMessage());
         }
+    }
+
+    private function updateCustomerBalance($customer_id) {
+        // Helper to update balance (Duplicated from ArController, ideally shared in a Service/Model)
+        $sql = "
+            UPDATE ar_customers 
+            SET current_balance = (
+                SELECT COALESCE(SUM(
+                    CASE 
+                        WHEN type = 'invoice' THEN amount 
+                        WHEN type IN ('payment', 'return') THEN -amount 
+                        ELSE 0 
+                    END
+                ), 0)
+                FROM ar_transactions 
+                WHERE customer_id = ? AND is_deleted = 0
+            ) 
+            WHERE id = ?
+        ";
+        $stmt = mysqli_prepare($this->conn, $sql);
+        mysqli_stmt_bind_param($stmt, "ii", $customer_id, $customer_id);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
     }
 }

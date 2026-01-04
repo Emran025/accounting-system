@@ -136,6 +136,8 @@ function setupSidebar(user) {
   const commonLinks = [
     { href: "dashboard.html", icon: "home", text: "لوحة التحكم" },
     { href: "sales.html", icon: "cart", text: "المبيعات" },
+    { href: "deferred_sales.html", icon: "cart", text: "مبيعات آجلة" },
+    { href: "ar_customers.html", icon: "users", text: "العملاء والديون" },
     { href: "products.html", icon: "box", text: "المنتجات" },
     { href: "purchases.html", icon: "download", text: "المشتريات" },
   ];

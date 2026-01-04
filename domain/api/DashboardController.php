@@ -23,13 +23,38 @@ class DashboardController extends Controller {
             'total_sales' => 0,
             'total_products' => 0,
             'low_stock_products' => 0,
-            'todays_sales' => 0
+            'todays_sales' => 0,
+            'sales_breakdown' => [
+                'cash' => ['value' => 0, 'count' => 0],
+                'credit' => ['value' => 0, 'count' => 0]
+            ],
+            'today_breakdown' => [
+                'cash' => 0,
+                'credit' => 0
+            ]
         ];
         
         // Total Sales (All time)
         $res = mysqli_query($this->conn, "SELECT SUM(total_amount) as total FROM invoices");
         $row = mysqli_fetch_assoc($res);
         $stats['total_sales'] = floatval($row['total'] ?? 0);
+
+        // Sales Breakdown (Cash vs Credit)
+        $res = mysqli_query($this->conn, "
+            SELECT 
+                payment_type, 
+                SUM(total_amount) as total_value, 
+                COUNT(*) as total_count 
+            FROM invoices 
+            GROUP BY payment_type
+        ");
+        while ($row = mysqli_fetch_assoc($res)) {
+            $type = $row['payment_type'] ?: 'cash'; // Default to cash if null
+            if (isset($stats['sales_breakdown'][$type])) {
+                $stats['sales_breakdown'][$type]['value'] = floatval($row['total_value']);
+                $stats['sales_breakdown'][$type]['count'] = intval($row['total_count']);
+            }
+        }
         
         // Total Products
         $res = mysqli_query($this->conn, "SELECT COUNT(*) as total FROM products");
@@ -46,6 +71,15 @@ class DashboardController extends Controller {
         $res = mysqli_query($this->conn, "SELECT SUM(total_amount) as total FROM invoices WHERE DATE(created_at) = '$today'");
         $row = mysqli_fetch_assoc($res);
         $stats['todays_sales'] = floatval($row['total'] ?? 0);
+
+        // Today's Breakdown
+        $res = mysqli_query($this->conn, "SELECT payment_type, SUM(total_amount) as total FROM invoices WHERE DATE(created_at) = '$today' GROUP BY payment_type");
+        while ($row = mysqli_fetch_assoc($res)) {
+            $type = $row['payment_type'] ?: 'cash';
+            if (isset($stats['today_breakdown'][$type])) {
+                $stats['today_breakdown'][$type] = floatval($row['total']);
+            }
+        }
         
         // Recent Activities (Last 5 invoices)
         $recent_sales = [];

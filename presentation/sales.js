@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   setInterval(updateDateTime, 1000);
 
   initProductSearch();
+  initCustomerSearch(); // Add this
   await loadProducts();
   await loadInvoices();
   generateInvoiceNumber();
@@ -183,6 +184,72 @@ function initProductSearch() {
       optionsList.classList.remove("active");
     }
   });
+}
+
+// --- Customer Search Functions ---
+let customerSearchDebounce;
+function initCustomerSearch() {
+  const searchInput = document.getElementById("customer-search-input");
+  const optionsList = document.getElementById("customer-options-list");
+
+  if (!searchInput) return; // Not on deferred sales page
+
+  searchInput.addEventListener("input", (e) => {
+    const query = e.target.value;
+    clearTimeout(customerSearchDebounce);
+
+    if (query.length < 2) {
+      optionsList.classList.remove("active");
+      return;
+    }
+
+    customerSearchDebounce = setTimeout(async () => {
+      try {
+        const result = await fetchAPI(`ar_customers?limit=10&search=${query}`);
+        if (result.success) {
+          renderCustomerOptions(result.data);
+          optionsList.classList.add("active");
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }, 300);
+  });
+
+  // Close when clicking outside
+  document.addEventListener("click", (e) => {
+    const container = document.getElementById("customer-search-container");
+    if (container && !container.contains(e.target)) {
+      optionsList.classList.remove("active");
+    }
+  });
+}
+
+function renderCustomerOptions(customers) {
+  const optionsList = document.getElementById("customer-options-list");
+  optionsList.innerHTML = "";
+
+  if (customers.length === 0) {
+    optionsList.innerHTML = '<div class="no-results">لا يوجد عملاء</div>';
+    return;
+  }
+
+  customers.forEach((customer) => {
+    const div = document.createElement("div");
+    div.className = "option-item";
+    div.innerHTML = `
+            <span class="option-name">${customer.name}</span>
+            <span class="option-stock">${customer.phone || ""}</span>
+        `;
+    div.onclick = () => selectCustomer(customer);
+    optionsList.appendChild(div);
+  });
+}
+
+function selectCustomer(customer) {
+  document.getElementById("customer-search-input").value = customer.name;
+  document.getElementById("customer-select").value = customer.id;
+  document.getElementById("customer-options-list").classList.remove("active");
 }
 
 function renderProductOptions(filteredProducts) {
@@ -390,6 +457,33 @@ async function finishInvoice() {
       })),
     };
 
+    // Check for Deferred Sales Customer
+    const customerSelect = document.getElementById("customer-select");
+    if (customerSelect) {
+      // We are on deferred sales page
+      const customerId = customerSelect.value;
+      if (!customerId) {
+        showAlert(
+          "alert-container",
+          "يرجى اختيار العميل للفاتورة الآجلة",
+          "error"
+        );
+        finishBtn.disabled = false;
+        finishBtn.innerHTML = originalText;
+        return;
+      }
+      invoiceData.payment_type = "credit";
+      invoiceData.customer_id = customerId;
+
+      // Add amount paid if provided
+      const amountPaidInput = document.getElementById("amount-paid");
+      if (amountPaidInput) {
+        invoiceData.amount_paid = parseFloat(amountPaidInput.value || 0);
+      }
+    } else {
+      invoiceData.payment_type = "cash";
+    }
+
     const response = await fetch(`${API_BASE}?action=invoices`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -434,8 +528,11 @@ async function finishInvoice() {
 // Load History
 async function loadInvoices() {
   try {
+    const isDeferred = window.location.pathname.includes("deferred_sales.html");
+    const paymentType = isDeferred ? "credit" : "cash";
+
     const response = await fetch(
-      `${API_BASE}?action=invoices&page=${currentPage}&limit=${itemsPerPage}&t=${Date.now()}`,
+      `${API_BASE}?action=invoices&page=${currentPage}&limit=${itemsPerPage}&payment_type=${paymentType}&t=${Date.now()}`,
       {
         method: "GET",
         credentials: "include",
@@ -461,21 +558,60 @@ async function loadInvoices() {
 
 function renderInvoiceHistory() {
   const tbody = document.getElementById("invoices-tbody");
+  const isDeferred = window.location.pathname.includes("deferred_sales.html");
 
   if (invoices.length === 0) {
-    tbody.innerHTML =
-      '<tr><td colspan="6" style="text-align: center; padding: 2rem;">لا توجد فواتير سابقة</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem;">لا توجد فواتير سابقة</td></tr>`;
     return;
   }
 
   tbody.innerHTML = invoices
     .map((inv) => {
-      // Restriction: Edit/Delete check (48 hours)
       const createdDate = new Date(inv.created_at);
       const hoursDiff = (new Date() - createdDate) / (1000 * 60 * 60);
       const canDelete = hoursDiff < 48;
 
-      return `
+      if (isDeferred) {
+        return `
+            <tr>
+                <td data-label="رقم الفاتورة"><strong>${
+                  inv.invoice_number
+                }</strong> <span class="badge badge-warning" style="font-size:0.7em">آجل</span></td>
+                <td data-label="المبلغ الإجمالي">${formatCurrency(
+                  inv.total_amount
+                )}</td>
+                <td data-label="المدفوع/المتبقي">
+                    <div style="font-size: 0.85rem;">
+                        <span class="text-success">${formatCurrency(
+                          inv.amount_paid || 0
+                        )}</span> / 
+                        <span class="text-danger">${formatCurrency(
+                          inv.total_amount - (inv.amount_paid || 0)
+                        )}</span>
+                    </div>
+                </td>
+                <td data-label="العميل">${inv.customer_name || "-"}</td>
+                <td data-label="التاريخ والوقت">${formatDate(
+                  inv.created_at,
+                  true
+                )}</td>
+                <td data-label="الإجراءات">
+                    <div class="action-buttons">
+                        <button class="icon-btn view" onclick="viewInvoice(${
+                          inv.id
+                        })" title="عرض">${getIcon("eye")}</button>
+                        ${
+                          canDelete
+                            ? `<button class="icon-btn delete" onclick="deleteInvoice(${
+                                inv.id
+                              })" title="حذف">${getIcon("trash")}</button>`
+                            : ""
+                        }
+                    </div>
+                </td>
+            </tr>`;
+      } else {
+        return `
             <tr>
                 <td data-label="رقم الفاتورة"><strong>${
                   inv.invoice_number
@@ -492,7 +628,6 @@ function renderInvoiceHistory() {
                   inv.salesperson_name || "النظام"
                 }</span></td>
                 <td data-label="الإجراءات">
-
                     <div class="action-buttons">
                         <button class="icon-btn view" onclick="viewInvoice(${
                           inv.id
@@ -506,8 +641,8 @@ function renderInvoiceHistory() {
                         }
                     </div>
                 </td>
-            </tr>
-        `;
+            </tr>`;
+      }
     })
     .join("");
 }
@@ -544,7 +679,76 @@ async function viewInvoice(id) {
                               true
                             )}</span>
                         </div>
+                        ${
+                          inv.payment_type === "credit"
+                            ? `
+                            <div class="summary-stat">
+                                <span class="stat-label">نوع الدفع</span>
+                                <span class="stat-value"><span class="badge badge-warning">آجل (ذمم)</span></span>
+                            </div>
+                            `
+                            : `
+                            <div class="summary-stat">
+                                <span class="stat-label">نوع الدفع</span>
+                                <span class="stat-value"><span class="badge badge-success">نقدي</span></span>
+                            </div>
+                            `
+                        }
                     </div>
+                    ${
+                      inv.customer_name
+                        ? `
+                        <div class="form-row" style="margin-top: 1rem; background: var(--surface-hover); padding: 1rem; border-radius: var(--radius-md);">
+                            <div class="summary-stat">
+                                <span class="stat-label">العميل</span>
+                                <span class="stat-value">${
+                                  inv.customer_name
+                                }</span>
+                            </div>
+                            ${
+                              inv.customer_phone
+                                ? `
+                                <div class="summary-stat">
+                                    <span class="stat-label">الهاتف</span>
+                                    <span class="stat-value">${inv.customer_phone}</span>
+                                </div>
+                            `
+                                : ""
+                            }
+                            ${
+                              inv.customer_tax
+                                ? `
+                                <div class="summary-stat">
+                                    <span class="stat-label">الرقم الضريبي</span>
+                                    <span class="stat-value">${inv.customer_tax}</span>
+                                </div>
+                            `
+                                : ""
+                            }
+                        </div>
+                    `
+                        : ""
+                    }
+                    ${
+                      inv.payment_type === "credit"
+                        ? `
+                        <div class="form-row" style="margin-top: 1rem;">
+                            <div class="summary-stat">
+                                <span class="stat-label">المبلغ المدفوع</span>
+                                <span class="stat-value" style="color: var(--success-color);">${formatCurrency(
+                                  inv.amount_paid || 0
+                                )}</span>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="stat-label">المبلغ المتبقي</span>
+                                <span class="stat-value" style="color: var(--danger-color); font-weight: 700;">${formatCurrency(
+                                  inv.total_amount - (inv.amount_paid || 0)
+                                )}</span>
+                            </div>
+                        </div>
+                    `
+                        : ""
+                    }
                 </div>
 
                 <div class="invoice-items-minimal">
