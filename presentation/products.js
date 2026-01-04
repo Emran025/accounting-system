@@ -5,7 +5,6 @@ let itemsPerPage = 20;
 let totalItems = 0;
 
 // Initialize
-// Initialize
 document.addEventListener("DOMContentLoaded", async function () {
   const isAuthenticated = await checkAuth();
   if (!isAuthenticated) return;
@@ -100,19 +99,20 @@ function renderProducts() {
     .map(
       (p) => `
         <tr class="animate-fade">
-            <td>#${p.id}</td>
-            <td><strong>${p.name}</strong></td>
-            <td>${p.category || "-"}</td>
-            <td>${formatCurrency(p.unit_price)}</td>
-            <td>${formatCurrency(p.minimum_profit_margin)}</td>
-            <td><span class="stat-value" style="font-size: 1.1rem; color: ${
+            <td data-label="الرقم">#${p.id}</td>
+            <td data-label="الاسم"><strong>${p.name}</strong></td>
+            <td data-label="الفئة">${p.category || "-"}</td>
+            <td data-label="سعر الوحدة">${formatCurrency(p.unit_price)}</td>
+            <td data-label="هامش الربح">${formatCurrency(
+              p.minimum_profit_margin
+            )}</td>
+            <td data-label="المخزون"><span class="stat-value" style="font-size: 1.1rem; color: ${
               p.stock_quantity < 10 ? "var(--danger-color)" : "inherit"
             }">${p.stock_quantity} ${p.sub_unit_name || "حبة"}</span></td>
-            <td><span class="badge badge-secondary">${
+            <td data-label="بواسطة"><span class="badge badge-secondary">${
               p.creator_name || "النظام"
             }</span></td>
-            <td>
-
+            <td data-label="الإجراءات">
                 <div class="action-buttons">
                     <button class="icon-btn view" onclick="viewProduct(${
                       p.id

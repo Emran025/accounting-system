@@ -222,35 +222,7 @@ body {
   color: #ff6666 !important;
 }
 
-/* Sidebar Toggle Button */
-.sidebar-toggle-btn {
-  position: absolute;
-  top: 40px;
-  right: -12px; /* Positioned on the left edge in RTL, but logically "start" of content */
-  width: 24px;
-  height: 24px;
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-sm);
-  z-index: 101;
-  transition: transform 0.3s ease;
-}
-
-/* Fix for RTL: right becomes left visually or we just use transform */
-[dir="rtl"] .sidebar-toggle-btn {
-    right: auto;
-    left: -12px;
-}
-
-.sidebar.collapsed .sidebar-toggle-btn {
-  transform: rotate(180deg);
-}
+/* Old Sidebar Toggle Button styles removed */
 
 
 
@@ -1590,4 +1562,300 @@ tbody tr:hover {
   text-align: center;
   color: var(--text-light);
   font-style: italic;
+}
+
+/* --- Responsive & Mobile Styles --- */
+
+/* Sidebar Overlay */
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 17, 10, 0.6);
+    z-index: 99;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(2px);
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Helper Class for Table Responsive */
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+}
+
+/* Toggle Button - Now attached to Body, need FIXED positioning to track sidebar */
+/* Toggle Button - Now attached to Body - Authoritative Positioning */
+.sidebar-toggle-btn {
+    position: fixed !important; /* Force fixed relative to viewport */
+    top: 40px !important;
+    z-index: 1100 !important; /* Ensure on top of everything */
+    width: 24px;
+    height: 24px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Default Desktop Position (Expanded Sidebar = 260px) */
+    /* Right: 260px - 12px (half width) = 248px */
+    right: 248px !important; 
+    left: auto !important;
+}
+
+/* Collapsed Desktop State */
+body.sidebar-is-collapsed .sidebar-toggle-btn {
+    /* Right: 80px - 12px = 68px */
+    right: 68px !important; 
+    transform: rotate(180deg);
+}
+
+/* Specific overrides for LTR to prevent ambiguity */
+html[dir="ltr"] .sidebar-toggle-btn,
+body[dir="ltr"] .sidebar-toggle-btn {
+    left: 248px !important;
+    right: auto !important;
+}
+
+html[dir="ltr"] body.sidebar-is-collapsed .sidebar-toggle-btn,
+body[dir="ltr"] body.sidebar-is-collapsed .sidebar-toggle-btn {
+    left: 68px !important;
+    right: auto !important;
+}
+
+/* Mobile Breakpoint (< 1024px) */
+@media (max-width: 1024px) {
+    /* Layout Reset */
+    .main-container {
+        position: relative;
+    }
+
+    /* Sidebar: Hidden by default on Mobile (Off-canvas) */
+    .sidebar {
+        width: 280px !important;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: -290px; /* Fully off-screen (width + buffer) */
+        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1000;
+        box-shadow: none;
+        height: 100vh;
+        transform: none !important; /* Disable transform to avoid RTL confusion */
+        visibility: visible !important;
+        display: flex !important;
+    }
+    
+    .sidebar.mobile-visible {
+        right: 0 !important;
+        box-shadow: var(--shadow-xl);
+    }
+
+    /* LTR Support */
+    [dir="ltr"] .sidebar {
+        right: auto;
+        left: -290px;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    [dir="ltr"] .sidebar.mobile-visible {
+        left: 0 !important;
+    }
+
+    /* Toggle Button Mobile: Default Closed State */
+    .sidebar-toggle-btn {
+        top: 20px !important;
+        right: 20px !important; /* Top Right corner when closed */
+        left: auto !important;
+        width: 44px !important;
+        height: 44px !important;
+        background: var(--surface-white);
+        color: var(--primary-color);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        z-index: 1100 !important;
+    }
+
+    [dir="ltr"] .sidebar-toggle-btn {
+        left: 20px !important;
+        right: auto !important;
+    }
+
+    /* Toggle Button Mobile: Open State - Moves with sidebar */
+    .sidebar-toggle-btn.mobile-open {
+        background: var(--primary-subtle);
+        transform: rotate(180deg);
+        /* 
+           Sidebar width is 280px. 
+           We want button to be on the left edge of the OPEN sidebar (in RTL).
+           So it should be at right: 280px or slightly overlapping. 
+           Let's put it at 260px (280 - 20 padding-ish).
+        */
+        right: 236px !important; /* 280px width - 44px button width = 236 ?? No, let's try pushing it out attached to edge */
+        /* Actually simpler: 280px (sidebar width) - 10px overlap = 270px from edge */
+        right: 280px !important;
+        margin-right: -22px !important; /* Half overlay */
+        background: var(--primary-color);
+        color: white;
+        border: 2px solid white;
+    }
+
+    /* Mobile Open LTR */
+    [dir="ltr"] .sidebar-toggle-btn.mobile-open {
+        left: 280px !important;
+        right: auto !important;
+        margin-left: -22px !important;
+    }
+
+
+/* CSS Cleanup */
+    
+    /* Ignore the sibling selector logic for collapsed state on mobile */
+    .sidebar.collapsed ~ .sidebar-toggle-btn {
+        right: 16px !important;
+    }
+
+    /* Content Area */
+    .content {
+        margin-right: 0 !important;
+        width: 100% !important;
+        padding: 5rem 1rem 2rem 1rem;
+    }
+    
+    /* Header */
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        width: 100%;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    /* Fix Search Bar Stability */
+    .search-container {
+        width: 100% !important;
+        margin: 0.5rem 0 !important;
+        max-width: none !important;
+        flex: none !important;
+    }
+    
+    /* Ensure user info doesn't break layout */
+    .user-info-header {
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    /* Card View for Tables */
+    table, thead, tbody, th, td, tr {
+        display: block;
+    }
+    
+    thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+    
+    tr {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow-xs);
+    }
+    
+    td {
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+        position: relative;
+        padding: 0.75rem 1rem !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+    }
+    
+    td:last-child {
+        border-bottom: none;
+        justify-content: center;
+        padding: 1rem !important;
+        background: #f8fafc;
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+    }
+    
+    td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        margin-left: 1rem;
+    }
+
+    /* Adjust Action Buttons in Card View */
+    .action-buttons {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Force Sidebar Open Appearance on Mobile (Override collapsed state) */
+    .sidebar.collapsed, .sidebar {
+        width: 280px !important;
+    }
+    
+    .sidebar.collapsed .sidebar-nav a, .sidebar .sidebar-nav a {
+        justify-content: flex-start !important;
+        padding: 0.75rem 1rem !important;
+        gap: 0.75rem !important; /* Ensure gap exists */
+    }
+
+    .sidebar.collapsed .sidebar-nav a span, .sidebar .sidebar-nav a span {
+        display: inline-block !important; /* Force display */
+        opacity: 1 !important;
+        visibility: visible !important;
+        width: auto !important;
+    }
+
+    .sidebar.collapsed .sidebar-header, .sidebar .sidebar-header {
+        justify-content: flex-start !important;
+        padding: 0 1.5rem !important;
+    }
+
+    .sidebar.collapsed .sidebar-header h2, .sidebar .sidebar-header h2 {
+        opacity: 1 !important;
+        visibility: visible !important;
+        width: auto !important;
+        display: block !important;
+    }
+
+    /* Grid Adjustments */
+    .sales-top-grids, .dashboard-stats, .form-row, .form-row.tight {
+        grid-template-columns: 1fr;
+    }
+    
+    .dialog {
+        width: 92%;
+        margin: 1rem;
+    }
 }

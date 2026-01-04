@@ -37,11 +37,15 @@ async function loadDashboardStats() {
         stats.recent_sales.forEach((sale) => {
           const row = document.createElement("tr");
           row.innerHTML = `
-                        <td>#${sale.invoice_number}</td>
-                        <td class="amount">${formatCurrency(
+                        <td data-label="رقم الفاتورة">#${
+                          sale.invoice_number
+                        }</td>
+                        <td data-label="المبلغ" class="amount">${formatCurrency(
                           sale.total_amount
                         )}</td>
-                        <td>${formatDate(sale.created_at)}</td>
+                        <td data-label="التاريخ">${formatDate(
+                          sale.created_at
+                        )}</td>
                     `;
           tbody.appendChild(row);
         });

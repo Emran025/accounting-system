@@ -347,11 +347,11 @@ function renderInvoiceItems() {
     .map(
       (item, index) => `
         <tr class="animate-slide-up">
-            <td>${item.display_name}</td>
-            <td>${item.quantity} ${item.unit_name}</td>
-            <td>${formatCurrency(item.unit_price)}</td>
-            <td>${formatCurrency(item.subtotal)}</td>
-            <td>
+            <td data-label="المنتج">${item.display_name}</td>
+            <td data-label="الكمية">${item.quantity} ${item.unit_name}</td>
+            <td data-label="السعر">${formatCurrency(item.unit_price)}</td>
+            <td data-label="المجموع">${formatCurrency(item.subtotal)}</td>
+            <td data-label="الإجراءات">
                 <button class="icon-btn delete" onclick="removeInvoiceItem(${index})">${getIcon(
         "trash"
       )}</button>
@@ -477,14 +477,21 @@ function renderInvoiceHistory() {
 
       return `
             <tr>
-                <td><strong>${inv.invoice_number}</strong></td>
-                <td>${formatCurrency(inv.total_amount)}</td>
-                <td>${inv.item_count}</td>
-                <td>${formatDate(inv.created_at, true)}</td>
-                <td><span class="badge badge-secondary">${
+                <td data-label="رقم الفاتورة"><strong>${
+                  inv.invoice_number
+                }</strong></td>
+                <td data-label="المبلغ الإجمالي">${formatCurrency(
+                  inv.total_amount
+                )}</td>
+                <td data-label="عدد العناصر">${inv.item_count}</td>
+                <td data-label="التاريخ والوقت">${formatDate(
+                  inv.created_at,
+                  true
+                )}</td>
+                <td data-label="البائع"><span class="badge badge-secondary">${
                   inv.salesperson_name || "النظام"
                 }</span></td>
-                <td>
+                <td data-label="الإجراءات">
 
                     <div class="action-buttons">
                         <button class="icon-btn view" onclick="viewInvoice(${

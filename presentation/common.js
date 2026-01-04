@@ -185,27 +185,103 @@ function setupCollapseToggle() {
   const content = document.querySelector(".content");
   if (!sidebar) return;
 
-  // Add toggle button if it doesn't exist
-  if (!sidebar.querySelector(".sidebar-toggle-btn")) {
-    const toggleBtn = document.createElement("button");
+  // Add toggle button if it doesn't exist (Check body first/globally)
+  let toggleBtn = document.querySelector(".sidebar-toggle-btn");
+  if (!toggleBtn) {
+    toggleBtn = document.createElement("button");
     toggleBtn.className = "sidebar-toggle-btn";
     toggleBtn.innerHTML = getIcon("chevronRight");
-    sidebar.appendChild(toggleBtn);
+    document.body.appendChild(toggleBtn);
+  } else if (toggleBtn.parentNode !== document.body) {
+    // If button exists but isn't in body (e.g., inside sidebar), move it
+    toggleBtn.parentNode.removeChild(toggleBtn);
+    document.body.appendChild(toggleBtn);
+  }
 
-    toggleBtn.addEventListener("click", () => {
-      const collapsed = sidebar.classList.toggle("collapsed");
-      content?.classList.toggle("expanded");
-      localStorage.setItem("sidebarCollapsed", collapsed);
+  // Create overlay for mobile
+  let overlay = document.querySelector(".sidebar-overlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.className = "sidebar-overlay";
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener("click", () => {
+      sidebar.classList.remove("mobile-visible");
+      overlay.classList.remove("active");
+      toggleBtn.classList.remove("mobile-open");
     });
   }
 
+  // Remove old event listeners by cloning
+  const newToggleBtn = toggleBtn.cloneNode(true);
+  toggleBtn.parentNode.replaceChild(newToggleBtn, toggleBtn);
+  toggleBtn = newToggleBtn;
+
+  toggleBtn.addEventListener("click", () => {
+    if (window.innerWidth <= 1024) {
+      // Mobile / Tablet logic
+      const isVisible = sidebar.classList.toggle("mobile-visible");
+      toggleBtn.classList.toggle("mobile-open", isVisible);
+
+      if (isVisible) {
+        overlay.classList.add("active");
+        sidebar.classList.remove("collapsed");
+        document.body.classList.remove("sidebar-is-collapsed"); // Ensure body state matches
+      } else {
+        overlay.classList.remove("active");
+      }
+    } else {
+      // Desktop logic
+      const collapsed = sidebar.classList.toggle("collapsed");
+      document.body.classList.toggle("sidebar-is-collapsed", collapsed); // Sync body class
+      content?.classList.toggle("expanded");
+      localStorage.setItem("sidebarCollapsed", collapsed);
+    }
+  });
+
+  // Handle Resize Events
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 1024) {
+      // Desktop: Reset mobile states
+      sidebar.classList.remove("mobile-visible");
+      overlay.classList.remove("active");
+      toggleBtn.classList.remove("mobile-open");
+
+      // Restore desktop state from storage
+      const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
+      if (isCollapsed) {
+        sidebar.classList.add("collapsed");
+        document.body.classList.add("sidebar-is-collapsed");
+        content?.classList.add("expanded");
+      } else {
+        sidebar.classList.remove("collapsed");
+        document.body.classList.remove("sidebar-is-collapsed");
+        content?.classList.remove("expanded");
+      }
+    } else {
+      // Mobile: Reset desktop collapsed states so full menu shows
+      sidebar.classList.remove("collapsed");
+      document.body.classList.remove("sidebar-is-collapsed");
+      content?.classList.remove("expanded");
+    }
+  });
+
   // Initial state check
-  const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
-  if (isCollapsed) {
-    sidebar.classList.add("collapsed");
-    content?.classList.add("expanded");
+  if (window.innerWidth > 1024) {
+    const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
+    if (isCollapsed) {
+      sidebar.classList.add("collapsed");
+      document.body.classList.add("sidebar-is-collapsed");
+      content?.classList.add("expanded");
+    } else {
+      sidebar.classList.remove("collapsed");
+      document.body.classList.remove("sidebar-is-collapsed");
+      content?.classList.remove("expanded");
+    }
   } else {
+    // Mobile initial
     sidebar.classList.remove("collapsed");
+    document.body.classList.remove("sidebar-is-collapsed");
     content?.classList.remove("expanded");
   }
 }

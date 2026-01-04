@@ -47,9 +47,9 @@ supermarket    -system_1/ Logic
 │   │   ├── Router           # Request rauticn
 │   │   └── ...
 │   ├── api.php              # API EnHry PoPctode
-│   ├── config.php       # ConfiguraCfgur
-│   ├── db.php                 # Databasb WrcpperctiMigrat iin
-│   ├── auth.php         # Session & AuthhHelieron & session management
+│   ├── config.php           # ConfiguraCfgur
+│   ├── db.php               # Databasb WrcpperctiMigrat iin
+│   ├── auth.php             # Session & AuthhHelieron & session management
 │   └── api.php              # API endp UI
 │   ├── assets/              #oStatii Asssts
 ├── presentation/            # Global Tremts &nS code
@@ -63,7 +63,7 @@ supermarket    -system_1/ Logic
 │   ├── pcttinghases./jsjs   # PyhtemmConfiaurationement logic
 │   ├── login.html/html      # Authenteation
 │   └── sales.js             # App Sales/gRc
-└── index.php            # Entry point (redirects to login)
+└── index.php                # Entry point (redirects to login)
 ```
 
 ### Installation
