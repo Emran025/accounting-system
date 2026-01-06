@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>التقارير المالية - نظام إدارة السوبر ماركت</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      .report-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-top: 2rem;
+      }
+      .report-section {
+        background: white;
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+      }
+      .report-section h2 {
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--primary-light);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .financial-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px dashed var(--border-color);
+      }
+      .financial-row:last-child {
+        border-bottom: none;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid var(--border-color);
+        font-weight: bold;
+        font-size: 1.1rem;
+      }
+      .label {
+        color: var(--text-secondary);
+      }
+      .value {
+        color: var(--text-primary);
+        font-family: monospace;
+      }
+      .profit {
+        color: var(--success-color);
+      }
+      .loss {
+        color: var(--danger-color);
+      }
+
+      @media (max-width: 1024px) {
+        .report-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="main-container">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <img
+            src="assets/images/logo.svg"
+            alt="Market Logo"
+            class="logo-img"
+          />
+          <h2>السوبر ماركت</h2>
+        </div>
+        <div class="sidebar-nav">
+          <!-- Links will be injected by common.js -->
+        </div>
+      </aside>
+
+      <main class="content animate-fade">
+        <div class="page-header">
+          <h1>التقارير المالية والمركز المالي</h1>
+          <div class="header-actions">
+            <button class="btn btn-secondary" onclick="exportReport()">
+              <i class="fas fa-file-pdf"></i> تصدير التقرير
+            </button>
+            <button class="btn btn-primary" onclick="loadFinancialData()">
+              <i class="fas fa-sync"></i> تحديث البيانات
+            </button>
+          </div>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <div class="report-grid">
+          <!-- Assets (What we own) -->
+          <div class="report-section animate-fade">
+            <h2><i class="fas fa-vault"></i> الميزانية العمومية (الأصول)</h2>
+            <div id="assets-list">
+              <div class="financial-row">
+                <span class="label">النقد التقديري (المبيعات - المشتريات)</span>
+                <span class="value" id="cash-estimate">0.00 ر.ي</span>
+              </div>
+              <div class="financial-row">
+                <span class="label">قيمة المخزون الحالي</span>
+                <span class="value" id="stock-value">0.00 ر.ي</span>
+              </div>
+              <div class="financial-row">
+                <span class="label">الأصول الثابتة (معدات، أثاث...)</span>
+                <span class="value" id="fixed-assets">0.00 ر.ي</span>
+              </div>
+              <div class="financial-row">
+                <span class="label">الحسابات المدينة (ديون العملاء)</span>
+                <span class="value" id="accounts-receivable">0.00 ر.ي</span>
+              </div>
+              <div class="financial-row">
+                <span class="label">إجمالي قيمة المركز المالي</span>
+                <span class="value" id="total-assets">0.00 ر.ي</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Income Statement (Profit/Loss) -->
+          <div class="report-section animate-fade">
+            <h2>
+              <i class="fas fa-file-invoice-dollar"></i> قائمة الدخل (الأرباح
+              والخسائر)
+            </h2>
+            <div id="income-list">
+              <div class="financial-row">
+                <span class="label">إجمالي إيرادات المبيعات</span>
+                <span class="value text-success" id="total-sales"
+                  >0.00 ر.ي</span
+                >
+              </div>
+              <div class="financial-row">
+                <span class="label">إيرادات مباشرة أخرى</span>
+                <span class="value text-success" id="other-revenues"
+                  >0.00 ر.ي</span
+                >
+              </div>
+              <div class="financial-row">
+                <span class="label">تلفة المشتريات الإجمالية</span>
+                <span class="value text-danger" id="total-purchases"
+                  >0.00 ر.ي</span
+                >
+              </div>
+              <div class="financial-row">
+                <span class="label">إجمالي المصروفات العمومية</span>
+                <span class="value text-danger" id="total-expenses"
+                  >0.00 ر.ي</span
+                >
+              </div>
+              <div class="financial-row">
+                <span class="label">صافي الربح / الخسارة التقديري</span>
+                <span class="value" id="net-profit">0.00 ر.ي</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="common.js"></script>
+    <script src="reports.js"></script>
+  </body>
+</html>

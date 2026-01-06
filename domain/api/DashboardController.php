@@ -30,6 +30,11 @@ class DashboardController extends Controller {
             'low_stock_products' => 0,
             'expiring_products' => 0,
             'todays_sales' => 0,
+            'total_expenses' => 0,
+            'todays_expenses' => 0,
+            'total_revenues' => 0,
+            'todays_revenues' => 0,
+            'total_assets' => 0,
             'sales_breakdown' => [
                 'cash' => ['value' => 0, 'count' => 0],
                 'credit' => ['value' => 0, 'count' => 0]
@@ -91,6 +96,29 @@ class DashboardController extends Controller {
                 $stats['today_breakdown'][$type] = floatval($row['total']);
             }
         }
+        
+        // Expenses Stats
+        $res = mysqli_query($this->conn, "SELECT SUM(amount) as total FROM expenses");
+        $row = mysqli_fetch_assoc($res);
+        $stats['total_expenses'] = floatval($row['total'] ?? 0);
+
+        $res = mysqli_query($this->conn, "SELECT SUM(amount) as total FROM expenses WHERE DATE(expense_date) = '$today'");
+        $row = mysqli_fetch_assoc($res);
+        $stats['todays_expenses'] = floatval($row['total'] ?? 0);
+
+        // Revenues Stats
+        $res = mysqli_query($this->conn, "SELECT SUM(amount) as total FROM revenues");
+        $row = mysqli_fetch_assoc($res);
+        $stats['total_revenues'] = floatval($row['total'] ?? 0);
+
+        $res = mysqli_query($this->conn, "SELECT SUM(amount) as total FROM revenues WHERE DATE(revenue_date) = '$today'");
+        $row = mysqli_fetch_assoc($res);
+        $stats['todays_revenues'] = floatval($row['total'] ?? 0);
+
+        // Assets Stats
+        $res = mysqli_query($this->conn, "SELECT SUM(value) as total FROM assets WHERE status = 'active'");
+        $row = mysqli_fetch_assoc($res);
+        $stats['total_assets'] = floatval($row['total'] ?? 0);
         
         // Recent Activities (Last 5 invoices)
         $recent_sales = [];

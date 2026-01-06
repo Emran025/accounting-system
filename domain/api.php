@@ -32,6 +32,10 @@ try {
     require_once 'api/UsersController.php';
     require_once 'api/DashboardController.php';
     require_once 'api/SettingsController.php';
+    require_once 'api/ExpensesController.php';
+    require_once 'api/AssetsController.php';
+    require_once 'api/RevenuesController.php';
+    require_once 'api/ReportsController.php';
 
 
 } catch (Exception $e) {
@@ -105,6 +109,12 @@ try {
     require_once 'api/ArController.php';
     $router->register('ar_customers', 'ArController');
     $router->register('ar_ledger', 'ArController');
+
+    // Expenses & Assets
+    $router->register('expenses', 'ExpensesController');
+    $router->register('assets', 'AssetsController');
+    $router->register('revenues', 'RevenuesController');
+    $router->register('balance_sheet', 'ReportsController');
 
     
     $router->dispatch();

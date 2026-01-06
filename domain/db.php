@@ -294,6 +294,62 @@ function init_database() {
         throw new Exception("Failed to create ar_transactions table: " . mysqli_error($conn));
     }
 
+    // Expenses table
+    $expenses_sql = "CREATE TABLE IF NOT EXISTS expenses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        category VARCHAR(100) NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
+        expense_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        description TEXT,
+        user_id INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!mysqli_query($conn, $expenses_sql)) {
+        error_log("Failed to create expenses table: " . mysqli_error($conn));
+        throw new Exception("Failed to create expenses table: " . mysqli_error($conn));
+    }
+
+    // Assets table
+    $assets_sql = "CREATE TABLE IF NOT EXISTS assets (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        value DECIMAL(12, 2) NOT NULL,
+        purchase_date DATE NOT NULL,
+        depreciation_rate DECIMAL(5, 2) DEFAULT 0.00,
+        description TEXT,
+        status VARCHAR(50) DEFAULT 'active',
+        created_by INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!mysqli_query($conn, $assets_sql)) {
+        error_log("Failed to create assets table: " . mysqli_error($conn));
+        throw new Exception("Failed to create assets table: " . mysqli_error($conn));
+    }
+
+    // Revenues table (Direct Cash Revenues)
+    $revenues_sql = "CREATE TABLE IF NOT EXISTS revenues (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        source VARCHAR(255) NOT NULL,
+        amount DECIMAL(12, 2) NOT NULL,
+        revenue_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        description TEXT,
+        user_id INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!mysqli_query($conn, $revenues_sql)) {
+        error_log("Failed to create revenues table: " . mysqli_error($conn));
+        throw new Exception("Failed to create revenues table: " . mysqli_error($conn));
+    }
+
 
     
     // Migrations for existing tables

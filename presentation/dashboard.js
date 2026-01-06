@@ -54,6 +54,22 @@ async function loadDashboardStats() {
       document.getElementById("totalCredit").textContent =
         "آجل: " + formatCurrency(stats.sales_breakdown.credit.value || 0);
 
+      document.getElementById("todaysExpenses").textContent = formatCurrency(
+        stats.todays_expenses
+      );
+      document.getElementById("totalExpenses").textContent = formatCurrency(
+        stats.total_expenses
+      );
+      document.getElementById("todaysRevenues").textContent = formatCurrency(
+        stats.todays_revenues
+      );
+      document.getElementById("totalRevenues").textContent = formatCurrency(
+        stats.total_revenues
+      );
+      document.getElementById("totalAssets").textContent = formatCurrency(
+        stats.total_assets
+      );
+
       // Recent Sales
       const tbody = document.getElementById("recentSalesTable");
       tbody.innerHTML = "";
