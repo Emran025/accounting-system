@@ -131,10 +131,27 @@ function renderPurchases() {
       const hoursPassed = (new Date() - createdDate) / (1000 * 60 * 60);
       const canEdit = hoursPassed < 24;
 
+      let expiryWarning = "";
+      if (p.expiry_date) {
+        const expiryDate = new Date(p.expiry_date);
+        const today = new Date();
+        const diffTime = expiryDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 0) {
+          expiryWarning = `<br><span class="badge badge-danger" style="font-size: 0.7rem;">منتهي الصلاحية</span>`;
+        } else if (diffDays <= 30) {
+          expiryWarning = `<br><span class="badge badge-warning" style="font-size: 0.7rem;">تنتهي الصلاحية خلال ${diffDays} يوم</span>`;
+        }
+      }
+
       return `
             <tr class="animate-fade">
                 <td>#${p.id}</td>
-                <td><strong>${p.product_name}</strong></td>
+                <td>
+                    <strong>${p.product_name}</strong>
+                    ${expiryWarning}
+                </td>
                 <td>${p.quantity} ${
         p.unit_type === "main"
           ? p.unit_name || "كرتون"
@@ -224,6 +241,24 @@ function viewPurchase(id) {
                     </div>
                 </div>
             </div>
+            <div class="form-row">
+                <div class="item-row-minimal">
+                    <div class="item-info-pkg">
+                        <span class="stat-label">تاريخ الإنتاج</span>
+                        <span class="item-name-pkg">${
+                          p.production_date || "غير محدد"
+                        }</span>
+                    </div>
+                </div>
+                <div class="item-row-minimal">
+                    <div class="item-info-pkg">
+                        <span class="stat-label">تاريخ الانتهاء</span>
+                        <span class="item-name-pkg">${
+                          p.expiry_date || "غير محدد"
+                        }</span>
+                    </div>
+                </div>
+            </div>
             <div class="item-row-minimal">
                 <div class="item-info-pkg">
                     <span class="stat-label">تاريخ الشراء</span>
@@ -249,6 +284,9 @@ function editPurchase(id) {
   document.getElementById("purchase-unit-type").value = p.unit_type || "sub";
   document.getElementById("purchase-quantity").value = p.quantity;
   document.getElementById("purchase-price").value = p.invoice_price;
+  document.getElementById("purchase-production").value =
+    p.production_date || "";
+  document.getElementById("purchase-expiry").value = p.expiry_date || "";
   document.getElementById("purchase-date").value = new Date(p.purchase_date)
     .toISOString()
     .slice(0, 16);
@@ -273,10 +311,16 @@ async function savePurchase() {
   const quantity = document.getElementById("purchase-quantity").value;
   const unit_type = document.getElementById("purchase-unit-type").value;
   const invoice_price = document.getElementById("purchase-price").value;
+  const production_date = document.getElementById("purchase-production").value;
+  const expiry_date = document.getElementById("purchase-expiry").value;
   const purchase_date = document.getElementById("purchase-date").value;
 
-  if (!product_id || !quantity || !invoice_price) {
-    showAlert("alert-container", "يرجى ملء جميع الحقول المطلوبة", "error");
+  if (!product_id || !quantity || !invoice_price || !expiry_date) {
+    showAlert(
+      "alert-container",
+      "يرجى ملء جميع الحقول المطلوبة بما في ذلك تاريخ الانتهاء",
+      "error"
+    );
     return;
   }
 
@@ -290,6 +334,8 @@ async function savePurchase() {
       quantity: parseInt(quantity),
       unit_type: unit_type,
       invoice_price: parseFloat(invoice_price),
+      production_date: production_date || null,
+      expiry_date: expiry_date,
       purchase_date: purchase_date + ":00",
     };
     if (currentPurchaseId) body.id = currentPurchaseId;

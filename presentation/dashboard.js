@@ -16,17 +16,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
     dateEl.textContent = new Date().toLocaleDateString("ar-SA", options);
   }
-
-  // Setup Low Stock Click
-  // We need to wait for the DOM to be fully ready or just query selector?
-  // The cards are static in HTML, so we can attach immediately.
-  const lowStockCard = document
-    .querySelector(".stat-card .stat-icon.alert")
-    ?.closest(".stat-card");
-  if (lowStockCard) {
-    lowStockCard.style.cursor = "pointer";
-    lowStockCard.onclick = openLowStockDialog;
-  }
 });
 
 async function loadDashboardStats() {
@@ -52,6 +41,10 @@ async function loadDashboardStats() {
         stats.total_products;
       document.getElementById("lowStock").textContent =
         stats.low_stock_products;
+      if (document.getElementById("expiringSoonCount")) {
+        document.getElementById("expiringSoonCount").textContent =
+          stats.expiring_products;
+      }
       document.getElementById("totalSales").textContent = formatCurrency(
         stats.total_sales
       );
@@ -188,3 +181,46 @@ window.submitNewRequest = async function () {
     btn.textContent = originalText;
   }
 };
+async function openExpiringSoonDialog() {
+  openDialog("expiringSoonDialog");
+  const tbody = document.getElementById("expiringSoonTableBody");
+  tbody.innerHTML =
+    '<tr><td colspan="4" class="text-center">جاري التحميل...</td></tr>';
+
+  // Fetch details
+  const res = await fetchAPI("dashboard&detail=expiring_soon");
+  if (res.success) {
+    tbody.innerHTML = "";
+    if (res.data.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="4" class="text-center">لا توجد منتجات منتهية أو قريبة من الانتهاء</td></tr>';
+      return;
+    }
+    res.data.forEach((p) => {
+      const tr = document.createElement("tr");
+
+      const expiryDate = new Date(p.expiry_date);
+      const today = new Date();
+      const diffTime = expiryDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      let statusBadge = "";
+      if (diffDays <= 0) {
+        statusBadge = '<span class="badge badge-danger">منتهي الصلاحية</span>';
+      } else {
+        statusBadge = `<span class="badge badge-warning">تنتهي خلال ${diffDays} يوم</span>`;
+      }
+
+      tr.innerHTML = `
+                <td data-label="المنتج">${p.name}</td>
+                <td data-label="الفئة">${p.category || "-"}</td>
+                <td data-label="تاريخ الانتهاء">${p.expiry_date}</td>
+                <td data-label="الحالة">${statusBadge}</td>
+            `;
+      tbody.appendChild(tr);
+    });
+  } else {
+    tbody.innerHTML =
+      '<tr><td colspan="4" class="text-center text-danger">فشل تحميل البيانات</td></tr>';
+  }
+}

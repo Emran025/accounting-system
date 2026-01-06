@@ -160,8 +160,11 @@ class PurchasesController extends Controller {
         try {
             // Insert purchase
             $user_id = $_SESSION['user_id'];
-            $stmt = mysqli_prepare($this->conn, "INSERT INTO purchases (product_id, quantity, invoice_price, purchase_date, unit_type, user_id) VALUES (?, ?, ?, ?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, "iidssi", $product_id, $quantity, $total_invoice_price, $purchase_date, $unit_type, $user_id);
+            $production_date = !empty($data['production_date']) ? $data['production_date'] : NULL;
+            $expiry_date = !empty($data['expiry_date']) ? $data['expiry_date'] : NULL;
+
+            $stmt = mysqli_prepare($this->conn, "INSERT INTO purchases (product_id, quantity, invoice_price, purchase_date, unit_type, user_id, production_date, expiry_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "iidssiss", $product_id, $quantity, $total_invoice_price, $purchase_date, $unit_type, $user_id, $production_date, $expiry_date);
             mysqli_stmt_execute($stmt);
 
             $purchase_id = mysqli_insert_id($this->conn);
@@ -217,8 +220,11 @@ class PurchasesController extends Controller {
         
         try {
             // Update purchase
-            $stmt = mysqli_prepare($this->conn, "UPDATE purchases SET product_id = ?, quantity = ?, invoice_price = ?, purchase_date = ?, unit_type = ? WHERE id = ?");
-            mysqli_stmt_bind_param($stmt, "iidssi", $product_id, $quantity, $invoice_price, $purchase_date, $unit_type, $id);
+            $production_date = !empty($data['production_date']) ? $data['production_date'] : NULL;
+            $expiry_date = !empty($data['expiry_date']) ? $data['expiry_date'] : NULL;
+
+            $stmt = mysqli_prepare($this->conn, "UPDATE purchases SET product_id = ?, quantity = ?, invoice_price = ?, purchase_date = ?, unit_type = ?, production_date = ?, expiry_date = ? WHERE id = ?");
+            mysqli_stmt_bind_param($stmt, "iidssssi", $product_id, $quantity, $invoice_price, $purchase_date, $unit_type, $production_date, $expiry_date, $id);
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
             

@@ -82,13 +82,35 @@
                 <p id="totalProducts">0</p>
               </div>
             </div>
-            <div class="stat-card">
+            <div
+              class="stat-card"
+              id="lowStockCard"
+              style="cursor: pointer"
+              onclick="openLowStockDialog()"
+            >
               <div class="stat-icon alert">
                 <i class="fas fa-exclamation-triangle"></i>
               </div>
               <div class="stat-info">
                 <h3>نقص المخزون</h3>
                 <p id="lowStock">0</p>
+              </div>
+            </div>
+            <div
+              class="stat-card"
+              id="expiringSoonCard"
+              style="cursor: pointer"
+              onclick="openExpiringSoonDialog()"
+            >
+              <div
+                class="stat-icon alert"
+                style="background: #fff3e0; color: #ef6c00"
+              >
+                <i class="fas fa-calendar-times"></i>
+              </div>
+              <div class="stat-info">
+                <h3>تشارف على الانتهاء</h3>
+                <p id="expiringSoonCount">0</p>
               </div>
             </div>
             <div class="stat-card">
@@ -192,6 +214,40 @@
                 </tr>
               </thead>
               <tbody id="lowStockTableBody">
+                <tr>
+                  <td colspan="4" class="text-center">جاري التحميل...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expiring Soon Dialog -->
+    <div class="dialog-overlay" id="expiringSoonDialog">
+      <div class="dialog" style="max-width: 800px">
+        <div class="dialog-header">
+          <h2>تنبيهات تاريخ الانتهاء</h2>
+          <button class="close-btn" onclick="closeDialog('expiringSoonDialog')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="dialog-body">
+          <p style="color: var(--text-secondary); margin-bottom: 1rem">
+            المنتجات التي ستنتهي صلاحيتها خلال الـ 30 يوماً القادمة
+          </p>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>المنتج</th>
+                  <th>الفئة</th>
+                  <th>تاريخ الانتهاء</th>
+                  <th>الحالة</th>
+                </tr>
+              </thead>
+              <tbody id="expiringSoonTableBody">
                 <tr>
                   <td colspan="4" class="text-center">جاري التحميل...</td>
                 </tr>

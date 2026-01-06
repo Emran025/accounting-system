@@ -315,6 +315,12 @@ function init_database() {
         mysqli_query($conn, "ALTER TABLE purchases ADD COLUMN unit_type VARCHAR(20) DEFAULT 'sub'");
     }
 
+    $check_purchases_expiry = mysqli_query($conn, "SHOW COLUMNS FROM purchases LIKE 'expiry_date'");
+    if ($check_purchases_expiry && $check_purchases_expiry instanceof mysqli_result && mysqli_num_rows($check_purchases_expiry) == 0) {
+        mysqli_query($conn, "ALTER TABLE purchases ADD COLUMN production_date DATE DEFAULT NULL");
+        mysqli_query($conn, "ALTER TABLE purchases ADD COLUMN expiry_date DATE DEFAULT NULL");
+    }
+
     // Add tracking columns to existing tables
     $check_prod_tracking = mysqli_query($conn, "SHOW COLUMNS FROM products LIKE 'created_by'");
     if ($check_prod_tracking && $check_prod_tracking instanceof mysqli_result && mysqli_num_rows($check_prod_tracking) == 0) {
