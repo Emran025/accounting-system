@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css" />
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/button.min.css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
   </head>
   <body>
@@ -54,6 +54,38 @@
         <div class="settings-wrapper animate-fade">
           <!-- Settings Sidebar -->
           <nav class="settings-tabs">
+            <div class="mobile-tab-container">
+              <div class="custom-dropdown" id="settingsDropdown">
+                <button
+                  class="dropdown-trigger"
+                  id="dropdownTrigger"
+                  type="button"
+                >
+                  <span id="selectedTabText" style="pointer-events: none"
+                    >بيانات المتجر</span
+                  >
+                  <i
+                    class="fas fa-chevron-down trigger-icon"
+                    style="pointer-events: none"
+                  ></i>
+                </button>
+                <div class="dropdown-menu" id="dropdownMenu">
+                  <div class="dropdown-item active" data-value="store">
+                    <i class="fas fa-store"></i> بيانات المتجر
+                  </div>
+                  <div class="dropdown-item" data-value="invoices">
+                    <i class="fas fa-file-invoice-dollar"></i> إعدادات الفواتير
+                  </div>
+                  <div class="dropdown-item" data-value="account">
+                    <i class="fas fa-user-shield"></i> الحساب والأمان
+                  </div>
+                  <div class="dropdown-item" data-value="sessions">
+                    <i class="fas fa-history"></i> الجلسات النشطة
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <button class="tab-btn active" data-tab="store">
               <i class="fas fa-store"></i> <span>بيانات المتجر</span>
             </button>

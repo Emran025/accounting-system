@@ -93,6 +93,7 @@ try {
     $router->register('users', 'UsersController');
     $router->register('change_password', 'UsersController');
     $router->register('my_sessions', 'UsersController'); // For account page
+    $router->register('manager_list', 'UsersController');
     
     // Dashboard
     $router->register('dashboard', 'DashboardController');

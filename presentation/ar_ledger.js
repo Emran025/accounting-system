@@ -44,7 +44,7 @@ async function fetchLedger(page = 1) {
   // Check checkbox
   activeFilters.show_deleted = document.getElementById("show-deleted").checked;
 
-  let params = `resource=ledger&customer_id=${customerId}&limit=${currentLimit}&offset=${offset}&show_deleted=${activeFilters.show_deleted}`;
+  let params = `customer_id=${customerId}&limit=${currentLimit}&offset=${offset}&show_deleted=${activeFilters.show_deleted}`;
   if (activeFilters.search) params += `&search=${activeFilters.search}`;
   if (activeFilters.type) params += `&type=${activeFilters.type}`;
   if (activeFilters.date_from)
@@ -246,7 +246,7 @@ async function saveTransaction() {
   // POST = create
   // PUT = update
   const method = id ? "PUT" : "POST";
-  const url = id ? `ar_ledger?resource=ledger` : `ar_ledger?resource=ledger`;
+  const url = id ? `ar_ledger` : `ar_ledger`;
 
   const result = await fetchAPI(url, method, data);
 
@@ -413,7 +413,7 @@ async function deleteTransaction(id) {
   );
   if (!confirmed) return;
 
-  const result = await fetchAPI(`ar_ledger?resource=ledger&id=${id}`, "DELETE");
+  const result = await fetchAPI(`ar_ledger?id=${id}`, "DELETE");
   if (result.success) {
     showToast("تم الحذف بنجاح", "success");
     fetchLedger(currentPage);
@@ -423,11 +423,7 @@ async function deleteTransaction(id) {
 }
 
 async function restoreTransaction(id) {
-  const result = await fetchAPI(
-    `ar_ledger?resource=ledger&action=restore`,
-    "POST",
-    { id }
-  );
+  const result = await fetchAPI(`ar_ledger&sub_action=restore`, "POST", { id });
   if (result.success) {
     showToast("تم الاستعادة بنجاح", "success");
     fetchLedger(currentPage);

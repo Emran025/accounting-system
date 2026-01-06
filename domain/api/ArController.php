@@ -9,10 +9,10 @@ class ArController extends Controller {
             $this->errorResponse('Unauthorized', 401);
         }
 
-        $resource = $_GET['resource'] ?? 'customers'; // customers, ledger
+        $action = $_GET['action'] ?? 'ar_customers';
         $method = $_SERVER['REQUEST_METHOD'];
 
-        if ($resource === 'customers') {
+        if ($action === 'ar_customers') {
             if ($method === 'GET') {
                 $this->getCustomers();
             } elseif ($method === 'POST') {
@@ -22,12 +22,12 @@ class ArController extends Controller {
             } elseif ($method === 'DELETE') {
                 $this->deleteCustomer();
             }
-        } elseif ($resource === 'ledger') {
+        } elseif ($action === 'ar_ledger') {
             if ($method === 'GET') {
                 $this->getLedger();
             } elseif ($method === 'POST') {
-                $action = $_GET['action'] ?? 'create';
-                if ($action === 'restore') {
+                $sub_action = $_GET['sub_action'] ?? 'create';
+                if ($sub_action === 'restore') {
                     $this->restoreTransaction();
                 } else {
                     $this->createTransaction();

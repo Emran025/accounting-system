@@ -3,41 +3,100 @@ let itemsPerPage = 10;
 let totalItems = 0;
 
 document.addEventListener("DOMContentLoaded", async function () {
-  const user = await checkAuth();
-  if (!user) return;
+  // 1. Custom Premium Dropdown Logic
+  const dropdownTrigger = document.getElementById("dropdownTrigger");
+  const settingsDropdown = document.getElementById("settingsDropdown");
+  const dropdownMenu = document.getElementById("dropdownMenu");
 
-  const isAdmin = user.role === "admin";
+  if (dropdownTrigger && settingsDropdown) {
+    // Robust listener for Firefox and Chrome
+    dropdownTrigger.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      settingsDropdown.classList.toggle("active");
+      console.log(
+        "Settings Menu Toggled:",
+        settingsDropdown.classList.contains("active")
+      );
+    });
 
-  // Role-based visibility for Tabs
-  if (!isAdmin) {
-    const adminTabs = document.querySelectorAll(
-      '.tab-btn[data-tab="store"], .tab-btn[data-tab="invoices"]'
-    );
-    adminTabs.forEach((t) => (t.style.display = "none"));
+    // Global click to close when clicking outside
+    document.addEventListener("click", function (e) {
+      if (
+        settingsDropdown.classList.contains("active") &&
+        !settingsDropdown.contains(e.target)
+      ) {
+        settingsDropdown.classList.remove("active");
+      }
+    });
 
-    // Default to account tab for non-admins
-    switchTab("account");
-
-    // Update page title for non-admins
-    const title = document.querySelector(".header-title h1");
-    if (title) title.textContent = "إعدادات الحساب";
-    const subTitle = document.querySelector(".header-title p");
-    if (subTitle) subTitle.textContent = "تغيير كلمة المرور وإدارة الجلسات";
-  } else {
-    await loadSettings();
+    // Item Selection delegation
+    if (dropdownMenu) {
+      dropdownMenu.addEventListener("click", function (e) {
+        const item = e.target.closest(".dropdown-item");
+        if (item) {
+          e.stopPropagation();
+          const tabId = item.getAttribute("data-value");
+          switchTab(tabId);
+          settingsDropdown.classList.remove("active");
+        }
+      });
+    }
   }
 
-  await loadSessions();
+  // 2. Fetch User & Load Data (with error handling)
+  try {
+    const user = await checkAuth();
+    if (!user) return;
 
-  // Tab Switching Logic
+    const isAdmin = user.role === "admin";
+    const activeTab = isAdmin ? "store" : "account";
+
+    if (!isAdmin) {
+      // Hide admin sections in dropdown
+      document
+        .querySelectorAll(
+          '.dropdown-item[data-value="store"], .dropdown-item[data-value="invoices"]'
+        )
+        .forEach((item) => {
+          item.remove();
+        });
+
+      // Hide admin-only buttons (Desktop fallback)
+      document
+        .querySelectorAll(
+          '.tab-btn[data-tab="store"], .tab-btn[data-tab="invoices"]'
+        )
+        .forEach((t) => (t.style.display = "none"));
+
+      // Update titles
+      const title = document.querySelector(".header-title h1");
+      if (title) title.textContent = "إعدادات الحساب";
+      const subTitle = document.querySelector(".header-title p");
+      if (subTitle) subTitle.textContent = "تغيير كلمة المرور وإدارة الجلسات";
+    }
+
+    // Load actual section data
+    if (isAdmin) {
+      await loadSettings().catch(console.error);
+    }
+    await loadSessions().catch(console.error);
+
+    // 3. Final Sync (Ensures UI matches state)
+    switchTab(activeTab);
+  } catch (err) {
+    console.error("Settings initialization failed", err);
+    showToast("حدث خطأ أثناء تحميل الإعدادات", "error");
+  }
+
+  // Handle Desktop Tab Buttons
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const tabId = btn.getAttribute("data-tab");
-      switchTab(tabId);
+      switchTab(btn.getAttribute("data-tab"));
     });
   });
 
-  // Save buttons (multiple sections)
+  // Save triggers
   document.querySelectorAll(".save-trigger").forEach((btn) => {
     btn.addEventListener("click", saveSettings);
   });
@@ -46,15 +105,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     .getElementById("preview-invoice-btn")
     ?.addEventListener("click", previewInvoice);
 
-  document
-    .getElementById("print-test-btn")
-    ?.addEventListener("click", () => {
-      const iframe = document.getElementById("preview-iframe");
-      if (iframe) {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-      }
-    });
+  document.getElementById("print-test-btn")?.addEventListener("click", () => {
+    const iframe = document.getElementById("preview-iframe");
+    if (iframe) {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    }
+  });
 
   // Enable Live Preview Updates
   const settingInputs = [
@@ -84,15 +141,53 @@ document.addEventListener("DOMContentLoaded", async function () {
  * Switch between settings tabs
  */
 function switchTab(tabId) {
-  // Update buttons
+  if (!tabId) return;
+  const cleanId = tabId.trim();
+
+  // 1. Update buttons (for desktop)
   document.querySelectorAll(".tab-btn").forEach((btn) => {
-    btn.classList.toggle("active", btn.getAttribute("data-tab") === tabId);
+    const isMatched = btn.getAttribute("data-tab") === cleanId;
+    btn.classList.toggle("active", isMatched);
   });
 
-  // Update content
+  // 2. Update custom dropdown (for mobile)
+  const selectedTabText = document.getElementById("selectedTabText");
+  const dropdownMenu = document.getElementById("dropdownMenu");
+
+  if (selectedTabText && dropdownMenu) {
+    const activeItem = dropdownMenu.querySelector(
+      `.dropdown-item[data-value="${cleanId}"]`
+    );
+    if (activeItem) {
+      selectedTabText.textContent = activeItem.textContent.trim();
+
+      // Update active state in menu
+      dropdownMenu.querySelectorAll(".dropdown-item").forEach((item) => {
+        item.classList.toggle(
+          "active",
+          item.getAttribute("data-value") === cleanId
+        );
+      });
+    }
+  }
+
+  // 3. Update content sections
+  let found = false;
   document.querySelectorAll(".tab-content").forEach((content) => {
-    content.classList.toggle("active", content.id === `tab-${tabId}`);
+    const targetId = `tab-${cleanId}`;
+    if (content.id === targetId) {
+      content.style.display = "block";
+      content.classList.add("active");
+      found = true;
+    } else {
+      content.style.display = "none";
+      content.classList.remove("active");
+    }
   });
+
+  if (!found) {
+    console.error("Tab content not found for ID:", cleanId);
+  }
 }
 
 async function handlePasswordChange(e) {
@@ -275,8 +370,8 @@ async function loadSettings() {
   }
 }
 
-async function saveSettings() {
-  const saveBtn = document.getElementById("save-settings-btn");
+async function saveSettings(e) {
+  const saveBtn = e.currentTarget;
   const originalText = saveBtn.textContent;
   saveBtn.disabled = true;
   saveBtn.textContent = "جاري الحفظ...";
