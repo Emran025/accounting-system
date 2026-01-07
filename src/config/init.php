@@ -6,5 +6,4 @@ ini_set('display_errors', 1);
 require_once __DIR__ . '/db.php';
 
 echo "Database initialization complete!\n";
-echo "Default user created: admin / admin123\n";
-echo "100 products seeded.\n";
+echo "Default user and 100 products seeded.\n";

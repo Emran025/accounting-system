@@ -100,17 +100,19 @@ function renderProducts() {
       (p) => `
         <tr class="animate-fade">
             <td data-label="الرقم">#${p.id}</td>
-            <td data-label="الاسم"><strong>${p.name}</strong></td>
-            <td data-label="الفئة">${p.category || "-"}</td>
+            <td data-label="الاسم"><strong>${escapeHtml(p.name)}</strong></td>
+            <td data-label="الفئة">${escapeHtml(p.category) || "-"}</td>
             <td data-label="سعر الوحدة">${formatCurrency(p.unit_price)}</td>
             <td data-label="هامش الربح">${formatCurrency(
               p.minimum_profit_margin
             )}</td>
             <td data-label="المخزون"><span class="stat-value" style="font-size: 1.1rem; color: ${
               p.stock_quantity < 10 ? "var(--danger-color)" : "inherit"
-            }">${p.stock_quantity} ${p.sub_unit_name || "حبة"}</span></td>
+            }">${p.stock_quantity} ${
+        escapeHtml(p.sub_unit_name) || "حبة"
+      }</span></td>
             <td data-label="بواسطة"><span class="badge badge-secondary">${
-              p.creator_name || "النظام"
+              escapeHtml(p.creator_name) || "النظام"
             }</span></td>
             <td data-label="الإجراءات">
                 <div class="action-buttons">
@@ -154,18 +156,20 @@ function viewProduct(id) {
             <div class="item-row-minimal">
                 <div class="item-info-pkg">
                     <span class="stat-label">اسم المنتج</span>
-                    <span class="item-name-pkg">${p.name}</span>
+                    <span class="item-name-pkg">${escapeHtml(p.name)}</span>
                 </div>
                 <div class="item-info-pkg">
                     <span class="stat-label">الفئة</span>
-                    <span class="item-name-pkg">${p.category || "-"}</span>
+                    <span class="item-name-pkg">${
+                      escapeHtml(p.category) || "-"
+                    }</span>
                 </div>
             </div>
             <div class="item-row-minimal">
                 <div class="item-info-pkg">
                     <span class="stat-label">الوصف</span>
                     <span class="item-name-pkg">${
-                      p.description || "لا يوجد وصف"
+                      escapeHtml(p.description) || "لا يوجد وصف"
                     }</span>
                 </div>
             </div>
@@ -190,9 +194,11 @@ function viewProduct(id) {
             <div class="item-row-minimal">
                 <div class="item-info-pkg">
                     <span class="stat-label">تفاصيل الوحدات</span>
-                    <span class="item-name-pkg">1 ${p.unit_name || "كرتون"} = ${
-    p.items_per_unit || 1
-  } ${p.sub_unit_name || "حبة"}</span>
+                    <span class="item-name-pkg">1 ${
+                      escapeHtml(p.unit_name) || "كرتون"
+                    } = ${p.items_per_unit || 1} ${
+    escapeHtml(p.sub_unit_name) || "حبة"
+  }</span>
                 </div>
             </div>
             <div class="item-row-minimal" style="background: ${
@@ -204,7 +210,9 @@ function viewProduct(id) {
                       p.stock_quantity < 10
                         ? "var(--danger-color)"
                         : "var(--primary-color)"
-                    }">${p.stock_quantity} ${p.sub_unit_name || "حبة"}</span>
+                    }">${p.stock_quantity} ${
+    escapeHtml(p.sub_unit_name) || "حبة"
+  }</span>
                 </div>
             </div>
         </div>

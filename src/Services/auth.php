@@ -32,7 +32,8 @@ function start_session()
         // The session token in the database must be updated if we regenerate the session ID
 
         // Log session info for debugging
-        error_log("Session started: ID=" . session_id() . ", Name=" . session_name() . ", Cookie: " . (isset($_COOKIE[session_name()]) ? 'exists' : 'missing'));
+        // Log session start (without exposing ID)
+        // error_log("Session started: Name=" . session_name());
     }
 }
 
@@ -193,6 +194,7 @@ function create_session($user_id)
     mysqli_stmt_close($stmt);
 
     start_session();
+    session_regenerate_id(true); // Prevent session fixation
     $_SESSION['user_id'] = $user_id;
     $_SESSION['session_token'] = $session_token;
 

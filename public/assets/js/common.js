@@ -41,6 +41,19 @@ function getIcon(name) {
   return icons[name] || "";
 }
 
+/**
+ * Escapes HTML to prevent XSS
+ */
+function escapeHtml(text) {
+  if (text === null || text === undefined) return "";
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // Wrapper for fetch to handle repetitive tasks
 async function fetchAPI(action, method = "GET", body = null) {
   const options = {
@@ -55,21 +68,40 @@ async function fetchAPI(action, method = "GET", body = null) {
   }
 
   try {
-    const response = await fetch(
-      `${API_BASE}?action=${action.replace("?", "&")}`,
-      options
-    );
+    // Audit fix: Ensure safer URL construction
+    // We assume action might contain query params like "products&id=1"
+    // We can't use URLSearchParams easily without breaking the "action" string convention used here
+    // But we can minimally ensure API_BASE is respected
+    const cleanAction = action.replace(/^\?/, ""); // remove leading ? if present
+    const url = `${API_BASE}?action=${cleanAction.replace(/\?/g, "&")}`;
+
+    const response = await fetch(url, options);
 
     if (response.status === 401) {
       window.location.href = "../auth/login.html";
       return { success: false, message: "Unauthorized" };
     }
 
+    // Audit fix: Check for HTTP errors
+    if (!response.ok) {
+      // Try to get error message from JSON
+      try {
+        const errData = await response.json();
+        return {
+          success: false,
+          message: errData.message || `HTTP Error ${response.status}`,
+        };
+      } catch (e) {
+        return { success: false, message: `HTTP Error ${response.status}` };
+      }
+    }
+
     const data = await response.json();
     return data;
   } catch (error) {
     console.error("API Error:", error);
-    return { success: false, message: "Network error" };
+    // Audit fix: Don't swallow, but sanitize
+    return { success: false, message: "Connection error. Please try again." };
   }
 }
 

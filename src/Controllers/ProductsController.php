@@ -32,15 +32,29 @@ class ProductsController extends Controller {
         
         // Build Where Clause
         $whereClause = "";
+        $types = "";
+        $queryParams = [];
+        
         if (!empty($search)) {
-            $searchSafe = mysqli_real_escape_string($this->conn, $search);
-            $whereClause = "WHERE p.name LIKE '%$searchSafe%' OR p.category LIKE '%$searchSafe%' OR p.description LIKE '%$searchSafe%' OR p.id LIKE '%$searchSafe%'";
+            $whereClause = "WHERE p.name LIKE ? OR p.category LIKE ? OR p.description LIKE ? OR p.id LIKE ?";
+            $searchTerm = "%$search%";
+            $types .= "ssss";
+            $queryParams[] = $searchTerm;
+            $queryParams[] = $searchTerm;
+            $queryParams[] = $searchTerm;
+            $queryParams[] = $searchTerm;
         }
 
         // Count total
         $countSql = "SELECT COUNT(*) as total FROM products p $whereClause";
-        $countResult = mysqli_query($this->conn, $countSql);
+        $stmtCount = mysqli_prepare($this->conn, $countSql);
+        if (!empty($queryParams)) {
+            mysqli_stmt_bind_param($stmtCount, $types, ...$queryParams);
+        }
+        mysqli_stmt_execute($stmtCount);
+        $countResult = mysqli_stmt_get_result($stmtCount);
         $total = mysqli_fetch_assoc($countResult)['total'];
+        mysqli_stmt_close($stmtCount);
 
         if ($include_purchase_price) {
             $sql = "
@@ -50,7 +64,7 @@ class ProductsController extends Controller {
                 LEFT JOIN users u ON p.created_by = u.id
                 $whereClause
                 ORDER BY p.id DESC
-                LIMIT $limit OFFSET $offset
+                LIMIT ? OFFSET ?
             ";
         } else {
             $sql = "
@@ -59,16 +73,24 @@ class ProductsController extends Controller {
                 LEFT JOIN users u ON p.created_by = u.id 
                 $whereClause
                 ORDER BY p.id DESC 
-                LIMIT $limit OFFSET $offset
+                LIMIT ? OFFSET ?
             ";
         }
 
+        $stmt = mysqli_prepare($this->conn, $sql);
+        $types .= "ii";
+        $queryParams[] = $limit;
+        $queryParams[] = $offset;
         
-        $result = mysqli_query($this->conn, $sql);
+        mysqli_stmt_bind_param($stmt, $types, ...$queryParams);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
         $products = [];
         while ($row = mysqli_fetch_assoc($result)) {
             $products[] = $row;
         }
+        mysqli_stmt_close($stmt);
         
         $this->paginatedResponse($products, $total, $params['page'], $params['limit']);
     }
@@ -128,6 +150,10 @@ class ProductsController extends Controller {
     }
 
     private function deleteProduct() {
+        if ($_SESSION['role'] !== 'admin') {
+            $this->errorResponse('Permission denied. Only admins can delete products.', 403);
+            return;
+        }
         $id = intval($_GET['id'] ?? 0);
         
         $stmt = mysqli_prepare($this->conn, "DELETE FROM products WHERE id = ?");

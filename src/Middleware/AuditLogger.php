@@ -14,7 +14,7 @@ class AuditLogger {
             'user_id' => $_SESSION['user_id'] ?? 'Guest',
             'method' => $_SERVER['REQUEST_METHOD'],
             'uri' => $_SERVER['REQUEST_URI'],
-            'payload' => $_REQUEST
+            'payload' => array_map(function($v) { return '***'; }, array_intersect_key($_REQUEST, array_flip(['password', 'token', 'session_token', 'credit_card', 'cvv']))) + array_diff_key($_REQUEST, array_flip(['password', 'token', 'session_token', 'credit_card', 'cvv']))
         ];
 
         file_put_contents(

@@ -22,22 +22,39 @@ class LedgerService
         mysqli_begin_transaction($this->conn);
 
         try {
-            $type_esc = mysqli_real_escape_string($this->conn, $document_type);
-            $result = mysqli_query($this->conn, "SELECT current_number, prefix, format FROM document_sequences WHERE document_type = '$type_esc' FOR UPDATE");
+            $stmt = mysqli_prepare($this->conn, "SELECT current_number, prefix, format FROM document_sequences WHERE document_type = ? FOR UPDATE");
+            mysqli_stmt_bind_param($stmt, "s", $document_type);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
 
             if (!$result || mysqli_num_rows($result) == 0) {
                 // Create default sequence if not exists
-                mysqli_query($this->conn, "INSERT INTO document_sequences (document_type, prefix, current_number, format) VALUES ('$type_esc', '$type_esc', 0, '{PREFIX}-{NUMBER}')");
-                $result = mysqli_query($this->conn, "SELECT current_number, prefix, format FROM document_sequences WHERE document_type = '$type_esc' FOR UPDATE");
+                $default_prefix = $document_type;
+                $default_current = 0;
+                $default_format = '{PREFIX}-{NUMBER}';
+                
+                $insert_stmt = mysqli_prepare($this->conn, "INSERT INTO document_sequences (document_type, prefix, current_number, format) VALUES (?, ?, ?, ?)");
+                mysqli_stmt_bind_param($insert_stmt, "ssis", $document_type, $default_prefix, $default_current, $default_format);
+                mysqli_stmt_execute($insert_stmt);
+                mysqli_stmt_close($insert_stmt);
+
+                // Re-select
+                mysqli_stmt_execute($stmt); // Re-execute select
+                $result = mysqli_stmt_get_result($stmt);
             }
 
             $row = mysqli_fetch_assoc($result);
+            mysqli_stmt_close($stmt);
+
             $current_number = intval($row['current_number']) + 1;
             $prefix = $row['prefix'];
             $format = $row['format'];
 
             // Update sequence
-            mysqli_query($this->conn, "UPDATE document_sequences SET current_number = $current_number WHERE document_type = '$type_esc'");
+            $update_stmt = mysqli_prepare($this->conn, "UPDATE document_sequences SET current_number = ? WHERE document_type = ?");
+            mysqli_stmt_bind_param($update_stmt, "is", $current_number, $document_type);
+            mysqli_stmt_execute($update_stmt);
+            mysqli_stmt_close($update_stmt);
 
             mysqli_commit($this->conn);
 
@@ -205,37 +222,46 @@ class LedgerService
      */
     public function getAccountBalance($account_code, $as_of_date = null)
     {
-        $account_code_esc = mysqli_real_escape_string($this->conn, $account_code);
-
         // Get account
-        $acc_result = mysqli_query($this->conn, "SELECT id, account_type FROM chart_of_accounts WHERE account_code = '$account_code_esc'");
+        $stmt_acc = mysqli_prepare($this->conn, "SELECT id, account_type FROM chart_of_accounts WHERE account_code = ?");
+        mysqli_stmt_bind_param($stmt_acc, "s", $account_code);
+        mysqli_stmt_execute($stmt_acc);
+        $acc_result = mysqli_stmt_get_result($stmt_acc);
+
         if (!$acc_result || mysqli_num_rows($acc_result) == 0) {
+            mysqli_stmt_close($stmt_acc);
             return 0;
         }
         $account = mysqli_fetch_assoc($acc_result);
+        mysqli_stmt_close($stmt_acc);
+
         $account_id = intval($account['id']);
         $account_type = $account['account_type'];
 
-        // Build date filter
-        $date_filter = "";
-        if ($as_of_date) {
-            $date_esc = mysqli_real_escape_string($this->conn, $as_of_date);
-            $date_filter = "AND voucher_date <= '$date_esc'";
-        }
-
-        // Calculate balance based on account type
-        // Assets and Expenses: Debit increases, Credit decreases
-        // Liabilities, Equity, Revenue: Credit increases, Debit decreases
-        $result = mysqli_query(
-            $this->conn,
-            "SELECT 
+        // Build query
+        $sql = "SELECT 
                 SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) as total_debits,
                 SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) as total_credits
              FROM general_ledger 
-             WHERE account_id = $account_id AND is_closed = 0 $date_filter"
-        );
+             WHERE account_id = ? AND is_closed = 0";
+
+        $types = "i";
+        $params = [$account_id];
+
+        if ($as_of_date) {
+            $sql .= " AND voucher_date <= ?";
+            $types .= "s";
+            $params[] = $as_of_date;
+        }
+
+        $stmt = mysqli_prepare($this->conn, $sql);
+        mysqli_stmt_bind_param($stmt, $types, ...$params);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
 
         $row = mysqli_fetch_assoc($result);
+        mysqli_stmt_close($stmt);
+
         $debits = floatval($row['total_debits'] ?? 0);
         $credits = floatval($row['total_credits'] ?? 0);
 
@@ -252,13 +278,10 @@ class LedgerService
     public function reverseTransaction($voucher_number, $description = null)
     {
         // Get original entries
-        $voucher_esc = mysqli_real_escape_string($this->conn, $voucher_number);
-        $result = mysqli_query(
-            $this->conn,
-            "SELECT account_id, entry_type, amount, description 
-             FROM general_ledger 
-             WHERE voucher_number = '$voucher_esc'"
-        );
+        $stmt = mysqli_prepare($this->conn, "SELECT account_id, entry_type, amount, description FROM general_ledger WHERE voucher_number = ?");
+        mysqli_stmt_bind_param($stmt, "s", $voucher_number);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
 
         if (!$result || mysqli_num_rows($result) == 0) {
             throw new Exception("Voucher not found");

@@ -2,10 +2,10 @@
 // Set timezone to match local time (+03:00)
 date_default_timezone_set('Asia/Riyadh');
 // Database configuration
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'supermarket_system');
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') ?: '');
+define('DB_NAME', getenv('DB_NAME') ?: 'supermarket_system');
 
 // Session configuration
 define('SESSION_LIFETIME', 3600); // 1 hour
