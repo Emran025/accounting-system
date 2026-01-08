@@ -3,8 +3,8 @@ import "./globals.css";
 import React from "react";
 
 export const metadata: Metadata = {
-  title: "نظام السوبرماركت",
-  description: "نظام إدارة السوبرماركت والمحاسبة",
+  title: "نظام نُمو",
+  description: "نظام إدارة نُمو والمحاسبة",
 };
 
 export default function RootLayout({

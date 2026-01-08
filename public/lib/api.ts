@@ -1,6 +1,6 @@
 // API Utilities - Mirrors the original common.js fetchAPI
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost/supermarket-system/src/Services/api.php';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000/api';
 
 export interface APIResponse {
   success?: boolean;
@@ -21,12 +21,22 @@ export async function fetchAPI(
   action: string,
   options?: FetchOptions
 ): Promise<APIResponse> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...options?.headers,
+  };
+
+  // Add session token to headers if it exists
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('sessionToken');
+    if (token) {
+      headers['X-Session-Token'] = token;
+    }
+  }
+
   const fetchOptions: RequestInit = {
     method: options?.method || 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+    headers: headers,
     credentials: 'include',
   };
 
@@ -40,7 +50,9 @@ export async function fetchAPI(
       .replace(/^api\//, "") // Remove api/ prefix
       .replace(/^\?/, ""); // Remove leading ? if any
 
-    const url = `${API_BASE}?action=${cleanAction.replace(/\?/g, "&")}`;
+    // Laravel uses RESTful paths.
+    // Ensure we don't have double slashes if action is empty
+    const url = cleanAction ? `${API_BASE}/${cleanAction}` : API_BASE;
 
     const response = await fetch(url, fetchOptions);
 

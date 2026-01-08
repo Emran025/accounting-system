@@ -377,7 +377,7 @@ export function generateInvoiceHTML(
                     }</strong></p>
                     <p>الموظف: ${inv.salesperson_name || "المسؤول"}</p>
                     <p style="font-size: 0.7rem;
-              color: #777;">نظام إدارة السوبر ماركت الذكي</p>
+              color: #777;">نظام إدارة نُمو الذكي</p>
                 </div>
             </div>
             <div class="watermark">Supermarket System v1.0</div>

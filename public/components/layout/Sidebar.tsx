@@ -112,7 +112,7 @@ export function Sidebar({ permissions, onCollapsedChange }: SidebarProps) {
             className="logo-img"
             priority
           />
-          <h2>نظام السوبرماركت</h2>
+          <h2>نظام نُمو</h2>
         </div>
 
         <nav className="sidebar-nav">

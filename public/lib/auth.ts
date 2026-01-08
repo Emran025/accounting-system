@@ -111,12 +111,15 @@ export function getStoredPermissions(): Permission[] {
 /**
  * Store user and permissions in localStorage
  */
-export function storeAuth(user: User, permissions: Permission[]): void {
+export function storeAuth(user: User, permissions: Permission[], token?: string): void {
   if (typeof window === "undefined") return;
   
   localStorage.setItem("user", JSON.stringify(user));
   localStorage.setItem("userPermissions", JSON.stringify(permissions));
   localStorage.setItem("userRole", user.role);
+  if (token) {
+    localStorage.setItem("sessionToken", token);
+  }
 }
 
 /**
@@ -128,6 +131,7 @@ export function clearAuth(): void {
   localStorage.removeItem("user");
   localStorage.removeItem("userPermissions");
   localStorage.removeItem("userRole");
+  localStorage.removeItem("sessionToken");
 }
 
 /**
@@ -135,11 +139,11 @@ export function clearAuth(): void {
  */
 export async function checkAuth(): Promise<AuthState> {
   try {
-    const response = await fetchAPI("/api/auth/check");
+    const response = await fetchAPI("/api/check");
     
     if (response.authenticated && response.user) {
       const permissions = Array.isArray(response.permissions) ? response.permissions : [];
-      storeAuth(response.user as User, permissions);
+      storeAuth(response.user as User, permissions, response.token as string);
       
       return {
         isAuthenticated: true,
@@ -179,7 +183,7 @@ export async function login(
     
     if (response.success && response.user) {
       const permissions = Array.isArray(response.permissions) ? response.permissions : [];
-      storeAuth(response.user as User, permissions);
+      storeAuth(response.user as User, permissions, response.token as string);
       
       return {
         success: true,
