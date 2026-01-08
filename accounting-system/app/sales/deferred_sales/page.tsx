@@ -60,6 +60,8 @@ interface Invoice {
     unit_price: number;
     subtotal: number;
   }>;
+  subtotal?: number;
+  discount_amount?: number;
   payment_type: string;
 }
 
@@ -87,6 +89,7 @@ export default function DeferredSalesPage() {
   const [unitPrice, setUnitPrice] = useState("");
   const [itemStock, setItemStock] = useState("");
   const [subtotal, setSubtotal] = useState(0);
+  const [discount, setDiscount] = useState("0");
   const [amountPaid, setAmountPaid] = useState("");
 
   // Current invoice items
@@ -366,9 +369,10 @@ export default function DeferredSalesPage() {
           unit_price: item.unit_price,
           subtotal: item.subtotal,
         })),
+        discount_amount: parseNumber(discount),
         payment_type: "credit",
         customer_id: selectedCustomer.id,
-        amount_paid: parseNumber(amountPaid) || 0,
+        amount_paid: parseNumber(amountPaid),
       };
 
       const response = await fetchAPI("invoices", {
@@ -790,11 +794,26 @@ export default function DeferredSalesPage() {
                 </table>
               </div>
 
-              <div className="sales-summary-bar">
+              <div className="sales-summary-bar" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "1rem", alignItems: "end" }}>
                 <div className="summary-stat">
-                  <span className="stat-label">إجمالي الفاتورة</span>
+                  <span className="stat-label">مجموع العناصر</span>
+                  <span className="stat-value">{formatCurrency(updateTotal())}</span>
+                </div>
+                <div className="summary-stat">
+                  <span className="stat-label">الخصم</span>
+                  <input
+                    type="number"
+                    value={discount}
+                    onChange={(e) => setDiscount(e.target.value)}
+                    className="minimal-input"
+                    style={{ width: "80px", textAlign: "center", borderBottom: "1px solid var(--primary-color)" }}
+                    min="0"
+                  />
+                </div>
+                <div className="summary-stat">
+                  <span className="stat-label">الإجمالي (شامل الضريبة)</span>
                   <span id="total-amount" className="stat-value highlight">
-                    {formatCurrency(updateTotal())}
+                    {formatCurrency((updateTotal() - parseNumber(discount)) * 1.15)}
                   </span>
                 </div>
                 <button
@@ -803,8 +822,9 @@ export default function DeferredSalesPage() {
                   onClick={finishInvoice}
                   id="finish-btn"
                   data-icon="check"
+                  style={{ height: "100%" }}
                 >
-                  حفظ الفاتورة (آجل)
+                  حفظ الفاتورة
                 </button>
               </div>
             </div>
@@ -931,7 +951,15 @@ export default function DeferredSalesPage() {
             >
               <div className="summary-stat">
                 <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>
-                  المبلغ الإجمالي
+                  مجموع العناصر: {formatCurrency(selectedInvoice.subtotal || 0)}
+                </span>
+                {selectedInvoice.discount_amount && selectedInvoice.discount_amount > 0 && (
+                  <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>
+                    الخصم: {formatCurrency(selectedInvoice.discount_amount)}
+                  </span>
+                )}
+                <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>
+                  المبلغ الإجمالي (شامل الضريبة)
                 </span>
                 <span className="stat-value highlight" style={{ color: "white" }}>
                   {formatCurrency(selectedInvoice.total_amount)}

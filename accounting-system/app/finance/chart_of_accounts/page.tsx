@@ -243,15 +243,6 @@ export default function ChartOfAccountsPage() {
       <PageHeader
         title="دليل الحسابات"
         user={user}
-        searchInput={
-          <input
-            type="text"
-            placeholder="بحث بالرقم أو الاسم..."
-            value={searchTerm}
-            onChange={handleSearch}
-            style={{ width: "250px" }}
-          />
-        }
         actions={
           canAccess(permissions, "chart_of_accounts", "create") && (
             <button className="btn btn-primary" onClick={openAddDialog}>
@@ -261,6 +252,17 @@ export default function ChartOfAccountsPage() {
           )
         }
       />
+
+      <div className="filter-section animate-fade" style={{ marginBottom: "1.5rem" }}>
+        <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
+          <input
+            type="text"
+            placeholder="بحث بالرقم أو الاسم..."
+            value={searchTerm}
+            onChange={handleSearch}
+          />
+        </div>
+      </div>
 
       <div className="sales-card animate-fade">
         <Table

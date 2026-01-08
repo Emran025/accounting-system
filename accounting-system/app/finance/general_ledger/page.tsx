@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, showToast, Column } from "@/components/ui";
+import { Table, showToast, Column, TabNavigation } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser } from "@/lib/auth";
@@ -45,7 +45,7 @@ interface Account {
 
 export default function GeneralLedgerPage() {
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<"journal" | "trial" | "history">("journal");
+  const [activeTab, setActiveTab] = useState("journal");
   const [isLoading, setIsLoading] = useState(true);
 
   // Journal Entries
@@ -133,6 +133,15 @@ export default function GeneralLedgerPage() {
   }, [selectedAccountId, historyDateFrom, historyDateTo]);
 
   useEffect(() => {
+    // Set default dates to current month
+    const today = new Date().toISOString().split("T")[0];
+    const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
+    
+    setJournalDateFrom(firstDay);
+    setJournalDateTo(today);
+    setHistoryDateFrom(firstDay);
+    setHistoryDateTo(today);
+
     const storedUser = getStoredUser();
     setUser(storedUser);
     loadAccounts();
@@ -150,7 +159,6 @@ export default function GeneralLedgerPage() {
 
   const handleExport = () => {
     showToast("جاري تصدير البيانات...", "info");
-    // Export logic would go here
   };
 
   const handleRefresh = () => {
@@ -253,8 +261,8 @@ export default function GeneralLedgerPage() {
               {getIcon("download")}
               تصدير
             </button>
-            <button className="btn btn-secondary" onClick={handleRefresh}>
-              <i className="fas fa-sync-alt"></i>
+            <button className="btn btn-primary" onClick={handleRefresh}>
+              {getIcon("refresh")}
               تحديث
             </button>
           </>
@@ -262,35 +270,20 @@ export default function GeneralLedgerPage() {
       />
 
       <div className="settings-wrapper animate-fade">
-        {/* Tabs */}
-        <div className="settings-tabs">
-          <button
-            className={`tab-btn ${activeTab === "journal" ? "active" : ""}`}
-            onClick={() => setActiveTab("journal")}
-          >
-            <i className="fas fa-book"></i>
-            القيود اليومية
-          </button>
-          <button
-            className={`tab-btn ${activeTab === "trial" ? "active" : ""}`}
-            onClick={() => setActiveTab("trial")}
-          >
-            <i className="fas fa-balance-scale"></i>
-            ميزان المراجعة
-          </button>
-          <button
-            className={`tab-btn ${activeTab === "history" ? "active" : ""}`}
-            onClick={() => setActiveTab("history")}
-          >
-            <i className="fas fa-history"></i>
-            سجل الحساب
-          </button>
-        </div>
+        <TabNavigation
+          tabs={[
+            { key: "journal", label: "القيود اليومية", icon: "fa-book" },
+            { key: "trial", label: "ميزان المراجعة", icon: "fa-balance-scale" },
+            { key: "history", label: "سجل الحساب", icon: "fa-history" },
+          ]}
+          activeTab={activeTab}
+          onTabChange={(key) => setActiveTab(key)}
+        />
 
         {/* Journal Entries Tab */}
         <div className={`tab-content ${activeTab === "journal" ? "active" : ""}`}>
           <div className="sales-card">
-            <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+            <div className="filter-section">
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label>من تاريخ</label>
                 <input
@@ -369,7 +362,7 @@ export default function GeneralLedgerPage() {
         {/* Account History Tab */}
         <div className={`tab-content ${activeTab === "history" ? "active" : ""}`}>
           <div className="sales-card">
-            <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+            <div className="filter-section">
               <div className="form-group" style={{ marginBottom: 0, minWidth: "200px" }}>
                 <label>الحساب</label>
                 <select
@@ -431,4 +424,3 @@ export default function GeneralLedgerPage() {
     </MainLayout>
   );
 }
-

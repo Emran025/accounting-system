@@ -694,126 +694,138 @@ export default function SettingsPage() {
 
         {/* Roles & Permissions Tab */}
         <div className={`tab-content ${activeTab === "roles" ? "active" : ""}`}>
-          <div className="sales-card">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-              <h3 style={{ margin: 0 }}>الأدوار والصلاحيات</h3>
-              <button className="btn btn-primary" onClick={openCreateRoleDialog}>
-                {getIcon("plus")}
-                إنشاء دور جديد
-              </button>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", gap: "1.5rem" }}>
-              {/* Roles List */}
-              <div style={{ borderLeft: "1px solid var(--border-color)", paddingLeft: "1.5rem" }}>
-                <h4 style={{ marginBottom: "1rem" }}>الأدوار</h4>
-                {roles.map((role) => (
-                  <div
-                    key={role.id}
-                    style={{
-                      padding: "0.75rem",
-                      marginBottom: "0.5rem",
-                      borderRadius: "var(--radius-md)",
-                      cursor: "pointer",
-                      background: selectedRole?.id === role.id ? "var(--primary-subtle)" : "transparent",
-                      border: selectedRole?.id === role.id ? "1px solid var(--primary-light)" : "1px solid transparent",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                    onClick={() => selectRole(role)}
-                  >
-                    <span style={{ fontWeight: selectedRole?.id === role.id ? 700 : 400 }}>
-                      {role.name}
-                    </span>
-                    {role.name !== "admin" && (
-                      <button
-                        className="icon-btn delete"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          confirmDeleteRole(role.id);
-                        }}
-                        style={{ padding: "4px" }}
-                      >
-                        {getIcon("trash")}
-                      </button>
-                    )}
-                  </div>
-                ))}
+          <div className="roles-container">
+            {/* Roles List */}
+            <div className="roles-list-card">
+              <div className="section-header" style={{ padding: "1.25rem", borderBottom: "1px solid var(--border-color)" }}>
+                <h3>الأدوار الوظيفية</h3>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={openCreateRoleDialog}
+                >
+                  {getIcon("plus")} دور جديد
+                </button>
               </div>
-
-              {/* Permissions Grid */}
-              <div>
-                {selectedRole ? (
-                  <>
-                    <h4 style={{ marginBottom: "1rem" }}>صلاحيات دور: {selectedRole.name}</h4>
-                    <div style={{ overflowX: "auto" }}>
-                      <table className="modern-table">
-                        <thead>
-                          <tr>
-                            <th>الوحدة</th>
-                            <th style={{ textAlign: "center" }}>عرض</th>
-                            <th style={{ textAlign: "center" }}>إنشاء</th>
-                            <th style={{ textAlign: "center" }}>تعديل</th>
-                            <th style={{ textAlign: "center" }}>حذف</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(modulesByCategory).map(([category, modules]) => (
-                            <>
-                              <tr key={`cat-${category}`} style={{ background: "#f8fafc" }}>
-                                <td colSpan={5} style={{ fontWeight: "bold", color: "var(--primary-color)" }}>
-                                  {getCategoryLabel(category)}
-                                </td>
-                              </tr>
-                              {modules.map((module) => (
-                                <tr key={module.module_key}>
-                                  <td style={{ paddingRight: "2rem" }}>{module.name_ar || module.name_en}</td>
-                                  <td style={{ textAlign: "center" }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={getPermissionValue(module.module_key, "can_view")}
-                                      onChange={(e) => updateRolePermission(module.module_key, "can_view", e.target.checked)}
-                                    />
-                                  </td>
-                                  <td style={{ textAlign: "center" }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={getPermissionValue(module.module_key, "can_create")}
-                                      onChange={(e) => updateRolePermission(module.module_key, "can_create", e.target.checked)}
-                                    />
-                                  </td>
-                                  <td style={{ textAlign: "center" }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={getPermissionValue(module.module_key, "can_edit")}
-                                      onChange={(e) => updateRolePermission(module.module_key, "can_edit", e.target.checked)}
-                                    />
-                                  </td>
-                                  <td style={{ textAlign: "center" }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={getPermissionValue(module.module_key, "can_delete")}
-                                      onChange={(e) => updateRolePermission(module.module_key, "can_delete", e.target.checked)}
-                                    />
-                                  </td>
-                                </tr>
-                              ))}
-                            </>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <button className="btn btn-primary" onClick={saveRolePermissions} style={{ marginTop: "1.5rem" }}>
-                      حفظ الصلاحيات
-                    </button>
-                  </>
+              <div className="roles-list" id="rolesList">
+                {isLoading ? (
+                  <div className="empty-state">
+                     <i className="fas fa-spinner fa-spin"></i>
+                     <p>جاري تحميل الأدوار...</p>
+                  </div>
+                ) : roles.length === 0 ? (
+                  <div className="empty-state">
+                     <p>لا توجد أدوار مضافة</p>
+                  </div>
                 ) : (
-                  <p style={{ textAlign: "center", color: "var(--text-secondary)", padding: "2rem" }}>
-                    اختر دور لعرض وتعديل صلاحياته
-                  </p>
+                  roles.map((role) => (
+                    <div
+                      key={role.id}
+                      className={`role-item ${selectedRole?.id === role.id ? "active" : ""}`}
+                      onClick={() => selectRole(role)}
+                    >
+                      <div className="role-info">
+                        <h4>
+                           {role.name}
+                           {/* Add system badge if needed, though interface doesn't strictly have is_system yet */}
+                           {role.name === 'admin' && <span className="badge-system">نظام</span>}
+                        </h4>
+                        <p>{role.description || "لا يوجد وصف"}</p>
+                      </div>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        {role.name !== "admin" && (
+                          <button
+                            className="icon-btn delete"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              confirmDeleteRole(role.id);
+                            }}
+                            title="حذف الدور"
+                          >
+                            {/* SVG trash icon usually, assuming getIcon returns SVG or we use FA */}
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        )}
+                        <i className="fas fa-chevron-left" style={{ opacity: 0.5 }}></i>
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
+            </div>
+
+            {/* Permissions Grid */}
+            <div className="permissions-card">
+               {!selectedRole ? (
+                  <div className="empty-state" style={{ height: "100%", justifyContent: "center" , alignItems: "center"  }}>
+                    <i className="fas fa-shield-halved" style={{ fontSize: "4rem", marginBottom: "1.5rem", color: "var(--primary-light)", opacity: 0.3 }}></i>
+                    <h3>لوحة التحكم بالصلاحيات</h3>
+                    <p>يرجى اختيار دور وظيفي لعرض وتعديل الصلاحيات الممنوحة له.</p>
+                  </div>
+               ) : (
+                 <>
+                  <div className="section-header" style={{ padding: "1.25rem", borderBottom: "1px solid var(--border-color)" }}>
+                    <div className="title-with-icon">
+                      <i className="fas fa-user-tag text-primary" style={{ fontSize: "1.5rem" }}></i>
+                      <div>
+                        <h3 style={{ margin: 0 }}>{selectedRole.name}</h3>
+                        <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>
+                          {selectedRole.description || "لا يوجد وصف"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="header-actions">
+                       <button className="btn btn-primary btn-sm" onClick={saveRolePermissions}>
+                         <i className="fas fa-save"></i> حفظ التغييرات
+                       </button>
+                    </div>
+                  </div>
+
+                  <div className="permissions-grid">
+                    {Object.entries(modulesByCategory).map(([category, modules]) => (
+                      <div key={category} className="permission-group">
+                        <div className="group-title">
+                          {getCategoryLabel(category)}
+                        </div>
+                        {modules.map((module) => (
+                          <div key={module.module_key} className="module-row">
+                            <div className="module-name">{module.name_ar || module.name_en}</div>
+                            <div className="actions-grid">
+                              <label className="action-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={getPermissionValue(module.module_key, "can_view")}
+                                  onChange={(e) => updateRolePermission(module.module_key, "can_view", e.target.checked)}
+                                /> عرض
+                              </label>
+                              <label className="action-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={getPermissionValue(module.module_key, "can_create")}
+                                  onChange={(e) => updateRolePermission(module.module_key, "can_create", e.target.checked)}
+                                /> إضافة
+                              </label>
+                              <label className="action-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={getPermissionValue(module.module_key, "can_edit")}
+                                  onChange={(e) => updateRolePermission(module.module_key, "can_edit", e.target.checked)}
+                                /> تعديل
+                              </label>
+                              <label className="action-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={getPermissionValue(module.module_key, "can_delete")}
+                                  onChange={(e) => updateRolePermission(module.module_key, "can_delete", e.target.checked)}
+                                /> حذف
+                              </label>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                 </>
+               )}
             </div>
           </div>
         </div>

@@ -35,8 +35,9 @@ export function Table<T>({
   if (isLoading) {
     return (
       <div className="table-container">
-        <div style={{ padding: "2rem", textAlign: "center" }}>
-          جاري التحميل...
+        <div className="empty-state"  style={{ textAlign: "center", padding: "1rem" }}>
+          <i className="fas fa-spinner fa-spin" style={{ fontSize: "2rem", marginBottom: "1rem" }}></i>
+          <div>جاري التحميل...</div>
         </div>
       </div>
     );
@@ -58,8 +59,11 @@ export function Table<T>({
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} style={{ textAlign: "center" }}>
-                  {emptyMessage}
+                <td colSpan={columns.length}>
+                  <div className="empty-state" style={{ textAlign: "center", padding: "1rem" }}>
+                    <i className="fas fa-folder-open" style={{ fontSize: "2.5rem", marginBottom: "1rem", opacity: 0.5 }}></i>
+                    <div>{emptyMessage}</div>
+                  </div>
                 </td>
               </tr>
             ) : (

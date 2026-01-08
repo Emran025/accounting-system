@@ -469,55 +469,73 @@ function ARLedgerPageContent() {
         }
       />
 
+      {/* Profile Header */}
       {customer && (
-        <div style={{ marginBottom: "1rem", padding: "1rem", background: "var(--surface-hover)" }}>
-          <p>
-            {customer.phone || ""} | {customer.tax_number || ""}
-          </p>
+        <div className="filter-section animate-fade" style={{ marginBottom: "1.5rem", background: "var(--surface-white)" }}>
+           <div className="title-with-icon">
+              <div className="stat-icon products" style={{ width: "45px", height: "45px", fontSize: "1.2rem" }}>
+                {getIcon("user")}
+              </div>
+              <div>
+                <h3 style={{ margin: 0 }}>{customer.name}</h3>
+                <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>
+                  {customer.phone || "بدون هاتف"} | {customer.tax_number || "بدون رقم ضريبي"}
+                </p>
+              </div>
+           </div>
+           
+           <div className="checkbox-group" style={{ marginLeft: "auto" }}>
+              <input
+                type="checkbox"
+                id="show-deleted-toggle"
+                checked={showDeleted}
+                onChange={(e) => {
+                  setShowDeleted(e.target.checked);
+                  loadLedger(1);
+                }}
+              />
+              <label htmlFor="show-deleted-toggle" style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
+                عرض المحذوفات
+              </label>
+           </div>
         </div>
       )}
 
-      {/* Stats */}
-      <div className="stats-grid" style={{ marginBottom: "1.5rem" }}>
+      {/* Stats Cards */}
+      <div className="dashboard-stats animate-fade" style={{ marginBottom: "2rem" }}>
         <div className="stat-card">
-          <h3>إجمالي المبيعات (مدين)</h3>
-          <div className="value text-danger">{formatCurrency(stats.total_debit)}</div>
-        </div>
-        <div className="stat-card">
-          <h3>إجمالي المقبوضات (دائن)</h3>
-          <div className="value text-success">{formatCurrency(stats.total_credit)}</div>
-        </div>
-        <div className="stat-card">
-          <h3>الرصيد الحالي</h3>
-          <div
-            className={`value ${
-              stats.balance > 0 ? "text-danger" : stats.balance < 0 ? "text-success" : ""
-            }`}
-          >
-            {formatCurrency(stats.balance)}
+          <div className="stat-icon alert">{getIcon("dollar")}</div>
+          <div className="stat-info">
+            <h3>إجمالي المبيعات (مدين)</h3>
+            <p className="text-danger">{formatCurrency(stats.total_debit)}</p>
           </div>
         </div>
         <div className="stat-card">
-          <h3>عدد العمليات</h3>
-          <div className="value">{stats.transaction_count}</div>
+          <div className="stat-icon products">{getIcon("check")}</div>
+          <div className="stat-info">
+            <h3>إجمالي المقبوضات (دائن)</h3>
+            <p className="text-success">{formatCurrency(stats.total_credit)}</p>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon total">{getIcon("building")}</div>
+          <div className="stat-info">
+            <h3>الرصيد الحالي</h3>
+            <p className={stats.balance > 0 ? "text-danger" : stats.balance < 0 ? "text-success" : ""}>
+              {formatCurrency(stats.balance)}
+            </p>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon sales">{getIcon("eye")}</div>
+          <div className="stat-info">
+            <h3>عدد العمليات</h3>
+            <p>{stats.transaction_count}</p>
+          </div>
         </div>
       </div>
 
       <div id="alert-container"></div>
-
-      <div style={{ marginBottom: "1rem" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-          <input
-            type="checkbox"
-            checked={showDeleted}
-            onChange={(e) => {
-              setShowDeleted(e.target.checked);
-              loadLedger(1);
-            }}
-          />
-          عرض المحذوفات
-        </label>
-      </div>
 
       <div className="sales-card animate-fade">
         <Table

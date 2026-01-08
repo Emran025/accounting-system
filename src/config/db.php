@@ -998,6 +998,11 @@ function init_database()
         mysqli_query($conn, "ALTER TABLE invoices ADD COLUMN amount_paid DECIMAL(10, 2) DEFAULT 0.00");
     }
 
+    $check_inv_discount = mysqli_query($conn, "SHOW COLUMNS FROM invoices LIKE 'discount_amount'");
+    if ($check_inv_discount && $check_inv_discount instanceof mysqli_result && mysqli_num_rows($check_inv_discount) == 0) {
+        mysqli_query($conn, "ALTER TABLE invoices ADD COLUMN discount_amount DECIMAL(10, 2) DEFAULT 0.00 AFTER vat_amount");
+    }
+
     $check_user_tracking = mysqli_query($conn, "SHOW COLUMNS FROM users LIKE 'created_by'");
     if ($check_user_tracking && $check_user_tracking instanceof mysqli_result && mysqli_num_rows($check_user_tracking) == 0) {
         mysqli_query($conn, "ALTER TABLE users ADD COLUMN created_by INT DEFAULT NULL");
@@ -1398,6 +1403,7 @@ function seed_chart_of_accounts()
             // Revenue
             ['code' => '4000', 'name' => 'الإيرادات', 'type' => 'Revenue', 'parent_id' => null],
             ['code' => '4100', 'name' => 'مبيعات', 'type' => 'Revenue', 'parent_id' => null],
+            ['code' => '4110', 'name' => 'خصم المبيعات', 'type' => 'Revenue', 'parent_id' => null],
             ['code' => '4200', 'name' => 'إيرادات أخرى', 'type' => 'Revenue', 'parent_id' => null],
 
             // Expenses
@@ -1438,6 +1444,7 @@ function seed_chart_of_accounts()
             '3100' => '3000',
             '3200' => '3000',
             '4100' => '4000',
+            '4110' => '4100',
             '4200' => '4000',
             '5100' => '5000',
             '5200' => '5000',

@@ -60,17 +60,24 @@ export default function LoginPage() {
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label htmlFor="username">اسم المستخدم</label>
-                        <input
-                            type="text"
-                            id="username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="أدخل اسم المستخدم"
-                            autoComplete="username"
-                            disabled={isLoading}
-                        />
+                        <div className="user-name-container">
+                            <input
+                                type="text"
+                                id="username"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="أدخل اسم المستخدم"
+                                autoComplete="username"
+                                disabled={isLoading}
+                            />
+                            <button
+                                type="button"
+                                className="user-name-toggle"
+                            >
+                                {getIcon("user")}
+                            </button>
+                        </div>
                     </div>
-
                     <div className="form-group">
                         <label htmlFor="password">كلمة المرور</label>
                         <div className="password-container">
