@@ -145,6 +145,7 @@ export default function AuditTrailPage() {
       <PageHeader
         title="سجل المراجعة"
         user={user}
+        showDate={true}
         actions={
           <button className="btn btn-secondary" onClick={handleExport}>
             {getIcon("download")}
@@ -155,7 +156,7 @@ export default function AuditTrailPage() {
 
       <div className="sales-card animate-fade">
         {/* Filters */}
-        <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+        <div className="filter-section">
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label>من تاريخ</label>
             <input
@@ -215,7 +216,6 @@ export default function AuditTrailPage() {
           <button
             className="btn btn-primary"
             onClick={handleFilter}
-            style={{ alignSelf: "flex-end" }}
           >
             تصفية
           </button>

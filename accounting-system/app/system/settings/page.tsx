@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, TabNavigation, Tab } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
@@ -49,29 +49,13 @@ interface RolePermission {
   can_delete: boolean;
 }
 
-interface Module {
-  name: string;
-  label: string;
+interface ModuleData {
+  id: number;
+  module_key: string;
+  name_ar: string;
+  name_en: string;
+  category: string;
 }
-
-const allModules: Module[] = [
-  { name: "dashboard", label: "لوحة التحكم" },
-  { name: "sales", label: "المبيعات" },
-  { name: "deferred_sales", label: "المبيعات الآجلة" },
-  { name: "revenues", label: "الإيرادات" },
-  { name: "products", label: "المنتجات" },
-  { name: "purchases", label: "المشتريات" },
-  { name: "expenses", label: "المصروفات" },
-  { name: "users", label: "المستخدمين" },
-  { name: "ar_customers", label: "عملاء الآجل" },
-  { name: "general_ledger", label: "دفتر الأستاذ" },
-  { name: "chart_of_accounts", label: "دليل الحسابات" },
-  { name: "journal_vouchers", label: "سندات القيد" },
-  { name: "reports", label: "التقارير" },
-  { name: "audit_trail", label: "سجل المراجعة" },
-  { name: "batch_processing", label: "المعالجة الدفعية" },
-  { name: "settings", label: "الإعدادات" },
-];
 
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -108,7 +92,10 @@ export default function SettingsPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionsPage, setSessionsPage] = useState(1);
   const [sessionsTotalPages, setSessionsTotalPages] = useState(1);
-  const [responseModules, setResponseModules] = useState<any[]>([]);
+
+  // Modules state
+  const [modulesByCategory, setModulesByCategory] = useState<Record<string, ModuleData[]>>({});
+  const [flatModules, setFlatModules] = useState<ModuleData[]>([]);
 
   // Roles & Permissions
   const [roles, setRoles] = useState<Role[]>([]);
@@ -182,12 +169,14 @@ export default function SettingsPage() {
     try {
       const response = await fetchAPI("/api/roles?action=modules");
       if (response.data) {
-        // response.data is grouped by category
-        const flatModules: any[] = [];
+        // response.data is grouped by category: { "sales": [...], "inventory": [...] }
+        setModulesByCategory(response.data as Record<string, ModuleData[]>);
+        
+        const flat: ModuleData[] = [];
         Object.values(response.data).forEach((categoryModules: any) => {
-          flatModules.push(...categoryModules);
+          flat.push(...categoryModules);
         });
-        setResponseModules(flatModules);
+        setFlatModules(flat);
       }
     } catch {
       console.error("Error loading modules");
@@ -329,7 +318,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ 
           role_id: selectedRole.id,
           permissions: (selectedRole.permissions || []).map(p => {
-            const moduleInfo = (responseModules || []).find((m: any) => m.module_key === p.module);
+            const moduleInfo = flatModules.find((m) => m.module_key === p.module);
             return {
               module_id: moduleInfo?.id,
               can_view: p.can_view ? 1 : 0,
@@ -453,6 +442,21 @@ export default function SettingsPage() {
     return perm ? (perm[field] as boolean) : false;
   };
 
+  const getCategoryLabel = (category: string) => {
+    const labels: Record<string, string> = {
+      dashboard: "لوحة التحكم",
+      sales: "المبيعات",
+      inventory: "المخزون",
+      purchases: "المشتريات",
+      finance: "المالية",
+      hr: "الموارد البشرية",
+      reports: "التقارير",
+      system: "النظام",
+      users: "المستخدمين"
+    };
+    return labels[category] || category;
+  };
+
   const sessionColumns: Column<Session>[] = [
     { key: "device", header: "الجهاز", dataLabel: "الجهاز" },
     { key: "ip_address", header: "عنوان IP", dataLabel: "عنوان IP" },
@@ -489,50 +493,24 @@ export default function SettingsPage() {
 
   return (
     <MainLayout requiredModule="settings">
-      <PageHeader title="الإعدادات" user={user} showDate={false} />
+      <PageHeader title="الإعدادات" user={user} showDate={true} />
 
       <div className="settings-wrapper animate-fade">
         {/* Tabs */}
-        <div className="settings-tabs">
-          <button
-            className={`tab-btn ${activeTab === "store" ? "active" : ""}`}
-            onClick={() => setActiveTab("store")}
-          >
-            <i className="fas fa-store"></i>
-            معلومات المتجر
-          </button>
-          <button
-            className={`tab-btn ${activeTab === "invoice" ? "active" : ""}`}
-            onClick={() => setActiveTab("invoice")}
-          >
-            <i className="fas fa-file-invoice"></i>
-            إعدادات الفاتورة
-          </button>
-          <button
-            className={`tab-btn ${activeTab === "security" ? "active" : ""}`}
-            onClick={() => setActiveTab("security")}
-          >
-            <i className="fas fa-lock"></i>
-            الحساب والأمان
-          </button>
-          <button
-            className={`tab-btn ${activeTab === "sessions" ? "active" : ""}`}
-            onClick={() => setActiveTab("sessions")}
-          >
-            <i className="fas fa-desktop"></i>
-            الجلسات النشطة
-          </button>
-          {canAccess(permissions, "settings", "edit") && (
-            <button
-              className={`tab-btn ${activeTab === "roles" ? "active" : ""}`}
-              onClick={() => setActiveTab("roles")}
-            >
-              <i className="fas fa-user-shield"></i>
-              الأدوار والصلاحيات
-            </button>
-          )}
-        </div>
-
+        <TabNavigation 
+          tabs={[
+            { key: "store", label: "معلومات المتجر", icon: "fa-store" },
+            { key: "invoice", label: "إعدادات الفاتورة", icon: "fa-file-invoice" },
+            { key: "security", label: "الحساب والأمان", icon: "fa-lock" },
+            { key: "sessions", label: "الجلسات النشطة", icon: "fa-desktop" },
+            ...(canAccess(permissions, "settings", "edit") 
+              ? [{ key: "roles", label: "الأدوار والصلاحيات", icon: "fa-user-shield" }]
+              : []
+            )
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
         {/* Store Info Tab */}
         <div className={`tab-content ${activeTab === "store" ? "active" : ""}`}>
           <div className="sales-card">
@@ -781,38 +759,47 @@ export default function SettingsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {allModules.map((module) => (
-                            <tr key={module.name}>
-                              <td>{module.label}</td>
-                              <td style={{ textAlign: "center" }}>
-                                <input
-                                  type="checkbox"
-                                  checked={getPermissionValue(module.name, "can_view")}
-                                  onChange={(e) => updateRolePermission(module.name, "can_view", e.target.checked)}
-                                />
-                              </td>
-                              <td style={{ textAlign: "center" }}>
-                                <input
-                                  type="checkbox"
-                                  checked={getPermissionValue(module.name, "can_create")}
-                                  onChange={(e) => updateRolePermission(module.name, "can_create", e.target.checked)}
-                                />
-                              </td>
-                              <td style={{ textAlign: "center" }}>
-                                <input
-                                  type="checkbox"
-                                  checked={getPermissionValue(module.name, "can_edit")}
-                                  onChange={(e) => updateRolePermission(module.name, "can_edit", e.target.checked)}
-                                />
-                              </td>
-                              <td style={{ textAlign: "center" }}>
-                                <input
-                                  type="checkbox"
-                                  checked={getPermissionValue(module.name, "can_delete")}
-                                  onChange={(e) => updateRolePermission(module.name, "can_delete", e.target.checked)}
-                                />
-                              </td>
-                            </tr>
+                          {Object.entries(modulesByCategory).map(([category, modules]) => (
+                            <>
+                              <tr key={`cat-${category}`} style={{ background: "#f8fafc" }}>
+                                <td colSpan={5} style={{ fontWeight: "bold", color: "var(--primary-color)" }}>
+                                  {getCategoryLabel(category)}
+                                </td>
+                              </tr>
+                              {modules.map((module) => (
+                                <tr key={module.module_key}>
+                                  <td style={{ paddingRight: "2rem" }}>{module.name_ar || module.name_en}</td>
+                                  <td style={{ textAlign: "center" }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={getPermissionValue(module.module_key, "can_view")}
+                                      onChange={(e) => updateRolePermission(module.module_key, "can_view", e.target.checked)}
+                                    />
+                                  </td>
+                                  <td style={{ textAlign: "center" }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={getPermissionValue(module.module_key, "can_create")}
+                                      onChange={(e) => updateRolePermission(module.module_key, "can_create", e.target.checked)}
+                                    />
+                                  </td>
+                                  <td style={{ textAlign: "center" }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={getPermissionValue(module.module_key, "can_edit")}
+                                      onChange={(e) => updateRolePermission(module.module_key, "can_edit", e.target.checked)}
+                                    />
+                                  </td>
+                                  <td style={{ textAlign: "center" }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={getPermissionValue(module.module_key, "can_delete")}
+                                      onChange={(e) => updateRolePermission(module.module_key, "can_delete", e.target.checked)}
+                                    />
+                                  </td>
+                                </tr>
+                              ))}
+                            </>
                           ))}
                         </tbody>
                       </table>
@@ -867,7 +854,7 @@ export default function SettingsPage() {
           />
         </div>
       </Dialog>
-
+      
       {/* Confirm Delete Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog}
@@ -921,4 +908,3 @@ export default function SettingsPage() {
     </MainLayout>
   );
 }
-

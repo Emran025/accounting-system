@@ -1514,6 +1514,7 @@ function seed_rbac()
         ['dashboard', 'لوحة التحكم', 'Dashboard', 'system', 'home', 1],
         ['sales', 'المبيعات', 'Sales', 'sales', 'cart', 10],
         ['revenues', 'الإيرادات الإضافية', 'Additional Revenues', 'sales', 'plus', 11],
+        ['deferred_sales', 'المبيعات الآجلة', 'Deferred Sales', 'sales', 'dollar', 12],
         ['products', 'المنتجات', 'Products', 'inventory', 'box', 20],
         ['purchases', 'المشتريات', 'Purchases', 'purchases', 'download', 30],
         ['expenses', 'المصروفات', 'Expenses', 'purchases', 'dollar', 31],

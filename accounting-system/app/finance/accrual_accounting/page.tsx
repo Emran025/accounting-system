@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert, TabNavigation } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
@@ -462,35 +462,20 @@ export default function AccrualAccountingPage() {
 
       <div className="settings-wrapper animate-fade">
         {/* Tabs */}
-        <div className="settings-tabs">
-          <button
-            className={`tab-btn ${activeTab === "payroll" ? "active" : ""}`}
-            onClick={() => {
-              setActiveTab("payroll");
-              loadPayroll(1);
-            }}
-          >
-            <i className="fas fa-users"></i> كشوف المرتبات
-          </button>
-          <button
-            className={`tab-btn ${activeTab === "prepayments" ? "active" : ""}`}
-            onClick={() => {
-              setActiveTab("prepayments");
-              loadPrepayments(1);
-            }}
-          >
-            <i className="fas fa-calendar"></i> المدفوعات المقدمة
-          </button>
-          <button
-            className={`tab-btn ${activeTab === "unearned" ? "active" : ""}`}
-            onClick={() => {
-              setActiveTab("unearned");
-              loadUnearnedRevenue(1);
-            }}
-          >
-            <i className="fas fa-dollar-sign"></i> الإيرادات غير المكتسبة
-          </button>
-        </div>
+        <TabNavigation 
+          tabs={[
+            { key: "payroll", label: "كشوف المرتبات", icon: "fa-users" },
+            { key: "prepayments", label: "المدفوعات المقدمة", icon: "fa-calendar" },
+            { key: "unearned", label: "الإيرادات غير المكتسبة", icon: "fa-dollar-sign" }
+          ]}
+          activeTab={activeTab}
+          onTabChange={(tab) => {
+            setActiveTab(tab as typeof activeTab);
+            if (tab === "payroll") loadPayroll(1);
+            else if (tab === "prepayments") loadPrepayments(1);
+            else if (tab === "unearned") loadUnearnedRevenue(1);
+          }}
+        />
 
         {/* Payroll Tab */}
         <div className={`tab-content ${activeTab === "payroll" ? "active" : ""}`}>

@@ -392,6 +392,7 @@ export default function RecurringTransactionsPage() {
             <PageHeader
                 title="المعاملات المتكررة"
                 user={user}
+                showDate={true}
                 actions={
                     <button className="btn btn-primary" onClick={openCreateDialog}>
                         {getIcon("plus")}

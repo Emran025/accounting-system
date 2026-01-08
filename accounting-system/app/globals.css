@@ -1367,6 +1367,108 @@ body.sidebar-is-collapsed .sidebar-toggle-btn {
   transform: rotate(180deg);
 }
 
+/* Custom Dropdown for Settings */
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.dropdown-trigger {
+  width: 100%;
+  padding: 1.25rem 1.5rem;
+  background: white;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: inherit;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  z-index: 1002 !important;
+}
+
+.custom-dropdown.active .dropdown-trigger {
+  border-color: var(--primary-color);
+  background: #fff !important;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.trigger-icon {
+  transition: transform 0.3s;
+}
+
+.custom-dropdown.active .trigger-icon {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid var(--primary-color);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 10001 !important;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: transform 0.2s ease, opacity 0.2s ease, visibility 0.2s;
+}
+
+.custom-dropdown.active .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.dropdown-item {
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 1px solid var(--bg-color);
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item i {
+  width: 20px;
+  color: var(--primary-light);
+}
+
+.dropdown-item:hover {
+  background: var(--primary-subtle);
+  color: var(--primary-color);
+  padding-right: 2rem;
+}
+
+.dropdown-item.active {
+  background: var(--grad-primary);
+  color: white;
+}
+
+.dropdown-item.active i {
+  color: white;
+}
+
 /* Sidebar Overlay */
 .sidebar-overlay {
   position: fixed;
@@ -1414,29 +1516,78 @@ body.sidebar-is-collapsed .sidebar-toggle-btn {
 
 /* Responsive */
 @media (max-width: 1024px) {
+  /* Sidebar Mobile */
   .sidebar {
-    width: 80px;
+    width: 280px !important;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: -290px;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    box-shadow: none;
+    height: 100vh;
+    visibility: visible !important;
+    display: flex !important;
+  }
+  
+  .sidebar.mobile-visible {
+    right: 0 !important;
+    box-shadow: var(--shadow-lg);
   }
 
-  .sidebar-header h2,
-  .sidebar-nav a span {
-    display: none;
+  /* Force full sidebar display when mobile-visible */
+  .sidebar.mobile-visible .sidebar-header h2,
+  .sidebar.mobile-visible .sidebar-nav a span {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    width: auto !important;
   }
 
-  .sidebar-nav a {
-    justify-content: center;
-    padding: 1rem;
+  .sidebar.mobile-visible .sidebar-nav a {
+    justify-content: flex-start !important;
+    padding: 0.75rem 1rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .sidebar.mobile-visible .sidebar-header {
+    justify-content: flex-start !important;
+    padding: 0 1.5rem !important;
+  }
+
+  /* Sidebar Toggle Button Mobile */
+  .sidebar-toggle-btn {
+    top: 20px !important;
+    right: 20px !important;
+    left: auto !important;
+    width: 44px !important;
+    height: 44px !important;
+    background: var(--surface-white);
+    color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .sidebar-toggle-btn.mobile-open {
+    right: 280px !important;
+    margin-right: -22px !important;
+    background: var(--primary-color);
+    color: white;
+    transform: rotate(180deg);
+    border: 2px solid white;
   }
 
   .content {
-    width: calc(100% - 80px);
-    margin-right: 80px;
+    width: 100%;
+    margin-right: 0;
+    padding: 5rem 1rem 2rem 1rem;
   }
 
   .main-content {
-    margin-right: 80px;
+    margin-right: 0;
   }
 
+  /* Settings Mobile */
   .settings-form-grid {
     grid-template-columns: 1fr;
   }
@@ -1444,12 +1595,44 @@ body.sidebar-is-collapsed .sidebar-toggle-btn {
   .settings-form-grid .form-group.full-width {
     grid-column: span 1;
   }
+
+  .settings-wrapper {
+    overflow: visible !important;
+  }
+
+  .settings-tabs {
+    display: block !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100%;
+    margin-bottom: 2rem !important;
+    overflow: visible !important;
+    position: relative !important;
+  }
+
+  .mobile-tab-container {
+    display: block !important;
+    width: 100%;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 1001;
+    overflow: visible !important;
+  }
+
+  .custom-dropdown {
+    overflow: visible !important;
+  }
+
+  .tab-btn {
+    display: none !important;
+  }
 }
 
 @media (max-width: 768px) {
-  .sidebar {
-    display: none;
-  }
+  /* Don't hide sidebar - it's already off-canvas from 1024px breakpoint */
+  /* Sidebar remains as off-canvas drawer */
 
   .content {
     width: 100%;
@@ -1460,6 +1643,15 @@ body.sidebar-is-collapsed .sidebar-toggle-btn {
   .main-content {
     margin-right: 0;
     padding: 1rem;
+  }
+
+  /* Ensure mobile dropdown is visible */
+  .mobile-tab-container {
+    display: block !important;
+  }
+
+  .tab-btn {
+    display: none !important;
   }
 
   .sales-top-grids {
@@ -1570,5 +1762,138 @@ body.sidebar-is-collapsed .sidebar-toggle-btn {
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+
+
+/* --- Reports Page Styles --- */
+.report-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.report-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.report-section h2 {
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--primary-light);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  color: var(--primary-dark);
+}
+
+.financial-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.financial-row:last-child {
+  border-bottom: none;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--border-color);
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.report-label {
+  color: var(--text-secondary);
+}
+
+.report-value {
+  color: var(--text-primary);
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.report-value.profit {
+  color: var(--success-color);
+}
+
+.report-value.loss {
+  color: var(--danger-color);
+}
+
+.filter-section {
+  background: white;
+  padding: 1.25rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 250px;
+}
+
+.filter-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.date-range-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8fafc;
+  padding: 0.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.date-range-group input {
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  width: 100%;
+  outline: none;
+  color: var(--text-primary);
+}
+
+.date-range-group span {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  padding: 0 0.5rem;
+}
+
+.date-range-group input:focus {
+  box-shadow: none;
+  background: white;
+  border-radius: var(--radius-sm);
+}
+
+.filter-actions {
+  display: flex;
+  align-items: flex-end;
+}
+
+@media (max-width: 1024px) {
+  .report-grid {
+    grid-template-columns: 1fr;
   }
 }

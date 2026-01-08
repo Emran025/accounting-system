@@ -11,3 +11,5 @@ export type { Column } from "./Table";
 export { SearchableSelect } from "./SearchableSelect";
 export type { SelectOption } from "./SearchableSelect";
 
+export { TabNavigation } from "./TabNavigation";
+export type { Tab } from "./TabNavigation";

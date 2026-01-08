@@ -224,7 +224,7 @@ export default function DashboardPage() {
 
     return (
         <MainLayout requiredModule="dashboard">
-            <PageHeader title="لوحة التحكم" user={user} />
+            <PageHeader title="لوحة التحكم" user={user} showDate={true} />
 
             {/* Stats Grid */}
             <div className="dashboard-stats animate-fade">

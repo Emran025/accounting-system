@@ -1,42 +1,58 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, SearchableSelect, SelectOption, showToast, Column } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
-import { formatCurrency, formatDate, parseNumber } from "@/lib/utils";
-import { User, getStoredUser, canAccess, getStoredPermissions, Permission } from "@/lib/auth";
-import { getIcon } from "@/lib/icons";
+import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
+import { User, getStoredUser, canAccess, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
+import { Icon } from "@/lib/icons";
 import { printInvoice, generateInvoiceHTML, getSettings } from "@/lib/invoice-utils";
 
 interface Product {
     id: number;
     name: string;
-    barcode: string;
-    stock: number;
-    selling_price: number;
-    unit_type: string;
-    units_per_package: number;
-    package_price: number;
+    barcode?: string;
+    stock_quantity: number;
+    unit_price: number;
+    items_per_unit: number;
+    unit_name: string;
+    sub_unit_name: string;
+    latest_purchase_price?: number;
+    minimum_profit_margin?: number;
 }
 
 interface InvoiceItem {
     product_id: number;
     product_name: string;
+    display_name: string;
     quantity: number;
+    unit_type: "sub" | "main";
+    unit_name: string;
+    total_sub_units: number;
     unit_price: number;
-    unit_type: string;
     subtotal: number;
 }
 
+interface Pagination {
+    total_records: number;
+    total_pages: number;
+    current_page: number;
+}
 interface Invoice {
     id: number;
     invoice_number: string;
     total_amount: number;
-    payment_type: string;
-    customer_name?: string;
+    item_count?: number;
+    salesperson_name?: string;
     created_at: string;
-    items?: InvoiceItem[];
+    items?: Array<{
+        product_name: string;
+        quantity: number;
+        unit_price: number;
+        subtotal: number;
+    }>;
+    payment_type: string;
 }
 
 export default function SalesPage() {
@@ -46,11 +62,15 @@ export default function SalesPage() {
     // Products
     const [products, setProducts] = useState<Product[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [productSearchTerm, setProductSearchTerm] = useState("");
+    const [productOptionsVisible, setProductOptionsVisible] = useState(false);
+    const productSearchRef = useRef<HTMLDivElement>(null);
 
     // Invoice form
     const [quantity, setQuantity] = useState("1");
-    const [unitType, setUnitType] = useState("piece");
+    const [unitType, setUnitType] = useState<"sub" | "main">("sub");
     const [unitPrice, setUnitPrice] = useState("");
+    const [itemStock, setItemStock] = useState("");
     const [subtotal, setSubtotal] = useState(0);
 
     // Current invoice items
@@ -61,7 +81,7 @@ export default function SalesPage() {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const itemsPerPage = 10;
+    const itemsPerPage = 20;
 
     // Dialogs
     const [viewDialog, setViewDialog] = useState(false);
@@ -71,196 +91,270 @@ export default function SalesPage() {
 
     const [isLoading, setIsLoading] = useState(true);
 
+    const generateInvoiceNumber = useCallback(() => {
+        const num = "INV-" + Date.now().toString().slice(-8);
+        setInvoiceNumber(num);
+    }, []);
+
     const loadProducts = useCallback(async () => {
         try {
-            const response = await fetchAPI("/api/products");
-            setProducts((response.products as Product[]) || []);
-        } catch {
-            showToast("خطأ في تحميل المنتجات", "error");
+            const response = await fetchAPI(`products?include_purchase_price=1`);
+            if (response.success && response.data) {
+                const filtered = (response.data as Product[]).filter((p) => p.stock_quantity > 0);
+                setProducts(filtered);
+            }
+        } catch (error) {
+            showAlert("alert-container", "خطأ في تحميل المنتجات", "error");
         }
     }, []);
 
     const loadInvoices = useCallback(async (page: number = 1) => {
         try {
-            const response = await fetchAPI(`/api/invoices?page=${page}&limit=${itemsPerPage}`);
-            setInvoices((response.invoices as Invoice[]) || []);
-            setTotalPages(Math.ceil((Number(response.total) || 0) / itemsPerPage));
-            setCurrentPage(page);
+            setIsLoading(true);
+            const response = await fetchAPI(`invoices?page=${page}&limit=${itemsPerPage}&payment_type=cash`);
+            if (response.success && response.data) {
+                setInvoices(response.data as Invoice[]);
+
+                const total = Number((response.pagination as Pagination)?.total_records || response.total || 0);
+                setTotalPages(Math.ceil(total / itemsPerPage));
+                setCurrentPage(page);
+            }
         } catch {
-            showToast("خطأ في تحميل الفواتير", "error");
+            showAlert("alert-container", "خطأ في تحميل السجل", "error");
+        } finally {
+            setIsLoading(false);
         }
     }, []);
 
-    const generateInvoiceNumber = useCallback(() => {
-        const now = new Date();
-        const num = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
-        setInvoiceNumber(num);
-    }, []);
-
     useEffect(() => {
-        const storedUser = getStoredUser();
-        const storedPermissions = getStoredPermissions();
-        setUser(storedUser);
-        setPermissions(storedPermissions);
+        const init = async () => {
+            const authenticated = await checkAuth();
+            if (!authenticated) return;
 
-        const loadData = async () => {
+            const storedUser = getStoredUser();
+            const storedPermissions = getStoredPermissions();
+            setUser(storedUser);
+            setPermissions(storedPermissions);
+
             await Promise.all([loadProducts(), loadInvoices()]);
             generateInvoiceNumber();
             setIsLoading(false);
         };
-
-        loadData();
+        init();
     }, [loadProducts, loadInvoices, generateInvoiceNumber]);
 
-    // Calculate subtotal when quantity or price changes
+    // Calculate subtotal
     useEffect(() => {
+        if (!selectedProduct) {
+            setSubtotal(0);
+            return;
+        }
         const qty = parseNumber(quantity);
         const price = parseNumber(unitPrice);
-        setSubtotal(qty * price);
-    }, [quantity, unitPrice]);
+        let calcSubtotal = 0;
+        if (unitType === "main") {
+            calcSubtotal = qty * price * (selectedProduct.items_per_unit || 1);
+        } else {
+            calcSubtotal = qty * price;
+        }
+        setSubtotal(calcSubtotal);
+    }, [quantity, unitPrice, unitType, selectedProduct]);
 
-    // Update price when product or unit type changes
+    // Update stock and price when product selected
     useEffect(() => {
         if (selectedProduct) {
-            if (unitType === "package" && selectedProduct.package_price) {
-                setUnitPrice(String(selectedProduct.package_price));
-            } else {
-                setUnitPrice(String(selectedProduct.selling_price));
+            const cartItemEntries = invoiceItems.filter(
+                (item) => item.product_id === selectedProduct.id
+            );
+            const cartQtyInSubUnits = cartItemEntries.reduce(
+                (sum, item) => sum + item.total_sub_units,
+                0
+            );
+            const availableStock = selectedProduct.stock_quantity - cartQtyInSubUnits;
+            setItemStock(String(availableStock));
+
+            setUnitPrice(String(selectedProduct.unit_price));
+            setQuantity("1");
+
+            if (availableStock <= 0) {
+                setQuantity("0");
             }
-        }
-    }, [selectedProduct, unitType]);
-
-    const productOptions: SelectOption[] = products.map((p) => ({
-        value: p.id,
-        label: p.name,
-        subtitle: `المخزون: ${p.stock}`,
-    }));
-
-    const handleProductSelect = (value: string | number | null) => {
-        if (value === null) {
-            setSelectedProduct(null);
+        } else {
+            setItemStock("");
             setUnitPrice("");
-            return;
-        }
-        const product = products.find((p) => p.id === value);
-        if (product) {
-            setSelectedProduct(product);
-            setUnitType("piece");
-            setUnitPrice(String(product.selling_price));
             setQuantity("1");
         }
+    }, [selectedProduct, invoiceItems]);
+
+    // Click outside handler
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (productSearchRef.current && !productSearchRef.current.contains(e.target as Node)) {
+                setProductOptionsVisible(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const filteredProducts = products.filter(
+        (p) =>
+            p.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+            (p.barcode && p.barcode.includes(productSearchTerm))
+    ).slice(0, 50);
+
+    const handleProductSelect = (product: Product) => {
+        setSelectedProduct(product);
+        setProductSearchTerm(product.name);
+        setProductOptionsVisible(false);
     };
 
-    const addToInvoice = () => {
+    const calculateSubtotal = () => {
+        if (!selectedProduct) return;
+        const qty = parseNumber(quantity);
+        const price = parseNumber(unitPrice);
+        let calcSubtotal = 0;
+        if (unitType === "main") {
+            calcSubtotal = qty * price * (selectedProduct.items_per_unit || 1);
+        } else {
+            calcSubtotal = qty * price;
+        }
+        setSubtotal(calcSubtotal);
+    };
+
+    const addItemToInvoice = async () => {
         if (!selectedProduct) {
-            showToast("يرجى اختيار منتج", "error");
+            showAlert("alert-container", "يرجى اختيار منتج أولاً", "error");
             return;
         }
 
         const qty = parseNumber(quantity);
-        if (qty <= 0) {
-            showToast("يرجى إدخال كمية صحيحة", "error");
+        const price = parseNumber(unitPrice);
+        const itemsPerUnit = selectedProduct.items_per_unit || 1;
+        const totalSubUnits = unitType === "main" ? qty * itemsPerUnit : qty;
+
+        // Validate stock
+        const cartItemEntries = invoiceItems.filter(
+            (item) => item.product_id === selectedProduct.id
+        );
+        const cartQtyInSubUnits = cartItemEntries.reduce(
+            (sum, item) => sum + item.total_sub_units,
+            0
+        );
+        const totalQtyInSubUnits = cartQtyInSubUnits + totalSubUnits;
+
+        if (qty <= 0 || totalQtyInSubUnits > selectedProduct.stock_quantity) {
+            showAlert(
+                "alert-container",
+                `الكمية غير صحيحة. المخزون المتاح: ${selectedProduct.stock_quantity - cartQtyInSubUnits}`,
+                "error"
+            );
             return;
         }
 
-        // Check stock
-        const stockNeeded = unitType === "package"
-            ? qty * (selectedProduct.units_per_package || 1)
-            : qty;
+        // Check minimum profit margin
+        const latestPurchasePrice = parseNumber(selectedProduct.latest_purchase_price);
+        const minProfitMargin = parseNumber(selectedProduct.minimum_profit_margin);
+        const minAllowedPrice = latestPurchasePrice + minProfitMargin;
 
-        if (stockNeeded > selectedProduct.stock) {
-            showToast("الكمية المطلوبة أكبر من المخزون المتاح", "error");
-            return;
+        if (latestPurchasePrice > 0 && price < minAllowedPrice) {
+            const confirmMsg = `تحذير: السعر (${formatCurrency(price)}) أقل من الحد الأدنى للبيع (${formatCurrency(minAllowedPrice)}).\n(سعر الشراء: ${formatCurrency(latestPurchasePrice)} + هامش الربح: ${formatCurrency(minProfitMargin)})\n\nهل تريد الاستمرار؟`;
+            const confirmed = window.confirm(confirmMsg);
+            if (!confirmed) {
+                return;
+            }
         }
+
+        const calcSubtotal = unitType === "main" ? qty * price * itemsPerUnit : qty * price;
+        const unitName = unitType === "main" ? selectedProduct.unit_name : selectedProduct.sub_unit_name;
 
         const newItem: InvoiceItem = {
             product_id: selectedProduct.id,
             product_name: selectedProduct.name,
+            display_name: `${selectedProduct.name} (${qty} ${unitName})`,
             quantity: qty,
-            unit_price: parseNumber(unitPrice),
             unit_type: unitType,
-            subtotal: subtotal,
+            unit_name: unitName,
+            total_sub_units: totalSubUnits,
+            unit_price: price,
+            subtotal: calcSubtotal,
         };
 
-        // Check if product already in invoice
-        const existingIndex = invoiceItems.findIndex(
-            (item) => item.product_id === selectedProduct.id && item.unit_type === unitType
-        );
-
-        if (existingIndex >= 0) {
-            const updated = [...invoiceItems];
-            updated[existingIndex].quantity += qty;
-            updated[existingIndex].subtotal += subtotal;
-            setInvoiceItems(updated);
-        } else {
-            setInvoiceItems([...invoiceItems, newItem]);
-        }
+        setInvoiceItems([...invoiceItems, newItem]);
 
         // Reset form
         setSelectedProduct(null);
+        setProductSearchTerm("");
         setQuantity("1");
         setUnitPrice("");
-        setSubtotal(0);
-
-        showToast("تمت إضافة المنتج للفاتورة", "success");
+        setItemStock("");
     };
 
-    const removeFromInvoice = (index: number) => {
+    const removeInvoiceItem = (index: number) => {
         setInvoiceItems(invoiceItems.filter((_, i) => i !== index));
     };
 
-    const getTotalAmount = () => {
+    const updateTotal = () => {
         return invoiceItems.reduce((sum, item) => sum + item.subtotal, 0);
     };
 
-    const finishInvoice = async (paymentType: "cash" | "credit") => {
+    const finishInvoice = async () => {
         if (invoiceItems.length === 0) {
-            showToast("الفاتورة فارغة", "error");
+            showAlert("alert-container", "الفاتورة فارغة!", "error");
             return;
         }
 
         try {
-            const response = await fetchAPI("/api/invoices", {
+            const invoiceData = {
+                invoice_number: invoiceNumber,
+                items: invoiceItems.map((item) => ({
+                    product_id: item.product_id,
+                    quantity: item.total_sub_units,
+                    unit_price: item.unit_price,
+                    subtotal: item.subtotal,
+                })),
+                payment_type: "cash",
+            };
+
+            const response = await fetchAPI("invoices", {
                 method: "POST",
-                body: JSON.stringify({
-                    invoice_number: invoiceNumber,
-                    items: invoiceItems,
-                    total_amount: getTotalAmount(),
-                    payment_type: paymentType,
-                }),
+                body: JSON.stringify(invoiceData),
             });
 
-            if (response.success && response.id) {
-                showToast("تم حفظ الفاتورة بنجاح. جاري الطباعة...", "success");
+            if (response.success) {
+                showAlert("alert-container", "تمت العملية بنجاح. جاري الطباعة...", "success");
 
-                // Auto-print invoice
-                try {
-                    await printInvoice(response.id as number);
-                } catch (printError) {
-                    console.error("Print error:", printError);
-                    // Don't fail the invoice save if print fails
+                // Auto-print
+                if (response.id) {
+                    try {
+                        await printInvoice(response.id as number);
+                    } catch (printError) {
+                        console.error("Print error:", printError);
+                    }
                 }
 
                 // Reset
                 setInvoiceItems([]);
                 generateInvoiceNumber();
-                loadInvoices();
-                loadProducts(); // Refresh stock
+                await loadProducts();
+                await loadInvoices();
             } else {
-                showToast(response.message || "خطأ في حفظ الفاتورة", "error");
+                showAlert("alert-container", response.message || "فشل حفظ الفاتورة", "error");
             }
-        } catch {
-            showToast("خطأ في حفظ الفاتورة", "error");
+        } catch (error) {
+            showAlert("alert-container", "خطأ: " + (error instanceof Error ? error.message : "خطأ غير معروف"), "error");
         }
     };
 
-    const viewInvoice = async (invoice: Invoice) => {
+    const viewInvoice = async (id: number) => {
         try {
-            const response = await fetchAPI(`/api/invoices/${invoice.id}`);
-            setSelectedInvoice((response.invoice as Invoice) || invoice);
-            setViewDialog(true);
+            const response = await fetchAPI(`invoice_details?id=${id}`);
+            if (response.success && response.data) {
+                setSelectedInvoice(response.data as Invoice);
+                setViewDialog(true);
+            }
         } catch {
-            showToast("خطأ في تحميل تفاصيل الفاتورة", "error");
+            showAlert("alert-container", "خطأ في جلب التفاصيل", "error");
         }
     };
 
@@ -272,227 +366,329 @@ export default function SalesPage() {
     const deleteInvoice = async () => {
         if (!deleteInvoiceId) return;
 
-        try {
-            await fetchAPI(`/api/invoices/${deleteInvoiceId}`, { method: "DELETE" });
-            showToast("تم حذف الفاتورة", "success");
-            loadInvoices(currentPage);
-            loadProducts();
-        } catch {
-            showToast("خطأ في حذف الفاتورة", "error");
+        const confirmed = window.confirm("هل أنت متأكد من حذف هذه الفاتورة؟ سيتم إرجاع المنتجات للمخزون.");
+        if (!confirmed) {
+            setConfirmDialog(false);
+            setDeleteInvoiceId(null);
+            return;
         }
-    };
 
-    const handlePrintInvoice = async (invoiceId: number) => {
         try {
-            await printInvoice(invoiceId);
-        } catch (error) {
-            showToast(
-                error instanceof Error ? error.message : "خطأ في طباعة الفاتورة",
-                "error"
-            );
+            const response = await fetchAPI(`invoices?id=${deleteInvoiceId}`, {
+                method: "DELETE",
+            });
+            if (response.success) {
+                showAlert("alert-container", "تم الحذف بنجاح", "success");
+                await loadInvoices();
+                await loadProducts();
+            } else {
+                showAlert("alert-container", response.message || "فشل الحذف", "error");
+            }
+        } catch {
+            showAlert("alert-container", "خطأ في الحذف", "error");
+        } finally {
+            setConfirmDialog(false);
+            setDeleteInvoiceId(null);
         }
     };
 
     const invoiceColumns: Column<Invoice>[] = [
-        { key: "invoice_number", header: "رقم الفاتورة", dataLabel: "رقم الفاتورة" },
+        {
+            key: "invoice_number",
+            header: "رقم الفاتورة",
+            dataLabel: "رقم الفاتورة",
+            render: (item) => <strong>{item.invoice_number}</strong>,
+        },
         {
             key: "total_amount",
-            header: "المبلغ",
-            dataLabel: "المبلغ",
+            header: "المبلغ الإجمالي",
+            dataLabel: "المبلغ الإجمالي",
             render: (item) => formatCurrency(item.total_amount),
         },
         {
-            key: "payment_type",
-            header: "نوع الدفع",
-            dataLabel: "نوع الدفع",
-            render: (item) => (
-                <span className={`badge ${item.payment_type === "cash" ? "badge-success" : "badge-warning"}`}>
-                    {item.payment_type === "cash" ? "نقدي" : "آجل"}
-                </span>
-            ),
+            key: "item_count",
+            header: "عدد العناصر",
+            dataLabel: "عدد العناصر",
+            render: (item) => item.item_count || 0,
         },
         {
             key: "created_at",
-            header: "التاريخ",
-            dataLabel: "التاريخ",
-            render: (item) => formatDate(item.created_at),
+            header: "التاريخ والوقت",
+            dataLabel: "التاريخ والوقت",
+            render: (item) => formatDateTime(item.created_at),
+        },
+        {
+            key: "salesperson_name",
+            header: "البائع",
+            dataLabel: "البائع",
+            render: (item) => (
+                <span className="badge badge-secondary">{item.salesperson_name || "النظام"}</span>
+            ),
         },
         {
             key: "actions",
             header: "الإجراءات",
             dataLabel: "الإجراءات",
-            render: (item) => (
-                <div className="action-buttons">
-                    <button className="icon-btn view" onClick={() => viewInvoice(item)} title="عرض">
-                        {getIcon("eye")}
-                    </button>
-                    <button
-                        className="icon-btn edit"
-                        onClick={() => handlePrintInvoice(item.id)}
-                        title="طباعة"
-                    >
-                        {getIcon("print")}
-                    </button>
-                    {canAccess(permissions, "sales", "delete") && (
-                        <button className="icon-btn delete" onClick={() => confirmDeleteInvoice(item.id)} title="حذف">
-                            {getIcon("trash")}
+            render: (item) => {
+                const hoursDiff = (new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 60 * 60);
+                const canDelete = hoursDiff < 48;
+                return (
+                    <div className="action-buttons">
+                        <button className="icon-btn view" onClick={() => viewInvoice(item.id)} title="عرض">
+                            <Icon name="eye" />
                         </button>
-                    )}
-                </div>
-            ),
+                        {canDelete && (
+                            <button
+                                className="icon-btn delete"
+                                onClick={() => confirmDeleteInvoice(item.id)}
+                                title="حذف"
+                            >
+                                <Icon name="trash" />
+                            </button>
+                        )}
+                    </div>
+                );
+            },
         },
     ];
 
     return (
         <MainLayout requiredModule="sales">
-            <PageHeader title="المبيعات" user={user} />
+            <PageHeader title="المبيعات / نقطة البيع" user={user} />
+
+            <div id="alert-container"></div>
 
             <div className="sales-layout">
                 <div className="sales-top-grids">
-                    {/* Add Product Form */}
-                    <div className="sales-card compact">
+                    {/* Left: Input Form */}
+                    <div className="sales-card compact animate-slide">
                         <div className="card-header-flex">
                             <h3>إضافة منتج للفاتورة</h3>
                             <div className="invoice-badge">
-                                <span className="stat-label">رقم الفاتورة</span>
+                                <span className="stat-label">رقم الفاتورة:</span>
                                 <input
                                     type="text"
-                                    className="minimal-input"
+                                    id="invoice-number"
                                     value={invoiceNumber}
                                     readOnly
+                                    className="minimal-input"
                                 />
                             </div>
                         </div>
 
-                        <div className="form-group">
-                            <label>اختر المنتج</label>
-                            <SearchableSelect
-                                options={productOptions}
-                                value={selectedProduct?.id || null}
-                                onChange={handleProductSelect}
-                                placeholder="ابحث عن منتج..."
-                            />
-                        </div>
+                        <form
+                            id="invoice-form"
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                addItemToInvoice();
+                            }}
+                        >
+                            <div className="form-group">
+                                <label htmlFor="product-select">اختر المنتج *</label>
+                                <div className="searchable-select" id="product-search-container" ref={productSearchRef}>
+                                    <input
+                                        type="text"
+                                        id="product-search-input"
+                                        value={productSearchTerm}
+                                        onChange={(e) => {
+                                            setProductSearchTerm(e.target.value);
+                                            setProductOptionsVisible(true);
+                                        }}
+                                        onFocus={() => setProductOptionsVisible(true)}
+                                        placeholder="ابحث عن منتج..."
+                                        autoComplete="off"
+                                    />
+                                    <div
+                                        className={`options-list ${productOptionsVisible ? "active" : ""}`}
+                                        id="product-options-list"
+                                    >
+                                        {filteredProducts.length === 0 ? (
+                                            <div className="no-results">لا توجد منتجات مطابقة</div>
+                                        ) : (
+                                            filteredProducts.map((product) => (
+                                                <div
+                                                    key={product.id}
+                                                    className="option-item"
+                                                    onClick={() => handleProductSelect(product)}
+                                                >
+                                                    <span className="option-name">{product.name}</span>
+                                                    <span className="option-stock">
+                                                        {product.stock_quantity} {product.sub_unit_name || "حبة"}
+                                                    </span>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                    <input type="hidden" id="product-select" value={selectedProduct?.id || ""} required />
+                                </div>
+                            </div>
 
-                        <div className="form-row tight">
-                            <div className="form-group">
-                                <label>الكمية</label>
-                                <input
-                                    type="number"
-                                    value={quantity}
-                                    onChange={(e) => setQuantity(e.target.value)}
-                                    min="1"
-                                />
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="item-unit-type">نوع الوحدة</label>
+                                    <select
+                                        id="item-unit-type"
+                                        value={unitType}
+                                        onChange={(e) => {
+                                            setUnitType(e.target.value as "sub" | "main");
+                                            calculateSubtotal();
+                                        }}
+                                        className="glass"
+                                    >
+                                        <option value="sub">{selectedProduct?.sub_unit_name || "حبة"}</option>
+                                        <option value="main">
+                                            {selectedProduct?.unit_name || "كرتون"} (
+                                            {selectedProduct?.items_per_unit || 1} {selectedProduct?.sub_unit_name || "حبة"})
+                                        </option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="item-stock">المخزون المتوفر</label>
+                                    <input
+                                        type="text"
+                                        id="item-stock"
+                                        value={itemStock}
+                                        readOnly
+                                        className="glass highlight-input"
+                                        placeholder="0"
+                                    />
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label>نوع الوحدة</label>
-                                <select value={unitType} onChange={(e) => setUnitType(e.target.value)}>
-                                    <option value="piece">قطعة</option>
-                                    <option value="package">صندوق</option>
-                                </select>
-                            </div>
-                        </div>
 
-                        <div className="form-row tight">
-                            <div className="form-group">
-                                <label>سعر الوحدة</label>
-                                <input
-                                    type="number"
-                                    value={unitPrice}
-                                    onChange={(e) => setUnitPrice(e.target.value)}
-                                    className="highlight-input"
-                                />
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="item-quantity">الكمية *</label>
+                                    <input
+                                        type="number"
+                                        id="item-quantity"
+                                        min="1"
+                                        value={quantity}
+                                        onChange={(e) => {
+                                            setQuantity(e.target.value);
+                                            calculateSubtotal();
+                                        }}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="item-unit-price">سعر بيع الوحدة *</label>
+                                    <input
+                                        type="number"
+                                        id="item-unit-price"
+                                        step="0.01"
+                                        min="0"
+                                        value={unitPrice}
+                                        onChange={(e) => {
+                                            setUnitPrice(e.target.value);
+                                            calculateSubtotal();
+                                        }}
+                                        required
+                                    />
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label>المجموع الفرعي</label>
-                                <input
-                                    type="text"
-                                    value={formatCurrency(subtotal)}
-                                    readOnly
-                                    className="highlight-input"
-                                />
-                            </div>
-                        </div>
 
-                        <button className="btn btn-primary btn-add" onClick={addToInvoice} style={{ width: "100%" }}>
-                            {getIcon("plus")}
-                            إضافة للفاتورة
-                        </button>
+                            <div className="summary-stat-box">
+                                <div className="stat-item">
+                                    <span className="stat-label">المجموع الفرعي</span>
+                                    <span id="item-subtotal" className="stat-value highlight">
+                                        {formatCurrency(subtotal)}
+                                    </span>
+                                </div>
+                                <button type="button" className="btn btn-primary btn-add" onClick={addItemToInvoice} data-icon="plus">
+                                    إضافة للفاتورة
+                                </button>
+                            </div>
+                        </form>
                     </div>
 
-                    {/* Current Invoice Items */}
-                    <div className="sales-card">
+                    {/* Right: Current Invoice Items */}
+                    <div className="sales-card animate-slide" style={{ animationDelay: "0.1s" }}>
                         <h3>عناصر الفاتورة الحالية</h3>
-
-                        {invoiceItems.length === 0 ? (
-                            <p style={{ textAlign: "center", color: "var(--text-secondary)", padding: "2rem" }}>
-                                لا توجد منتجات في الفاتورة
-                            </p>
-                        ) : (
-                            <div className="invoice-items-minimal">
-                                {invoiceItems.map((item, index) => (
-                                    <div key={index} className="item-row-minimal">
-                                        <div>
-                                            <span className="item-name-pkg">{item.product_name}</span>
-                                            <span style={{ color: "var(--text-secondary)", marginRight: "0.5rem" }}>
-                                                ({item.quantity} {item.unit_type === "piece" ? "قطعة" : "صندوق"} × {formatCurrency(item.unit_price)})
-                                            </span>
-                                        </div>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                                            <span style={{ fontWeight: 700 }}>{formatCurrency(item.subtotal)}</span>
-                                            <button
-                                                className="icon-btn delete"
-                                                onClick={() => removeFromInvoice(index)}
+                        <div className="table-container" style={{ maxHeight: "400px", overflowY: "auto" }}>
+                            <table id="invoice-items-table">
+                                <thead>
+                                    <tr>
+                                        <th>المنتج</th>
+                                        <th>الكمية</th>
+                                        <th>السعر</th>
+                                        <th>المجموع</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="invoice-items-tbody">
+                                    {invoiceItems.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan={5}
+                                                style={{
+                                                    textAlign: "center",
+                                                    padding: "2rem",
+                                                    color: "var(--text-secondary)",
+                                                }}
                                             >
-                                                {getIcon("trash")}
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                                لا توجد عناصر مضافة
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        invoiceItems.map((item, index) => (
+                                            <tr key={index} className="animate-slide-up">
+                                                <td data-label="المنتج">{item.display_name}</td>
+                                                <td data-label="الكمية">
+                                                    {item.quantity} {item.unit_name}
+                                                </td>
+                                                <td data-label="السعر">{formatCurrency(item.unit_price)}</td>
+                                                <td data-label="المجموع">{formatCurrency(item.subtotal)}</td>
+                                                <td data-label="الإجراءات">
+                                                    <button className="icon-btn delete" onClick={() => removeInvoiceItem(index)}>
+                                                        <Icon name="trash" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
 
-                        <div className="summary-stat-box">
-                            <div className="stat-item">
+                        <div className="sales-summary-bar">
+                            <div className="summary-stat">
                                 <span className="stat-label">إجمالي الفاتورة</span>
-                                <span className="stat-value highlight">{formatCurrency(getTotalAmount())}</span>
+                                <span id="total-amount" className="stat-value highlight">
+                                    {formatCurrency(updateTotal())}
+                                </span>
                             </div>
-                            <div style={{ display: "flex", gap: "0.5rem" }}>
-                                <button
-                                    className="btn btn-success"
-                                    onClick={() => finishInvoice("cash")}
-                                    disabled={invoiceItems.length === 0}
-                                >
-                                    نقدي
-                                </button>
-                                <button
-                                    className="btn btn-warning"
-                                    onClick={() => finishInvoice("credit")}
-                                    disabled={invoiceItems.length === 0}
-                                    style={{ background: "var(--warning-color)", color: "white" }}
-                                >
-                                    آجل
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={finishInvoice}
+                                id="finish-btn"
+                                data-icon="check"
+                            >
+                                إنهاء الفاتورة
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Invoice History */}
-                <div className="sales-card" style={{ marginTop: "2rem" }}>
+                {/* Bottom Section: Invoice History */}
+                <div className="sales-card animate-slide" style={{ animationDelay: "0.2s" }}>
                     <h3>سجل الفواتير السابقة</h3>
-                    <Table
-                        columns={invoiceColumns}
-                        data={invoices}
-                        keyExtractor={(item) => item.id}
-                        emptyMessage="لا توجد فواتير"
-                        isLoading={isLoading}
-                        pagination={{
-                            currentPage,
-                            totalPages,
-                            onPageChange: loadInvoices,
-                        }}
-                    />
+                    <div className="table-container">
+                        <div className="table-wrapper">
+                            <Table
+                                columns={invoiceColumns}
+                                data={invoices}
+                                keyExtractor={(item) => item.id}
+                                emptyMessage="لا توجد فواتير سابقة"
+                                isLoading={isLoading}
+                                pagination={{
+                                    currentPage,
+                                    totalPages,
+                                    onPageChange: loadInvoices,
+                                }}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -500,60 +696,98 @@ export default function SalesPage() {
             <Dialog
                 isOpen={viewDialog}
                 onClose={() => setViewDialog(false)}
-                title={`فاتورة رقم ${selectedInvoice?.invoice_number || ""}`}
-                maxWidth="600px"
+                title="تفاصيل الفاتورة"
             >
                 {selectedInvoice && (
-                    <div>
-                        <div style={{ marginBottom: "1.5rem" }}>
-                            <p><strong>التاريخ:</strong> {formatDate(selectedInvoice.created_at)}</p>
-                            <p>
-                                <strong>نوع الدفع:</strong>{" "}
-                                <span className={`badge ${selectedInvoice.payment_type === "cash" ? "badge-success" : "badge-warning"}`}>
-                                    {selectedInvoice.payment_type === "cash" ? "نقدي" : "آجل"}
-                                </span>
-                            </p>
-                            {selectedInvoice.customer_name && (
-                                <p><strong>العميل:</strong> {selectedInvoice.customer_name}</p>
-                            )}
+                    <div id="view-dialog-body">
+                        <div
+                            className="invoice-details-header"
+                            style={{
+                                marginBottom: "2rem",
+                                borderBottom: "2px solid var(--border-color)",
+                                paddingBottom: "1rem",
+                            }}
+                        >
+                            <div className="form-row">
+                                <div className="summary-stat">
+                                    <span className="stat-label">رقم الفاتورة</span>
+                                    <span className="stat-value">{selectedInvoice.invoice_number}</span>
+                                </div>
+                                <div className="summary-stat">
+                                    <span className="stat-label">التاريخ</span>
+                                    <span className="stat-value">{formatDateTime(selectedInvoice.created_at)}</span>
+                                </div>
+                                <div className="summary-stat">
+                                    <span className="stat-label">نوع الدفع</span>
+                                    <span className="stat-value">
+                                        <span className="badge badge-success">نقدي</span>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
-                        <h4 style={{ marginBottom: "1rem" }}>العناصر:</h4>
                         <div className="invoice-items-minimal">
+                            <h4 style={{ marginBottom: "1rem" }}>المنتجات المباعة:</h4>
                             {selectedInvoice.items?.map((item, index) => (
                                 <div key={index} className="item-row-minimal">
-                                    <div>
+                                    <div className="item-info-pkg">
                                         <span className="item-name-pkg">{item.product_name}</span>
-                                        <span style={{ color: "var(--text-secondary)", marginRight: "0.5rem" }}>
-                                            ({item.quantity} × {formatCurrency(item.unit_price)})
-                                        </span>
+                                        <span className="item-meta-pkg">سعر الوحدة: {formatCurrency(item.unit_price)}</span>
                                     </div>
-                                    <span style={{ fontWeight: 700 }}>{formatCurrency(item.subtotal)}</span>
+                                    <div className="item-info-pkg" style={{ textAlign: "left" }}>
+                                        <span className="item-name-pkg">{formatCurrency(item.subtotal)}</span>
+                                        <span className="item-meta-pkg">الكمية: {item.quantity}</span>
+                                    </div>
                                 </div>
                             ))}
                         </div>
 
-                        <div className="summary-stat-box">
-                            <div className="stat-item">
-                                <span className="stat-label">الإجمالي</span>
-                                <span className="stat-value highlight">{formatCurrency(selectedInvoice.total_amount)}</span>
+                        <div
+                            className="sales-summary-bar"
+                            style={{ marginTop: "2rem", background: "var(--grad-primary)", color: "white" }}
+                        >
+                            <div className="summary-stat">
+                                <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>
+                                    المبلغ الإجمالي
+                                </span>
+                                <span className="stat-value highlight" style={{ color: "white" }}>
+                                    {formatCurrency(selectedInvoice.total_amount)}
+                                </span>
                             </div>
+                            <button
+                                type="button"
+                                className="btn"
+                                style={{ background: "white", color: "var(--primary-color)" }}
+                                onClick={async () => {
+                                    if (selectedInvoice.id) {
+                                        try {
+                                            await printInvoice(selectedInvoice.id);
+                                        } catch (error) {
+                                            console.error("Print error:", error);
+                                        }
+                                    }
+                                }}
+                            >
+                                <Icon name="print" /> طباعة نسخة
+                            </button>
                         </div>
                     </div>
                 )}
             </Dialog>
 
-            {/* Confirm Delete Dialog */}
+            {/* Confirm Dialog */}
             <ConfirmDialog
                 isOpen={confirmDialog}
-                onClose={() => setConfirmDialog(false)}
+                onClose={() => {
+                    setConfirmDialog(false);
+                    setDeleteInvoiceId(null);
+                }}
                 onConfirm={deleteInvoice}
                 title="تأكيد الحذف"
-                message="هل أنت متأكد من حذف هذه الفاتورة؟"
-                confirmText="حذف"
-                confirmVariant="danger"
+                message="هل أنت متأكد من حذف هذه الفاتورة؟ سيتم إرجاع المنتجات للمخزون."
+                confirmText="نعم، متابعة"
+                confirmVariant="primary"
             />
         </MainLayout>
     );
 }
-

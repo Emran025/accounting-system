@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { showToast } from "@/components/ui";
+import { showToast, TabNavigation } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
@@ -69,18 +69,33 @@ export default function ReportsPage() {
     const [activeTab, setActiveTab] = useState<"balance_sheet" | "profit_loss" | "cash_flow" | "comparative">("balance_sheet");
     const [isLoading, setIsLoading] = useState(false);
 
-    // Date Ranges
-    const today = new Date().toISOString().split("T")[0];
-    const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
-
-    const [plStartDate, setPlStartDate] = useState(firstDayOfMonth);
-    const [plEndDate, setPlEndDate] = useState(today);
-    const [cfStartDate, setCfStartDate] = useState(firstDayOfMonth);
-    const [cfEndDate, setCfEndDate] = useState(today);
-    const [compCurrentStart, setCompCurrentStart] = useState(firstDayOfMonth);
-    const [compCurrentEnd, setCompCurrentEnd] = useState(today);
+    // Date filters
+    const [plStartDate, setPlStartDate] = useState("");
+    const [plEndDate, setPlEndDate] = useState("");
+    const [cfStartDate, setCfStartDate] = useState("");
+    const [cfEndDate, setCfEndDate] = useState("");
+    const [compCurrentStart, setCompCurrentStart] = useState("");
+    const [compCurrentEnd, setCompCurrentEnd] = useState("");
     const [compPreviousStart, setCompPreviousStart] = useState("");
     const [compPreviousEnd, setCompPreviousEnd] = useState("");
+
+    useEffect(() => {
+        const today = new Date().toISOString().split("T")[0];
+        const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
+
+        // Set default dates
+        setPlStartDate(firstDay);
+        setPlEndDate(today);
+        setCfStartDate(firstDay);
+        setCfEndDate(today);
+        setCompCurrentStart(firstDay);
+        setCompCurrentEnd(today);
+        // Previous period defaults (optional, maybe previous month?)
+        const prevMonthFirst = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().split("T")[0];
+        const prevMonthLast = new Date(new Date().getFullYear(), new Date().getMonth(), 0).toISOString().split("T")[0];
+        setCompPreviousStart(prevMonthFirst);
+        setCompPreviousEnd(prevMonthLast);
+    }, []);
 
     // Report Data
     const [balanceSheet, setBalanceSheet] = useState<BalanceSheetData | null>(null);
@@ -209,6 +224,7 @@ export default function ReportsPage() {
             <PageHeader
                 title="التقارير المالية"
                 user={user}
+                showDate={true}
                 actions={
                     <button className="btn btn-secondary" onClick={handleExport}>
                         {getIcon("download")}
@@ -219,36 +235,16 @@ export default function ReportsPage() {
 
             <div className="settings-wrapper animate-fade">
                 {/* Tabs */}
-                <div className="settings-tabs">
-                    <button
-                        className={`tab-btn ${activeTab === "balance_sheet" ? "active" : ""}`}
-                        onClick={() => setActiveTab("balance_sheet")}
-                    >
-                        <i className="fas fa-balance-scale"></i>
-                        الميزانية العمومية
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === "profit_loss" ? "active" : ""}`}
-                        onClick={() => setActiveTab("profit_loss")}
-                    >
-                        <i className="fas fa-chart-line"></i>
-                        قائمة الدخل
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === "cash_flow" ? "active" : ""}`}
-                        onClick={() => setActiveTab("cash_flow")}
-                    >
-                        <i className="fas fa-money-bill-wave"></i>
-                        التدفقات النقدية
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === "comparative" ? "active" : ""}`}
-                        onClick={() => setActiveTab("comparative")}
-                    >
-                        <i className="fas fa-chart-bar"></i>
-                        المقارنة المالية
-                    </button>
-                </div>
+                <TabNavigation 
+                    tabs={[
+                        { key: "balance_sheet", label: "الميزانية العمومية", icon: "fa-balance-scale" },
+                        { key: "profit_loss", label: "قائمة الدخل", icon: "fa-chart-line" },
+                        { key: "cash_flow", label: "التدفقات النقدية", icon: "fa-money-bill-wave" },
+                        { key: "comparative", label: "المقارنة المالية", icon: "fa-chart-bar" }
+                    ]}
+                    activeTab={activeTab}
+                    onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}
+                />
 
                 {/* Balance Sheet Tab */}
                 <div className={`tab-content ${activeTab === "balance_sheet" ? "active" : ""}`}>
@@ -266,54 +262,54 @@ export default function ReportsPage() {
                                 <p style={{ marginTop: "1rem" }}>جاري التحميل...</p>
                             </div>
                         ) : balanceSheet ? (
-                            <div className="report-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginTop: "1.5rem" }}>
+                            <div className="report-grid">
                                 {/* Assets Section */}
-                                <div className="report-section">
+                                <div className="report-section animate-fade">
                                     <h2><i className="fas fa-wallet"></i> الأصول</h2>
                                     <div className="financial-row">
-                                        <span className="label">النقدية المقدرة</span>
-                                        <span className="value">{formatCurrency(balanceSheet.assets.cash_estimate)}</span>
+                                        <span className="report-label">النقدية المقدرة</span>
+                                        <span className="report-value">{formatCurrency(balanceSheet.assets.cash_estimate)}</span>
                                     </div>
                                     <div className="financial-row">
-                                        <span className="label">قيمة المخزون</span>
-                                        <span className="value">{formatCurrency(balanceSheet.assets.stock_value)}</span>
+                                        <span className="report-label">قيمة المخزون</span>
+                                        <span className="report-value">{formatCurrency(balanceSheet.assets.stock_value)}</span>
                                     </div>
                                     <div className="financial-row">
-                                        <span className="label">الأصول الثابتة</span>
-                                        <span className="value">{formatCurrency(balanceSheet.assets.fixed_assets)}</span>
+                                        <span className="report-label">الأصول الثابتة</span>
+                                        <span className="report-value">{formatCurrency(balanceSheet.assets.fixed_assets)}</span>
                                     </div>
                                     <div className="financial-row">
-                                        <span className="label">الذمم المدينة</span>
-                                        <span className="value">{formatCurrency(balanceSheet.assets.accounts_receivable)}</span>
+                                        <span className="report-label">الذمم المدينة</span>
+                                        <span className="report-value">{formatCurrency(balanceSheet.assets.accounts_receivable)}</span>
                                     </div>
                                     <div className="financial-row">
-                                        <span className="label">إجمالي الأصول</span>
-                                        <span className="value">{formatCurrency(balanceSheet.assets.total_assets)}</span>
+                                        <span className="report-label">إجمالي الأصول</span>
+                                        <span className="report-value">{formatCurrency(balanceSheet.assets.total_assets)}</span>
                                     </div>
                                 </div>
 
                                 {/* Income Statement Section */}
-                                <div className="report-section">
+                                <div className="report-section animate-fade">
                                     <h2><i className="fas fa-chart-line"></i> قائمة الدخل</h2>
                                     <div className="financial-row">
-                                        <span className="label">إجمالي المبيعات</span>
-                                        <span className="value text-success">{formatCurrency(balanceSheet.income_statement.total_sales)}</span>
+                                        <span className="report-label">إجمالي المبيعات</span>
+                                        <span className="report-value text-success">{formatCurrency(balanceSheet.income_statement.total_sales)}</span>
                                     </div>
                                     <div className="financial-row">
-                                        <span className="label">إيرادات أخرى</span>
-                                        <span className="value text-success">{formatCurrency(balanceSheet.income_statement.other_revenues)}</span>
+                                        <span className="report-label">إيرادات أخرى</span>
+                                        <span className="report-value text-success">{formatCurrency(balanceSheet.income_statement.other_revenues)}</span>
                                     </div>
                                     <div className="financial-row">
-                                        <span className="label">إجمالي المشتريات</span>
-                                        <span className="value text-danger">-{formatCurrency(balanceSheet.income_statement.total_purchases)}</span>
+                                        <span className="report-label">إجمالي المشتريات</span>
+                                        <span className="report-value text-danger">-{formatCurrency(balanceSheet.income_statement.total_purchases)}</span>
                                     </div>
                                     <div className="financial-row">
-                                        <span className="label">إجمالي المصروفات</span>
-                                        <span className="value text-danger">-{formatCurrency(balanceSheet.income_statement.total_expenses)}</span>
+                                        <span className="report-label">إجمالي المصروفات</span>
+                                        <span className="report-value text-danger">-{formatCurrency(balanceSheet.income_statement.total_expenses)}</span>
                                     </div>
                                     <div className="financial-row">
-                                        <span className="label">صافي الربح / الخسارة</span>
-                                        <span className={`value ${balanceSheet.income_statement.net_profit >= 0 ? "profit" : "loss"}`}>
+                                        <span className="report-label">صافي الربح / الخسارة</span>
+                                        <span className={`report-value ${balanceSheet.income_statement.net_profit >= 0 ? "profit" : "loss"}`}>
                                             {formatCurrency(balanceSheet.income_statement.net_profit)}
                                         </span>
                                     </div>
@@ -330,26 +326,28 @@ export default function ReportsPage() {
                     <div className="sales-card">
                         <h2><i className="fas fa-chart-line"></i> قائمة الدخل</h2>
 
-                        <div className="filter-section" style={{ display: "flex", gap: "1rem", alignItems: "flex-end", marginBottom: "2rem", flexWrap: "wrap" }}>
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label>من تاريخ</label>
-                                <input
-                                    type="date"
-                                    value={plStartDate}
-                                    onChange={(e) => setPlStartDate(e.target.value)}
-                                />
+                        <div className="filter-section">
+                            <div className="filter-group">
+                                <label>فترة التقرير</label>
+                                <div className="date-range-group">
+                                    <input
+                                        type="date"
+                                        value={plStartDate}
+                                        onChange={(e) => setPlStartDate(e.target.value)}
+                                    />
+                                    <span>إلى</span>
+                                    <input
+                                        type="date"
+                                        value={plEndDate}
+                                        onChange={(e) => setPlEndDate(e.target.value)}
+                                    />
+                                </div>
                             </div>
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label>إلى تاريخ</label>
-                                <input
-                                    type="date"
-                                    value={plEndDate}
-                                    onChange={(e) => setPlEndDate(e.target.value)}
-                                />
+                            <div className="filter-actions">
+                                <button className="btn btn-primary" onClick={loadProfitLoss}>
+                                    <i className="fas fa-search"></i> عرض التقرير
+                                </button>
                             </div>
-                            <button className="btn btn-primary" onClick={loadProfitLoss}>
-                                <i className="fas fa-search"></i> عرض التقرير
-                            </button>
                         </div>
 
                         {isLoading ? (
@@ -357,29 +355,29 @@ export default function ReportsPage() {
                                 <i className="fas fa-spinner fa-spin" style={{ fontSize: "2rem" }}></i>
                             </div>
                         ) : profitLoss ? (
-                            <div style={{ marginTop: "1.5rem" }}>
+                            <div className="report-section animate-fade" style={{ marginTop: "1.5rem" }}>
                                 <h2 style={{ marginBottom: "1.5rem" }}>
                                     <i className="fas fa-chart-line"></i> قائمة الدخل ({plStartDate} إلى {plEndDate})
                                 </h2>
                                 <div className="financial-row">
-                                    <span className="label">إجمالي الإيرادات</span>
-                                    <span className="value text-success">{formatCurrency(profitLoss.total_revenue || 0)}</span>
+                                    <span className="report-label">إجمالي الإيرادات</span>
+                                    <span className="report-value text-success">{formatCurrency(profitLoss.total_revenue || 0)}</span>
                                 </div>
                                 <div className="financial-row">
-                                    <span className="label">تكلفة البضاعة المباعة</span>
-                                    <span className="value text-danger">-{formatCurrency(profitLoss.total_cogs || 0)}</span>
+                                    <span className="report-label">تكلفة البضاعة المباعة</span>
+                                    <span className="report-value text-danger">-{formatCurrency(profitLoss.total_cogs || 0)}</span>
                                 </div>
                                 <div className="financial-row">
-                                    <span className="label">إجمالي الربح</span>
-                                    <span className="value">{formatCurrency((profitLoss.total_revenue || 0) - (profitLoss.total_cogs || 0))}</span>
+                                    <span className="report-label">إجمالي الربح</span>
+                                    <span className="report-value">{formatCurrency((profitLoss.total_revenue || 0) - (profitLoss.total_cogs || 0))}</span>
                                 </div>
                                 <div className="financial-row">
-                                    <span className="label">المصروفات التشغيلية</span>
-                                    <span className="value text-danger">-{formatCurrency(profitLoss.total_expenses || 0)}</span>
+                                    <span className="report-label">المصروفات التشغيلية</span>
+                                    <span className="report-value text-danger">-{formatCurrency(profitLoss.total_expenses || 0)}</span>
                                 </div>
                                 <div className="financial-row">
-                                    <span className="label">صافي الربح / الخسارة</span>
-                                    <span className={`value ${(profitLoss.net_profit || 0) >= 0 ? "profit" : "loss"}`}>
+                                    <span className="report-label">صافي الربح / الخسارة</span>
+                                    <span className={`report-value ${(profitLoss.net_profit || 0) >= 0 ? "profit" : "loss"}`}>
                                         {formatCurrency(profitLoss.net_profit || 0)}
                                     </span>
                                 </div>
@@ -397,26 +395,28 @@ export default function ReportsPage() {
                     <div className="sales-card">
                         <h2><i className="fas fa-money-bill-wave"></i> قائمة التدفقات النقدية</h2>
 
-                        <div className="filter-section" style={{ display: "flex", gap: "1rem", alignItems: "flex-end", marginBottom: "2rem", flexWrap: "wrap" }}>
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label>من تاريخ</label>
-                                <input
-                                    type="date"
-                                    value={cfStartDate}
-                                    onChange={(e) => setCfStartDate(e.target.value)}
-                                />
+                        <div className="filter-section">
+                            <div className="filter-group">
+                                <label>فترة التقرير</label>
+                                <div className="date-range-group">
+                                    <input
+                                        type="date"
+                                        value={cfStartDate}
+                                        onChange={(e) => setCfStartDate(e.target.value)}
+                                    />
+                                    <span>إلى</span>
+                                    <input
+                                        type="date"
+                                        value={cfEndDate}
+                                        onChange={(e) => setCfEndDate(e.target.value)}
+                                    />
+                                </div>
                             </div>
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label>إلى تاريخ</label>
-                                <input
-                                    type="date"
-                                    value={cfEndDate}
-                                    onChange={(e) => setCfEndDate(e.target.value)}
-                                />
+                            <div className="filter-actions">
+                                <button className="btn btn-primary" onClick={loadCashFlow}>
+                                    <i className="fas fa-search"></i> عرض التقرير
+                                </button>
                             </div>
-                            <button className="btn btn-primary" onClick={loadCashFlow}>
-                                <i className="fas fa-search"></i> عرض التقرير
-                            </button>
                         </div>
 
                         {isLoading ? (
@@ -424,36 +424,36 @@ export default function ReportsPage() {
                                 <i className="fas fa-spinner fa-spin" style={{ fontSize: "2rem" }}></i>
                             </div>
                         ) : cashFlow ? (
-                            <div style={{ marginTop: "1.5rem" }}>
+                            <div className="report-section animate-fade" style={{ marginTop: "1.5rem" }}>
                                 <h2 style={{ marginBottom: "1.5rem" }}>
                                     <i className="fas fa-money-bill-wave"></i> قائمة التدفقات النقدية ({cfStartDate} إلى {cfEndDate})
                                 </h2>
 
-                                <h3 style={{ marginTop: "1.5rem", marginBottom: "1rem" }}>الأنشطة التشغيلية</h3>
+                                <h3 style={{ marginTop: "1.5rem", marginBottom: "1rem", color: "var(--primary-dark)" }}>الأنشطة التشغيلية</h3>
                                 <div className="financial-row">
-                                    <span className="label">صافي الربح</span>
-                                    <span className="value">{formatCurrency(cashFlow.operating_activities?.net_profit || 0)}</span>
+                                    <span className="report-label">صافي الربح</span>
+                                    <span className="report-value">{formatCurrency(cashFlow.operating_activities?.net_profit || 0)}</span>
                                 </div>
                                 <div className="financial-row">
-                                    <span className="label">التدفقات النقدية من الأنشطة التشغيلية</span>
-                                    <span className="value">{formatCurrency(cashFlow.operating_activities?.net_cash_flow || 0)}</span>
-                                </div>
-
-                                <h3 style={{ marginTop: "1.5rem", marginBottom: "1rem" }}>الأنشطة الاستثمارية</h3>
-                                <div className="financial-row">
-                                    <span className="label">شراء الأصول</span>
-                                    <span className="value text-danger">-{formatCurrency(cashFlow.investing_activities?.asset_purchases || 0)}</span>
+                                    <span className="report-label">التدفقات النقدية من الأنشطة التشغيلية</span>
+                                    <span className="report-value">{formatCurrency(cashFlow.operating_activities?.net_cash_flow || 0)}</span>
                                 </div>
 
-                                <h3 style={{ marginTop: "1.5rem", marginBottom: "1rem" }}>الأنشطة التمويلية</h3>
+                                <h3 style={{ marginTop: "1.5rem", marginBottom: "1rem", color: "var(--primary-dark)" }}>الأنشطة الاستثمارية</h3>
                                 <div className="financial-row">
-                                    <span className="label">رأس المال</span>
-                                    <span className="value text-success">{formatCurrency(cashFlow.financing_activities?.capital || 0)}</span>
+                                    <span className="report-label">شراء الأصول</span>
+                                    <span className="report-value text-danger">-{formatCurrency(cashFlow.investing_activities?.asset_purchases || 0)}</span>
                                 </div>
 
-                                <div className="financial-row" style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "2px solid var(--border-color)", fontWeight: "bold" }}>
-                                    <span className="label">صافي التدفق النقدي</span>
-                                    <span className="value">{formatCurrency(cashFlow.net_cash_flow || 0)}</span>
+                                <h3 style={{ marginTop: "1.5rem", marginBottom: "1rem", color: "var(--primary-dark)" }}>الأنشطة التمويلية</h3>
+                                <div className="financial-row">
+                                    <span className="report-label">رأس المال</span>
+                                    <span className="report-value text-success">{formatCurrency(cashFlow.financing_activities?.capital || 0)}</span>
+                                </div>
+
+                                <div className="financial-row">
+                                    <span className="report-label">صافي التدفق النقدي</span>
+                                    <span className="report-value">{formatCurrency(cashFlow.net_cash_flow || 0)}</span>
                                 </div>
                             </div>
                         ) : (
@@ -469,18 +469,16 @@ export default function ReportsPage() {
                     <div className="sales-card">
                         <h2><i className="fas fa-chart-bar"></i> المقارنة المالية</h2>
 
-                        <div className="filter-section" style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2rem" }}>
-                            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "flex-end" }}>
-                                <div className="form-group" style={{ marginBottom: 0 }}>
-                                    <label>الفترة الحالية - من</label>
+                        <div className="filter-section">
+                            <div className="filter-group">
+                                <label>الفترة الحالية</label>
+                                <div className="date-range-group">
                                     <input
                                         type="date"
                                         value={compCurrentStart}
                                         onChange={(e) => setCompCurrentStart(e.target.value)}
                                     />
-                                </div>
-                                <div className="form-group" style={{ marginBottom: 0 }}>
-                                    <label>الفترة الحالية - إلى</label>
+                                    <span>إلى</span>
                                     <input
                                         type="date"
                                         value={compCurrentEnd}
@@ -488,17 +486,15 @@ export default function ReportsPage() {
                                     />
                                 </div>
                             </div>
-                            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "flex-end" }}>
-                                <div className="form-group" style={{ marginBottom: 0 }}>
-                                    <label>الفترة السابقة - من (اختياري)</label>
+                            <div className="filter-group">
+                                <label>الفترة السابقة (اختياري)</label>
+                                <div className="date-range-group">
                                     <input
                                         type="date"
                                         value={compPreviousStart}
                                         onChange={(e) => setCompPreviousStart(e.target.value)}
                                     />
-                                </div>
-                                <div className="form-group" style={{ marginBottom: 0 }}>
-                                    <label>الفترة السابقة - إلى (اختياري)</label>
+                                    <span>إلى</span>
                                     <input
                                         type="date"
                                         value={compPreviousEnd}
@@ -506,9 +502,11 @@ export default function ReportsPage() {
                                     />
                                 </div>
                             </div>
-                            <button className="btn btn-primary" onClick={loadComparative}>
-                                <i className="fas fa-search"></i> عرض المقارنة
-                            </button>
+                            <div className="filter-actions">
+                                <button className="btn btn-primary" onClick={loadComparative}>
+                                    <i className="fas fa-search"></i> عرض المقارنة
+                                </button>
+                            </div>
                         </div>
 
                         {isLoading ? (
@@ -516,7 +514,7 @@ export default function ReportsPage() {
                                 <i className="fas fa-spinner fa-spin" style={{ fontSize: "2rem" }}></i>
                             </div>
                         ) : comparative ? (
-                            <div style={{ marginTop: "1.5rem" }}>
+                            <div className="report-section animate-fade" style={{ marginTop: "1.5rem" }}>
                                 <h2 style={{ marginBottom: "1.5rem" }}>
                                     <i className="fas fa-chart-bar"></i> المقارنة المالية
                                 </h2>
@@ -539,7 +537,7 @@ export default function ReportsPage() {
                                             <td className={(comparative.changes?.revenue?.amount || 0) >= 0 ? "text-success" : "text-danger"}>
                                                 {formatCurrency(comparative.changes?.revenue?.amount || 0)}
                                             </td>
-                                            <td>{(comparative.changes?.revenue?.percentage || 0).toFixed(2)}%</td>
+                                            <td style={{ direction: 'ltr', textAlign: 'right' }}>{(comparative.changes?.revenue?.percentage || 0).toFixed(2)}%</td>
                                         </tr>
                                         <tr>
                                             <td><strong>المصروفات</strong></td>
@@ -548,7 +546,7 @@ export default function ReportsPage() {
                                             <td className={(comparative.changes?.expenses?.amount || 0) >= 0 ? "text-danger" : "text-success"}>
                                                 {formatCurrency(comparative.changes?.expenses?.amount || 0)}
                                             </td>
-                                            <td>{(comparative.changes?.expenses?.percentage || 0).toFixed(2)}%</td>
+                                            <td style={{ direction: 'ltr', textAlign: 'right' }}>{(comparative.changes?.expenses?.percentage || 0).toFixed(2)}%</td>
                                         </tr>
                                         <tr>
                                             <td><strong>صافي الربح</strong></td>
@@ -557,7 +555,7 @@ export default function ReportsPage() {
                                             <td className={(comparative.changes?.net_profit?.amount || 0) >= 0 ? "text-success" : "text-danger"}>
                                                 {formatCurrency(comparative.changes?.net_profit?.amount || 0)}
                                             </td>
-                                            <td>{(comparative.changes?.net_profit?.percentage || 0).toFixed(2)}%</td>
+                                            <td style={{ direction: 'ltr', textAlign: 'right' }}>{(comparative.changes?.net_profit?.percentage || 0).toFixed(2)}%</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -568,8 +566,7 @@ export default function ReportsPage() {
                             </p>
                         )}
                     </div>
-                </div>
-            </div>
+                </div>            </div>
         </MainLayout>
     );
 }

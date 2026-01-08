@@ -38,6 +38,8 @@ export default function BatchProcessingPage() {
   const [itemsDialog, setItemsDialog] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(false);
   const [deleteBatchId, setDeleteBatchId] = useState<number | null>(null);
+  const [executeBatchId, setExecuteBatchId] = useState<number | null>(null);
+  const [executeBatchType, setExecuteBatchType] = useState<string>("");
 
   // Selected batch for items view
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
@@ -189,19 +191,26 @@ export default function BatchProcessingPage() {
     }
   };
 
-  const executeBatch = async (batchId: number, batchType: string) => {
-    const confirmed = window.confirm("هل أنت متأكد من تنفيذ هذه الدفعة؟");
-    if (!confirmed) return;
+  const confirmExecuteBatch = (batchId: number, batchType: string) => {
+    setExecuteBatchId(batchId);
+    setExecuteBatchType(batchType);
+    setConfirmDialog(true);
+  };
+
+  const executeBatch = async () => {
+    if (!executeBatchId) return;
 
     try {
-      const action = batchType === "journal_entry_import" ? "journal_entries" : "expenses";
+      const action = executeBatchType === "journal_entry_import" ? "journal_entries" : "expenses";
       const response = await fetchAPI(`batch?action=${action}`, {
         method: "POST",
-        body: JSON.stringify({ batch_id: batchId }),
+        body: JSON.stringify({ batch_id: executeBatchId }),
       });
 
       if (response.success) {
         showToast("تم تنفيذ الدفعة بنجاح", "success");
+        setConfirmDialog(false);
+        setExecuteBatchId(null);
         await loadBatches(currentPage);
       } else {
         showToast(response.message || "فشل تنفيذ الدفعة", "error");
@@ -219,12 +228,6 @@ export default function BatchProcessingPage() {
   const deleteBatch = async () => {
     if (!deleteBatchId) return;
 
-    const confirmed = window.confirm("هل أنت متأكد من حذف هذه الدفعة؟");
-    if (!confirmed) {
-      setConfirmDialog(false);
-      return;
-    }
-
     try {
       const response = await fetchAPI(`batch?id=${deleteBatchId}`, { method: "DELETE" });
 
@@ -238,6 +241,14 @@ export default function BatchProcessingPage() {
       }
     } catch {
       showToast("خطأ في حذف الدفعة", "error");
+    }
+  };
+
+  const handleConfirm = () => {
+    if (deleteBatchId) {
+      deleteBatch();
+    } else if (executeBatchId) {
+      executeBatch();
     }
   };
 
@@ -318,7 +329,7 @@ export default function BatchProcessingPage() {
               <>
                 <button
                   className="icon-btn edit"
-                  onClick={() => executeBatch(item.id, item.batch_type)}
+                  onClick={() => confirmExecuteBatch(item.id, item.batch_type)}
                   title="تنفيذ"
                 >
                   {getIcon("check")}
@@ -378,6 +389,7 @@ export default function BatchProcessingPage() {
       <PageHeader
         title="المعالجة الدفعية"
         user={user}
+        showDate={true}
         actions={
           <button className="btn btn-primary" onClick={openCreateDialog}>
             {getIcon("plus")}
@@ -481,15 +493,23 @@ export default function BatchProcessingPage() {
         )}
       </Dialog>
 
-      {/* Confirm Delete Dialog */}
+      {/* Confirm Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog}
-        onClose={() => setConfirmDialog(false)}
-        onConfirm={deleteBatch}
-        title="تأكيد الحذف"
-        message="هل أنت متأكد من حذف هذه الدفعة؟"
-        confirmText="حذف"
-        confirmVariant="danger"
+        onClose={() => {
+            setConfirmDialog(false);
+            setDeleteBatchId(null);
+            setExecuteBatchId(null);
+        }}
+        onConfirm={handleConfirm}
+        title="تأكيد"
+        message={
+            deleteBatchId 
+                ? "هل أنت متأكد من حذف هذه الدفعة؟" 
+                : "هل أنت متأكد من تنفيذ هذه الدفعة؟"
+        }
+        confirmText={deleteBatchId ? "حذف" : "تنفيذ"}
+        confirmVariant={deleteBatchId ? "danger" : "primary"}
       />
     </MainLayout>
   );

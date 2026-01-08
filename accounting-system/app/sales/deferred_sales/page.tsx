@@ -1,25 +1,32 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, SearchableSelect, SelectOption, showToast, Column } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
-import { formatCurrency, formatDate, parseNumber } from "@/lib/utils";
-import { User, getStoredUser, canAccess, getStoredPermissions, Permission } from "@/lib/auth";
-import { getIcon } from "@/lib/icons";
-import { printInvoice } from "@/lib/invoice-utils";
+import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
+import { User, getStoredUser, canAccess, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
+import { Icon } from "@/lib/icons";
+import { printInvoice, generateInvoiceHTML, getSettings } from "@/lib/invoice-utils";
 
 interface Product {
   id: number;
   name: string;
-  barcode: string;
-  stock: number;
-  selling_price: number;
-  unit_type: string;
-  units_per_package: number;
-  package_price: number;
+  barcode?: string;
+  stock_quantity: number;
+  unit_price: number;
+  items_per_unit: number;
+  unit_name: string;
+  sub_unit_name: string;
+  latest_purchase_price?: number;
+  minimum_profit_margin?: number;
 }
 
+interface Pagination {
+  total_records: number;
+  total_pages: number;
+  current_page: number;
+}
 interface Customer {
   id: number;
   name: string;
@@ -29,9 +36,12 @@ interface Customer {
 interface InvoiceItem {
   product_id: number;
   product_name: string;
+  display_name: string;
   quantity: number;
+  unit_type: "sub" | "main";
+  unit_name: string;
+  total_sub_units: number;
   unit_price: number;
-  unit_type: string;
   subtotal: number;
 }
 
@@ -40,345 +50,369 @@ interface Invoice {
   invoice_number: string;
   total_amount: number;
   amount_paid: number;
-  remaining_amount: number;
   customer_name?: string;
-  customer_id?: number;
+  customer_phone?: string;
+  customer_tax?: string;
   created_at: string;
-  items?: InvoiceItem[];
+  items?: Array<{
+    product_name: string;
+    quantity: number;
+    unit_price: number;
+    subtotal: number;
+  }>;
+  payment_type: string;
 }
 
 export default function DeferredSalesPage() {
   const [user, setUser] = useState<User | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
-  
+
   // Products
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  
+  const [productSearchTerm, setProductSearchTerm] = useState("");
+  const [productOptionsVisible, setProductOptionsVisible] = useState(false);
+  const productSearchRef = useRef<HTMLDivElement>(null);
+
   // Customers
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
-  
+  const [customerOptionsVisible, setCustomerOptionsVisible] = useState(false);
+  const customerSearchRef = useRef<HTMLDivElement>(null);
+
   // Invoice form
   const [quantity, setQuantity] = useState("1");
-  const [unitType, setUnitType] = useState("piece");
+  const [unitType, setUnitType] = useState<"sub" | "main">("sub");
   const [unitPrice, setUnitPrice] = useState("");
+  const [itemStock, setItemStock] = useState("");
   const [subtotal, setSubtotal] = useState(0);
   const [amountPaid, setAmountPaid] = useState("");
-  
+
   // Current invoice items
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
   const [invoiceNumber, setInvoiceNumber] = useState("");
-  
+
   // Invoice history
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
-  
+  const itemsPerPage = 20;
+
   // Dialogs
   const [viewDialog, setViewDialog] = useState(false);
-  const [paymentDialog, setPaymentDialog] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [deleteInvoiceId, setDeleteInvoiceId] = useState<number | null>(null);
-  
-  // Payment form
-  const [paymentAmount, setPaymentAmount] = useState("");
-  const [paymentNotes, setPaymentNotes] = useState("");
-  const [payments, setPayments] = useState<Array<{ id: number; amount: number; payment_date: string; notes?: string }>>([]);
-  
+
   const [isLoading, setIsLoading] = useState(true);
-  const itemsPerPage = 10;
 
   const generateInvoiceNumber = useCallback(() => {
-    const now = new Date();
-    const num = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
+    const num = "INV-" + Date.now().toString().slice(-8);
     setInvoiceNumber(num);
   }, []);
 
   const loadProducts = useCallback(async () => {
     try {
-      const response = await fetchAPI("/api/products");
-      setProducts((response.products as Product[]) || []);
-    } catch {
-      showToast("خطأ في تحميل المنتجات", "error");
+      const response = await fetchAPI(`products?include_purchase_price=1`);
+      if (response.success && response.data) {
+        const filtered = (response.data as Product[]).filter((p) => p.stock_quantity > 0);
+        setProducts(filtered);
+      }
+    } catch (error) {
+      showAlert("alert-container", "خطأ في تحميل المنتجات", "error");
     }
   }, []);
 
   const loadCustomers = useCallback(async (search: string = "") => {
+    if (search.length < 2) {
+      setCustomers([]);
+      return;
+    }
     try {
-      const response = await fetchAPI(`/api/customers?limit=10&search=${encodeURIComponent(search)}`);
-      setCustomers((response.customers as Customer[]) || []);
+      const response = await fetchAPI(`ar_customers?limit=10&search=${encodeURIComponent(search)}`);
+      if (response.success && response.data) {
+        setCustomers(response.data as Customer[]);
+      }
     } catch {
-      // Ignore - customers are optional
+      // Ignore errors
     }
   }, []);
 
-  const loadInvoices = useCallback(async (page: number = 1, search: string = "") => {
+  const loadInvoices = useCallback(async (page: number = 1) => {
     try {
       setIsLoading(true);
-      const response = await fetchAPI(
-        `/api/invoices?page=${page}&limit=${itemsPerPage}&payment_type=credit&search=${encodeURIComponent(search)}`
-      );
-      setInvoices((response.invoices as Invoice[]) || []);
-      setTotalPages(Math.ceil((Number(response.total) || 0) / itemsPerPage));
-      setCurrentPage(page);
+      const response = await fetchAPI(`invoices?page=${page}&limit=${itemsPerPage}&payment_type=credit`);
+      if (response.success && response.data) {
+        setInvoices(response.data as Invoice[]);
+
+        const total = Number((response.pagination as Pagination)?.total_records || response.total || 0);
+        setTotalPages(Math.ceil(total / itemsPerPage));
+        setCurrentPage(page);
+      }
     } catch {
-      showToast("خطأ في تحميل الفواتير", "error");
+      showAlert("alert-container", "خطأ في تحميل السجل", "error");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const storedUser = getStoredUser();
-    const storedPermissions = getStoredPermissions();
-    setUser(storedUser);
-    setPermissions(storedPermissions);
-    
-    const loadData = async () => {
-      await Promise.all([loadProducts(), loadCustomers(), loadInvoices()]);
+    const init = async () => {
+      const authenticated = await checkAuth();
+      if (!authenticated) return;
+
+      const storedUser = getStoredUser();
+      const storedPermissions = getStoredPermissions();
+      setUser(storedUser);
+      setPermissions(storedPermissions);
+
+      await Promise.all([loadProducts(), loadInvoices()]);
       generateInvoiceNumber();
       setIsLoading(false);
     };
-    
-    loadData();
-  }, [loadProducts, loadCustomers, loadInvoices, generateInvoiceNumber]);
+    init();
+  }, [loadProducts, loadInvoices, generateInvoiceNumber]);
 
-  // Customer search with debounce
+  // Customer search debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (customerSearchTerm.length >= 2) {
-        loadCustomers(customerSearchTerm);
-      } else {
-        setCustomers([]);
-      }
+      loadCustomers(customerSearchTerm);
     }, 300);
     return () => clearTimeout(timer);
   }, [customerSearchTerm, loadCustomers]);
 
-  // Calculate subtotal when quantity or price changes
+  // Calculate subtotal
   useEffect(() => {
+    if (!selectedProduct) {
+      setSubtotal(0);
+      return;
+    }
     const qty = parseNumber(quantity);
     const price = parseNumber(unitPrice);
-    setSubtotal(qty * price);
-  }, [quantity, unitPrice]);
+    let calcSubtotal = 0;
+    if (unitType === "main") {
+      calcSubtotal = qty * price * (selectedProduct.items_per_unit || 1);
+    } else {
+      calcSubtotal = qty * price;
+    }
+    setSubtotal(calcSubtotal);
+  }, [quantity, unitPrice, unitType, selectedProduct]);
 
-  // Update price when product or unit type changes
+  // Update stock and price when product selected
   useEffect(() => {
     if (selectedProduct) {
-      if (unitType === "package" && selectedProduct.package_price) {
-        setUnitPrice(String(selectedProduct.package_price));
-      } else {
-        setUnitPrice(String(selectedProduct.selling_price));
+      const cartItemEntries = invoiceItems.filter(
+        (item) => item.product_id === selectedProduct.id
+      );
+      const cartQtyInSubUnits = cartItemEntries.reduce(
+        (sum, item) => sum + item.total_sub_units,
+        0
+      );
+      const availableStock = selectedProduct.stock_quantity - cartQtyInSubUnits;
+      setItemStock(String(availableStock));
+
+      setUnitPrice(String(selectedProduct.unit_price));
+      setQuantity("1");
+
+      if (availableStock <= 0) {
+        setQuantity("0");
       }
-    }
-  }, [selectedProduct, unitType]);
-
-  const productOptions: SelectOption[] = products.map((p) => ({
-    value: p.id,
-    label: p.name,
-    subtitle: `المخزون: ${p.stock}`,
-  }));
-
-  const customerOptions: SelectOption[] = customers.map((c) => ({
-    value: c.id,
-    label: c.name,
-    subtitle: c.phone || "",
-  }));
-
-  const handleProductSelect = (value: string | number | null) => {
-    if (value === null) {
-      setSelectedProduct(null);
+    } else {
+      setItemStock("");
       setUnitPrice("");
-      return;
-    }
-    const product = products.find((p) => p.id === value);
-    if (product) {
-      setSelectedProduct(product);
-      setUnitType("piece");
-      setUnitPrice(String(product.selling_price));
       setQuantity("1");
     }
+  }, [selectedProduct, invoiceItems]);
+
+  // Click outside handlers
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (productSearchRef.current && !productSearchRef.current.contains(e.target as Node)) {
+        setProductOptionsVisible(false);
+      }
+      if (customerSearchRef.current && !customerSearchRef.current.contains(e.target as Node)) {
+        setCustomerOptionsVisible(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredProducts = products.filter(
+    (p) =>
+      p.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+      (p.barcode && p.barcode.includes(productSearchTerm))
+  ).slice(0, 50);
+
+  const handleProductSelect = (product: Product) => {
+    setSelectedProduct(product);
+    setProductSearchTerm(product.name);
+    setProductOptionsVisible(false);
   };
 
-  const handleCustomerSelect = (value: string | number | null) => {
-    if (value === null) {
-      setSelectedCustomer(null);
-      return;
-    }
-    const customer = customers.find((c) => c.id === value);
-    if (customer) {
-      setSelectedCustomer(customer);
-    }
+  const handleCustomerSelect = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setCustomerSearchTerm(customer.name);
+    setCustomerOptionsVisible(false);
   };
 
-  const addToInvoice = () => {
+  const calculateSubtotal = () => {
+    if (!selectedProduct) return;
+    const qty = parseNumber(quantity);
+    const price = parseNumber(unitPrice);
+    let calcSubtotal = 0;
+    if (unitType === "main") {
+      calcSubtotal = qty * price * (selectedProduct.items_per_unit || 1);
+    } else {
+      calcSubtotal = qty * price;
+    }
+    setSubtotal(calcSubtotal);
+  };
+
+  const addItemToInvoice = async () => {
     if (!selectedProduct) {
-      showToast("يرجى اختيار منتج", "error");
+      showAlert("alert-container", "يرجى اختيار منتج أولاً", "error");
       return;
     }
 
     const qty = parseNumber(quantity);
-    if (qty <= 0) {
-      showToast("يرجى إدخال كمية صحيحة", "error");
+    const price = parseNumber(unitPrice);
+    const itemsPerUnit = selectedProduct.items_per_unit || 1;
+    const totalSubUnits = unitType === "main" ? qty * itemsPerUnit : qty;
+
+    // Validate stock
+    const cartItemEntries = invoiceItems.filter(
+      (item) => item.product_id === selectedProduct.id
+    );
+    const cartQtyInSubUnits = cartItemEntries.reduce(
+      (sum, item) => sum + item.total_sub_units,
+      0
+    );
+    const totalQtyInSubUnits = cartQtyInSubUnits + totalSubUnits;
+
+    if (qty <= 0 || totalQtyInSubUnits > selectedProduct.stock_quantity) {
+      showAlert(
+        "alert-container",
+        `الكمية غير صحيحة. المخزون المتاح: ${selectedProduct.stock_quantity - cartQtyInSubUnits}`,
+        "error"
+      );
       return;
     }
 
-    // Check stock
-    const stockNeeded = unitType === "package" 
-      ? qty * (selectedProduct.units_per_package || 1) 
-      : qty;
-    
-    if (stockNeeded > selectedProduct.stock) {
-      showToast("الكمية المطلوبة أكبر من المخزون المتاح", "error");
-      return;
+    // Check minimum profit margin
+    const latestPurchasePrice = parseNumber(selectedProduct.latest_purchase_price);
+    const minProfitMargin = parseNumber(selectedProduct.minimum_profit_margin);
+    const minAllowedPrice = latestPurchasePrice + minProfitMargin;
+
+    if (latestPurchasePrice > 0 && price < minAllowedPrice) {
+      const confirmMsg = `تحذير: السعر (${formatCurrency(price)}) أقل من الحد الأدنى للبيع (${formatCurrency(minAllowedPrice)}).\n(سعر الشراء: ${formatCurrency(latestPurchasePrice)} + هامش الربح: ${formatCurrency(minProfitMargin)})\n\nهل تريد الاستمرار؟`;
+      const confirmed = window.confirm(confirmMsg);
+      if (!confirmed) {
+        return;
+      }
     }
+
+    const calcSubtotal = unitType === "main" ? qty * price * itemsPerUnit : qty * price;
+    const unitName = unitType === "main" ? selectedProduct.unit_name : selectedProduct.sub_unit_name;
 
     const newItem: InvoiceItem = {
       product_id: selectedProduct.id,
       product_name: selectedProduct.name,
+      display_name: `${selectedProduct.name} (${qty} ${unitName})`,
       quantity: qty,
-      unit_price: parseNumber(unitPrice),
       unit_type: unitType,
-      subtotal: subtotal,
+      unit_name: unitName,
+      total_sub_units: totalSubUnits,
+      unit_price: price,
+      subtotal: calcSubtotal,
     };
 
-    // Check if product already in invoice
-    const existingIndex = invoiceItems.findIndex(
-      (item) => item.product_id === selectedProduct.id && item.unit_type === unitType
-    );
-
-    if (existingIndex >= 0) {
-      const updated = [...invoiceItems];
-      updated[existingIndex].quantity += qty;
-      updated[existingIndex].subtotal += subtotal;
-      setInvoiceItems(updated);
-    } else {
-      setInvoiceItems([...invoiceItems, newItem]);
-    }
+    setInvoiceItems([...invoiceItems, newItem]);
 
     // Reset form
     setSelectedProduct(null);
+    setProductSearchTerm("");
     setQuantity("1");
     setUnitPrice("");
-    setSubtotal(0);
-    
-    showToast("تمت إضافة المنتج للفاتورة", "success");
+    setItemStock("");
   };
 
-  const removeFromInvoice = (index: number) => {
+  const removeInvoiceItem = (index: number) => {
     setInvoiceItems(invoiceItems.filter((_, i) => i !== index));
   };
 
-  const getTotalAmount = () => {
+  const updateTotal = () => {
     return invoiceItems.reduce((sum, item) => sum + item.subtotal, 0);
   };
 
   const finishInvoice = async () => {
     if (invoiceItems.length === 0) {
-      showToast("الفاتورة فارغة", "error");
+      showAlert("alert-container", "الفاتورة فارغة!", "error");
       return;
     }
 
     if (!selectedCustomer) {
-      showToast("يرجى اختيار العميل للفاتورة الآجلة", "error");
+      showAlert("alert-container", "يرجى اختيار العميل للفاتورة الآجلة", "error");
       return;
     }
 
     try {
-      const response = await fetchAPI("/api/invoices", {
+      const invoiceData = {
+        invoice_number: invoiceNumber,
+        items: invoiceItems.map((item) => ({
+          product_id: item.product_id,
+          quantity: item.total_sub_units,
+          unit_price: item.unit_price,
+          subtotal: item.subtotal,
+        })),
+        payment_type: "credit",
+        customer_id: selectedCustomer.id,
+        amount_paid: parseNumber(amountPaid) || 0,
+      };
+
+      const response = await fetchAPI("invoices", {
         method: "POST",
-        body: JSON.stringify({
-          invoice_number: invoiceNumber,
-          items: invoiceItems,
-          total_amount: getTotalAmount(),
-          payment_type: "credit",
-          customer_id: selectedCustomer.id,
-          amount_paid: parseNumber(amountPaid) || 0,
-        }),
+        body: JSON.stringify(invoiceData),
       });
 
-      if (response.success && response.id) {
-        showToast("تم حفظ الفاتورة بنجاح. جاري الطباعة...", "success");
-        
-        // Auto-print invoice
-        try {
-          await printInvoice(response.id as number);
-        } catch (printError) {
-          console.error("Print error:", printError);
+      if (response.success) {
+        showAlert("alert-container", "تمت العملية بنجاح. جاري الطباعة...", "success");
+
+        // Auto-print
+        if (response.id) {
+          try {
+            await printInvoice(response.id as number);
+          } catch (printError) {
+            console.error("Print error:", printError);
+          }
         }
-        
+
         // Reset
         setInvoiceItems([]);
         setSelectedCustomer(null);
+        setCustomerSearchTerm("");
         setAmountPaid("");
         generateInvoiceNumber();
-        loadInvoices();
-        loadProducts(); // Refresh stock
+        await loadProducts();
+        await loadInvoices();
       } else {
-        showToast(response.message || "خطأ في حفظ الفاتورة", "error");
+        showAlert("alert-container", response.message || "فشل حفظ الفاتورة", "error");
+      }
+    } catch (error) {
+      showAlert("alert-container", "خطأ: " + (error instanceof Error ? error.message : "خطأ غير معروف"), "error");
+    }
+  };
+
+  const viewInvoice = async (id: number) => {
+    try {
+      const response = await fetchAPI(`invoice_details?id=${id}`);
+      if (response.success && response.data) {
+        setSelectedInvoice(response.data as Invoice);
+        setViewDialog(true);
       }
     } catch {
-      showToast("خطأ في حفظ الفاتورة", "error");
-    }
-  };
-
-  const viewInvoice = async (invoice: Invoice) => {
-    try {
-      const response = await fetchAPI(`/api/invoices/${invoice.id}`);
-      const invoiceData = (response.invoice as Invoice) || invoice;
-      setSelectedInvoice(invoiceData);
-      
-      // Load payments if available
-      try {
-        const paymentsResponse = await fetchAPI(`/api/deferred-sales/${invoice.id}/payments`);
-        setPayments((paymentsResponse.payments as typeof payments) || []);
-      } catch {
-        setPayments([]);
-      }
-      
-      setViewDialog(true);
-    } catch {
-      showToast("خطأ في تحميل تفاصيل الفاتورة", "error");
-    }
-  };
-
-  const openPaymentDialog = (invoice: Invoice) => {
-    setSelectedInvoice(invoice);
-    setPaymentAmount("");
-    setPaymentNotes("");
-    setPaymentDialog(true);
-  };
-
-  const submitPayment = async () => {
-    if (!selectedInvoice || !paymentAmount) {
-      showToast("يرجى إدخال مبلغ الدفعة", "error");
-      return;
-    }
-
-    const amount = parseFloat(paymentAmount);
-    const remaining = selectedInvoice.total_amount - (selectedInvoice.amount_paid || 0);
-    if (amount <= 0 || amount > remaining) {
-      showToast("مبلغ الدفعة غير صالح", "error");
-      return;
-    }
-
-    try {
-      await fetchAPI(`/api/deferred-sales/${selectedInvoice.id}/payments`, {
-        method: "POST",
-        body: JSON.stringify({
-          amount,
-          notes: paymentNotes,
-        }),
-      });
-      showToast("تم تسجيل الدفعة بنجاح", "success");
-      setPaymentDialog(false);
-      loadInvoices(currentPage, searchTerm);
-    } catch {
-      showToast("خطأ في تسجيل الدفعة", "error");
+      showAlert("alert-container", "خطأ في جلب التفاصيل", "error");
     }
   };
 
@@ -389,36 +423,47 @@ export default function DeferredSalesPage() {
 
   const deleteInvoice = async () => {
     if (!deleteInvoiceId) return;
-    
+
+    const confirmed = window.confirm("هل أنت متأكد من حذف هذه الفاتورة؟ سيتم إرجاع المنتجات للمخزون.");
+    if (!confirmed) {
+      setConfirmDialog(false);
+      setDeleteInvoiceId(null);
+      return;
+    }
+
     try {
-      await fetchAPI(`/api/invoices/${deleteInvoiceId}`, { method: "DELETE" });
-      showToast("تم حذف الفاتورة", "success");
-      loadInvoices(currentPage, searchTerm);
-      loadProducts();
+      const response = await fetchAPI(`invoices?id=${deleteInvoiceId}`, {
+        method: "DELETE",
+      });
+      if (response.success) {
+        showAlert("alert-container", "تم الحذف بنجاح", "success");
+        await loadInvoices();
+        await loadProducts();
+      } else {
+        showAlert("alert-container", response.message || "فشل الحذف", "error");
+      }
     } catch {
-      showToast("خطأ في حذف الفاتورة", "error");
+      showAlert("alert-container", "خطأ في الحذف", "error");
+    } finally {
+      setConfirmDialog(false);
+      setDeleteInvoiceId(null);
     }
-  };
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    loadInvoices(1, value);
-  };
-
-  const getStatusBadge = (invoice: Invoice) => {
-    const remaining = invoice.total_amount - (invoice.amount_paid || 0);
-    if (remaining <= 0) {
-      return <span className="badge badge-success">مدفوعة</span>;
-    } else if (invoice.amount_paid > 0) {
-      return <span className="badge badge-warning">جزئية</span>;
-    }
-    return <span className="badge badge-danger">معلقة</span>;
   };
 
   const invoiceColumns: Column<Invoice>[] = [
-    { key: "invoice_number", header: "رقم الفاتورة", dataLabel: "رقم الفاتورة" },
-    { key: "customer_name", header: "العميل", dataLabel: "العميل" },
+    {
+      key: "invoice_number",
+      header: "رقم الفاتورة",
+      dataLabel: "رقم الفاتورة",
+      render: (item) => (
+        <>
+          <strong>{item.invoice_number}</strong>{" "}
+          <span className="badge badge-warning" style={{ fontSize: "0.7em" }}>
+            آجل
+          </span>
+        </>
+      ),
+    },
     {
       key: "total_amount",
       header: "المبلغ الإجمالي",
@@ -427,53 +472,48 @@ export default function DeferredSalesPage() {
     },
     {
       key: "amount_paid",
-      header: "المدفوع",
-      dataLabel: "المدفوع",
+      header: "المدفوع / المتبقي",
+      dataLabel: "المدفوع / المتبقي",
       render: (item) => (
-        <span className="text-success">{formatCurrency(item.amount_paid || 0)}</span>
+        <div style={{ fontSize: "0.85rem" }}>
+          <span className="text-success">{formatCurrency(item.amount_paid || 0)}</span> /{" "}
+          <span className="text-danger">
+            {formatCurrency(item.total_amount - (item.amount_paid || 0))}
+          </span>
+        </div>
       ),
     },
     {
-      key: "remaining_amount",
-      header: "المتبقي",
-      dataLabel: "المتبقي",
-      render: (item) => (
-        <span className="text-danger">
-          {formatCurrency(item.total_amount - (item.amount_paid || 0))}
-        </span>
-      ),
-    },
-    {
-      key: "status",
-      header: "الحالة",
-      dataLabel: "الحالة",
-      render: (item) => getStatusBadge(item),
+      key: "customer_name",
+      header: "العميل",
+      dataLabel: "العميل",
+      render: (item) => item.customer_name || "-",
     },
     {
       key: "created_at",
-      header: "التاريخ",
-      dataLabel: "التاريخ",
-      render: (item) => formatDate(item.created_at),
+      header: "التاريخ والوقت",
+      dataLabel: "التاريخ والوقت",
+      render: (item) => formatDateTime(item.created_at),
     },
     {
       key: "actions",
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => {
-        const remaining = item.total_amount - (item.amount_paid || 0);
+        const hoursDiff = (new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 60 * 60);
+        const canDelete = hoursDiff < 48;
         return (
           <div className="action-buttons">
-            <button className="icon-btn view" onClick={() => viewInvoice(item)} title="عرض">
-              {getIcon("eye")}
+            <button className="icon-btn view" onClick={() => viewInvoice(item.id)} title="عرض">
+              <Icon name="eye" />
             </button>
-            {remaining > 0 && canAccess(permissions, "deferred_sales", "edit") && (
-              <button className="icon-btn edit" onClick={() => openPaymentDialog(item)} title="تسجيل دفعة">
-                {getIcon("dollar")}
-              </button>
-            )}
-            {canAccess(permissions, "sales", "delete") && (
-              <button className="icon-btn delete" onClick={() => confirmDeleteInvoice(item.id)} title="حذف">
-                {getIcon("trash")}
+            {canDelete && canAccess(permissions, "sales", "delete") && (
+              <button
+                className="icon-btn delete"
+                onClick={() => confirmDeleteInvoice(item.id)}
+                title="حذف"
+              >
+                <Icon name="trash" />
               </button>
             )}
           </div>
@@ -482,185 +522,287 @@ export default function DeferredSalesPage() {
     },
   ];
 
-  const paymentColumns: Column<typeof payments[0]>[] = [
-    {
-      key: "amount",
-      header: "المبلغ",
-      dataLabel: "المبلغ",
-      render: (item) => formatCurrency(item.amount),
-    },
-    {
-      key: "payment_date",
-      header: "التاريخ",
-      dataLabel: "التاريخ",
-      render: (item) => formatDate(item.payment_date),
-    },
-    { key: "notes", header: "ملاحظات", dataLabel: "ملاحظات" },
-  ];
-
   return (
     <MainLayout requiredModule="deferred_sales">
-      <PageHeader
-        title="المبيعات الآجلة"
-        user={user}
-        searchInput={
-          <input
-            type="text"
-            placeholder="بحث بالعميل أو رقم الفاتورة..."
-            value={searchTerm}
-            onChange={handleSearch}
-            style={{ width: "250px" }}
-          />
-        }
-      />
+      <PageHeader title="المبيعات الآجلة (ذمم)" user={user} />
+
+      <div id="alert-container"></div>
 
       <div className="sales-layout">
         <div className="sales-top-grids">
-          {/* Left: Add Product Form */}
-          <div className="sales-card compact">
-            <div className="card-header-flex">
-              <h3>إضافة منتج للفاتورة</h3>
-              <div className="invoice-badge">
-                <span className="stat-label">رقم الفاتورة</span>
-                <input
-                  type="text"
-                  className="minimal-input"
-                  value={invoiceNumber}
-                  readOnly
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>اختر المنتج</label>
-              <SearchableSelect
-                options={productOptions}
-                value={selectedProduct?.id || null}
-                onChange={handleProductSelect}
-                placeholder="ابحث عن منتج..."
-              />
-            </div>
-
-            <div className="form-row tight">
-              <div className="form-group">
-                <label>الكمية</label>
-                <input
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  min="1"
-                />
-              </div>
-              <div className="form-group">
-                <label>نوع الوحدة</label>
-                <select value={unitType} onChange={(e) => setUnitType(e.target.value)}>
-                  <option value="piece">قطعة</option>
-                  <option value="package">صندوق</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="form-row tight">
-              <div className="form-group">
-                <label>سعر الوحدة</label>
-                <input
-                  type="number"
-                  value={unitPrice}
-                  onChange={(e) => setUnitPrice(e.target.value)}
-                  className="highlight-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>المجموع الفرعي</label>
-                <input
-                  type="text"
-                  value={formatCurrency(subtotal)}
-                  readOnly
-                  className="highlight-input"
-                />
-              </div>
-            </div>
-
-            <button className="btn btn-primary btn-add" onClick={addToInvoice} style={{ width: "100%" }}>
-              {getIcon("plus")}
-              إضافة للفاتورة
-            </button>
-          </div>
-
-          {/* Right: Customer Info & Current Invoice Items */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            {/* Customer Info Card */}
-            <div className="sales-card compact">
-              <h3>بيانات العميل</h3>
-              <div className="form-group">
-                <label>اختر العميل *</label>
-                <div style={{ position: "relative" }}>
-                  <SearchableSelect
-                    options={customerOptions}
-                    value={selectedCustomer?.id || null}
-                    onChange={handleCustomerSelect}
-                    placeholder="ابحث عن عميل..."
+          {/* Left: Input Panels */}
+          <div className="side-panel">
+            <div className="sales-card compact animate-slide">
+              <div className="card-header-flex" style={{ marginBottom: "1rem" }}>
+                <h3 style={{ margin: 0 }}>إضافة منتجات</h3>
+                <div className="invoice-badge">
+                  <span className="stat-label">رقم الفاتورة:</span>
+                  <input
+                    type="text"
+                    id="invoice-number"
+                    value={invoiceNumber}
+                    readOnly
+                    className="minimal-input"
                   />
                 </div>
               </div>
-              <div className="form-group">
-                <label>المبلغ المدفوع (نقدًا)</label>
-                <input
-                  type="number"
-                  value={amountPaid}
-                  onChange={(e) => setAmountPaid(e.target.value)}
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  className="highlight-input"
-                />
-                <small style={{ color: "var(--text-secondary)", display: "block", marginTop: "0.5rem" }}>
-                  المبلغ الذي سيسدده العميل حالياً من قيمة الفاتورة
-                </small>
+
+              <form
+                id="invoice-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  addItemToInvoice();
+                }}
+              >
+                <div className="form-group">
+                  <label htmlFor="product-select">اختر المنتج *</label>
+                  <div className="searchable-select" id="product-search-container" ref={productSearchRef}>
+                    <input
+                      type="text"
+                      id="product-search-input"
+                      value={productSearchTerm}
+                      onChange={(e) => {
+                        setProductSearchTerm(e.target.value);
+                        setProductOptionsVisible(true);
+                      }}
+                      onFocus={() => setProductOptionsVisible(true)}
+                      placeholder="ابحث عن منتج..."
+                      autoComplete="off"
+                    />
+                    <div
+                      className={`options-list ${productOptionsVisible ? "active" : ""}`}
+                      id="product-options-list"
+                    >
+                      {filteredProducts.length === 0 ? (
+                        <div className="no-results">لا توجد منتجات مطابقة</div>
+                      ) : (
+                        filteredProducts.map((product) => (
+                          <div
+                            key={product.id}
+                            className="option-item"
+                            onClick={() => handleProductSelect(product)}
+                          >
+                            <span className="option-name">{product.name}</span>
+                            <span className="option-stock">
+                              {product.stock_quantity} {product.sub_unit_name || "حبة"}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <input type="hidden" id="product-select" value={selectedProduct?.id || ""} required />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="item-unit-type">نوع الوحدة</label>
+                    <select
+                      id="item-unit-type"
+                      value={unitType}
+                      onChange={(e) => {
+                        setUnitType(e.target.value as "sub" | "main");
+                        calculateSubtotal();
+                      }}
+                      className="glass"
+                    >
+                      <option value="sub">{selectedProduct?.sub_unit_name || "حبة"}</option>
+                      <option value="main">
+                        {selectedProduct?.unit_name || "كرتون"} (
+                        {selectedProduct?.items_per_unit || 1}{" "}
+                        {selectedProduct?.sub_unit_name || "حبة"})
+                      </option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="item-stock">المخزون المتوفر</label>
+                    <input
+                      type="text"
+                      id="item-stock"
+                      value={itemStock}
+                      readOnly
+                      className="glass highlight-input"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="item-quantity">الكمية *</label>
+                    <input
+                      type="number"
+                      id="item-quantity"
+                      min="1"
+                      value={quantity}
+                      onChange={(e) => {
+                        setQuantity(e.target.value);
+                        calculateSubtotal();
+                      }}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="item-unit-price">سعر بيع الوحدة *</label>
+                    <input
+                      type="number"
+                      id="item-unit-price"
+                      step="0.01"
+                      min="0"
+                      value={unitPrice}
+                      onChange={(e) => {
+                        setUnitPrice(e.target.value);
+                        calculateSubtotal();
+                      }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="summary-stat-box" style={{ marginTop: "1rem" }}>
+                  <div className="stat-item">
+                    <span className="stat-label">المجموع الفرعي</span>
+                    <span id="item-subtotal" className="stat-value highlight">
+                      {formatCurrency(subtotal)}
+                    </span>
+                  </div>
+                  <button type="button" className="btn btn-primary btn-add" onClick={addItemToInvoice} data-icon="plus">
+                    إضافة
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Right: Customer Info & Current Invoice Items */}
+          <div className="side-panel" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            {/* Card 1: Customer Info */}
+            <div className="sales-card compact animate-slide">
+              <h3>بيانات العميل</h3>
+              <div className="form-row" style={{ marginTop: "1rem" }}>
+                <div className="form-group">
+                  <label htmlFor="customer-select">اختر العميل *</label>
+                  <div className="searchable-select" id="customer-search-container" ref={customerSearchRef}>
+                    <input
+                      type="text"
+                      id="customer-search-input"
+                      value={customerSearchTerm}
+                      onChange={(e) => {
+                        setCustomerSearchTerm(e.target.value);
+                        setCustomerOptionsVisible(true);
+                      }}
+                      onFocus={() => {
+                        if (customerSearchTerm.length >= 2) {
+                          setCustomerOptionsVisible(true);
+                        }
+                      }}
+                      placeholder="ابحث عن عميل..."
+                      autoComplete="off"
+                    />
+                    <div
+                      className={`options-list ${customerOptionsVisible ? "active" : ""}`}
+                      id="customer-options-list"
+                    >
+                      {customers.length === 0 ? (
+                        <div className="no-results">لا يوجد عملاء</div>
+                      ) : (
+                        customers.map((customer) => (
+                          <div
+                            key={customer.id}
+                            className="option-item"
+                            onClick={() => handleCustomerSelect(customer)}
+                          >
+                            <span className="option-name">{customer.name}</span>
+                            {customer.phone && <span className="option-stock">{customer.phone}</span>}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <input type="hidden" id="customer-select" value={selectedCustomer?.id || ""} required />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="amount-paid">المبلغ المدفوع (نقدًا)</label>
+                  <input
+                    type="number"
+                    id="amount-paid"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={amountPaid}
+                    onChange={(e) => setAmountPaid(e.target.value)}
+                    className="highlight-input"
+                  />
+                </div>
               </div>
+              <small style={{ color: "var(--text-light)", display: "block" }}>
+                المبلغ الذي سيسدده العميل حالياً من قيمة الفاتورة
+              </small>
             </div>
 
-            {/* Current Invoice Items */}
-            <div className="sales-card">
+            {/* Card 3: Current Invoice Items */}
+            <div className="sales-card animate-slide" style={{ animationDelay: "0.1s" }}>
               <h3>عناصر الفاتورة الحالية</h3>
-
-              {invoiceItems.length === 0 ? (
-                <p style={{ textAlign: "center", color: "var(--text-secondary)", padding: "2rem" }}>
-                  لا توجد منتجات في الفاتورة
-                </p>
-              ) : (
-                <div className="invoice-items-minimal">
-                  {invoiceItems.map((item, index) => (
-                    <div key={index} className="item-row-minimal">
-                      <div>
-                        <span className="item-name-pkg">{item.product_name}</span>
-                        <span style={{ color: "var(--text-secondary)", marginRight: "0.5rem" }}>
-                          ({item.quantity} {item.unit_type === "piece" ? "قطعة" : "صندوق"} × {formatCurrency(item.unit_price)})
-                        </span>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                        <span style={{ fontWeight: 700 }}>{formatCurrency(item.subtotal)}</span>
-                        <button
-                          className="icon-btn delete"
-                          onClick={() => removeFromInvoice(index)}
+              <div className="table-container" style={{ maxHeight: "430px", overflowY: "auto" }}>
+                <table id="invoice-items-table">
+                  <thead>
+                    <tr>
+                      <th>المنتج</th>
+                      <th>الكمية</th>
+                      <th>السعر</th>
+                      <th>المجموع</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="invoice-items-tbody">
+                    {invoiceItems.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          style={{
+                            textAlign: "center",
+                            padding: "2rem",
+                            color: "var(--text-secondary)",
+                          }}
                         >
-                          {getIcon("trash")}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                          لا توجد عناصر مضافة
+                        </td>
+                      </tr>
+                    ) : (
+                      invoiceItems.map((item, index) => (
+                        <tr key={index} className="animate-slide-up">
+                          <td data-label="المنتج">{item.display_name}</td>
+                          <td data-label="الكمية">
+                            {item.quantity} {item.unit_name}
+                          </td>
+                          <td data-label="السعر">{formatCurrency(item.unit_price)}</td>
+                          <td data-label="المجموع">{formatCurrency(item.subtotal)}</td>
+                          <td data-label="الإجراءات">
+                            <button className="icon-btn delete" onClick={() => removeInvoiceItem(index)}>
+                              <Icon name="trash" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-              <div className="summary-stat-box">
-                <div className="stat-item">
+              <div className="sales-summary-bar">
+                <div className="summary-stat">
                   <span className="stat-label">إجمالي الفاتورة</span>
-                  <span className="stat-value highlight">{formatCurrency(getTotalAmount())}</span>
+                  <span id="total-amount" className="stat-value highlight">
+                    {formatCurrency(updateTotal())}
+                  </span>
                 </div>
                 <button
+                  type="button"
                   className="btn btn-primary"
                   onClick={finishInvoice}
-                  disabled={invoiceItems.length === 0 || !selectedCustomer}
+                  id="finish-btn"
+                  data-icon="check"
                 >
                   حفظ الفاتورة (آجل)
                 </button>
@@ -669,21 +811,25 @@ export default function DeferredSalesPage() {
           </div>
         </div>
 
-        {/* Invoice History */}
-        <div className="sales-card" style={{ marginTop: "2rem" }}>
+        {/* Bottom Section: Invoice History */}
+        <div className="sales-card animate-slide" style={{ animationDelay: "0.2s" }}>
           <h3>سجل الفواتير السابقة</h3>
-          <Table
-            columns={invoiceColumns}
-            data={invoices}
-            keyExtractor={(item) => item.id}
-            emptyMessage="لا توجد فواتير آجلة"
-            isLoading={isLoading}
-            pagination={{
-              currentPage,
-              totalPages,
-              onPageChange: (page) => loadInvoices(page, searchTerm),
-            }}
-          />
+          <div className="table-container">
+            <div className="table-wrapper">
+              <Table
+                columns={invoiceColumns}
+                data={invoices}
+                keyExtractor={(item) => item.id}
+                emptyMessage="لا توجد فواتير سابقة"
+                isLoading={isLoading}
+                pagination={{
+                  currentPage,
+                  totalPages,
+                  onPageChange: loadInvoices,
+                }}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -691,128 +837,139 @@ export default function DeferredSalesPage() {
       <Dialog
         isOpen={viewDialog}
         onClose={() => setViewDialog(false)}
-        title={`فاتورة رقم ${selectedInvoice?.invoice_number || ""}`}
-        maxWidth="700px"
+        title="تفاصيل الفاتورة"
       >
         {selectedInvoice && (
-          <div>
-            <div style={{ marginBottom: "1.5rem" }}>
-              <p><strong>العميل:</strong> {selectedInvoice.customer_name || "-"}</p>
-              <p><strong>التاريخ:</strong> {formatDate(selectedInvoice.created_at)}</p>
-              <p><strong>الحالة:</strong> {getStatusBadge(selectedInvoice)}</p>
+          <div id="view-dialog-body">
+            <div
+              className="invoice-details-header"
+              style={{
+                marginBottom: "2rem",
+                borderBottom: "2px solid var(--border-color)",
+                paddingBottom: "1rem",
+              }}
+            >
+              <div className="form-row">
+                <div className="summary-stat">
+                  <span className="stat-label">رقم الفاتورة</span>
+                  <span className="stat-value">{selectedInvoice.invoice_number}</span>
+                </div>
+                <div className="summary-stat">
+                  <span className="stat-label">التاريخ</span>
+                  <span className="stat-value">{formatDateTime(selectedInvoice.created_at)}</span>
+                </div>
+                <div className="summary-stat">
+                  <span className="stat-label">نوع الدفع</span>
+                  <span className="stat-value">
+                    <span className="badge badge-warning">آجل (ذمم)</span>
+                  </span>
+                </div>
+              </div>
+              {selectedInvoice.customer_name && (
+                <div
+                  className="form-row"
+                  style={{
+                    marginTop: "1rem",
+                    background: "var(--surface-hover)",
+                    padding: "1rem",
+                    borderRadius: "var(--radius-md)",
+                  }}
+                >
+                  <div className="summary-stat">
+                    <span className="stat-label">العميل</span>
+                    <span className="stat-value">{selectedInvoice.customer_name}</span>
+                  </div>
+                  {selectedInvoice.customer_phone && (
+                    <div className="summary-stat">
+                      <span className="stat-label">الهاتف</span>
+                      <span className="stat-value">{selectedInvoice.customer_phone}</span>
+                    </div>
+                  )}
+                  {selectedInvoice.customer_tax && (
+                    <div className="summary-stat">
+                      <span className="stat-label">الرقم الضريبي</span>
+                      <span className="stat-value">{selectedInvoice.customer_tax}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="form-row" style={{ marginTop: "1rem" }}>
+                <div className="summary-stat">
+                  <span className="stat-label">المبلغ المدفوع</span>
+                  <span className="stat-value" style={{ color: "var(--success-color)" }}>
+                    {formatCurrency(selectedInvoice.amount_paid || 0)}
+                  </span>
+                </div>
+                <div className="summary-stat">
+                  <span className="stat-label">المبلغ المتبقي</span>
+                  <span className="stat-value" style={{ color: "var(--danger-color)", fontWeight: 700 }}>
+                    {formatCurrency(selectedInvoice.total_amount - (selectedInvoice.amount_paid || 0))}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="summary-stat-box" style={{ marginBottom: "1.5rem" }}>
-              <div className="stat-item">
-                <span className="stat-label">الإجمالي</span>
-                <span className="stat-value">{formatCurrency(selectedInvoice.total_amount)}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">المدفوع</span>
-                <span className="stat-value text-success">{formatCurrency(selectedInvoice.amount_paid || 0)}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">المتبقي</span>
-                <span className="stat-value text-danger">
-                  {formatCurrency(selectedInvoice.total_amount - (selectedInvoice.amount_paid || 0))}
+            <div className="invoice-items-minimal">
+              <h4 style={{ marginBottom: "1rem" }}>المنتجات المباعة:</h4>
+              {selectedInvoice.items?.map((item, index) => (
+                <div key={index} className="item-row-minimal">
+                  <div className="item-info-pkg">
+                    <span className="item-name-pkg">{item.product_name}</span>
+                    <span className="item-meta-pkg">سعر الوحدة: {formatCurrency(item.unit_price)}</span>
+                  </div>
+                  <div className="item-info-pkg" style={{ textAlign: "left" }}>
+                    <span className="item-name-pkg">{formatCurrency(item.subtotal)}</span>
+                    <span className="item-meta-pkg">الكمية: {item.quantity}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div
+              className="sales-summary-bar"
+              style={{ marginTop: "2rem", background: "var(--grad-primary)", color: "white" }}
+            >
+              <div className="summary-stat">
+                <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>
+                  المبلغ الإجمالي
+                </span>
+                <span className="stat-value highlight" style={{ color: "white" }}>
+                  {formatCurrency(selectedInvoice.total_amount)}
                 </span>
               </div>
-            </div>
-
-            {selectedInvoice.items && selectedInvoice.items.length > 0 && (
-              <>
-                <h4 style={{ marginBottom: "1rem" }}>العناصر:</h4>
-                <div className="invoice-items-minimal">
-                  {selectedInvoice.items.map((item, index) => (
-                    <div key={index} className="item-row-minimal">
-                      <div>
-                        <span className="item-name-pkg">{item.product_name}</span>
-                        <span style={{ color: "var(--text-secondary)", marginRight: "0.5rem" }}>
-                          ({item.quantity} × {formatCurrency(item.unit_price)})
-                        </span>
-                      </div>
-                      <span style={{ fontWeight: 700 }}>{formatCurrency(item.subtotal)}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {payments.length > 0 && (
-              <>
-                <h4 style={{ marginTop: "1.5rem", marginBottom: "1rem" }}>سجل الدفعات:</h4>
-                <Table
-                  columns={paymentColumns}
-                  data={payments}
-                  keyExtractor={(item) => item.id}
-                  emptyMessage="لا توجد دفعات"
-                />
-              </>
-            )}
-          </div>
-        )}
-      </Dialog>
-
-      {/* Payment Dialog */}
-      <Dialog
-        isOpen={paymentDialog}
-        onClose={() => setPaymentDialog(false)}
-        title="تسجيل دفعة جديدة"
-        footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setPaymentDialog(false)}>
-              إلغاء
-            </button>
-            <button className="btn btn-primary" onClick={submitPayment}>
-              تسجيل الدفعة
-            </button>
-          </>
-        }
-      >
-        {selectedInvoice && (
-          <div>
-            <p style={{ marginBottom: "1rem" }}>
-              <strong>المتبقي:</strong>{" "}
-              <span className="text-danger">
-                {formatCurrency(selectedInvoice.total_amount - (selectedInvoice.amount_paid || 0))}
-              </span>
-            </p>
-
-            <div className="form-group">
-              <label htmlFor="paymentAmount">مبلغ الدفعة *</label>
-              <input
-                type="number"
-                id="paymentAmount"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                max={selectedInvoice.total_amount - (selectedInvoice.amount_paid || 0)}
-                min="0.01"
-                step="0.01"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="paymentNotes">ملاحظات</label>
-              <textarea
-                id="paymentNotes"
-                value={paymentNotes}
-                onChange={(e) => setPaymentNotes(e.target.value)}
-                rows={3}
-              />
+              <button
+                type="button"
+                className="btn"
+                style={{ background: "white", color: "var(--primary-color)" }}
+                onClick={async () => {
+                  if (selectedInvoice.id) {
+                    try {
+                      await printInvoice(selectedInvoice.id);
+                    } catch (error) {
+                      console.error("Print error:", error);
+                    }
+                  }
+                }}
+              >
+                <Icon name="print" /> طباعة نسخة
+              </button>
             </div>
           </div>
         )}
       </Dialog>
 
-      {/* Confirm Delete Dialog */}
+      {/* Confirm Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog}
-        onClose={() => setConfirmDialog(false)}
+        onClose={() => {
+          setConfirmDialog(false);
+          setDeleteInvoiceId(null);
+        }}
         onConfirm={deleteInvoice}
         title="تأكيد الحذف"
-        message="هل أنت متأكد من حذف هذه الفاتورة؟"
-        confirmText="حذف"
-        confirmVariant="danger"
+        message="هل أنت متأكد من حذف هذه الفاتورة؟ سيتم إرجاع المنتجات للمخزون."
+        confirmText="نعم، متابعة"
+        confirmVariant="primary"
       />
     </MainLayout>
   );
