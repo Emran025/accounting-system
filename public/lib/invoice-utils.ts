@@ -40,6 +40,7 @@ export interface InvoiceSettings {
   currency_symbol?: string;
   show_logo?: boolean;
   show_qr?: boolean;
+  zatca_enabled?: boolean;
 }
 
 // Global settings cache
@@ -64,6 +65,7 @@ export async function getSettings(): Promise<InvoiceSettings> {
         currency_symbol: data.currency_symbol || data.currency_symbol || "ر.س",
         show_logo: data.show_logo !== false,
         show_qr: data.show_qr !== false,
+        zatca_enabled: data.zatca_enabled === true,
       };
       return systemSettings;
     }
@@ -161,11 +163,11 @@ export async function generateInvoiceHTML(
     5: (taxAmount || 0).toFixed(2),
   });
 
-  // Generate QR: Use ZATCA if available, else local
+  // Generate QR: Use ZATCA if available AND enabled, else local
   let qrUrl = qrDataUrl;
   
-  if (!qrUrl && inv.zatca_einvoice?.zatca_qr_code) {
-      // If valid ZATCA QR (Base64 TLV) exists, generate image from it
+  if (!qrUrl && settings.zatca_enabled && inv.zatca_einvoice?.zatca_qr_code) {
+      // If valid ZATCA QR (Base64 TLV) exists and feature is enabled
       qrUrl = await generateQRCode(inv.zatca_einvoice.zatca_qr_code);
   }
 

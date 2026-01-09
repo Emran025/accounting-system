@@ -152,19 +152,34 @@ export function InvoiceSettingsTab() {
               <label htmlFor="show_qr">عرض رمز QR</label>
             </div>
           </div>
-          <div className="form-group">
-             <div className="checkbox-group" style={{ borderLeft: "4px solid #10b981", transform: "none" }}>
-               <input
-                 type="checkbox"
-                 id="zatca_enabled"
-                 checked={invoiceSettings.zatca_enabled}
-                 onChange={(e) => setInvoiceSettings({ ...invoiceSettings, zatca_enabled: e.target.checked })}
-               />
-               <label htmlFor="zatca_enabled">تفعيل الفوترة الإلكترونية (ZATCA)</label>
+          
+          <div style={{ marginTop: "2rem", paddingTop: "1rem", borderTop: "1px dashed var(--border-color)" }}>
+             <h4 style={{ marginBottom: "1rem", color: "var(--text-primary)" }}>الامتثال الضريبي والتكامل الحكومي</h4>
+             <div className="form-group">
+                <div className="checkbox-group" style={{ 
+                    borderRight: "4px solid #10b981", 
+                    transform: "none",
+                    background: invoiceSettings.zatca_enabled ? "var(--bg-secondary)" : "transparent",
+                    padding: "1rem",
+                    borderRadius: "8px",
+                    transition: "all 0.3s ease"
+                }}>
+                  <input
+                    type="checkbox"
+                    id="zatca_enabled"
+                    checked={invoiceSettings.zatca_enabled}
+                    onChange={(e) => setInvoiceSettings({ ...invoiceSettings, zatca_enabled: e.target.checked })}
+                  />
+                  <div>
+                    <label htmlFor="zatca_enabled" style={{ fontWeight: 600 }}>تفعيل الربط الحكومي (مثل هيئة الزكاة / ZATCA)</label>
+                    <p style={{ marginTop: "0.25rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                        تفعيل هذا الخيار سيقوم بتشغيل خصائص الفوترة الإلكترونية وإرسال الفواتير للمنصات الحكومية المعتمدة تلقائياً.
+                        <br/>
+                        <span style={{ fontSize: "0.8rem", opacity: 0.8 }}>(مخصص للمنشآت الملزمة بالربط الضريبي والزكوي)</span>
+                    </p>
+                  </div>
+                </div>
              </div>
-             <small style={{ display: 'block', marginTop: '0.5rem', color: 'var(--text-secondary)' }}>
-                 عند التفعيل، سيتم إرسال الفواتير تلقائياً إلى منصة فاتورة.
-             </small>
           </div>
           <div className="form-group full-width">
             <label htmlFor="footer_text">نص التذييل</label>
