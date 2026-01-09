@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MainLayout, PageHeader } from "@/components/layout";
 import { getStoredUser, User } from "@/lib/auth";
+import { fetchAPI } from "@/lib/api";
 import { Employee } from "../../../types";
 
 export default function ViewEmployeePage({ params }: { params: { id: string } }) {
@@ -19,9 +20,8 @@ export default function ViewEmployeePage({ params }: { params: { id: string } })
 
   const loadData = async () => {
     try {
-        const res = await fetch(`/api/employees/${params.id}`);
-        const data = await res.json();
-        setEmployee(data);
+        const res = await fetchAPI(`/api/employees/${params.id}`);
+        setEmployee(res.data as Employee || res as unknown as Employee);
     } catch (e) {
         console.error("Failed to load employee", e);
     } finally {

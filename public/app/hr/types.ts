@@ -85,12 +85,19 @@ export interface PayrollCycle {
   period_start: string;
   period_end: string;
   payment_date: string;
-  status: 'draft' | 'processing' | 'approved' | 'paid';
   total_gross: number;
   total_deductions: number;
   total_net: number;
+  cycle_type: 'salary' | 'bonus' | 'incentive' | 'other';
+  description?: string;
+  status: 'draft' | 'pending_approval' | 'processing' | 'approved' | 'paid';
+  current_approver_id?: number;
+  current_approver?: { id: number, full_name: string };
+  current_approver_name?: string;
+  approval_trail?: any[];
   approved_by?: number;
   approved_at?: string;
+  created_by?: number;
   created_at: string;
 }
 
@@ -104,5 +111,6 @@ export interface PayrollItem {
   total_deductions: number;
   gross_salary: number;
   net_salary: number;
+  status: 'active' | 'on_hold';
   notes?: string;
 }

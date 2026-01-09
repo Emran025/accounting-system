@@ -21,8 +21,10 @@ class ChartOfAccountsMappingService
             'other_revenue' => $this->getAccountCode('Revenue', 'إيرادات أخرى') ?? $this->getAccountCode('Revenue', 'Other') ?? '4200',
             'cost_of_goods_sold' => $this->getAccountCode('Expense', 'تكلفة البضاعة') ?? $this->getAccountCode('Expense', 'COGS') ?? '5100',
             'operating_expenses' => $this->getAccountCode('Expense', 'المصروفات التشغيلية') ?? $this->getAccountCode('Expense', 'Operating') ?? '5200',
+            'salaries_expense' => $this->getAccountCode('Expense', 'مرتبات') ?? $this->getAccountCode('Expense', 'Salary') ?? '5220',
+            'salaries_payable' => $this->getAccountCode('Liability', 'رواتب مستحقة') ?? $this->getAccountCode('Liability', 'Salary Payable') ?? '2120',
             'depreciation_expense' => $this->getAccountCode('Expense', 'الإهلاك') ?? $this->getAccountCode('Expense', 'Depreciation') ?? '5300',
-        ];
+        ];  
     }
 
     public function getAccountCode(string $accountType, ?string $namePattern = null): ?string

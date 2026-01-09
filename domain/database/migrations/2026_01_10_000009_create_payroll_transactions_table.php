@@ -8,15 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::dropIfExists('payroll_transactions');
+        
         Schema::create('payroll_transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('payroll_cycle_id')->constrained('payroll_cycles')->onDelete('cascade');
+            $table->foreignId('payroll_item_id')->nullable()->constrained('payroll_items')->onDelete('cascade');
             $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
-            $table->foreignId('gl_entry_id')->nullable()->constrained('general_ledger')->onDelete('set null');
             $table->decimal('amount', 15, 2);
-            $table->enum('transaction_type', ['salary', 'allowance', 'deduction', 'payment']);
+            $table->enum('transaction_type', ['payment', 'advance', 'bonus', 'other'])->default('payment');
             $table->date('transaction_date');
-            $table->text('description')->nullable();
+            $table->text('notes')->nullable();
+            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
         });
     }

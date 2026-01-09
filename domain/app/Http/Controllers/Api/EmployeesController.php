@@ -14,7 +14,7 @@ class EmployeesController extends Controller
     {
         $query = Employee::with(['role', 'department']);
         
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('full_name', 'like', "%{$search}%")
@@ -23,7 +23,7 @@ class EmployeesController extends Controller
             });
         }
         
-        if ($request->has('department_id')) {
+        if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
         }
         

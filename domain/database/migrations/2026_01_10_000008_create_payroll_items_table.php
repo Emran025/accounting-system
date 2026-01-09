@@ -17,6 +17,7 @@ return new class extends Migration
             $table->decimal('total_deductions', 15, 2)->default(0);
             $table->decimal('gross_salary', 15, 2);
             $table->decimal('net_salary', 15, 2);
+            $table->enum('status', ['active', 'on_hold'])->default('active');
             $table->text('notes')->nullable();
             $table->timestamps();
         });

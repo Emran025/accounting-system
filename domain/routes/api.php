@@ -216,5 +216,10 @@ Route::middleware(['api.auth'])->group(function () {
     Route::post('/payroll/generate', [PayrollController::class, 'generatePayroll'])->name('api.payroll.generate');
     Route::post('/payroll/{id}/approve', [PayrollController::class, 'approve'])->name('api.payroll.approve');
     Route::post('/payroll/{id}/process-payment', [PayrollController::class, 'processPayment'])->name('api.payroll.payment');
+    Route::get('/payroll/cycles/{cycleId}/items', [PayrollController::class, 'getCycleItems'])->name('api.payroll.cycle.items');
+    Route::get('/payroll/items/{itemId}/transactions', [PayrollController::class, 'getItemTransactions'])->name('api.payroll.item.transactions');
+    Route::post('/payroll/items/{itemId}/pay', [PayrollController::class, 'payIndividualItem'])->name('api.payroll.item.pay');
+    Route::post('/payroll/items/{itemId}/toggle-status', [PayrollController::class, 'toggleItemStatus'])->name('api.payroll.item.toggle_status');
+    Route::put('/payroll/items/{itemId}', [PayrollController::class, 'updateItem'])->name('api.payroll.item.update');
 });
 

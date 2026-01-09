@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class PayrollItem extends Model
 {
-    protected $fillable = ['payroll_cycle_id', 'employee_id', 'base_salary', 'total_allowances', 'total_deductions', 'gross_salary', 'net_salary', 'notes'];
+    protected $fillable = ['payroll_cycle_id', 'employee_id', 'base_salary', 'total_allowances', 'total_deductions', 'gross_salary', 'net_salary', 'status', 'notes'];
     protected $casts = [
         'base_salary' => 'decimal:2',
         'total_allowances' => 'decimal:2',
@@ -21,5 +21,9 @@ class PayrollItem extends Model
 
     public function employee() {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function payrollCycle() {
+        return $this->belongsTo(PayrollCycle::class, 'payroll_cycle_id');
     }
 }

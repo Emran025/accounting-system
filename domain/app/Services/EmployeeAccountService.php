@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\Employee;
 use App\Models\PayrollTransaction;
-use App\Models\ChartOfAccounts;
+use App\Models\ChartOfAccount;
 use App\Models\GeneralLedger;
 use Illuminate\Support\Facades\DB;
 

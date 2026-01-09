@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MainLayout, PageHeader } from "@/components/layout";
 import { getStoredUser, User } from "@/lib/auth";
+import { fetchAPI } from "@/lib/api";
 import { Role, Department, Employee } from "../../../types";
 import { TabNavigation } from "@/components/ui";
 
@@ -45,16 +46,15 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
   const loadData = async () => {
     try {
         const [rolesRes, deptsRes, empRes] = await Promise.all([
-            fetch('/api/roles'),
-            fetch('/api/departments'),
-            fetch(`/api/employees/${params.id}`)
+            fetchAPI('/api/roles'),
+            fetchAPI('/api/departments'),
+            fetchAPI(`/api/employees/${params.id}`)
         ]);
-        const rolesData = await rolesRes.json();
-        const deptsData = await deptsRes.json();
-        const emp = await empRes.json();
 
-        setRoles(rolesData.data || rolesData);
-        setDepartments(deptsData.data || deptsData);
+        setRoles(rolesRes.data as Role[] || (Array.isArray(rolesRes) ? rolesRes : []));
+        setDepartments(deptsRes.data as Department[] || (Array.isArray(deptsRes) ? deptsRes : []));
+        
+        const emp = empRes.data as any || empRes;
         
         // Populate form
         setFormData({
@@ -93,19 +93,15 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/employees/${params.id}`, {
+      const res = await fetchAPI(`/api/employees/${params.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(formData),
       });
 
-      if (res.ok) {
+      if (res.success !== false) {
         alert('تم تحديث بيانات الموظف بنجاح');
       } else {
-        const err = await res.json();
-        alert('فشل التحديث: ' + (err.message || JSON.stringify(err)));
+        alert('فشل التحديث: ' + res.message);
       }
     } catch (error) {
       console.error(error);

@@ -8,48 +8,93 @@ use App\Models\PayrollItem;
 use App\Models\GeneralLedger;
 use App\Models\ChartOfAccount;
 use App\Models\PayrollTransaction;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class PayrollService
 {
     protected $accountService;
+    protected $mappingService;
 
-    public function __construct(EmployeeAccountService $accountService)
+    public function __construct(EmployeeAccountService $accountService, ChartOfAccountsMappingService $mappingService)
     {
         $this->accountService = $accountService;
+        $this->mappingService = $mappingService;
     }
 
-    public function generatePayroll($periodStart, $periodEnd, $user)
+    /**
+     * Get the next approver for a user
+     */
+    public function getNextApprover($userId)
     {
+        $employee = Employee::where('user_id', $userId)->first();
+        if ($employee && $employee->manager_id) {
+            $manager = Employee::find($employee->manager_id);
+            return $manager ? $manager->user_id : null;
+        }
+        return null; // No manager found, could be GM or Admin
+    }
+
+    /**
+     * Generate a payroll cycle (Salary, Bonus, Incentive, etc.)
+     */
+    public function generatePayroll($data, $user)
+    {
+        $type = $data['cycle_type'] ?? 'salary';
+        $nature = $data['payment_nature'] ?? 'salary'; 
+        
         DB::beginTransaction();
         try {
+            // Find initial approver
+            $nextApproverId = $this->getNextApprover($user->id);
+            $status = $nextApproverId ? 'pending_approval' : 'approved';
+
             $cycle = PayrollCycle::create([
-                'cycle_name' => "Payroll " . Carbon::parse($periodStart)->format('F Y'),
-                'period_start' => $periodStart,
-                'period_end' => $periodEnd,
-                'payment_date' => Carbon::parse($periodEnd)->addDays(1), // Default payment next day
+                'cycle_name' => $data['cycle_name'] ?? ($nature === 'salary' ? "Payroll " . Carbon::parse($data['period_start'])->format('F Y') : "Special Payment: " . ucfirst($nature)),
+                'cycle_type' => $nature,
+                'description' => $data['description'] ?? null,
+                'period_start' => $data['period_start'] ?? now()->startOfMonth(),
+                'period_end' => $data['period_end'] ?? now()->endOfMonth(),
+                'payment_date' => $data['payment_date'] ?? now(),
                 'status' => 'draft',
+                'current_approver_id' => null,
+                'approval_trail' => [],
                 'created_by' => $user->id
             ]);
 
-            $employees = Employee::where('is_active', true)
-                ->where('employment_status', 'active')
-                ->where('hire_date', '<=', $periodEnd)
-                ->get();
+            // Targeting logic
+            $query = Employee::where('is_active', true);
+            
+            if (($data['target_type'] ?? 'all') === 'selected') {
+                $query->whereIn('id', $data['employee_ids'] ?? []);
+            } elseif (($data['target_type'] ?? 'all') === 'excluded') {
+                $query->whereNotIn('id', $data['employee_ids'] ?? []);
+            }
+
+            if ($nature === 'salary') {
+                $query->where('employment_status', 'active');
+            }
+
+            $employees = $query->get();
 
             $totalGross = 0;
             $totalDeductions = 0;
             $totalNet = 0;
 
             foreach ($employees as $employee) {
-                $baseSalary = $employee->base_salary;
-                
-                // Calculate Allowances
-                $allowances = $employee->allowances()->where('is_active', true)->sum('amount');
-                
-                // Calculate Deductions
-                $deductions = $employee->deductions()->where('is_active', true)->sum('amount');
+                if ($nature === 'salary') {
+                    $baseSalary = $employee->base_salary;
+                    $allowances = $employee->allowances()->where('is_active', true)->sum('amount');
+                    $deductions = $employee->deductions()->where('is_active', true)->sum('amount');
+                } else {
+                    $baseSalary = $data['base_amount'] ?? 0;
+                    if (isset($data['individual_amounts'][$employee->id])) {
+                        $baseSalary = $data['individual_amounts'][$employee->id];
+                    }
+                    $allowances = 0;
+                    $deductions = 0;
+                }
 
                 $gross = $baseSalary + $allowances;
                 $net = $gross - $deductions;
@@ -61,7 +106,8 @@ class PayrollService
                     'total_allowances' => $allowances,
                     'total_deductions' => $deductions,
                     'gross_salary' => $gross,
-                    'net_salary' => $net
+                    'net_salary' => $net,
+                    'status' => 'active'
                 ]);
 
                 $totalGross += $gross;
@@ -75,6 +121,10 @@ class PayrollService
                 'total_net' => $totalNet
             ]);
 
+            // If no manager, we leave it as draft for the user to confirm/approve themselves
+            // or we could auto-approve if they are admin.
+            // Requirement says "it should remain pending... until it reaches gm".
+            
             DB::commit();
             return $cycle;
 
@@ -87,84 +137,57 @@ class PayrollService
     public function approvePayroll($id, $user)
     {
         $cycle = PayrollCycle::findOrFail($id);
-        if ($cycle->status !== 'draft') {
-            throw new \Exception("Payroll cycle is not in draft status.");
+        
+        // Authorization check
+        if ($cycle->current_approver_id && $cycle->current_approver_id != $user->id) {
+            throw new \Exception("You are not the current authorized approver for this cycle.");
+        }
+
+        if ($cycle->status === 'draft' && $cycle->created_by == $user->id) {
+            // Creator approving their own draft to start workflow
+            $nextApproverId = $this->getNextApprover($user->id);
+            if ($nextApproverId) {
+                $cycle->update([
+                    'status' => 'pending_approval',
+                    'current_approver_id' => $nextApproverId
+                ]);
+                return $cycle;
+            }
         }
 
         DB::beginTransaction();
         try {
-            $cycle->update([
-                'status' => 'approved',
-                'approved_by' => $user->id,
-                'approved_at' => now()
-            ]);
-            
-            // Generate GL Entries: Accrue Salaries (Dr Expense, Cr Payable)
-            $salaryExpenseAccount = ChartOfAccount::where('account_code', '5220')->first(); // Salaries Expense
-            $salaryPayableAccount = ChartOfAccount::where('account_code', '2120')->first(); // Salaries Payable
+            // Update trail
+            $trail = $cycle->approval_trail ?? [];
+            $trail[] = [
+                'user_id' => $user->id,
+                'user_name' => $user->full_name,
+                'action' => 'approved',
+                'timestamp' => now()->toDateTimeString()
+            ];
 
-            if (!$salaryExpenseAccount || !$salaryPayableAccount) {
-                // If accounts don't exact match by code, try names or fallback? 
-                // Creating critical dependency on seeders matches logic.
-                // Assuming seeder ran correctly.
-                throw new \Exception("Critical Payroll Accounts (5220 or 2120) missing in Schema.");
-            }
+            // Find next approver
+            $nextApproverId = $this->getNextApprover($user->id);
 
-            // Debit Salary Expense (Total Gross)
-            GeneralLedger::create([
-                'voucher_number' => 'PAY-ACCR-' . $cycle->id,
-                'voucher_date' => now(), // Or period_end?
-                'account_id' => $salaryExpenseAccount->id,
-                'entry_type' => 'debit', // Asset/Expense increase = Debit? Logic typically: Debit
-                'amount' => $cycle->total_gross,
-                'description' => "Payroll Accrual: " . $cycle->cycle_name,
-                'reference_type' => 'payroll_cycle',
-                'reference_id' => $cycle->id,
-                'created_by' => $user->id
-            ]);
-
-            // Credit Salaries Payable (Total Net) -> Assuming deducltions handled separately?
-            // Simplified: Dr Expense (Gross), Cr Payable (Gross).
-            // Then Payment: Dr Payable (Net), Cr Bank (Net), Dr Payable (Deduction), Cr Agency (Deduction).
-            // OR: Dr Expense (Gross), Cr Payable (Net), Cr Deduction Liability (Deduction).
-            
-            // Let's go with: Dr Expense (Gross), Cr Payable (Net), Cr Other (Deductions if any)
-            // But we don't have a Deduction Liability account easily mapped yet.
-            // Let's assume Credit Payable = Gross for simplicity so far, OR split it if we can.
-            // For checking "integrated with all accounting functions", proper double entry is key.
-            
-            // Let's Credit Salaries Payable with the NET amount for employees.
-            GeneralLedger::create([
-                'voucher_number' => 'PAY-ACCR-' . $cycle->id,
-                'voucher_date' => now(),
-                'account_id' => $salaryPayableAccount->id,
-                'entry_type' => 'credit',
-                'amount' => $cycle->total_net, // Accounts Payable to Employees
-                'description' => "Payroll Payable: " . $cycle->cycle_name,
-                'reference_type' => 'payroll_cycle',
-                'reference_id' => $cycle->id,
-                'created_by' => $user->id
-            ]);
-
-            // Handle Deductions discrepancy if any (Gross - Net)
-            if ($cycle->total_deductions > 0) {
-                 // Credit some liability account for deductions? E.g. Tax Payable?
-                 // We'll map it to '2110' (Accounts Payable) as a placeholder for external agencies for now
-                 // In real world, we'd need 'Social Security Payable', etc.
-                 $apAccount = ChartOfAccount::where('account_code', '2110')->first();
-                 if ($apAccount) {
-                     GeneralLedger::create([
-                        'voucher_number' => 'PAY-ACCR-' . $cycle->id,
-                        'voucher_date' => now(),
-                        'account_id' => $apAccount->id,
-                        'entry_type' => 'credit',
-                        'amount' => $cycle->total_deductions,
-                        'description' => "Payroll Deductions Liability: " . $cycle->cycle_name,
-                        'reference_type' => 'payroll_cycle',
-                        'reference_id' => $cycle->id,
-                        'created_by' => $user->id
-                    ]);
-                 }
+            if ($nextApproverId) {
+                // Move to next level
+                $cycle->update([
+                    'status' => 'pending_approval',
+                    'current_approver_id' => $nextApproverId,
+                    'approval_trail' => $trail
+                ]);
+            } else {
+                // Final approval reached
+                $cycle->update([
+                    'status' => 'approved',
+                    'current_approver_id' => null,
+                    'approval_trail' => $trail,
+                    'approved_by' => $user->id,
+                    'approved_at' => now()
+                ]);
+                
+                // Generate GL Entries
+                $this->createAccrualEntries($cycle, $user);
             }
 
             DB::commit();
@@ -175,67 +198,232 @@ class PayrollService
         }
     }
 
-    public function processPayment($id)
+    protected function createAccrualEntries($cycle, $user)
     {
-        $cycle = PayrollCycle::findOrFail($id);
+        $mappings = $this->mappingService->getStandardAccounts();
+        
+        $salaryExpenseAccount = ChartOfAccount::where('account_code', $mappings['salaries_expense'])->first();
+        $salaryPayableAccount = ChartOfAccount::where('account_code', $mappings['salaries_payable'])->first();
+
+        if (!$salaryExpenseAccount || !$salaryPayableAccount) {
+            throw new \Exception("Critical Payroll Accounts (Expense/Payable) missing in Chart of Accounts mapping.");
+        }
+
+        $entryDate = $cycle->period_end ?? now();
+
+        // Debit Expense
+        GeneralLedger::create([
+            'voucher_number' => 'PAY-ACCR-' . $cycle->id,
+            'voucher_date' => $entryDate,
+            'account_id' => $salaryExpenseAccount->id,
+            'entry_type' => 'debit',
+            'amount' => $cycle->total_gross,
+            'description' => "Payroll Accrual (" . ucfirst($cycle->cycle_type) . "): " . $cycle->cycle_name . " [Status: Final Approval]",
+            'reference_type' => 'payroll_cycle',
+            'reference_id' => $cycle->id,
+            'created_by' => $user->id
+        ]);
+
+        // Credit Payable
+        GeneralLedger::create([
+            'voucher_number' => 'PAY-ACCR-' . $cycle->id,
+            'voucher_date' => $entryDate,
+            'account_id' => $salaryPayableAccount->id,
+            'entry_type' => 'credit',
+            'amount' => $cycle->total_net,
+            'description' => "Payroll Payable (" . ucfirst($cycle->cycle_type) . "): " . $cycle->cycle_name . " [Status: Final Approval]",
+            'reference_type' => 'payroll_cycle',
+            'reference_id' => $cycle->id,
+            'created_by' => $user->id
+        ]);
+
+        if ($cycle->total_deductions > 0) {
+            $apAccount = ChartOfAccount::where('account_code', $mappings['accounts_payable'])->first();
+            if ($apAccount) {
+                GeneralLedger::create([
+                    'voucher_number' => 'PAY-ACCR-' . $cycle->id,
+                    'voucher_date' => $entryDate,
+                    'account_id' => $apAccount->id,
+                    'entry_type' => 'credit',
+                    'amount' => $cycle->total_deductions,
+                    'description' => "Payroll Deductions Liability: " . $cycle->cycle_name,
+                    'reference_type' => 'payroll_cycle',
+                    'reference_id' => $cycle->id,
+                    'created_by' => $user->id
+                ]);
+            }
+        }
+    }
+
+    public function processPayment($id, $paymentAccountId = null)
+    {
+        $cycle = PayrollCycle::with('items')->findOrFail($id);
         if ($cycle->status !== 'approved') {
-            throw new \Exception("Payroll cycle must be approved before payment.");
+            throw new \Exception("Payroll cycle must be fully approved before payment.");
         }
 
         DB::beginTransaction();
         try {
-            $cycle->update(['status' => 'paid']);
+            // We'll update the status at the end using updateCycleStatus logic
+            // $cycle->update(['status' => 'paid']); 
             
-            // Payment: Dr Salaries Payable (Net), Cr Cash/Bank
-            $salaryPayableAccount = ChartOfAccount::where('account_code', '2120')->first();
-            $cashAccount = ChartOfAccount::where('account_code', '1110')->first(); // Default Cash
+            $mappings = $this->mappingService->getStandardAccounts();
+            
+            $salaryPayableAccount = ChartOfAccount::where('account_code', $mappings['salaries_payable'])->first();
+            $cashAccount = $paymentAccountId ? ChartOfAccount::find($paymentAccountId) : ChartOfAccount::where('account_code', $mappings['cash'])->first();
 
             if ($salaryPayableAccount && $cashAccount) {
-                 // Debit Payable
                  GeneralLedger::create([
                     'voucher_number' => 'PAY-PMT-' . $cycle->id,
-                    'voucher_date' => now(),
+                    'voucher_date' => $cycle->payment_date ?? now(),
                     'account_id' => $salaryPayableAccount->id,
                     'entry_type' => 'debit',
                     'amount' => $cycle->total_net,
-                    'description' => "Payroll Payment: " . $cycle->cycle_name,
+                    'description' => "Payroll Payment (" . ucfirst($cycle->cycle_type) . "): " . $cycle->cycle_name,
                     'reference_type' => 'payroll_cycle',
                     'reference_id' => $cycle->id,
                     'created_by' => auth()->id() ?? 1
                 ]);
 
-                // Credit Bank/Cash
                 GeneralLedger::create([
                     'voucher_number' => 'PAY-PMT-' . $cycle->id,
-                    'voucher_date' => now(),
+                    'voucher_date' => $cycle->payment_date ?? now(),
                     'account_id' => $cashAccount->id,
                     'entry_type' => 'credit',
                     'amount' => $cycle->total_net,
-                    'description' => "Payroll Payment: " . $cycle->cycle_name,
+                    'description' => "Payroll Payment (" . ucfirst($cycle->cycle_type) . "): " . $cycle->cycle_name,
                     'reference_type' => 'payroll_cycle',
                     'reference_id' => $cycle->id,
                     'created_by' => auth()->id() ?? 1
                 ]);
             }
 
-            // Create Transaction Record for each employee for their history
-            foreach($cycle->payrollItems as $item) {
-                PayrollTransaction::create([
-                    'payroll_cycle_id' => $cycle->id,
-                    'employee_id' => $item->employee_id,
-                    'amount' => $item->net_salary,
-                    'transaction_type' => 'salary_payment',
-                    'transaction_date' => now(),
-                    'description' => "Salary Payment for cycle " . $cycle->cycle_name,
-                    // 'gl_entry_id' => ... link if needed
-                ]);
+            foreach($cycle->items as $item) {
+                if ($item->status !== 'active') continue;
+
+                // Calculate already paid
+                $alreadyPaid = PayrollTransaction::where('payroll_item_id', $item->id)
+                    ->where('transaction_type', 'payment')
+                    ->sum('amount');
+
+                $remaining = $item->net_salary - $alreadyPaid;
+
+                if ($remaining > 0.01) {
+                    PayrollTransaction::create([
+                        'payroll_item_id' => $item->id,
+                        'employee_id' => $item->employee_id,
+                        'amount' => $remaining,
+                        'transaction_type' => 'payment',
+                        'transaction_date' => $cycle->payment_date ?? now(),
+                        'notes' => "Full Payment (Remainder) for cycle " . $cycle->cycle_name,
+                        'created_by' => auth()->id() ?? 1
+                    ]);
+                }
             }
 
             DB::commit();
-            return $cycle;
+            $this->checkAndSetPaidStatus($cycle->id);
+            return $cycle->fresh(['items']);
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
+        }
+    }
+
+    public function createPaymentJournalEntry($payrollItem, $amount, $transactionId, $paymentAccountId = null)
+    {
+        $mappings = $this->mappingService->getStandardAccounts();
+        
+        $salaryPayableAccount = ChartOfAccount::where('account_code', $mappings['salaries_payable'])->first();
+        $cashAccount = $paymentAccountId ? ChartOfAccount::find($paymentAccountId) : ChartOfAccount::where('account_code', $mappings['cash'])->first();
+
+        if (!$salaryPayableAccount || !$cashAccount) {
+            throw new \Exception("Required accounts (Payable or Cash) not found in mapping");
+        }
+
+        $voucherNumber = 'PAY-IND-' . $payrollItem->id . '-' . $transactionId;
+
+        GeneralLedger::create([
+            'voucher_number' => $voucherNumber,
+            'voucher_date' => now(),
+            'account_id' => $salaryPayableAccount->id,
+            'entry_type' => 'debit',
+            'amount' => $amount,
+            'description' => "Individual Salary Payment - " . ($payrollItem->employee->full_name ?? 'Employee'),
+            'reference_type' => 'payroll_transaction',
+            'reference_id' => $transactionId,
+            'created_by' => auth()->id() ?? 1
+        ]);
+
+        GeneralLedger::create([
+            'voucher_number' => $voucherNumber,
+            'voucher_date' => now(),
+            'account_id' => $cashAccount->id,
+            'entry_type' => 'credit',
+            'amount' => $amount,
+            'description' => "Individual Salary Payment - " . ($payrollItem->employee->full_name ?? 'Employee'),
+            'reference_type' => 'payroll_transaction',
+            'reference_id' => $transactionId,
+            'created_by' => auth()->id() ?? 1
+        ]);
+    }
+
+    public function toggleItemStatus($itemId)
+    {
+        $item = PayrollItem::findOrFail($itemId);
+        $item->status = $item->status === 'active' ? 'on_hold' : 'active';
+        $item->save();
+        return $item;
+    }
+
+    public function updatePayrollItem($itemId, $data)
+    {
+        $item = PayrollItem::findOrFail($itemId);
+        $item->update([
+            'base_salary' => $data['base_salary'],
+            'total_allowances' => $data['total_allowances'],
+            'total_deductions' => $data['total_deductions'],
+            'gross_salary' => $data['base_salary'] + $data['total_allowances'],
+            'net_salary' => ($data['base_salary'] + $data['total_allowances']) - $data['total_deductions'],
+            'notes' => $data['notes'] ?? $item->notes
+        ]);
+
+        // Update cycle totals
+        $cycle = $item->payrollCycle;
+        $items = $cycle->items;
+        $cycle->update([
+            'total_gross' => $items->sum('gross_salary'),
+            'total_deductions' => $items->sum('total_deductions'),
+            'total_net' => $items->sum('net_salary')
+        ]);
+
+        return $item;
+    }
+    public function checkAndSetPaidStatus($cycleId)
+    {
+        $cycle = PayrollCycle::with('items')->findOrFail($cycleId);
+        if ($cycle->status !== 'approved' && $cycle->status !== 'paid') return;
+
+        $items = $cycle->items;
+        $allPaid = true;
+
+        foreach ($items as $item) {
+            if ($item->status === 'on_hold') continue;
+            
+            $paidTotal = PayrollTransaction::where('payroll_item_id', $item->id)
+                ->where('transaction_type', 'payment')
+                ->sum('amount');
+
+            if ($paidTotal < $item->net_salary - 0.01) {
+                $allPaid = false;
+                break;
+            }
+        }
+
+        if ($allPaid && $cycle->status === 'approved') {
+            $cycle->update(['status' => 'paid']);
+        } elseif (!$allPaid && $cycle->status === 'paid') {
+            $cycle->update(['status' => 'approved']);
         }
     }
 }

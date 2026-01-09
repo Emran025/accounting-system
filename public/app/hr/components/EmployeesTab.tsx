@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Table, Column } from "@/components/ui/Table";
+import { fetchAPI } from "@/lib/api";
 import { Employee } from "../types";
 
 export function EmployeesTab() {
@@ -26,10 +27,9 @@ export function EmployeesTab() {
         search: searchTerm,
         department_id: filterDepartment
       });
-      const res = await fetch(`/api/employees?${query}`);
-      const data = await res.json();
-      setEmployees(data.data);
-      setTotalPages(data.last_page);
+      const res = await fetchAPI(`/api/employees?${query}`);
+      setEmployees(res.data as Employee[] || []);
+      setTotalPages(Number(res.last_page) || 1);
     } catch (error) {
       console.error("Failed to load employees", error);
     } finally {
