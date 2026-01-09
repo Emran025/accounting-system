@@ -27,6 +27,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['account_code' => '2000', 'account_name' => 'الخصوم', 'account_type' => 'Liability'],
             ['account_code' => '2100', 'account_name' => 'الخصوم المتداولة', 'account_type' => 'Liability'],
             ['account_code' => '2110', 'account_name' => 'الذمم الدائنة', 'account_type' => 'Liability'],
+            ['account_code' => '2120', 'account_name' => 'رواتب مستحقة', 'account_type' => 'Liability'],
             ['account_code' => '2200', 'account_name' => 'ضريبة القيمة المضافة', 'account_type' => 'Liability'],
             ['account_code' => '2210', 'account_name' => 'ضريبة القيمة المضافة - مخرجات', 'account_type' => 'Liability'],
             ['account_code' => '2220', 'account_name' => 'ضريبة القيمة المضافة - مدخلات', 'account_type' => 'Liability'],
@@ -54,7 +55,13 @@ class ChartOfAccountsSeeder extends Seeder
 
         $accountMap = [];
         foreach ($accounts as $account) {
-            $created = ChartOfAccount::create($account);
+            $created = ChartOfAccount::updateOrCreate(
+                ['account_code' => $account['account_code']],
+                [
+                    'account_name' => $account['account_name'],
+                    'account_type' => $account['account_type'],
+                ]
+            );
             $accountMap[$account['account_code']] = $created->id;
         }
 
@@ -69,6 +76,7 @@ class ChartOfAccountsSeeder extends Seeder
             '1220' => '1200',
             '2100' => '2000',
             '2110' => '2100',
+            '2120' => '2100',
             '2200' => '2000',
             '2210' => '2200',
             '2220' => '2200',

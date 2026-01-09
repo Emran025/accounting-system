@@ -24,6 +24,10 @@ use App\Http\Controllers\Api\AccrualAccountingController;
 use App\Http\Controllers\Api\BankReconciliationController;
 use App\Http\Controllers\Api\RecurringTransactionsController;
 use App\Http\Controllers\Api\SessionsController;
+use App\Http\Controllers\Api\EmployeesController;
+use App\Http\Controllers\Api\PayrollController;
+
+use App\Http\Controllers\Api\DepartmentsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -192,5 +196,25 @@ Route::middleware(['api.auth'])->group(function () {
     Route::put('/currencies/{id}', [\App\Http\Controllers\Api\CurrencyController::class, 'update'])->name('api.currencies.update');
     Route::delete('/currencies/{id}', [\App\Http\Controllers\Api\CurrencyController::class, 'destroy'])->name('api.currencies.destroy');
     Route::post('/currencies/{id}/toggle', [\App\Http\Controllers\Api\CurrencyController::class, 'toggleActive'])->name('api.currencies.toggle');
+
+    // HR & Payroll
+    Route::get('/employees', [EmployeesController::class, 'index'])->name('api.employees.index');
+    Route::post('/employees', [EmployeesController::class, 'store'])->name('api.employees.store');
+    Route::get('/employees/{id}', [EmployeesController::class, 'show'])->name('api.employees.show');
+    Route::put('/employees/{id}', [EmployeesController::class, 'update'])->name('api.employees.update');
+    Route::delete('/employees/{id}', [EmployeesController::class, 'destroy'])->name('api.employees.destroy');
+    Route::post('/employees/{id}/suspend', [EmployeesController::class, 'suspend'])->name('api.employees.suspend');
+    Route::post('/employees/{id}/activate', [EmployeesController::class, 'activate'])->name('api.employees.activate');
+    
+    Route::post('/employees/{id}/documents', [EmployeesController::class, 'uploadDocument'])->name('api.employees.documents.store');
+    Route::get('/employees/{id}/documents', [EmployeesController::class, 'getDocuments'])->name('api.employees.documents.index');
+    
+
+    Route::apiResource('departments', DepartmentsController::class);
+    
+    Route::get('/payroll/cycles', [PayrollController::class, 'index'])->name('api.payroll.index');
+    Route::post('/payroll/generate', [PayrollController::class, 'generatePayroll'])->name('api.payroll.generate');
+    Route::post('/payroll/{id}/approve', [PayrollController::class, 'approve'])->name('api.payroll.approve');
+    Route::post('/payroll/{id}/process-payment', [PayrollController::class, 'processPayment'])->name('api.payroll.payment');
 });
 

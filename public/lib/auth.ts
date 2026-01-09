@@ -45,6 +45,7 @@ const moduleAccessMap: Record<string, string> = {
   "audit_trail": "audit_trail",
   "batch_processing": "batch_processing",
   "ap_suppliers": "ap_suppliers",
+  "hr": "hr",
 };
 
 /**
@@ -236,7 +237,7 @@ export function getSidebarLinks(permissions: Permission[]): Array<{
     { href: "/inventory/products", icon: "box", label: "المنتجات", module: "products" },
     { href: "/purchases/purchases", icon: "cart", label: "المشتريات", module: "purchases" },
     { href: "/purchases/expenses", icon: "dollar", label: "المصروفات", module: "expenses" },
-    { href: "/people/users", icon: "users", label: "المستخدمين", module: "users" },
+    { href: "/hr", icon: "users", label: "الموارد البشرية", module: "hr" },
     { href: "/people/ar_customers", icon: "users", label: "عملاء الآجل", module: "ar_customers" },
     { href: "/finance/general_ledger", icon: "dollar", label: "دفتر الأستاذ", module: "general_ledger" },
     { href: "/finance/chart_of_accounts", icon: "building", label: "دليل الحسابات", module: "chart_of_accounts" },
