@@ -122,9 +122,11 @@ export function PayrollTab() {
           
           setAccounts(assetAccounts);
           
-          const cashAcc = assetAccounts.find(a => a.code === '1110');
+          const cashAcc = assetAccounts.find(a => a.code === '1110') 
+                || assetAccounts.find(a => a.name.toLowerCase().includes('cash'))
+                || assetAccounts[0]; // Fallback to first asset
+          
           if (cashAcc) setSelectedAccountId(cashAcc.id.toString());
-          else if (assetAccounts.length > 0) setSelectedAccountId(assetAccounts[0].id.toString());
       } catch (e) {
           console.error("Failed to load accounts", e);
       }

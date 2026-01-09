@@ -22,6 +22,7 @@ export interface Purchase {
     approval_status?: string;
     vat_rate?: number;
     vat_amount?: number;
+    payment_type?: string;
 }
 
 export interface PurchaseRequest {
@@ -31,4 +32,10 @@ export interface PurchaseRequest {
     notes?: string;
     status: "pending" | "approved" | "done";
     created_at: string;
+}
+
+export interface Supplier {
+    id: number;
+    name: string;
+    phone?: string;
 }

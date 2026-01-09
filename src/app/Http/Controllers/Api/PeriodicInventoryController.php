@@ -21,13 +21,16 @@ class PeriodicInventoryController extends Controller
 
     private LedgerService $ledgerService;
     private ChartOfAccountsMappingService $coaService;
+    private \App\Services\InventoryCostingService $costingService;
 
     public function __construct(
         LedgerService $ledgerService,
-        ChartOfAccountsMappingService $coaService
+        ChartOfAccountsMappingService $coaService,
+        \App\Services\InventoryCostingService $costingService
     ) {
         $this->ledgerService = $ledgerService;
         $this->coaService = $coaService;
+        $this->costingService = $costingService;
     }
 
     public function index(Request $request): JsonResponse
@@ -140,6 +143,9 @@ class PeriodicInventoryController extends Controller
                         'amount' => $adjustmentAmount,
                         'description' => "Inventory Count Adjustment - Product: {$product->name}",
                     ];
+                    
+                    // Fix BUG-006: Add Layer
+                    $this->costingService->recordAdjustment($product->id, $count->id, $count->variance);
                 } else {
                     // Inventory decrease
                     $glEntries[] = [
@@ -154,6 +160,9 @@ class PeriodicInventoryController extends Controller
                         'amount' => $adjustmentAmount,
                         'description' => "Inventory Count Adjustment - Product: {$product->name}",
                     ];
+
+                    // Fix BUG-006: Consume Layer
+                    $this->costingService->recordAdjustment($product->id, $count->id, $count->variance);
                 }
 
                 $this->ledgerService->postTransaction(

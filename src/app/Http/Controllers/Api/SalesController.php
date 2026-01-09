@@ -67,8 +67,34 @@ class SalesController extends Controller
             TelescopeService::logOperation('CREATE', 'invoices', $invoiceId, null, $validated);
 
             return $this->successResponse(['id' => $invoiceId], 'Invoice created successfully');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Let Laravel handle validation exceptions (422)
+            throw $e;
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // Product not found or similar - return 404
+            return $this->errorResponse('Resource not found: ' . $e->getMessage(), 404);
         } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage(), 500);
+            // Fix BUG-006: Differentiate between business logic errors and system failures
+            \Illuminate\Support\Facades\Log::error('Invoice Creation Error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // If it's a known business rule violation (contains specific keywords), return 400
+            $businessRuleKeywords = ['price violation', 'insufficient stock', 'required', 'mismatch'];
+            $isBusinessRule = false;
+            foreach ($businessRuleKeywords as $keyword) {
+                if (stripos($e->getMessage(), $keyword) !== false) {
+                    $isBusinessRule = true;
+                    break;
+                }
+            }
+            
+            if ($isBusinessRule) {
+                return $this->errorResponse($e->getMessage(), 400);
+            }
+            
+            // Otherwise it's a system error
+            return $this->errorResponse('System error: ' . $e->getMessage(), 500);
         }
     }
 
@@ -102,9 +128,10 @@ class SalesController extends Controller
                 'success' => true,
                 'message' => 'Invoice deleted successfully'
             ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }

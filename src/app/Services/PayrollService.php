@@ -252,43 +252,18 @@ class PayrollService
 
         DB::beginTransaction();
         try {
-            // We'll update the status at the end using updateCycleStatus logic
-            // $cycle->update(['status' => 'paid']); 
-            
             $mappings = $this->mappingService->getStandardAccounts();
             
             $salaryPayableAccount = ChartOfAccount::where('account_code', $mappings['salaries_payable'])->first();
             $cashAccount = $paymentAccountId ? ChartOfAccount::find($paymentAccountId) : ChartOfAccount::where('account_code', $mappings['cash'])->first();
 
-            if ($salaryPayableAccount && $cashAccount) {
-                $glEntries = [
-                    [
-                        'account_code' => $mappings['salaries_payable'],
-                        'entry_type' => 'DEBIT',
-                        'amount' => $cycle->total_net,
-                        'description' => "Payroll Payment (" . ucfirst($cycle->cycle_type) . "): " . $cycle->cycle_name
-                    ],
-                    [
-                        'account_code' => $cashAccount->account_code,
-                        'entry_type' => 'CREDIT',
-                        'amount' => $cycle->total_net,
-                        'description' => "Payroll Payment (" . ucfirst($cycle->cycle_type) . "): " . $cycle->cycle_name
-                    ]
-                ];
-
-                $this->ledgerService->postTransaction(
-                    $glEntries,
-                    'payroll_cycle',
-                    $cycle->id,
-                    'PAY-PMT-' . $cycle->id,
-                    $cycle->payment_date ?? now()->format('Y-m-d')
-                );
-            }
+            // Calculate total ACTUAL remaining to be paid
+            $totalRemainingToPay = 0;
+            $itemsToPay = [];
 
             foreach($cycle->items as $item) {
                 if ($item->status !== 'active') continue;
 
-                // Calculate already paid
                 $alreadyPaid = PayrollTransaction::where('payroll_item_id', $item->id)
                     ->where('transaction_type', 'payment')
                     ->sum('amount');
@@ -296,10 +271,48 @@ class PayrollService
                 $remaining = $item->net_salary - $alreadyPaid;
 
                 if ($remaining > 0.01) {
+                    $totalRemainingToPay += $remaining;
+                    $itemsToPay[] = [
+                        'item' => $item,
+                        'amount' => $remaining
+                    ];
+                }
+            }
+
+            if ($totalRemainingToPay > 0) {
+                 if ($salaryPayableAccount && $cashAccount) {
+                    $glEntries = [
+                        [
+                            'account_code' => $mappings['salaries_payable'],
+                            'entry_type' => 'DEBIT',
+                            'amount' => $totalRemainingToPay,
+                            'description' => "Payroll Payment (" . ucfirst($cycle->cycle_type) . "): " . $cycle->cycle_name
+                        ],
+                        [
+                            'account_code' => $cashAccount->account_code,
+                            'entry_type' => 'CREDIT',
+                            'amount' => $totalRemainingToPay,
+                            'description' => "Payroll Payment (" . ucfirst($cycle->cycle_type) . "): " . $cycle->cycle_name
+                        ]
+                    ];
+
+                    $this->ledgerService->postTransaction(
+                        $glEntries,
+                        'payroll_cycle',
+                        $cycle->id,
+                        'PAY-PMT-' . $cycle->id . '-' . time(), // Unique voucher if partial
+                        $cycle->payment_date ?? now()->format('Y-m-d')
+                    );
+                }
+
+                foreach($itemsToPay as $payData) {
+                    $item = $payData['item'];
+                    $amount = $payData['amount'];
+
                     PayrollTransaction::create([
                         'payroll_item_id' => $item->id,
                         'employee_id' => $item->employee_id,
-                        'amount' => $remaining,
+                        'amount' => $amount,
                         'transaction_type' => 'payment',
                         'transaction_date' => $cycle->payment_date ?? now(),
                         'notes' => "Full Payment (Remainder) for cycle " . $cycle->cycle_name,
@@ -322,10 +335,12 @@ class PayrollService
         $mappings = $this->mappingService->getStandardAccounts();
         
         $salaryPayableAccount = ChartOfAccount::where('account_code', $mappings['salaries_payable'])->first();
-        $cashAccount = $paymentAccountId ? ChartOfAccount::find($paymentAccountId) : ChartOfAccount::where('account_code', $mappings['cash'])->first();
+        
+        // Fix BUG-003: Remove silent fallback to Cash. Require explicit account.
+        $cashAccount = $paymentAccountId ? ChartOfAccount::find($paymentAccountId) : null;
 
         if (!$salaryPayableAccount || !$cashAccount) {
-            throw new \Exception("Required accounts (Payable or Cash) not found in mapping");
+            throw new \Exception("Payment Account is required and must be valid.");
         }
 
         $voucherNumber = 'PAY-IND-' . $payrollItem->id . '-' . $transactionId;

@@ -13,6 +13,7 @@ class InvoiceItem extends Model
         'quantity',
         'unit_price',
         'subtotal',
+        'unit_type',
     ];
 
     protected function casts(): array

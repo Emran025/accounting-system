@@ -136,7 +136,8 @@ class PayrollController extends Controller
     {
         $request->validate([
             'amount' => 'required|numeric|min:0',
-            'notes' => 'nullable|string'
+            'notes' => 'nullable|string',
+            'account_id' => 'nullable|exists:chart_of_accounts,id'
         ]);
 
         try {

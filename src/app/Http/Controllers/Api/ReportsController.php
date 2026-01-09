@@ -419,15 +419,30 @@ class ReportsController extends Controller
      */
     private function getInvestingActivities(string $startDate, string $endDate): float
     {
-        // Simplified: Get changes in fixed asset accounts
-        $assetAccounts = ChartOfAccount::where('account_type', 'Asset')
-            ->where('account_code', 'like', '15%') // Fixed assets typically start with 15
+        // Fixed Assets and Investments are Assets.
+        // We generally look for Non-Current Assets.
+        // For simplicity in this system, we take all Assets that are NOT "Current Asset" or "Cash" (which is current).
+        // However, the ChartOfAccount model only has 'Asset', 'Liability', etc.
+        // We will assume "Fixed Assets" typically have codes starting with '15', '16', '17', or we check names.
+        // BETTER: Use "Asset" type but exclude the Cash accounts calculated in Net Change.
+        
+        $accounts = ChartOfAccount::where('account_type', 'Asset')
             ->where('is_active', true)
             ->get();
-
+            
+        // Exclude Cash/Bank accounts (usually 1110, 1111 etc or 'Likid')
+        // And exclude Accounts Receivable (Current Asset)
+        // This is still an approximation (Indirect Method)
+        
         $total = 0;
 
-        foreach ($assetAccounts as $account) {
+        foreach ($accounts as $account) {
+            // Heuristic to skip Cash and AR
+            if (str_starts_with($account->account_code, '11') || str_starts_with($account->account_code, '12')) { 
+                // 11xx = Cash/Bank, 12xx = Receivables (standard GAAP/IFRS coding often used here)
+                continue; 
+            }
+        
             $change = GeneralLedger::where('account_id', $account->id)
                 ->whereBetween('voucher_date', [$startDate, $endDate])
                 ->selectRaw('
@@ -436,6 +451,8 @@ class ReportsController extends Controller
                 ')
                 ->value('net_change') ?? 0;
 
+            // Asset Increase (Debit) => Outflow (Negative)
+            // Logic: Credit - Debit. If Debit > Credit, result is negative. Correct.
             $total += (float)$change;
         }
 
@@ -447,18 +464,30 @@ class ReportsController extends Controller
      */
     private function getFinancingActivities(string $startDate, string $endDate): float
     {
-        // Simplified: Get changes in long-term liability and equity accounts
-        $financingAccounts = ChartOfAccount::whereIn('account_type', ['Liability', 'Equity'])
-            ->where(function ($query) {
-                $query->where('account_code', 'like', '25%') // Long-term liabilities
-                      ->orWhere('account_code', 'like', '3%'); // Equity
-            })
+        // Long Term Liabilities and Equity
+        $accounts = ChartOfAccount::whereIn('account_type', ['Liability', 'Equity'])
             ->where('is_active', true)
             ->get();
 
         $total = 0;
 
-        foreach ($financingAccounts as $account) {
+        foreach ($accounts as $account) {
+            // Exclude Current Liabilities like AP (21xx) if we treat them in Operating (Change in Working Capital)
+            // But normally in simplified Cash Flow, we might include AP in Operating. 
+            // In the "Net Income + Adjustments" standard indirect method, AP change is operating.
+            // Here we are doing a mix. 
+            // Let's exclude AP (21xx) and Salaries Payable etc.
+            
+            if (str_starts_with($account->account_code, '21')) { 
+                continue; // Skip Payables
+            }
+            
+            // Skip Retained Earnings (calculated via Net Income) 
+            // Current Earnings often rolled into Equity at year end.
+            if ($account->account_name === 'Retained Earnings' || str_contains($account->account_name, 'Net Income')) {
+                continue;
+            }
+
             $change = GeneralLedger::where('account_id', $account->id)
                 ->whereBetween('voucher_date', [$startDate, $endDate])
                 ->selectRaw('
@@ -467,6 +496,8 @@ class ReportsController extends Controller
                 ')
                 ->value('net_change') ?? 0;
 
+            // Liability Increase (Credit) => Inflow (Positive)
+            // Logic: Credit - Debit. If Credit > Debit, result is positive. Correct.
             $total += (float)$change;
         }
 

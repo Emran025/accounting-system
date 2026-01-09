@@ -303,20 +303,69 @@ class ArController extends Controller
         $transaction = ArTransaction::findOrFail($validated['id']);
 
         if ($validated['restore'] ?? false) {
-            // Restore transaction
-            $balanceChange = $transaction->type === 'payment' 
-                ? -$transaction->amount 
-                : $transaction->amount;
-            
-            ArCustomer::where('id', $transaction->customer_id)
-                ->increment('current_balance', $balanceChange);
+            return DB::transaction(function () use ($transaction) {
+                if (!$transaction->is_deleted) {
+                    return $this->errorResponse('Transaction is not deleted', 400);
+                }
 
-            $transaction->update([
-                'is_deleted' => false,
-                'deleted_at' => null,
-            ]);
+                // Restore transaction balance impact
+                $balanceChange = $transaction->type === 'payment' 
+                    ? -$transaction->amount 
+                    : $transaction->amount;
+                
+                ArCustomer::where('id', $transaction->customer_id)
+                    ->increment('current_balance', $balanceChange);
 
-            TelescopeService::logOperation('UPDATE', 'ar_transactions', $transaction->id, ['is_deleted' => true], ['is_deleted' => false]);
+                // Trigger NEW GL Posting to recognize the movement again
+                $mappings = $this->coaService->getStandardAccounts();
+                $glEntries = [];
+                $customer = ArCustomer::find($transaction->customer_id);
+
+                if ($transaction->type === 'payment') {
+                    $glEntries[] = [
+                        'account_code' => $mappings['cash'],
+                        'entry_type' => 'DEBIT',
+                        'amount' => $transaction->amount,
+                        'description' => "Restored Payment from: {$customer->name} [Original ID: {$transaction->id}]"
+                    ];
+                    $glEntries[] = [
+                        'account_code' => $mappings['accounts_receivable'],
+                        'entry_type' => 'CREDIT',
+                        'amount' => $transaction->amount,
+                        'description' => "Restored Payment from: {$customer->name} (AR Reference)"
+                    ];
+                } else {
+                    $glEntries[] = [
+                        'account_code' => $mappings['sales_revenue'],
+                        'entry_type' => 'DEBIT',
+                        'amount' => $transaction->amount,
+                        'description' => "Restored Return from: {$customer->name} [Original ID: {$transaction->id}]"
+                    ];
+                    $glEntries[] = [
+                        'account_code' => $mappings['accounts_receivable'],
+                        'entry_type' => 'CREDIT',
+                        'amount' => $transaction->amount,
+                        'description' => "Restored Return from: {$customer->name} (AR Reference)"
+                    ];
+                }
+
+                $this->ledgerService->postTransaction(
+                    $glEntries,
+                    'ar_transactions',
+                    $transaction->id,
+                    null,
+                    now()->format('Y-m-d')
+                );
+
+                $transaction->update([
+                    'is_deleted' => false,
+                    'deleted_at' => null,
+                ]);
+
+                TelescopeService::logOperation('RESTORE', 'ar_transactions', $transaction->id, ['is_deleted' => true], ['is_deleted' => false]);
+
+                return $this->successResponse(['status' => 'restored']);
+            });
         }
 
         return $this->successResponse();

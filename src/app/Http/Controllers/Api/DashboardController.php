@@ -9,6 +9,7 @@ use App\Models\Purchase;
 use App\Models\Expense;
 use App\Models\Revenue;
 use App\Models\Asset;
+use App\Models\GeneralLedger;
 use App\Services\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -49,12 +50,24 @@ class DashboardController extends Controller
 
         $today = now()->format('Y-m-d');
 
-        // Total Sales
-        $totalSales = Invoice::sum('total_amount');
+        // Total Sales (Revenue from General Ledger)
+        $totalSales = GeneralLedger::whereHas('account', function($q) {
+                $q->where('account_type', 'Revenue');
+            })
+            ->selectRaw('SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as net_revenue')
+            ->value('net_revenue') ?? 0;
         
         // Sales Breakdown
-        $salesBreakdown = Invoice::select('payment_type', DB::raw('SUM(total_amount) as total_value'), DB::raw('COUNT(*) as total_count'))
-            ->groupBy('payment_type')
+        // Sales Breakdown (Verified by Ledger - Single Source of Truth)
+        $salesBreakdown = GeneralLedger::where('reference_type', 'invoices')
+            ->join('invoices', 'general_ledger.reference_id', '=', 'invoices.id')
+            ->whereHas('account', function($q) { 
+                $q->where('account_type', 'Revenue'); 
+            })
+            ->select('invoices.payment_type')
+            ->selectRaw('SUM(CASE WHEN general_ledger.entry_type = "CREDIT" THEN general_ledger.amount ELSE -general_ledger.amount END) as total_value')
+            ->selectRaw('COUNT(DISTINCT invoices.id) as total_count')
+            ->groupBy('invoices.payment_type')
             ->get()
             ->mapWithKeys(function ($item) {
                 return [$item->payment_type ?? 'cash' => [
@@ -64,13 +77,25 @@ class DashboardController extends Controller
             })
             ->toArray();
 
-        // Today's Sales
-        $todaysSales = Invoice::whereDate('created_at', $today)->sum('total_amount');
+        // Today's Sales (Revenue from General Ledger)
+        $todaysSales = GeneralLedger::whereHas('account', function($q) {
+                $q->where('account_type', 'Revenue');
+            })
+            ->whereDate('voucher_date', $today)
+            ->selectRaw('SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as net_revenue')
+            ->value('net_revenue') ?? 0;
         
         // Today's Breakdown
-        $todayBreakdown = Invoice::whereDate('created_at', $today)
-            ->select('payment_type', DB::raw('SUM(total_amount) as total'))
-            ->groupBy('payment_type')
+        // Today's Breakdown (Verified by Ledger)
+        $todayBreakdown = GeneralLedger::where('reference_type', 'invoices')
+            ->join('invoices', 'general_ledger.reference_id', '=', 'invoices.id')
+            ->whereDate('general_ledger.voucher_date', $today)
+            ->whereHas('account', function($q) { 
+                $q->where('account_type', 'Revenue'); 
+            })
+            ->select('invoices.payment_type')
+            ->selectRaw('SUM(CASE WHEN general_ledger.entry_type = "CREDIT" THEN general_ledger.amount ELSE -general_ledger.amount END) as total')
+            ->groupBy('invoices.payment_type')
             ->get()
             ->mapWithKeys(function ($item) {
                 return [$item->payment_type ?? 'cash' => (float)$item->total];
@@ -99,16 +124,42 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Expenses
-        $totalExpenses = Expense::sum('amount');
-        $todaysExpenses = Expense::whereDate('expense_date', $today)->sum('amount');
+        // Fix BUG-004: Financial Reporting Integrity - Use GeneralLedger as Single Source of Truth
+        
+        // Expenses (Debit Balance in Expense Accounts)
+        $totalExpenses = GeneralLedger::whereHas('account', function($q) {
+                $q->where('account_type', 'Expense');
+            })
+            ->selectRaw('SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) as net_expense')
+            ->value('net_expense') ?? 0;
+        
+        $todaysExpenses = GeneralLedger::whereHas('account', function($q) {
+                $q->where('account_type', 'Expense');
+            })
+            ->whereDate('voucher_date', $today)
+            ->selectRaw('SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) as net_expense')
+            ->value('net_expense') ?? 0;
 
-        // Revenues
-        $totalRevenues = Revenue::sum('amount');
-        $todaysRevenues = Revenue::whereDate('revenue_date', $today)->sum('amount');
+        // Revenues (Credit Balance in Revenue Accounts - excluding Sales which is already captured above)
+        $totalRevenues = GeneralLedger::whereHas('account', function($q) {
+                $q->where('account_type', 'Revenue');
+            })
+            ->selectRaw('SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as net_revenue')
+            ->value('net_revenue') ?? 0;
+        
+        $todaysRevenues = GeneralLedger::whereHas('account', function($q) {
+                $q->where('account_type', 'Revenue');
+            })
+            ->whereDate('voucher_date', $today)
+            ->selectRaw('SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as net_revenue')
+            ->value('net_revenue') ?? 0;
 
-        // Assets
-        $totalAssets = Asset::where('status', 'active')->sum('value');
+        // Assets (Debit Balance in Asset Accounts)
+        $totalAssets = GeneralLedger::whereHas('account', function($q) {
+                $q->where('account_type', 'Asset');
+            })
+            ->selectRaw('SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) as net_assets')
+            ->value('net_assets') ?? 0;
 
         // Recent Sales
         $recentSales = Invoice::with(['user', 'customer'])
@@ -134,7 +185,7 @@ class DashboardController extends Controller
             ->get();
 
         return $this->successResponse([
-            'daily_sales' => (float)$todaysSales,
+            'todays_sales' => (float)$todaysSales,
             'total_sales' => (float)$totalSales,
             'low_stock_count' => $lowStockCount,
             'low_stock_products' => $lowStockProducts,

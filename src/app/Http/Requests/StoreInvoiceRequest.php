@@ -23,6 +23,7 @@ class StoreInvoiceRequest extends FormRequest
             'items.*.product_id' => 'required|integer|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.unit_type' => 'nullable|string|in:main,sub,piece,package',
             'vat_rate' => 'nullable|numeric|min:0|max:100',
         ];
     }

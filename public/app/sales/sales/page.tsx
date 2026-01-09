@@ -9,6 +9,8 @@ import { User, getStoredUser, canAccess, getStoredPermissions, Permission, check
 import { Icon } from "@/lib/icons";
 import { printInvoice, generateInvoiceHTML, getSettings } from "@/lib/invoice-utils";
 import { Currency } from "../../system/settings/types";
+import { PaginatedResponse } from "@/lib/types";
+
 
 interface Product {
     id: number;
@@ -77,6 +79,11 @@ export default function SalesPage() {
     const [productOptionsVisible, setProductOptionsVisible] = useState(false);
     const productSearchRef = useRef<HTMLDivElement>(null);
 
+    // Customer
+    const [customers, setCustomers] = useState<{id: number, name: string}[]>([]);
+    const [selectedCustomer, setSelectedCustomer] = useState<{id: number, name: string} | null>(null);
+    const [paymentType, setPaymentType] = useState<"cash" | "credit">("cash");
+
     // Invoice form
     const [quantity, setQuantity] = useState("1");
     const [unitType, setUnitType] = useState<"sub" | "main">("sub");
@@ -84,7 +91,9 @@ export default function SalesPage() {
     const [itemStock, setItemStock] = useState("");
     const [subtotal, setSubtotal] = useState(0);
     const [discountValue, setDiscountValue] = useState("0");
+
     const [discountType, setDiscountType] = useState<"fixed" | "percent">("fixed");
+    const [vatRate, setVatRate] = useState(0.15); // Default fallback, will be updated from API
 
     // Current invoice items
     const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
@@ -114,11 +123,21 @@ export default function SalesPage() {
         return val;
     }, [discountValue, discountType, itemsTotal]);
 
-    const finalTotal = (itemsTotal - calculatedDiscount()) * 1.15;
+    const finalTotal = (itemsTotal - calculatedDiscount()) * (1 + vatRate);
 
     const generateInvoiceNumber = useCallback(() => {
         const num = "INV-" + Date.now().toString().slice(-8);
         setInvoiceNumber(num);
+    }, []);
+
+    const loadCustomers = useCallback(async () => {
+        try {
+            const response = await fetchAPI(`ar_customers`);
+            if (response.success && response.data) {
+                // Fix BUG-007: Use proper type instead of 'any'
+                setCustomers(response.data as Array<{id: number, name: string}>);
+            }
+        } catch (e) {}
     }, []);
 
     const loadProducts = useCallback(async () => {
@@ -136,11 +155,12 @@ export default function SalesPage() {
     const loadInvoices = useCallback(async (page: number = 1) => {
         try {
             setIsLoading(true);
-            const response = await fetchAPI(`invoices?page=${page}&limit=${itemsPerPage}&payment_type=cash`);
-            if (response.success && response.data) {
-                setInvoices(response.data as Invoice[]);
-
-                setTotalPages((response.pagination as any)?.total_pages || 1);
+            const response = await fetchAPI(`invoices?page=${page}&limit=${itemsPerPage}`);
+            if (response.success && response.data && response.pagination) {
+                // Type narrowing: response has data and pagination, so it's safe to cast
+                const typedResponse = response as unknown as PaginatedResponse<Invoice>;
+                setInvoices(typedResponse.data);
+                setTotalPages(typedResponse.pagination.total_pages || 1);
                 setCurrentPage(page);
             }
         } catch {
@@ -149,6 +169,8 @@ export default function SalesPage() {
             setIsLoading(false);
         }
     }, []);
+
+
 
     useEffect(() => {
         const init = async () => {
@@ -170,14 +192,26 @@ export default function SalesPage() {
                     const primary = activeList.find(c => c.is_primary);
                     if (primary) setSelectedCurrency(primary);
                 }
+
             } catch (e) { console.error(e); }
 
-            await Promise.all([loadProducts(), loadInvoices()]);
+            // Load Settings (VAT Rate)
+            try {
+                const settingsRes = await fetchAPI("/api/settings");
+                if (settingsRes.success && settingsRes.data) {
+                     const vatSetting = (settingsRes.data as any[]).find((s: any) => s.setting_key === 'vat_rate');
+                     if (vatSetting) {
+                         setVatRate(parseFloat(vatSetting.setting_value) / 100);
+                     }
+                }
+            } catch (e) { console.error("Failed to load VAT rate", e); }
+
+            await Promise.all([loadProducts(), loadInvoices(), loadCustomers()]);
             generateInvoiceNumber();
             setIsLoading(false);
         };
         init();
-    }, [loadProducts, loadInvoices, generateInvoiceNumber]);
+    }, [loadProducts, loadInvoices, generateInvoiceNumber, loadCustomers]);
 
     // Calculate subtotal
     useEffect(() => {
@@ -337,6 +371,11 @@ export default function SalesPage() {
             return;
         }
 
+        if (paymentType === "credit" && !selectedCustomer) {
+            showAlert("alert-container", "يرجى اختيار العميل للفواتير الآجلة", "error");
+            return;
+        }
+
         try {
             const invoiceData = {
                 invoice_number: invoiceNumber,
@@ -344,14 +383,18 @@ export default function SalesPage() {
                 exchange_rate: selectedCurrency?.exchange_rate,
                 items: invoiceItems.map((item) => ({
                     product_id: item.product_id,
-                    quantity: item.total_sub_units,
+                    quantity: item.quantity,
                     unit_price: item.unit_price,
                     subtotal: item.subtotal,
+                    unit_type: item.unit_type,
                 })),
                 discount_amount: calculatedDiscount(),
                 subtotal: itemsTotal,
-                payment_type: "cash",
+                payment_type: paymentType,
+                customer_id: selectedCustomer?.id,
+                // Note: VAT rate is enforced server-side from config, not sent by client
             };
+
 
             const response = await fetchAPI("invoices", {
                 method: "POST",
@@ -390,6 +433,8 @@ export default function SalesPage() {
                 setInvoiceItems([]);
                 setDiscountValue("0");
                 generateInvoiceNumber();
+                setPaymentType("cash");
+                setSelectedCustomer(null);
                 await loadProducts();
                 await loadInvoices();
             } else {
@@ -517,42 +562,73 @@ export default function SalesPage() {
                     {/* Left: Input Form */}
                     <div className="sales-card compact animate-slide">
                         <div className="card-header-flex">
-                            <h3>إضافة منتج للفاتورة</h3>
-                            <div className="invoice-badge">
-                                <span className="stat-label">رقم الفاتورة:</span>
-                                <input
-                                    type="text"
-                                    id="invoice-number"
-                                    value={invoiceNumber}
-                                    readOnly
-                                    className="minimal-input"
-                                />
-                            </div>
-                            
-                            {/* Currency Selector */}
-                            {currencies.length > 0 && (
-                                <div className="invoice-badge" style={{ marginTop: "0.5rem" }}>
-                                    <span className="stat-label">العملة:</span>
+                            <h3>باجة المبيعات / الفواتير</h3>
+                            <div className="invoice-badge-group" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                <div className="invoice-badge">
+                                    <span className="stat-label">رقم الفاتورة:</span>
+                                    <input
+                                        type="text"
+                                        id="invoice-number"
+                                        value={invoiceNumber}
+                                        readOnly
+                                        className="minimal-input"
+                                        style={{ width: '100px' }}
+                                    />
+                                </div>
+                                
+                                {/* Payment Type Selector */}
+                                <div className="invoice-badge">
+                                    <span className="stat-label">الدفع:</span>
                                     <select 
-                                        className="minimal-input" 
-                                        value={selectedCurrency?.id || ""}
-                                        onChange={e => {
-                                            const id = parseInt(e.target.value);
-                                            const curr = currencies.find(c => c.id === id);
-                                            if (curr) setSelectedCurrency(curr);
-                                        }}
+                                        className="minimal-input"
+                                        value={paymentType}
+                                        onChange={(e) => setPaymentType(e.target.value as "cash" | "credit")}
                                         style={{ minWidth: "80px" }}
                                     >
-                                        {currencies.map(c => <option key={c.id} value={c.id}>{c.code}</option>)}
+                                        <option value="cash">نقدي</option>
+                                        <option value="credit">آجل / ذمم</option>
                                     </select>
-                                    {selectedCurrency && !selectedCurrency.is_primary && (
-                                        <span style={{ fontSize: "0.8em", marginLeft: "5px", color: "var(--text-secondary)" }}>
-                                            = {selectedCurrency.exchange_rate}
-                                        </span>
-                                    )}
                                 </div>
-                            )}
+
+                                {/* Currency Selector */}
+                                {currencies.length > 0 && (
+                                    <div className="invoice-badge">
+                                        <span className="stat-label">العملة:</span>
+                                        <select 
+                                            className="minimal-input" 
+                                            value={selectedCurrency?.id || ""}
+                                            onChange={e => {
+                                                const id = parseInt(e.target.value);
+                                                const curr = currencies.find(c => c.id === id);
+                                                if (curr) setSelectedCurrency(curr);
+                                            }}
+                                            style={{ minWidth: "80px" }}
+                                        >
+                                            {currencies.map(c => <option key={c.id} value={c.id}>{c.code}</option>)}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
                         </div>
+
+                        {/* Customer Seelctor for Credit Sales */}
+                        {paymentType === 'credit' && (
+                             <div className="form-group animate-slide-up" style={{ marginTop: '1rem', background: '#eef2f7', padding: '10px', borderRadius: '6px' }}>
+                                <label style={{ fontSize: '0.9rem', marginBottom: '5px', display: 'block' }}>اختر العميل (مطلوب للآجل)</label>
+                                <select 
+                                    className="form-control"
+                                    value={selectedCustomer?.id || ""}
+                                    onChange={(e) => {
+                                        const id = parseInt(e.target.value);
+                                        const cust = customers.find(c => c.id === id);
+                                        setSelectedCustomer(cust || null);
+                                    }}
+                                >
+                                    <option value="">-- اختر العميل --</option>
+                                    {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                             </div>
+                        )}
 
                         <form
                             id="invoice-form"

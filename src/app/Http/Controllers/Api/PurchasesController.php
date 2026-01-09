@@ -70,7 +70,10 @@ class PurchasesController extends Controller
                 'approval_status' => $purchase->approval_status,
                 'message' => $purchase->approval_status === 'pending' ? 'Purchase created and pending approval' : 'Purchase created successfully',
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
+             \Illuminate\Support\Facades\Log::error('Purchase Creation Error: ' . $e->getMessage());
             return $this->errorResponse($e->getMessage(), 500);
         }
     }
@@ -147,7 +150,7 @@ class PurchasesController extends Controller
 
             return $this->successResponse(['message' => 'Purchase approved and processed successfully']);
         } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage(), 500);
+            return $this->errorResponse($e->getMessage(), 400);
         }
     }
 
@@ -164,8 +167,10 @@ class PurchasesController extends Controller
             TelescopeService::logOperation('REVERSE', 'purchases', $id, null, ['action' => 'reverse']);
 
             return $this->successResponse(['message' => 'Purchase reversed successfully']);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage(), 500);
+            return $this->errorResponse($e->getMessage(), 400);
         }
     }
 }

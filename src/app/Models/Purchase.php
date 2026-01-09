@@ -16,6 +16,7 @@ class Purchase extends Model
         'expiry_date',
         'user_id',
         'supplier_id',
+        'payment_type',
         'voucher_number',
         'notes',
         'vat_rate',

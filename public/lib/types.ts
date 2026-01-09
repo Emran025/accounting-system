@@ -61,6 +61,10 @@ export interface Product {
   created_at?: string;
 }
 
+/**
+ * Invoice data structure
+ * Note: vat_rate is stored as PERCENTAGE (15 means 15%, not 0.15)
+ */
 export interface Invoice {
   id: number;
   invoice_number: string;
@@ -75,7 +79,13 @@ export interface Invoice {
   customer_tax?: string;
   amount_paid?: number;
   items?: InvoiceItem[];
+  /** VAT rate as PERCENTAGE (15 = 15%, NOT 0.15) */
+  vat_rate?: number;
+  vat_amount?: number;
+  subtotal?: number;
+  discount_amount?: number;
 }
+
 
 export interface InvoiceItem {
   product_id: number;
@@ -259,6 +269,23 @@ export interface Pagination {
   per_page: number;
   total_pages: number;
   total_records: number;
+}
+
+// Generic API Response wrapper for type safety
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  pagination?: Pagination;
+  [key: string]: unknown;
+}
+
+// Paginated response structure
+export interface PaginatedResponse<T> {
+  success: boolean;
+  data: T[];
+  pagination: Pagination;
+  message?: string;
 }
 
 // GL Types

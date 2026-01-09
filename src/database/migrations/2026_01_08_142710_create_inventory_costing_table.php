@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->foreignId('purchase_id')->nullable()->constrained()->onDelete('set null');
             $table->integer('quantity');
+            $table->integer('consumed_quantity')->default(0);
             $table->decimal('unit_cost', 10, 2);
             $table->decimal('total_cost', 15, 2);
             $table->string('costing_method', 20)->default('FIFO'); // FIFO, WEIGHTED_AVG

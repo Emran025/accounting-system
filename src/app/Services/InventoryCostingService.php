@@ -16,6 +16,8 @@ class InventoryCostingService
      * @param float $unitCost Unit cost
      * @param float $totalCost Total cost
      * @param string $method Costing method (FIFO, LIFO, WAC)
+     * @param string $refType
+     * @param int $refId
      * @return void
      */
     public function recordPurchase(
@@ -24,13 +26,16 @@ class InventoryCostingService
         int $quantity,
         float $unitCost,
         float $totalCost,
-        string $method = 'FIFO'
+        string $method = 'FIFO',
+        string $refType = 'purchases',
+        ?int $refId = null
     ): void {
         DB::table('inventory_costing')->insert([
             'product_id' => $productId,
-            'reference_type' => 'purchases',
-            'reference_id' => $purchaseId,
-            'quantity' => $quantity,
+            'reference_type' => $refType,
+            'reference_id' => $refId ?? $purchaseId,
+            'quantity' => $quantity, // Immutable Original Quantity
+            'consumed_quantity' => 0, // Track consumption separately
             'unit_cost' => $unitCost,
             'total_cost' => $totalCost,
             'is_sold' => false,
@@ -59,52 +64,87 @@ class InventoryCostingService
         $cogs = $this->getCostOfGoodsSold($productId, $quantity, $method);
 
         // Mark inventory as sold based on costing method
-        $remainingQty = $quantity;
+        $remainingQtyToSell = $quantity;
 
-        if ($method === 'FIFO') {
-            // First In, First Out
-            $inventory = DB::table('inventory_costing')
-                ->where('product_id', $productId)
-                ->where('is_sold', false)
-                ->orderBy('transaction_date', 'asc')
-                ->orderBy('id', 'asc')
-                ->get();
-        } elseif ($method === 'LIFO') {
-            // Last In, First Out
-            $inventory = DB::table('inventory_costing')
-                ->where('product_id', $productId)
-                ->where('is_sold', false)
-                ->orderBy('transaction_date', 'desc')
-                ->orderBy('id', 'desc')
-                ->get();
+        // Fix BUG-001: Query from immutable history (Inventory Consumptions)
+        $query = DB::table('inventory_costing as ic')
+            ->leftJoin('inventory_consumptions as cons', 'ic.id', '=', 'cons.inventory_costing_id')
+            ->select('ic.id', 'ic.quantity', 'ic.unit_cost', 'ic.transaction_date')
+            ->selectRaw('COALESCE(SUM(cons.quantity), 0) as total_consumed')
+            ->where('ic.product_id', $productId)
+            ->groupBy('ic.id', 'ic.quantity', 'ic.unit_cost', 'ic.transaction_date')
+            ->havingRaw('(ic.quantity - total_consumed) > 0');
+
+        if ($method === 'LIFO') {
+            $query->orderBy('ic.transaction_date', 'desc')->orderBy('ic.id', 'desc');
         } else {
-            // Weighted Average Cost
-            $inventory = DB::table('inventory_costing')
-                ->where('product_id', $productId)
-                ->where('is_sold', false)
-                ->orderBy('transaction_date', 'asc')
-                ->get();
+            // FIFO and WAC (WAC uses FIFO for depletion in this simplified model)
+            $query->orderBy('ic.transaction_date', 'asc')->orderBy('ic.id', 'asc');
         }
 
+        $inventory = $query->get();
+
         foreach ($inventory as $item) {
-            if ($remainingQty <= 0) {
+            if ($remainingQtyToSell <= 0) {
                 break;
             }
 
-            $qtyToSell = min($remainingQty, $item->quantity);
+            $currentRemaining = $item->quantity - $item->total_consumed;
+            $qtyToTake = min($remainingQtyToSell, $currentRemaining);
 
-            DB::table('inventory_costing')
-                ->where('id', $item->id)
-                ->update([
-                    'quantity' => $item->quantity - $qtyToSell,
-                    'is_sold' => ($item->quantity - $qtyToSell) == 0,
-                    'updated_at' => now(),
-                ]);
+            // Create Immutable Consumption Record
+            DB::table('inventory_consumptions')->insert([
+                'inventory_costing_id' => $item->id,
+                'consumption_type' => 'sale',
+                'reference_id' => $saleId,
+                'reference_type' => 'invoices',
+                'quantity' => $qtyToTake,
+                'unit_cost' => $item->unit_cost,
+                'total_cost' => $qtyToTake * $item->unit_cost,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
-            $remainingQty -= $qtyToSell;
+            $remainingQtyToSell -= $qtyToTake;
         }
 
         return $cogs;
+    }
+
+    /**
+     * Handle Inventory Count Adjustments (BUG-006)
+     */
+    public function recordAdjustment(int $productId, int $inventoryCountId, int $variance): void
+    {
+        if ($variance > 0) {
+            // Found items. Add layer.
+            $product = Product::find($productId);
+            
+            // Fix BUG-005: Phantom Value Creation
+            $unitCost = $product->weighted_average_cost ?? 0;
+            if ($unitCost <= 0) {
+                 // Fallback to latest purchase price or 0, but ideally we should flag this.
+                 // For now, we proceed but validation logic should exist at controller level.
+                 $unitCost = $product->purchase_price ?? 0;
+            }
+
+            $totalCost = $variance * $unitCost;
+
+            $this->recordPurchase(
+                $productId, 
+                0, // No Purchase ID
+                $variance,
+                $unitCost,
+                $totalCost,
+                'FIFO',
+                'inventory_counts',
+                $inventoryCountId
+            );
+        } elseif ($variance < 0) {
+            // Lost items. Consume layers.
+            $qtyToConsume = abs($variance);
+            $this->recordSale($productId, $inventoryCountId, $qtyToConsume, 'FIFO');
+        }
     }
 
     /**
@@ -121,15 +161,39 @@ class InventoryCostingService
         string $method = 'FIFO'
     ): float {
         if ($method === 'WAC') {
-            // Weighted Average Cost
-            $totals = DB::table('inventory_costing')
-                ->where('product_id', $productId)
-                ->where('is_sold', false)
-                ->selectRaw('SUM(quantity) as total_qty, SUM(total_cost) as total_cost')
+            // Weighted Average Cost using Consumptions
+            $totals = DB::table('inventory_costing as ic')
+                ->leftJoin('inventory_consumptions as cons', 'ic.id', '=', 'cons.inventory_costing_id')
+                ->where('ic.product_id', $productId)
+                ->selectRaw('SUM(ic.quantity - COALESCE(cons.quantity, 0)) as total_qty')
+                ->selectRaw('SUM((ic.quantity - COALESCE(cons.quantity, 0)) * ic.unit_cost) as total_value')
+                ->groupBy('ic.product_id') // Group by needs aggregation compatibility, simplified here
                 ->first();
+             
+             // The above query logic with join needs care for SUM/Grouping. 
+             // Correct logic: Subquery for consumptions or careful GroupBy.
+             // Given limitations, we can trust the 'Product->weighted_average_cost' for WAC simply?
+             // Or calculate it properly.
+             // Let's use the explicit calculation:
+            $items = DB::table('inventory_costing as ic')
+                ->leftJoin('inventory_consumptions as cons', 'ic.id', '=', 'cons.inventory_costing_id')
+                ->select('ic.quantity', 'ic.unit_cost')
+                ->selectRaw('COALESCE(SUM(cons.quantity), 0) as consumed')
+                ->where('ic.product_id', $productId)
+                ->groupBy('ic.id', 'ic.quantity', 'ic.unit_cost')
+                ->havingRaw('(ic.quantity - consumed) > 0')
+                ->get();
+            
+            $totalQty = 0;
+            $totalValue = 0;
+            foreach ($items as $itm) {
+                 $rem = $itm->quantity - $itm->consumed;
+                 $totalQty += $rem;
+                 $totalValue += ($rem * $itm->unit_cost);
+            }
 
-            if ($totals && $totals->total_qty > 0) {
-                $avgCost = $totals->total_cost / $totals->total_qty;
+            if ($totalQty > 0) {
+                $avgCost = $totalValue / $totalQty;
                 return $avgCost * $quantity;
             }
 
@@ -140,29 +204,31 @@ class InventoryCostingService
         $cogs = 0;
         $remainingQty = $quantity;
 
-        if ($method === 'FIFO') {
-            $inventory = DB::table('inventory_costing')
-                ->where('product_id', $productId)
-                ->where('is_sold', false)
-                ->orderBy('transaction_date', 'asc')
-                ->orderBy('id', 'asc')
-                ->get();
+        // Uses same immutable logic as recordSale
+        $query = DB::table('inventory_costing as ic')
+            ->leftJoin('inventory_consumptions as cons', 'ic.id', '=', 'cons.inventory_costing_id')
+            ->select('ic.id', 'ic.quantity', 'ic.unit_cost', 'ic.transaction_date')
+            ->selectRaw('COALESCE(SUM(cons.quantity), 0) as total_consumed')
+            ->where('ic.product_id', $productId)
+            ->groupBy('ic.id', 'ic.quantity', 'ic.unit_cost', 'ic.transaction_date')
+            ->havingRaw('(ic.quantity - total_consumed) > 0');
+
+        if ($method === 'LIFO') {
+            $query->orderBy('ic.transaction_date', 'desc')->orderBy('ic.id', 'desc');
         } else {
-            // LIFO
-            $inventory = DB::table('inventory_costing')
-                ->where('product_id', $productId)
-                ->where('is_sold', false)
-                ->orderBy('transaction_date', 'desc')
-                ->orderBy('id', 'desc')
-                ->get();
+            $query->orderBy('ic.transaction_date', 'asc')->orderBy('ic.id', 'asc');
         }
+
+        $inventory = $query->get();
 
         foreach ($inventory as $item) {
             if ($remainingQty <= 0) {
                 break;
             }
 
-            $qtyToUse = min($remainingQty, $item->quantity);
+            $currentRemaining = $item->quantity - $item->total_consumed;
+            $qtyToUse = min($remainingQty, $currentRemaining);
+            
             $cogs += $qtyToUse * $item->unit_cost;
             $remainingQty -= $qtyToUse;
         }
@@ -179,44 +245,41 @@ class InventoryCostingService
      */
     public function getInventoryValuation(?int $productId = null, string $method = 'FIFO'): array
     {
-        $query = DB::table('inventory_costing')
-            ->where('is_sold', false);
+        $query = DB::table('inventory_costing as ic')
+            ->leftJoin('inventory_consumptions as cons', 'ic.id', '=', 'cons.inventory_costing_id')
+            ->select('ic.product_id', 'ic.quantity', 'ic.unit_cost')
+            ->selectRaw('COALESCE(SUM(cons.quantity), 0) as consumed_qty')
+            ->groupBy('ic.id', 'ic.product_id', 'ic.quantity', 'ic.unit_cost') // Group by ID to separate batches
+            ->havingRaw('(ic.quantity - consumed_qty) > 0');
 
         if ($productId) {
-            $query->where('product_id', $productId);
+            $query->where('ic.product_id', $productId);
         }
 
-        if ($method === 'WAC') {
-            // Weighted Average Cost
-            $valuation = $query
-                ->selectRaw('product_id, SUM(quantity) as quantity, SUM(total_cost) as value')
-                ->groupBy('product_id')
-                ->get();
-
-            return $valuation->map(function ($item) {
-                return [
-                    'product_id' => $item->product_id,
-                    'quantity' => $item->quantity,
-                    'value' => $item->value,
-                    'average_cost' => $item->quantity > 0 ? $item->value / $item->quantity : 0,
-                ];
-            })->toArray();
+        $batches = $query->get();
+        
+        // Aggregate batches per product
+        $valuation = [];
+        
+        foreach ($batches as $batch) {
+             $pid = $batch->product_id;
+             if (!isset($valuation[$pid])) {
+                 $valuation[$pid] = ['product_id' => $pid, 'quantity' => 0, 'value' => 0];
+             }
+             
+             $rem = $batch->quantity - $batch->consumed_qty;
+             $valuation[$pid]['quantity'] += $rem;
+             $valuation[$pid]['value'] += ($rem * $batch->unit_cost);
         }
 
-        // FIFO or LIFO
-        $valuation = $query
-            ->selectRaw('product_id, SUM(quantity) as quantity, SUM(quantity * unit_cost) as value')
-            ->groupBy('product_id')
-            ->get();
-
-        return $valuation->map(function ($item) {
-            return [
-                'product_id' => $item->product_id,
-                'quantity' => $item->quantity,
-                'value' => $item->value,
-                'average_cost' => $item->quantity > 0 ? $item->value / $item->quantity : 0,
-            ];
-        })->toArray();
+        return array_map(function ($item) {
+             return [
+                'product_id' => $item['product_id'],
+                'quantity' => $item['quantity'],
+                'value' => $item['value'],
+                'average_cost' => $item['quantity'] > 0 ? $item['value'] / $item['quantity'] : 0
+             ];
+        }, array_values($valuation));
     }
 
     /**
@@ -230,11 +293,11 @@ class InventoryCostingService
         $totals = DB::table('inventory_costing')
             ->where('product_id', $productId)
             ->where('is_sold', false)
-            ->selectRaw('SUM(quantity) as total_qty, SUM(total_cost) as total_cost')
+            ->selectRaw('SUM(quantity - consumed_quantity) as total_qty, SUM((quantity - consumed_quantity) * unit_cost) as total_value')
             ->first();
 
         if ($totals && $totals->total_qty > 0) {
-            $wac = $totals->total_cost / $totals->total_qty;
+            $wac = $totals->total_value / $totals->total_qty;
             
             Product::where('id', $productId)->update([
                 'weighted_average_cost' => $wac

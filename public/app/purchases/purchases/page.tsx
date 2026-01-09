@@ -7,7 +7,7 @@ import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
-import { Product, Purchase, PurchaseRequest } from "./types";
+import { Product, Purchase, PurchaseRequest, Supplier } from "./types";
 import { usePurchases } from "./usePurchases";
 
 export default function PurchasesPage() {
@@ -47,12 +47,22 @@ export default function PurchasesPage() {
         purchase_date: new Date().toISOString().split("T")[0],
         expiry_date: "",
         notes: "",
+        payment_type: "credit",
     });
+
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
     const loadProducts = useCallback(async () => {
         try {
             const response = await fetchAPI("products?limit=1000");
             setProducts((response.data as Product[]) || []);
+        } catch (e) { console.error(e); }
+    }, []);
+
+    const loadSuppliers = useCallback(async () => {
+        try {
+            const response = await fetchAPI("suppliers?limit=1000");
+             setSuppliers((response.data as Supplier[]) || []);
         } catch (e) { console.error(e); }
     }, []);
 
@@ -69,10 +79,10 @@ export default function PurchasesPage() {
             if (!authenticated) return;
             setUser(getStoredUser());
             setPermissions(getStoredPermissions());
-            await Promise.all([loadPurchases(), loadProducts()]);
+            await Promise.all([loadPurchases(), loadProducts(), loadSuppliers()]);
         };
         init();
-    }, [loadPurchases, loadProducts]);
+    }, [loadPurchases, loadProducts, loadSuppliers]);
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -86,6 +96,12 @@ export default function PurchasesPage() {
         subtitle: `المخزون: ${p.stock_quantity}`,
     }));
 
+    const supplierOptions: SelectOption[] = suppliers.map((s) => ({
+        value: s.id,
+        label: s.name,
+        subtitle: s.phone || "",
+    }));
+
     const openAddDialog = () => {
         setSelectedPurchase(null);
         setFormData({
@@ -97,6 +113,7 @@ export default function PurchasesPage() {
             purchase_date: new Date().toISOString().split("T")[0],
             expiry_date: "",
             notes: "",
+            payment_type: "credit",
         });
         setPurchaseDialog(true);
     };
@@ -112,6 +129,7 @@ export default function PurchasesPage() {
             purchase_date: purchase.purchase_date.split("T")[0],
             expiry_date: purchase.expiry_date?.split("T")[0] || "",
             notes: purchase.notes || "",
+            payment_type: purchase.payment_type || "credit",
         });
         setPurchaseDialog(true);
     };
@@ -137,17 +155,28 @@ export default function PurchasesPage() {
             return;
         }
 
+        // Fix BUG-001 & BUG-007: Enforce Supplier for Credit
+        if (formData.payment_type === "credit" && !formData.supplier.trim() && !('supplier_id' in formData)) {
+             // If we have a name but no ID, it might be a new supplier logic, but we prefer ID.
+             // We'll validate name exists at least.
+        }
+        if (formData.payment_type === "credit" && !formData.supplier) {
+             showToast("يرجى تحديد المورد عند اختيار الدفع الآجل", "error");
+             return;
+        }
+
         const payload = {
             product_id: parseInt(formData.product_id),
             quantity: parseFloat(formData.quantity),
             unit_type: formData.unit_type,
             unit_price: parseFloat(formData.unit_price),
             invoice_price: parseFloat(formData.quantity) * parseFloat(formData.unit_price),
-            supplier_id: null, 
+            supplier_id: (formData as any).supplier_id || null, 
             supplier_name: formData.supplier,
             purchase_date: formData.purchase_date,
             expiry_date: formData.expiry_date || null,
             notes: formData.notes,
+            payment_type: formData.payment_type,
         };
 
         const success = await savePurchase(payload, selectedPurchase?.id);
@@ -183,6 +212,7 @@ export default function PurchasesPage() {
             purchase_date: new Date().toISOString().split("T")[0],
             expiry_date: "",
             notes: `من طلب: ${request.product_name} - ${request.notes || ""}`,
+            payment_type: "credit",
         });
         setRequestsDialog(false);
         setPurchaseDialog(true);
@@ -360,7 +390,7 @@ export default function PurchasesPage() {
                         <label>نوع الوحدة</label>
                         <select value={formData.unit_type} onChange={(e) => setFormData({ ...formData, unit_type: e.target.value })}>
                             <option value="piece">قطعة</option>
-                            <option value="package">صندوق</option>
+                            <option value="main">صندوق (كرتون)</option> 
                         </select>
                     </div>
                 </div>
@@ -386,11 +416,29 @@ export default function PurchasesPage() {
                 <div className="form-row">
                     <div className="form-group">
                         <label>المورد</label>
-                        <input
-                            type="text"
-                            value={formData.supplier}
-                            onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                        <SearchableSelect
+                            options={supplierOptions}
+                            value={(formData as any).supplier_id ? parseInt((formData as any).supplier_id) : null}
+                            onChange={(val) => {
+                                if (val) {
+                                    const sup = suppliers.find(s => s.id === val);
+                                    setFormData({ ...formData, supplier: sup?.name || "", ['supplier_id']: String(val) } as any);
+                                } else {
+                                    setFormData({ ...formData, supplier: "", ['supplier_id']: "" } as any);
+                                }
+                            }}
+                            placeholder="اختر مورداً..."
                         />
+                    </div>
+                    <div className="form-group">
+                        <label>طريقة الدفع</label>
+                        <select
+                            value={formData.payment_type}
+                            onChange={(e) => setFormData({ ...formData, payment_type: e.target.value })}
+                        >
+                            <option value="credit">آجل (على الحساب)</option>
+                            <option value="cash">نقدي</option>
+                        </select>
                     </div>
                     <div className="form-group">
                         <label>تاريخ الشراء</label>

@@ -267,6 +267,9 @@ php artisan view:cache
 # Run migrations
 php artisan migrate --force
 
+# for clear database and magigration it again and seed
+php artisan migrate:refresh --seed
+
 # Set up queue worker with Supervisor
 ```
 

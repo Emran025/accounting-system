@@ -68,12 +68,25 @@ export default function DashboardPage() {
         try {
             const response = await fetchAPI("/api/dashboard");
             if (response && response.success && response.data) {
-                const d = response.data as any;
+                // Fix BUG-007: Use strict typing instead of 'any'
+                const d = response.data as {
+                    todays_sales?: number;
+                    total_products?: number;
+                    low_stock_products?: any[];
+                    expiring_products?: any[];
+                    total_sales?: number;
+                    todays_expenses?: number;
+                    total_expenses?: number;
+                    todays_revenues?: number;
+                    total_revenues?: number;
+                    total_assets?: number;
+                    recent_sales?: any[];
+                };
                 setStats({
                     daily_sales: Number(d.todays_sales) || 0,
                     total_products: Number(d.total_products) || 0,
-                    low_stock_count: Number(d.low_stock_products) || 0,
-                    expiring_soon_count: Number(d.expiring_products) || 0,
+                    low_stock_count: Array.isArray(d.low_stock_products) ? d.low_stock_products.length : 0,
+                    expiring_soon_count: Array.isArray(d.expiring_products) ? d.expiring_products.length : 0,
                     total_sales: Number(d.total_sales) || 0,
                     today_expenses: Number(d.todays_expenses) || 0,
                     total_expenses: Number(d.total_expenses) || 0,

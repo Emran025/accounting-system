@@ -21,6 +21,7 @@ return new class extends Migration
             $table->date('expiry_date')->nullable();
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('supplier_id')->nullable()->constrained('ap_suppliers')->onDelete('set null');
+            $table->string('payment_type', 50)->default('credit'); // cash, credit
             $table->string('voucher_number', 50)->nullable()->index();
             $table->text('notes')->nullable();
             $table->decimal('vat_rate', 5, 2)->default(0.00);
