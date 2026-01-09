@@ -42,20 +42,19 @@ class ArController extends Controller
             ->withSum(['invoices as total_debt' => function ($query) {
                 $query->where('payment_type', 'credit');
             }], 'total_amount')
-            ->withSum(['invoices as invoice_paid' => function ($query) {
-                $query->where('payment_type', 'credit');
-            }], 'amount_paid')
             ->get()
             ->map(function ($customer) {
-                // total_paid is sum of invoice_paid + any general payments (if they exist)
-                // But simplified: total_paid = total_debt - current_balance
                 $customer->total_debt = $customer->total_debt ?? 0;
-                $customer->balance = $customer->current_balance;
-                $customer->total_paid = max(0, $customer->total_debt - $customer->balance);
+                $customer->total_paid = max(0, $customer->total_debt - $customer->current_balance);
                 return $customer;
             });
 
-        return $this->paginatedResponse($customers, $total, $page, $perPage);
+        return $this->paginatedResponse(
+            \App\Http\Resources\ArCustomerResource::collection($customers),
+            $total,
+            $page,
+            $perPage
+        );
     }
 
     public function storeCustomer(StoreArCustomerRequest $request): JsonResponse
@@ -144,21 +143,15 @@ class ArController extends Controller
         $transactions = $query->orderBy('transaction_date', 'desc')
             ->skip(($page - 1) * $perPage)
             ->take($perPage)
-            ->get()
-            ->map(function ($transaction) {
-               $data = $transaction->toArray();
-               $data['created_by'] = $transaction->createdBy ? $transaction->createdBy->username : null;
-               return $data;
-            });
+            ->get();
 
-        return response()->json([
-            'success' => true,
+        return $this->successResponse([
             'customer' => [
                 'id' => $customer->id,
                 'name' => $customer->name,
-                'current_balance' => $customer->current_balance,
+                'current_balance' => (float)$customer->current_balance,
             ],
-            'transactions' => $transactions,
+            'transactions' => \App\Http\Resources\ArTransactionResource::collection($transactions),
             'pagination' => [
                 'current_page' => $page,
                 'per_page' => $perPage,

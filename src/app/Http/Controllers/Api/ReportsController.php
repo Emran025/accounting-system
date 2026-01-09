@@ -58,7 +58,7 @@ class ReportsController extends Controller
         // Add Net Income to Equity as a distinct line item
         if ($netIncome != 0) {
             $equity[] = [
-                'account_code' => '999999', // Virtual code
+                'account_code' => 'NET_INCOME_VIRTUAL', // Virtual code for reporting
                 'account_name' => 'Current Net Income / (Loss) - صافي الربح/الخسارة للفترة',
                 'balance' => $netIncome,
             ];
@@ -203,70 +203,39 @@ class ReportsController extends Controller
 
         $asOfDate = $request->input('as_of_date', now()->format('Y-m-d'));
 
-        $customers = ArCustomer::where('current_balance', '>', 0)->get();
+        // Optimize aging report with conditional aggregation in a single query
+        $agingData = ArTransaction::select(
+                'customers.id as customer_id',
+                'customers.name as customer_name',
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) <= 0 THEN amount ELSE 0 END) as current"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 1 AND 30 THEN amount ELSE 0 END) as `1_30`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 31 AND 60 THEN amount ELSE 0 END) as `31_60`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 61 AND 90 THEN amount ELSE 0 END) as `61_90`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) > 90 THEN amount ELSE 0 END) as `over_90`"),
+                DB::raw("SUM(amount) as total")
+            )
+            ->join('ar_customers as customers', 'customers.id', '=', 'ar_transactions.customer_id')
+            ->where('ar_transactions.is_deleted', false)
+            ->where('ar_transactions.type', '!=', 'payment')
+            ->where('ar_transactions.transaction_date', '<=', $asOfDate)
+            ->groupBy('customers.id', 'customers.name')
+            ->having('total', '>', 0)
+            ->setBindings([$asOfDate, $asOfDate, $asOfDate, $asOfDate, $asOfDate])
+            ->get();
 
-        $aging = [];
         $totals = [
-            'current' => 0,
-            '1_30' => 0,
-            '31_60' => 0,
-            '61_90' => 0,
-            'over_90' => 0,
-            'total' => 0,
+            'current' => $agingData->sum('current'),
+            '1_30' => $agingData->sum('1_30'),
+            '31_60' => $agingData->sum('31_60'),
+            '61_90' => $agingData->sum('61_90'),
+            'over_90' => $agingData->sum('over_90'),
+            'total' => $agingData->sum('total'),
         ];
-
-        foreach ($customers as $customer) {
-            $transactions = ArTransaction::where('customer_id', $customer->id)
-                ->where('is_deleted', false)
-                ->where('type', '!=', 'payment')
-                ->get();
-
-            $customerAging = [
-                'customer_id' => $customer->id,
-                'customer_name' => $customer->name,
-                'current' => 0,
-                '1_30' => 0,
-                '31_60' => 0,
-                '61_90' => 0,
-                'over_90' => 0,
-                'total' => 0,
-            ];
-
-            foreach ($transactions as $transaction) {
-                $daysOld = now()->diffInDays($transaction->transaction_date);
-                $amount = (float)$transaction->amount;
-
-                if ($daysOld <= 0) {
-                    $customerAging['current'] += $amount;
-                } elseif ($daysOld <= 30) {
-                    $customerAging['1_30'] += $amount;
-                } elseif ($daysOld <= 60) {
-                    $customerAging['31_60'] += $amount;
-                } elseif ($daysOld <= 90) {
-                    $customerAging['61_90'] += $amount;
-                } else {
-                    $customerAging['over_90'] += $amount;
-                }
-
-                $customerAging['total'] += $amount;
-            }
-
-            if ($customerAging['total'] > 0) {
-                $aging[] = $customerAging;
-
-                $totals['current'] += $customerAging['current'];
-                $totals['1_30'] += $customerAging['1_30'];
-                $totals['31_60'] += $customerAging['31_60'];
-                $totals['61_90'] += $customerAging['61_90'];
-                $totals['over_90'] += $customerAging['over_90'];
-                $totals['total'] += $customerAging['total'];
-            }
-        }
 
         return response()->json([
             'success' => true,
             'as_of_date' => $asOfDate,
-            'data' => $aging,
+            'data' => $agingData,
             'totals' => $totals,
         ]);
     }
@@ -280,70 +249,39 @@ class ReportsController extends Controller
 
         $asOfDate = $request->input('as_of_date', now()->format('Y-m-d'));
 
-        $suppliers = ApSupplier::where('current_balance', '>', 0)->get();
+        // Optimize aging report with conditional aggregation in a single query
+        $agingData = ApTransaction::select(
+                'suppliers.id as supplier_id',
+                'suppliers.name as supplier_name',
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) <= 0 THEN amount ELSE 0 END) as current"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 1 AND 30 THEN amount ELSE 0 END) as `1_30`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 31 AND 60 THEN amount ELSE 0 END) as `31_60`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 61 AND 90 THEN amount ELSE 0 END) as `61_90`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) > 90 THEN amount ELSE 0 END) as `over_90`"),
+                DB::raw("SUM(amount) as total")
+            )
+            ->join('ap_suppliers as suppliers', 'suppliers.id', '=', 'ap_transactions.supplier_id')
+            ->where('ap_transactions.is_deleted', false)
+            ->where('ap_transactions.type', 'invoice')
+            ->where('ap_transactions.transaction_date', '<=', $asOfDate)
+            ->groupBy('suppliers.id', 'suppliers.name')
+            ->having('total', '>', 0)
+            ->setBindings([$asOfDate, $asOfDate, $asOfDate, $asOfDate, $asOfDate])
+            ->get();
 
-        $aging = [];
         $totals = [
-            'current' => 0,
-            '1_30' => 0,
-            '31_60' => 0,
-            '61_90' => 0,
-            'over_90' => 0,
-            'total' => 0,
+            'current' => $agingData->sum('current'),
+            '1_30' => $agingData->sum('1_30'),
+            '31_60' => $agingData->sum('31_60'),
+            '61_90' => $agingData->sum('61_90'),
+            'over_90' => $agingData->sum('over_90'),
+            'total' => $agingData->sum('total'),
         ];
-
-        foreach ($suppliers as $supplier) {
-            $transactions = ApTransaction::where('supplier_id', $supplier->id)
-                ->where('is_deleted', false)
-                ->where('type', 'invoice')
-                ->get();
-
-            $supplierAging = [
-                'supplier_id' => $supplier->id,
-                'supplier_name' => $supplier->name,
-                'current' => 0,
-                '1_30' => 0,
-                '31_60' => 0,
-                '61_90' => 0,
-                'over_90' => 0,
-                'total' => 0,
-            ];
-
-            foreach ($transactions as $transaction) {
-                $daysOld = now()->diffInDays($transaction->transaction_date);
-                $amount = (float)$transaction->amount;
-
-                if ($daysOld <= 0) {
-                    $supplierAging['current'] += $amount;
-                } elseif ($daysOld <= 30) {
-                    $supplierAging['1_30'] += $amount;
-                } elseif ($daysOld <= 60) {
-                    $supplierAging['31_60'] += $amount;
-                } elseif ($daysOld <= 90) {
-                    $supplierAging['61_90'] += $amount;
-                } else {
-                    $supplierAging['over_90'] += $amount;
-                }
-
-                $supplierAging['total'] += $amount;
-            }
-
-            if ($supplierAging['total'] > 0) {
-                $aging[] = $supplierAging;
-
-                $totals['current'] += $supplierAging['current'];
-                $totals['1_30'] += $supplierAging['1_30'];
-                $totals['31_60'] += $supplierAging['31_60'];
-                $totals['61_90'] += $supplierAging['61_90'];
-                $totals['over_90'] += $supplierAging['over_90'];
-                $totals['total'] += $supplierAging['total'];
-            }
-        }
 
         return response()->json([
             'success' => true,
             'as_of_date' => $asOfDate,
-            'data' => $aging,
+            'data' => $agingData,
             'totals' => $totals,
         ]);
     }
@@ -417,29 +355,31 @@ class ReportsController extends Controller
      */
     private function getAccountTypeDetails(string $accountType, string $asOfDate, ?string $startDate = null): array
     {
-        $accounts = ChartOfAccount::where('account_type', $accountType)
-            ->where('is_active', true)
-            ->orderBy('account_code')
+        // One query to get all account balances for the type using grouping
+        $balances = GeneralLedger::select(
+                'chart_of_accounts.account_code',
+                'chart_of_accounts.account_name',
+                DB::raw('SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as debits'),
+                DB::raw('SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) as credits')
+            )
+            ->join('chart_of_accounts', 'chart_of_accounts.id', '=', 'general_ledgers.account_id')
+            ->where('chart_of_accounts.account_type', $accountType)
+            ->where('chart_of_accounts.is_active', true)
+            ->where('general_ledgers.is_closed', false)
+            ->where('general_ledgers.voucher_date', '<=', $asOfDate);
+
+        if ($startDate) {
+            $balances->where('general_ledgers.voucher_date', '>=', $startDate);
+        }
+
+        $results = $balances->groupBy('chart_of_accounts.account_code', 'chart_of_accounts.account_name')
+            ->orderBy('chart_of_accounts.account_code')
             ->get();
 
         $details = [];
-
-        foreach ($accounts as $account) {
-            $query = GeneralLedger::where('account_id', $account->id)
-                ->where('is_closed', false)
-                ->where('voucher_date', '<=', $asOfDate);
-
-            if ($startDate) {
-                $query->where('voucher_date', '>=', $startDate);
-            }
-
-            $totals = $query->selectRaw('
-                SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as debits,
-                SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) as credits
-            ')->first();
-
-            $debits = (float)($totals->debits ?? 0);
-            $credits = (float)($totals->credits ?? 0);
+        foreach ($results as $row) {
+            $debits = (float)$row->debits;
+            $credits = (float)$row->credits;
 
             $balance = 0;
             if (in_array($accountType, ['Asset', 'Expense'])) {
@@ -450,8 +390,8 @@ class ReportsController extends Controller
 
             if ($balance != 0 || !$startDate) {
                 $details[] = [
-                    'account_code' => $account->account_code,
-                    'account_name' => $account->account_name,
+                    'account_code' => $row->account_code,
+                    'account_name' => $row->account_name,
                     'balance' => $balance,
                 ];
             }

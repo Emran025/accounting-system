@@ -62,7 +62,14 @@ class AccrualAccountingController extends Controller
                 'description' => 'nullable|string',
             ]);
             $validated['net_pay'] = $validated['gross_pay'] - ($validated['deductions'] ?? 0);
-            $entry = PayrollEntry::create($validated);
+            $entry = PayrollEntry::create([
+                'payroll_date' => $validated['payroll_date'],
+                'gross_pay' => $validated['gross_pay'],
+                'deductions' => $validated['deductions'] ?? 0,
+                'net_pay' => $validated['net_pay'],
+                'description' => $validated['description'] ?? null,
+                'created_by' => auth()->id() ?? session('user_id'),
+            ]);
             
             // Post to GL
             // Debit Salaries Expense, Credit Salaries Payable
@@ -84,7 +91,14 @@ class AccrualAccountingController extends Controller
                 'description' => 'required|string',
                 'expense_account_code' => 'nullable|string',
             ]);
-            $entry = Prepayment::create($validated);
+            $entry = Prepayment::create([
+                'prepayment_date' => $validated['prepayment_date'],
+                'total_amount' => $validated['total_amount'],
+                'months' => $validated['months'],
+                'description' => $validated['description'],
+                'expense_account_code' => $validated['expense_account_code'] ?? null,
+                'created_by' => auth()->id() ?? session('user_id'),
+            ]);
             
             // Post to GL: Debit Prepaid Expenses (Asset), Credit Cash
             $prepaidAccount = $coaService->getAccountCode('Asset', 'مدفوعات مقدمة') ?? '1140';
@@ -105,7 +119,14 @@ class AccrualAccountingController extends Controller
                 'description' => 'required|string',
                 'revenue_account_code' => 'nullable|string',
             ]);
-            $entry = UnearnedRevenue::create($validated);
+            $entry = UnearnedRevenue::create([
+                'receipt_date' => $validated['receipt_date'],
+                'total_amount' => $validated['total_amount'],
+                'months' => $validated['months'],
+                'description' => $validated['description'],
+                'revenue_account_code' => $validated['revenue_account_code'] ?? null,
+                'created_by' => auth()->id() ?? session('user_id'),
+            ]);
             
             // Post to GL: Debit Cash, Credit Unearned Revenue (Liability)
             $cashAccount = $accounts['cash'];

@@ -1,7 +1,19 @@
 // API Utilities - Mirrors the original common.js fetchAPI
 import QRCode from "qrcode";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000/api';
+const getApiBase = () => {
+  const envBase = process.env.NEXT_PUBLIC_API_BASE;
+  if (!envBase || envBase === 'undefined' || envBase === 'null') {
+    return 'http://localhost:8000/api';
+  }
+  return envBase;
+};
+
+const API_BASE = getApiBase();
+
+if (!process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_API_BASE === 'undefined') {
+  console.warn('NEXT_PUBLIC_API_BASE is not defined or is "undefined". Using fallback: ' + API_BASE);
+}
 
 export interface APIResponse {
   success?: boolean;
@@ -55,7 +67,7 @@ export async function fetchAPI(
     // Ensure we don't have double slashes if action is empty
     const url = cleanAction ? `${API_BASE}/${cleanAction}` : API_BASE;
 
-    const response = await fetch(url, fetchOptions);
+    const response = await fetch(url as string, fetchOptions);
 
     if (response.status === 401) {
       if (typeof window !== 'undefined') {

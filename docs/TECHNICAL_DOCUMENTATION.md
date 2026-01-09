@@ -98,10 +98,10 @@ The system implements a comprehensive accounting solution with the following mod
 **Design Patterns:**
 
 - **MVC Architecture** (Model-View-Controller)
-- **Service Layer Pattern** (Business logic encapsulation)
-- **Repository Pattern** (Through Eloquent)
-- **Form Request Validation**
-- **Middleware Pipeline** (Authentication, CORS)
+- **Service Layer Pattern** (Business logic encapsulation and transaction management)
+- **API Resource Pattern** (Decoupling database schema from API response contracts)
+- **Form Request Validation** (Strict input validation and sanitization)
+- **Middleware Pipeline** (Authentication, CORS, Permission enforcement)
 
 ### 2.2 Frontend Stack (`/public`)
 
@@ -119,9 +119,10 @@ The system implements a comprehensive accounting solution with the following mod
 **Architecture Pattern:**
 
 - **App Router** (Server & Client Components)
-- **Component-based Architecture**
-- **Custom Hooks** for reusable logic
-- **Utility Functions** for shared operations
+- **Component-based Architecture** (Reusable UI components)
+- **Modular Logic Pattern** (Large pages decomposed into: `types.ts`, `useModule.ts` hook, and the main `page.tsx`)
+- **Custom Hooks** for reusable state and API interaction logic
+- **Utility Functions** for shared operations (Currency, Dates, Auth)
 
 ### 2.3 Directory Structure
 

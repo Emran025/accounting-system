@@ -19,7 +19,6 @@ class ProductsController extends Controller
     {
         PermissionService::requirePermission('products', 'view');
 
-        $includePurchasePrice = $request->boolean('include_purchase_price');
         $search = $request->input('search', '');
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
@@ -41,32 +40,14 @@ class ProductsController extends Controller
         $products = $query->orderBy('id', 'desc')
             ->skip(($page - 1) * $perPage)
             ->take($perPage)
-            ->get()
-            ->map(function ($product) use ($includePurchasePrice) {
-                $data = $product->toArray();
-                $data['creator_name'] = $product->createdBy?->username;
-                $data['category_name'] = $product->category?->name;
+            ->get();
 
-                if ($includePurchasePrice) {
-                    $latestPurchase = $product->purchases()
-                        ->orderBy('purchase_date', 'desc')
-                        ->first();
-                    $data['latest_purchase_price'] = $latestPurchase?->invoice_price;
-                }
-
-                return $data;
-            });
-
-        return response()->json([
-            'success' => true,
-            'data' => $products,
-            'pagination' => [
-                'current_page' => $page,
-                'per_page' => $perPage,
-                'total_records' => $total,
-                'total_pages' => ceil($total / $perPage),
-            ],
-        ]);
+        return $this->paginatedResponse(
+            \App\Http\Resources\ProductResource::collection($products),
+            $total,
+            $page,
+            $perPage
+        );
     }
 
     public function store(StoreProductRequest $request): JsonResponse

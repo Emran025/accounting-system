@@ -45,32 +45,14 @@ class SalesController extends Controller
         $invoices = $query->orderBy('created_at', 'desc')
             ->skip(($page - 1) * $perPage)
             ->take($perPage)
-            ->get()
-            ->map(function ($invoice) {
-                return [
-                    'id' => $invoice->id,
-                    'invoice_number' => $invoice->invoice_number,
-                    'total_amount' => $invoice->total_amount,
-                    'payment_type' => $invoice->payment_type,
-                    'customer_id' => $invoice->customer_id,
-                    'customer_name' => $invoice->customer?->name,
-                    'amount_paid' => $invoice->amount_paid,
-                    'user_id' => $invoice->user_id,
-                    'cashier_name' => $invoice->user?->username,
-                    'created_at' => $invoice->created_at,
-                ];
-            });
+            ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $invoices,
-            'pagination' => [
-                'current_page' => $page,
-                'per_page' => $perPage,
-                'total_records' => $total,
-                'total_pages' => ceil($total / $perPage),
-            ],
-        ]);
+        return $this->paginatedResponse(
+            \App\Http\Resources\InvoiceResource::collection($invoices), 
+            $total, 
+            $page, 
+            $perPage
+        );
     }
 
     public function store(StoreInvoiceRequest $request): JsonResponse
@@ -78,23 +60,15 @@ class SalesController extends Controller
         PermissionService::requirePermission('sales', 'create');
 
         $validated = $request->validated();
-
         $validated['user_id'] = auth()->id() ?? session('user_id');
 
         try {
             $invoiceId = $this->salesService->createInvoice($validated);
             TelescopeService::logOperation('CREATE', 'invoices', $invoiceId, null, $validated);
 
-            return response()->json([
-                'success' => true,
-                'id' => $invoiceId,
-                'invoice_id' => $invoiceId,
-            ]);
+            return $this->successResponse(['id' => $invoiceId], 'Invoice created successfully');
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
+            return $this->errorResponse($e->getMessage(), 500);
         }
     }
 
@@ -109,10 +83,7 @@ class SalesController extends Controller
         $invoice = Invoice::with(['items.product', 'user', 'customer', 'zatcaEinvoice'])
             ->findOrFail($id);
 
-        return response()->json([
-            'success' => true,
-            'data' => $invoice,
-        ]);
+        return $this->successResponse(new \App\Http\Resources\InvoiceResource($invoice));
     }
 
     public function destroy(Request $request): JsonResponse

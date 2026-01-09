@@ -55,7 +55,12 @@ class ApController extends Controller
             ->take($perPage)
             ->get();
 
-        return $this->paginatedResponse($suppliers, $total, $page, $perPage);
+        return $this->paginatedResponse(
+            \App\Http\Resources\ApSupplierResource::collection($suppliers),
+            $total,
+            $page,
+            $perPage
+        );
     }
 
     /**
@@ -170,7 +175,12 @@ class ApController extends Controller
             ->take($perPage)
             ->get();
 
-        return $this->paginatedResponse($transactions, $total, $page, $perPage);
+        return $this->paginatedResponse(
+            \App\Http\Resources\ApTransactionResource::collection($transactions),
+            $total,
+            $page,
+            $perPage
+        );
     }
 
     /**
@@ -303,46 +313,35 @@ class ApController extends Controller
             ->take($perPage)
             ->get();
 
-        // Calculate aging
-        $aging = [
-            'current' => 0,
-            '1_30' => 0,
-            '31_60' => 0,
-            '61_90' => 0,
-            'over_90' => 0,
-        ];
-
-        $invoices = ApTransaction::where('supplier_id', $supplierId)
+        // Calculate aging using a targeted query for efficiency
+        $agingData = ApTransaction::where('supplier_id', $supplierId)
             ->where('is_deleted', false)
             ->where('type', 'invoice')
-            ->get();
+            ->selectRaw('
+                SUM(CASE WHEN DATEDIFF(?, transaction_date) <= 0 THEN amount ELSE 0 END) as current,
+                SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 1 AND 30 THEN amount ELSE 0 END) as `1_30`,
+                SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 31 AND 60 THEN amount ELSE 0 END) as `31_60`,
+                SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 61 AND 90 THEN amount ELSE 0 END) as `61_90`,
+                SUM(CASE WHEN DATEDIFF(?, transaction_date) > 90 THEN amount ELSE 0 END) as `over_90`
+            ', [now()->format('Y-m-d'), now()->format('Y-m-d'), now()->format('Y-m-d'), now()->format('Y-m-d'), now()->format('Y-m-d')])
+            ->first();
 
-        foreach ($invoices as $invoice) {
-            $daysOld = now()->diffInDays($invoice->transaction_date);
-            $amount = (float)$invoice->amount;
+        $aging = [
+            'current' => (float)($agingData->current ?? 0),
+            '1_30' => (float)($agingData->{'1_30'} ?? 0),
+            '31_60' => (float)($agingData->{'31_60'} ?? 0),
+            '61_90' => (float)($agingData->{'61_90'} ?? 0),
+            'over_90' => (float)($agingData->over_90 ?? 0),
+        ];
 
-            if ($daysOld <= 0) {
-                $aging['current'] += $amount;
-            } elseif ($daysOld <= 30) {
-                $aging['1_30'] += $amount;
-            } elseif ($daysOld <= 60) {
-                $aging['31_60'] += $amount;
-            } elseif ($daysOld <= 90) {
-                $aging['61_90'] += $amount;
-            } else {
-                $aging['over_90'] += $amount;
-            }
-        }
-
-        return response()->json([
-            'success' => true,
+        return $this->successResponse([
             'supplier' => [
                 'id' => $supplier->id,
                 'name' => $supplier->name,
-                'current_balance' => $supplier->current_balance,
+                'current_balance' => (float)$supplier->current_balance,
             ],
             'aging' => $aging,
-            'transactions' => $transactions,
+            'transactions' => \App\Http\Resources\ApTransactionResource::collection($transactions),
             'pagination' => [
                 'current_page' => $page,
                 'per_page' => $perPage,

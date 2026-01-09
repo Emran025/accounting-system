@@ -5,50 +5,27 @@ import { MainLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
-import { getIcon } from "@/lib/icons";
-import { Pagination as PaginationType } from "@/lib/types";
-
-interface Category {
-    id: number;
-    name: string;
-}
-
-interface Product {
-    id: number;
-    name: string;
-    barcode: string;
-    category_id: number | null;
-    category_name?: string;
-    unit_price: number;
-    minimum_profit_margin: number;
-    stock_quantity: number;
-    unit_name: string;
-    items_per_unit: number;
-    sub_unit_name: string | null;
-    description?: string;
-    created_at: string;
-    // Mapped for UI
-    selling_price?: number; 
-    purchase_price?: number;
-    stock?: number;
-    min_stock?: number;
-    unit_type?: string;
-    units_per_package?: number;
-    package_price?: number;
-    profit_margin?: number;
-    expiry_date?: string;
-}
+import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
+import { Icon } from "@/lib/icons";
+import { Product, Category } from "./types";
+import { useProducts } from "./useProducts";
 
 export default function ProductsPage() {
     const [user, setUser] = useState<User | null>(null);
     const [permissions, setPermissions] = useState<Permission[]>([]);
-    const [products, setProducts] = useState<Product[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+
+    const {
+        products,
+        categories,
+        currentPage,
+        totalPages,
+        isLoading,
+        loadProducts,
+        loadCategories,
+        saveProduct,
+        deleteProduct
+    } = useProducts();
 
     // Dialogs
     const [productDialog, setProductDialog] = useState(false);
@@ -58,7 +35,7 @@ export default function ProductsPage() {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [deleteId, setDeleteId] = useState<number | null>(null);
 
-    // Product Form
+    // Form
     const [formData, setFormData] = useState({
         name: "",
         barcode: "",
@@ -69,67 +46,21 @@ export default function ProductsPage() {
         min_stock: "10",
         unit_type: "piece",
         units_per_package: "1",
-        package_price: "",
-        profit_margin: "",
         description: "",
-        expiry_date: "",
+        profit_margin: "",
     });
 
-    // Category Form
     const [newCategoryName, setNewCategoryName] = useState("");
 
-    const itemsPerPage = 10;
-
-    const loadProducts = useCallback(async (page: number = 1, search: string = "") => {
-        try {
-            setIsLoading(true);
-            const response = await fetchAPI(
-                `products?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
-            );
-            
-            // Map backend fields to frontend interface
-            const rawProducts = (response.data as any[]) || [];
-            const mappedProducts: Product[] = rawProducts.map(p => ({
-                ...p,
-                selling_price: parseFloat(p.unit_price) || 0,
-                purchase_price: parseFloat(p.latest_purchase_price) || 0, // Assuming backend sends this or we default 0
-                stock: p.stock_quantity || 0,
-                min_stock: 10, // Default or fetch if available
-                unit_type: p.unit_name === 'كرتون' ? 'ctn' : 'piece', // Naive mapping
-                items_per_unit: p.items_per_unit || 1,
-                sub_unit_name: p.sub_unit_name || null,
-                profit_margin: parseFloat(p.minimum_profit_margin) || 0,
-                // Ensure optional fields have values for UI
-                description: p.description || '',
-                expiry_date: null // Add if backend supports
-            }));
-
-            setProducts(mappedProducts);
-            setTotalPages((response.pagination as PaginationType)?.total_pages || 1);
-            setCurrentPage(page);
-        } catch {
-            showToast("خطأ في تحميل المنتجات", "error");
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    const loadCategories = useCallback(async () => {
-        try {
-            const response = await fetchAPI("categories");
-            setCategories((response.data as Category[]) || (response.categories as Category[]) || []);
-        } catch {
-            console.error("Error loading categories");
-        }
-    }, []);
-
     useEffect(() => {
-        const storedUser = getStoredUser();
-        const storedPermissions = getStoredPermissions();
-        setUser(storedUser);
-        setPermissions(storedPermissions);
-        loadProducts();
-        loadCategories();
+        const init = async () => {
+            const authenticated = await checkAuth();
+            if (!authenticated) return;
+            setUser(getStoredUser());
+            setPermissions(getStoredPermissions());
+            await Promise.all([loadProducts(), loadCategories()]);
+        };
+        init();
     }, [loadProducts, loadCategories]);
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,10 +81,8 @@ export default function ProductsPage() {
             min_stock: "10",
             unit_type: "piece",
             units_per_package: "1",
-            package_price: "",
-            profit_margin: "",
             description: "",
-            expiry_date: "",
+            profit_margin: "",
         });
         setProductDialog(true);
     };
@@ -164,23 +93,16 @@ export default function ProductsPage() {
             name: product.name,
             barcode: product.barcode || "",
             category_id: String(product.category_id || ""),
-            purchase_price: String(product.purchase_price || 0),
-            selling_price: String(product.selling_price || 0),
-            stock: String(product.stock || 0),
-            min_stock: String(product.min_stock || 10),
+            purchase_price: String(product.purchase_price || ""),
+            selling_price: String(product.selling_price || ""),
+            stock: String(product.stock || "0"),
+            min_stock: String(product.min_stock || "10"),
             unit_type: product.unit_type || "piece",
-            units_per_package: String(product.units_per_package || 1),
-            package_price: String(product.package_price || ""),
-            profit_margin: String(product.profit_margin || ""),
+            units_per_package: String(product.items_per_unit || "1"),
             description: product.description || "",
-            expiry_date: product.expiry_date ? String(product.expiry_date).split("T")[0] : "",
+            profit_margin: String(product.profit_margin || ""),
         });
         setProductDialog(true);
-    };
-
-    const openViewDialog = (product: Product) => {
-        setSelectedProduct(product);
-        setViewDialog(true);
     };
 
     const calculatePrices = (field: string, value: string) => {
@@ -190,17 +112,12 @@ export default function ProductsPage() {
         const margin = parseFloat(newData.profit_margin) || 0;
 
         if (field === "profit_margin" && purchasePrice > 0) {
-            newData.selling_price = String((purchasePrice * (1 + margin / 100)).toFixed(2));
+            newData.selling_price = (purchasePrice * (1 + margin / 100)).toFixed(2);
         } else if (field === "selling_price" && purchasePrice > 0) {
-            newData.profit_margin = String((((sellingPrice - purchasePrice) / purchasePrice) * 100).toFixed(2));
+            newData.profit_margin = (((sellingPrice - purchasePrice) / purchasePrice) * 100).toFixed(2);
         } else if (field === "purchase_price" && margin > 0) {
-            newData.selling_price = String((purchasePrice * (1 + margin / 100)).toFixed(2));
+            newData.selling_price = (purchasePrice * (1 + margin / 100)).toFixed(2);
         }
-
-        // Calculate package price
-        const unitsPerPackage = parseFloat(newData.units_per_package) || 1;
-        const unitSellingPrice = parseFloat(newData.selling_price) || 0;
-        newData.package_price = String((unitSellingPrice * unitsPerPackage).toFixed(2));
 
         setFormData(newData);
     };
@@ -215,7 +132,6 @@ export default function ProductsPage() {
             name: formData.name,
             barcode: formData.barcode,
             category_id: parseInt(formData.category_id),
-            // Map UI naming back to Backend naming
             unit_price: parseFloat(formData.selling_price),
             minimum_profit_margin: parseFloat(formData.profit_margin) || 0,
             stock_quantity: parseInt(formData.stock) || 0,
@@ -223,27 +139,13 @@ export default function ProductsPage() {
             items_per_unit: parseInt(formData.units_per_package) || 1,
             sub_unit_name: formData.unit_type === 'ctn' ? 'حبة' : null,
             description: formData.description,
-            // expiry_date: formData.expiry_date || null, // Backend doesn't seem to support this yet
+            purchase_price: parseFloat(formData.purchase_price),
         };
 
-        try {
-            if (selectedProduct) {
-                await fetchAPI(`products`, {
-                    method: "PUT",
-                    body: JSON.stringify({ ...payload, id: selectedProduct.id }),
-                });
-                showToast("تم تحديث المنتج بنجاح", "success");
-            } else {
-                await fetchAPI("products", {
-                    method: "POST",
-                    body: JSON.stringify(payload),
-                });
-                showToast("تمت إضافة المنتج بنجاح", "success");
-            }
+        const success = await saveProduct(payload, selectedProduct?.id);
+        if (success) {
             setProductDialog(false);
             loadProducts(currentPage, searchTerm);
-        } catch {
-            showToast("خطأ في حفظ المنتج", "error");
         }
     };
 
@@ -252,48 +154,29 @@ export default function ProductsPage() {
             showToast("يرجى إدخال اسم الفئة", "error");
             return;
         }
-
         try {
-            await fetchAPI("/api/categories", {
+            const res = await fetchAPI("categories", {
                 method: "POST",
                 body: JSON.stringify({ name: newCategoryName }),
             });
-            showToast("تمت إضافة الفئة بنجاح", "success");
-            setCategoryDialog(false);
-            setNewCategoryName("");
-            loadCategories();
+            if (res.success) {
+                showToast("تمت إضافة الفئة بنجاح", "success");
+                setCategoryDialog(false);
+                setNewCategoryName("");
+                loadCategories();
+            }
         } catch {
             showToast("خطأ في إضافة الفئة", "error");
         }
     };
 
-    const confirmDelete = (id: number) => {
-        setDeleteId(id);
-        setConfirmDialog(true);
-    };
-
     const handleDelete = async () => {
         if (!deleteId) return;
-
-        try {
-            await fetchAPI(`products?id=${deleteId}`, { method: "DELETE" });
-            showToast("تم حذف المنتج", "success");
+        const success = await deleteProduct(deleteId);
+        if (success) {
+            setConfirmDialog(false);
             loadProducts(currentPage, searchTerm);
-        } catch {
-            showToast("خطأ في حذف المنتج", "error");
         }
-    };
-
-    const getStockStatus = (product: Product) => {
-        const stock = product.stock || 0;
-        const minStock = product.min_stock || 0;
-        
-        if (stock <= 0) {
-            return <span className="badge badge-danger">نفذ</span>;
-        } else if (stock <= minStock) {
-            return <span className="badge badge-warning">منخفض</span>;
-        }
-        return <span className="badge badge-success">متوفر</span>;
     };
 
     const columns: Column<Product>[] = [
@@ -304,80 +187,82 @@ export default function ProductsPage() {
             key: "selling_price",
             header: "سعر البيع",
             dataLabel: "سعر البيع",
-            render: (item) => formatCurrency(item.selling_price),
+            render: (it) => formatCurrency(it.selling_price || 0)
         },
         {
             key: "stock",
             header: "المخزون",
             dataLabel: "المخزون",
-            render: (item) => (
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <span>{item.stock}</span>
-                    {getStockStatus(item)}
+            render: (it) => (
+                <div className="stock-badge-container">
+                    <span>{it.stock}</span>
+                    {(it.stock || 0) <= 0 ? (
+                        <span className="badge badge-danger">نفذ</span>
+                    ) : (it.stock || 0) <= (it.min_stock || 10) ? (
+                        <span className="badge badge-warning">منخفض</span>
+                    ) : (
+                        <span className="badge badge-success">متوفر</span>
+                    )}
                 </div>
-            ),
+            )
         },
         {
             key: "actions",
             header: "الإجراءات",
             dataLabel: "الإجراءات",
-            render: (item) => (
+            render: (it) => (
                 <div className="action-buttons">
-                    <button className="icon-btn view" onClick={() => openViewDialog(item)} title="عرض">
-                        {getIcon("eye")}
+                    <button className="icon-btn view" onClick={() => { setSelectedProduct(it); setViewDialog(true); }} title="عرض">
+                        <Icon name="eye" />
                     </button>
                     {canAccess(permissions, "products", "edit") && (
-                        <button className="icon-btn edit" onClick={() => openEditDialog(item)} title="تعديل">
-                            {getIcon("edit")}
+                        <button className="icon-btn edit" onClick={() => openEditDialog(it)} title="تعديل">
+                            <Icon name="edit" />
                         </button>
                     )}
                     {canAccess(permissions, "products", "delete") && (
-                        <button className="icon-btn delete" onClick={() => confirmDelete(item.id)} title="حذف">
-                            {getIcon("trash")}
+                        <button className="icon-btn delete" onClick={() => { setDeleteId(it.id); setConfirmDialog(true); }} title="حذف">
+                            <Icon name="trash" />
                         </button>
                     )}
                 </div>
-            ),
-        },
+            )
+        }
     ];
 
     return (
         <MainLayout requiredModule="products">
             <PageHeader
-                title="المنتجات"
+                title="المنتجات / المخزون"
                 user={user}
-                actions={
-                    canAccess(permissions, "products", "create") && (
-                        <button className="btn btn-primary" onClick={openAddDialog}>
-                            {getIcon("plus")}
-                            إضافة منتج
-                        </button>
-                    )
-                }
-            />
-
-            <div className="filter-section animate-fade" style={{ marginBottom: "1.5rem" }}>
-                <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
+                searchInput={
                     <input
                         type="text"
                         placeholder="بحث بالاسم أو الباركود..."
                         value={searchTerm}
                         onChange={handleSearch}
+                        className="search-control"
                     />
-                </div>
-            </div>
+                }
+                actions={
+                    canAccess(permissions, "products", "create") && (
+                        <button className="btn btn-primary" onClick={openAddDialog}>
+                            <Icon name="plus" /> إضافة منتج
+                        </button>
+                    )
+                }
+            />
 
             <div className="sales-card animate-fade">
                 <Table
                     columns={columns}
                     data={products}
-                    keyExtractor={(item) => item.id}
-                    emptyMessage="لا توجد منتجات"
+                    keyExtractor={(it) => it.id}
                     isLoading={isLoading}
                     pagination={{
                         currentPage,
                         totalPages,
-                        onPageChange: (page) => loadProducts(page, searchTerm),
+                        onPageChange: (page) => loadProducts(page, searchTerm)
                     }}
                 />
             </div>
@@ -387,12 +272,10 @@ export default function ProductsPage() {
                 isOpen={productDialog}
                 onClose={() => setProductDialog(false)}
                 title={selectedProduct ? "تعديل المنتج" : "إضافة منتج جديد"}
-                maxWidth="700px"
+                maxWidth="800px"
                 footer={
                     <>
-                        <button className="btn btn-secondary" onClick={() => setProductDialog(false)}>
-                            إلغاء
-                        </button>
+                        <button className="btn btn-secondary" onClick={() => setProductDialog(false)}>إلغاء</button>
                         <button className="btn btn-primary" onClick={handleSubmit}>
                             {selectedProduct ? "تحديث" : "إضافة"}
                         </button>
@@ -401,269 +284,129 @@ export default function ProductsPage() {
             >
                 <div className="form-row">
                     <div className="form-group">
-                        <label htmlFor="name">اسم المنتج *</label>
-                        <input
-                            type="text"
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        />
+                        <label>اسم المنتج *</label>
+                        <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="barcode">الباركود</label>
-                        <input
-                            type="text"
-                            id="barcode"
-                            value={formData.barcode}
-                            onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                        />
+                        <label>الباركود</label>
+                        <input type="text" value={formData.barcode} onChange={(e) => setFormData({ ...formData, barcode: e.target.value })} />
                     </div>
                 </div>
 
                 <div className="form-row">
                     <div className="form-group">
-                        <label htmlFor="category_id">الفئة</label>
-                        <div style={{ display: "flex", gap: "0.5rem" }}>
-                            <select
-                                id="category_id"
-                                value={formData.category_id}
-                                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                                style={{ flex: 1 }}
-                            >
-                                {categories.map((cat) => (
-                                    <option key={cat.id} value={cat.id}>
-                                        {cat.name}
-                                    </option>
-                                ))}
+                        <label>الفئة</label>
+                        <div className="input-with-action">
+                            <select value={formData.category_id} onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}>
+                                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
-                            <button
-                                type="button"
-                                className="btn btn-secondary btn-sm"
-                                onClick={() => setCategoryDialog(true)}
-                            >
-                                {getIcon("plus")}
+                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCategoryDialog(true)}>
+                                <Icon name="plus" />
                             </button>
                         </div>
                     </div>
                     <div className="form-group">
-                        <label htmlFor="unit_type">نوع الوحدة</label>
-                        <select
-                            id="unit_type"
-                            value={formData.unit_type}
-                            onChange={(e) => setFormData({ ...formData, unit_type: e.target.value })}
-                        >
-                            <option value="piece">قطعة</option>
-                            <option value="kg">كيلو</option>
-                            <option value="liter">لتر</option>
-                            <option value="meter">متر</option>
+                        <label>نوع الوحدة</label>
+                        <select value={formData.unit_type} onChange={(e) => setFormData({ ...formData, unit_type: e.target.value })}>
+                            <option value="piece">حبة / قطعة</option>
+                            <option value="ctn">كرتون</option>
                         </select>
                     </div>
                 </div>
 
                 <div className="form-row">
                     <div className="form-group">
-                        <label htmlFor="purchase_price">سعر الشراء *</label>
-                        <input
-                            type="number"
-                            id="purchase_price"
-                            value={formData.purchase_price}
-                            onChange={(e) => calculatePrices("purchase_price", e.target.value)}
-                            min="0"
-                            step="0.01"
-                        />
+                        <label>سعر الشراء *</label>
+                        <input type="number" value={formData.purchase_price} onChange={(e) => calculatePrices("purchase_price", e.target.value)} step="0.01" />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="profit_margin">هامش الربح (%)</label>
-                        <input
-                            type="number"
-                            id="profit_margin"
-                            value={formData.profit_margin}
-                            onChange={(e) => calculatePrices("profit_margin", e.target.value)}
-                            min="0"
-                            step="0.1"
-                        />
+                        <label>هامش الربح (%)</label>
+                        <input type="number" value={formData.profit_margin} onChange={(e) => calculatePrices("profit_margin", e.target.value)} step="0.1" />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="selling_price">سعر البيع *</label>
-                        <input
-                            type="number"
-                            id="selling_price"
-                            value={formData.selling_price}
-                            onChange={(e) => calculatePrices("selling_price", e.target.value)}
-                            min="0"
-                            step="0.01"
-                        />
+                        <label>سعر البيع *</label>
+                        <input type="number" value={formData.selling_price} onChange={(e) => calculatePrices("selling_price", e.target.value)} step="0.01" />
                     </div>
                 </div>
 
                 <div className="form-row">
                     <div className="form-group">
-                        <label htmlFor="units_per_package">وحدات/صندوق</label>
-                        <input
-                            type="number"
-                            id="units_per_package"
-                            value={formData.units_per_package}
-                            onChange={(e) => calculatePrices("units_per_package", e.target.value)}
-                            min="1"
-                        />
+                        <label>وحدات/صندوق</label>
+                        <input type="number" value={formData.units_per_package} onChange={(e) => calculatePrices("units_per_package", e.target.value)} min="1" />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="package_price">سعر الصندوق</label>
-                        <input
-                            type="number"
-                            id="package_price"
-                            value={formData.package_price}
-                            readOnly
-                            className="highlight-input"
-                        />
-                    </div>
-                </div>
-
-                <div className="form-row">
-                    <div className="form-group">
-                        <label htmlFor="stock">المخزون</label>
-                        <input
-                            type="number"
-                            id="stock"
-                            value={formData.stock}
-                            onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                            min="0"
-                        />
+                        <label>المخزون الحالي</label>
+                        <input type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="min_stock">الحد الأدنى</label>
-                        <input
-                            type="number"
-                            id="min_stock"
-                            value={formData.min_stock}
-                            onChange={(e) => setFormData({ ...formData, min_stock: e.target.value })}
-                            min="0"
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="expiry_date">تاريخ الانتهاء</label>
-                        <input
-                            type="date"
-                            id="expiry_date"
-                            value={formData.expiry_date}
-                            onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
-                        />
+                        <label>حد الطلب الأدنى</label>
+                        <input type="number" value={formData.min_stock} onChange={(e) => setFormData({ ...formData, min_stock: e.target.value })} />
                     </div>
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="description">الوصف</label>
-                    <textarea
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        rows={2}
-                    />
+                    <label>الوصف</label>
+                    <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={2} />
                 </div>
             </Dialog>
 
-            {/* Category Dialog */}
-            <Dialog
-                isOpen={categoryDialog}
-                onClose={() => setCategoryDialog(false)}
-                title="إضافة فئة جديدة"
-                maxWidth="400px"
-                footer={
-                    <>
-                        <button className="btn btn-secondary" onClick={() => setCategoryDialog(false)}>
-                            إلغاء
-                        </button>
-                        <button className="btn btn-primary" onClick={addCategory}>
-                            إضافة
-                        </button>
-                    </>
-                }
-            >
+            <Dialog isOpen={categoryDialog} onClose={() => setCategoryDialog(false)} title="إضافة فئة جديدة" maxWidth="400px">
                 <div className="form-group">
-                    <label htmlFor="categoryName">اسم الفئة *</label>
-                    <input
-                        type="text"
-                        id="categoryName"
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                    />
+                    <label>اسم الفئة *</label>
+                    <input type="text" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
+                </div>
+                <div className="dialog-footer">
+                    <button className="btn btn-secondary" onClick={() => setCategoryDialog(false)}>إلغاء</button>
+                    <button className="btn btn-primary" onClick={addCategory}>إضافة</button>
                 </div>
             </Dialog>
 
-            {/* View Dialog */}
-            <Dialog
-                isOpen={viewDialog}
-                onClose={() => setViewDialog(false)}
-                title="تفاصيل المنتج"
-                maxWidth="500px"
-            >
+            <Dialog isOpen={viewDialog} onClose={() => setViewDialog(false)} title="تفاصيل المنتج" maxWidth="600px">
                 {selectedProduct && (
-                    <div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                            <div>
-                                <p className="stat-label">اسم المنتج</p>
-                                <p style={{ fontWeight: 700 }}>{selectedProduct.name}</p>
-                            </div>
-                            <div>
-                                <p className="stat-label">الباركود</p>
-                                <p>{selectedProduct.barcode || "-"}</p>
-                            </div>
-                            <div>
-                                <p className="stat-label">الفئة</p>
-                                <p>{selectedProduct.category_name || "-"}</p>
-                            </div>
-                            <div>
-                                <p className="stat-label">نوع الوحدة</p>
-                                <p>{selectedProduct.unit_type === "piece" ? "قطعة" : selectedProduct.unit_type}</p>
-                            </div>
-                            <div>
-                                <p className="stat-label">سعر الشراء</p>
-                                <p>{formatCurrency(selectedProduct.purchase_price)}</p>
-                            </div>
-                            <div>
-                                <p className="stat-label">سعر البيع</p>
-                                <p>{formatCurrency(selectedProduct.selling_price)}</p>
-                            </div>
-                            <div>
-                                <p className="stat-label">هامش الربح</p>
-                                <p>{selectedProduct.profit_margin}%</p>
-                            </div>
-                            <div>
-                                <p className="stat-label">المخزون</p>
-                                <p>
-                                    {selectedProduct.stock} {getStockStatus(selectedProduct)}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="stat-label">الحد الأدنى</p>
-                                <p>{selectedProduct.min_stock}</p>
-                            </div>
-                            <div>
-                                <p className="stat-label">تاريخ الانتهاء</p>
-                                <p>{selectedProduct.expiry_date ? formatDate(selectedProduct.expiry_date) : "-"}</p>
-                            </div>
+                    <div className="details-grid">
+                        <div className="detail-item">
+                            <span className="label">اسم المنتج</span>
+                            <span className="value strong">{selectedProduct.name}</span>
                         </div>
-                        {selectedProduct.description && (
-                            <div style={{ marginTop: "1rem" }}>
-                                <p className="stat-label">الوصف</p>
-                                <p>{selectedProduct.description}</p>
-                            </div>
-                        )}
+                        <div className="detail-item">
+                            <span className="label">الباركود</span>
+                            <span className="value">{selectedProduct.barcode || "-"}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">الفئة</span>
+                            <span className="value">{selectedProduct.category_name || "-"}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">سعر الشراء</span>
+                            <span className="value">{formatCurrency(selectedProduct.purchase_price || 0)}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">سعر البيع</span>
+                            <span className="value strong primary">{formatCurrency(selectedProduct.selling_price || 0)}</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">هامش الربح</span>
+                            <span className="value">{selectedProduct.profit_margin}%</span>
+                        </div>
+                        <div className="detail-item">
+                            <span className="label">المخزون</span>
+                            <span className="value">{selectedProduct.stock} {selectedProduct.unit_name}</span>
+                        </div>
+                        <div className="detail-item full-width">
+                            <span className="label">الوصف</span>
+                            <span className="value">{selectedProduct.description || "-"}</span>
+                        </div>
                     </div>
                 )}
             </Dialog>
 
-            {/* Confirm Delete Dialog */}
             <ConfirmDialog
                 isOpen={confirmDialog}
                 onClose={() => setConfirmDialog(false)}
                 onConfirm={handleDelete}
                 title="تأكيد الحذف"
-                message="هل أنت متأكد من حذف هذا المنتج؟"
-                confirmText="حذف"
-                confirmVariant="danger"
+                message="هل أنت متأكد من حذف هذا المنتج؟ سيتم حذف جميع السجلات المتعلقة به."
             />
         </MainLayout>
     );
 }
-

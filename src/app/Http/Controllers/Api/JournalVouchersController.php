@@ -37,51 +37,48 @@ class JournalVouchersController extends Controller
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
         $voucherNumber = $request->input('voucher_number');
 
-        $query = JournalVoucher::with(['account', 'creator']);
-
+        // Step 1: Get the collection of unique voucher numbers for the current page
+        $voucherNumbersQuery = JournalVoucher::query();
         if ($voucherNumber) {
-            $query->where('voucher_number', $voucherNumber);
+            $voucherNumbersQuery->where('voucher_number', 'like', "%$voucherNumber%");
         }
-
-        // Get distinct vouchers
-        $voucherNumbers = JournalVoucher::when($voucherNumber, function ($q) use ($voucherNumber) {
-            $q->where('voucher_number', $voucherNumber);
-        })
-            ->distinct('voucher_number')
+        
+        $uniqueVoucherCount = $voucherNumbersQuery->distinct('voucher_number')->count('voucher_number');
+        $pagedVoucherNumbers = $voucherNumbersQuery->distinct('voucher_number')
+            ->orderBy('voucher_number', 'desc')
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
             ->pluck('voucher_number');
 
-        $total = $voucherNumbers->count();
-        $vouchers = [];
+        // Step 2: Fetch all entries for these voucher numbers in ONE query
+        $allEntries = JournalVoucher::whereIn('voucher_number', $pagedVoucherNumbers)
+            ->with(['account', 'creator'])
+            ->orderBy('voucher_number', 'desc')
+            ->orderBy('id')
+            ->get()
+            ->groupBy('voucher_number');
 
-        foreach ($voucherNumbers->skip(($page - 1) * $perPage)->take($perPage) as $vNum) {
-            $entries = JournalVoucher::where('voucher_number', $vNum)
-                ->with('account')
-                ->orderBy('id')
-                ->get()
-                ->map(function ($entry) {
-                    return [
-                        'account_code' => $entry->account->account_code,
-                        'account_name' => $entry->account->account_name,
-                        'account_type' => $entry->account->account_type,
-                        'entry_type' => $entry->entry_type,
-                        'amount' => $entry->amount,
-                        'description' => $entry->description,
-                    ];
-                });
-
-            $firstEntry = JournalVoucher::where('voucher_number', $vNum)->first();
-
-            $vouchers[] = [
+        // Step 3: Transform into the desired structure
+        $vouchers = $pagedVoucherNumbers->map(function ($vNum) use ($allEntries) {
+            $entries = $allEntries->get($vNum);
+            $first = $entries->first();
+            
+            return [
                 'voucher_number' => $vNum,
-                'voucher_date' => $firstEntry->voucher_date,
-                'description' => $firstEntry->description,
-                'created_by_name' => $firstEntry->creator?->username,
-                'created_at' => $firstEntry->created_at,
+                'voucher_date' => $first->voucher_date,
+                'description' => $first->description,
+                'created_by_name' => $first->creator?->username,
+                'created_at' => $first->created_at->toDateTimeString(),
                 'entries' => $entries,
             ];
-        }
+        });
 
-        return $this->paginatedResponse($vouchers, $total, $page, $perPage);
+        return $this->paginatedResponse(
+            \App\Http\Resources\JournalVoucherResource::collection($vouchers),
+            $uniqueVoucherCount,
+            $page,
+            $perPage
+        );
     }
 
     public function store(Request $request): JsonResponse

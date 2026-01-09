@@ -22,10 +22,7 @@ class AuthController extends Controller
 
     public function login(Request $request): JsonResponse
     {
-        // Start session
-        if (!session()->isStarted()) {
-            session()->start();
-        }
+        // API is stateless, removing session()->start() to prevent CSRF surface area
 
         $request->validate([
             'username' => 'required|string',
@@ -74,10 +71,7 @@ class AuthController extends Controller
 
     public function check(Request $request): JsonResponse
     {
-        // Start session
-        if (!session()->isStarted()) {
-            session()->start();
-        }
+        // API is stateless, no session initialization needed
 
         $user = $this->authService->checkSession($request->header('X-Session-Token'));
         if (!$user) {
@@ -99,11 +93,8 @@ class AuthController extends Controller
 
     private function getUserSessionData(User $user): array
     {
-        $permissionsMap = session('permissions');
-        
-        if (!$permissionsMap) {
-            $permissionsMap = PermissionService::loadPermissions($user->role_id);
-        }
+        // Always load fresh permissions for the role to avoid stale session data in an API context
+        $permissionsMap = PermissionService::loadPermissions($user->role_id);
         
         $formattedPermissions = [];
 

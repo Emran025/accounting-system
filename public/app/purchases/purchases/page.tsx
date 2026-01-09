@@ -5,53 +5,26 @@ import { MainLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, SearchableSelect, SelectOption, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
-import { getIcon } from "@/lib/icons";
-
-interface Product {
-    id: number;
-    name: string;
-    stock_quantity: number;
-    purchase_price: number;
-}
-
-interface Purchase {
-    id: number;
-    product_id: number;
-    product_name: string;
-    quantity: number;
-    unit_type: string;
-    unit_price: number;
-    total_price: number;
-    supplier?: string;
-    purchase_date: string;
-    expiry_date?: string;
-    notes?: string;
-    created_at: string;
-    voucher_number?: string;
-    approval_status?: string;
-    vat_rate?: number;
-    vat_amount?: number;
-}
-
-interface PurchaseRequest {
-    id: number;
-    product_name: string;
-    quantity: number;
-    notes?: string;
-    status: "pending" | "approved" | "done";
-    created_at: string;
-}
+import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
+import { Icon } from "@/lib/icons";
+import { Product, Purchase, PurchaseRequest } from "./types";
+import { usePurchases } from "./usePurchases";
 
 export default function PurchasesPage() {
     const [user, setUser] = useState<User | null>(null);
     const [permissions, setPermissions] = useState<Permission[]>([]);
-    const [purchases, setPurchases] = useState<Purchase[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+
+    const {
+        purchases,
+        currentPage,
+        totalPages,
+        isLoading,
+        loadPurchases,
+        savePurchase,
+        deletePurchase
+    } = usePurchases();
 
     // Dialogs
     const [purchaseDialog, setPurchaseDialog] = useState(false);
@@ -76,49 +49,29 @@ export default function PurchasesPage() {
         notes: "",
     });
 
-    const itemsPerPage = 10;
-
-    const loadPurchases = useCallback(async (page: number = 1, search: string = "") => {
-        try {
-            setIsLoading(true);
-            const response = await fetchAPI(
-                `purchases?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
-            );
-            setPurchases((response.data as Purchase[]) || []);
-            setTotalPages((response.pagination as any)?.total_pages || 1);
-            setCurrentPage(page);
-        } catch {
-            showToast("خطأ في تحميل المشتريات", "error");
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
     const loadProducts = useCallback(async () => {
         try {
             const response = await fetchAPI("products?limit=1000");
-            setProducts((response.data as Product[]) || (response.products as Product[]) || []);
-        } catch {
-            console.error("Error loading products");
-        }
+            setProducts((response.data as Product[]) || []);
+        } catch (e) { console.error(e); }
     }, []);
 
     const loadRequests = useCallback(async () => {
         try {
             const response = await fetchAPI("requests?status=pending");
-            setRequests((response.data as PurchaseRequest[]) || (response.requests as PurchaseRequest[]) || []);
-        } catch {
-            console.error("Error loading requests");
-        }
+            setRequests((response.data as PurchaseRequest[]) || []);
+        } catch (e) { console.error(e); }
     }, []);
 
     useEffect(() => {
-        const storedUser = getStoredUser();
-        const storedPermissions = getStoredPermissions();
-        setUser(storedUser);
-        setPermissions(storedPermissions);
-        loadPurchases();
-        loadProducts();
+        const init = async () => {
+            const authenticated = await checkAuth();
+            if (!authenticated) return;
+            setUser(getStoredUser());
+            setPermissions(getStoredPermissions());
+            await Promise.all([loadPurchases(), loadProducts()]);
+        };
+        init();
     }, [loadPurchases, loadProducts]);
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,11 +116,6 @@ export default function PurchasesPage() {
         setPurchaseDialog(true);
     };
 
-    const openViewDialog = (purchase: Purchase) => {
-        setSelectedPurchase(purchase);
-        setViewDialog(true);
-    };
-
     const handleProductSelect = (value: string | number | null) => {
         if (value === null) {
             setFormData({ ...formData, product_id: "", unit_price: "" });
@@ -191,54 +139,32 @@ export default function PurchasesPage() {
 
         const payload = {
             product_id: parseInt(formData.product_id),
-            quantity: parseInt(formData.quantity),
+            quantity: parseFloat(formData.quantity),
             unit_type: formData.unit_type,
             unit_price: parseFloat(formData.unit_price),
-            invoice_price: parseInt(formData.quantity) * parseFloat(formData.unit_price), // Backend expects invoice_price (total)
+            invoice_price: parseFloat(formData.quantity) * parseFloat(formData.unit_price),
             supplier_id: null, 
-            supplier_name: formData.supplier, // Send free text supplier name so backend can find or create
+            supplier_name: formData.supplier,
             purchase_date: formData.purchase_date,
             expiry_date: formData.expiry_date || null,
             notes: formData.notes,
         };
 
-        try {
-            if (selectedPurchase) {
-                await fetchAPI(`purchases`, {
-                    method: "PUT",
-                    body: JSON.stringify({ ...payload, id: selectedPurchase.id }),
-                });
-                showToast("تم تحديث المشترى بنجاح", "success");
-            } else {
-                await fetchAPI("purchases", {
-                    method: "POST",
-                    body: JSON.stringify(payload),
-                });
-                showToast("تمت إضافة المشترى بنجاح", "success");
-            }
+        const success = await savePurchase(payload, selectedPurchase?.id);
+        if (success) {
             setPurchaseDialog(false);
             loadPurchases(currentPage, searchTerm);
-            loadProducts(); // Refresh stock
-        } catch {
-            showToast("خطأ في حفظ المشترى", "error");
+            loadProducts();
         }
-    };
-
-    const confirmDelete = (id: number) => {
-        setDeleteId(id);
-        setConfirmDialog(true);
     };
 
     const handleDelete = async () => {
         if (!deleteId) return;
-
-        try {
-            await fetchAPI(`purchases?id=${deleteId}`, { method: "DELETE" });
-            showToast("تم حذف المشترى", "success");
+        const success = await deletePurchase(deleteId);
+        if (success) {
+            setConfirmDialog(false);
             loadPurchases(currentPage, searchTerm);
             loadProducts();
-        } catch {
-            showToast("خطأ في حذف المشترى", "error");
         }
     };
 
@@ -308,17 +234,17 @@ export default function PurchasesPage() {
             dataLabel: "الإجراءات",
             render: (item) => (
                 <div className="action-buttons">
-                    <button className="icon-btn view" onClick={() => openViewDialog(item)} title="عرض">
-                        {getIcon("eye")}
+                    <button className="icon-btn view" onClick={() => { setSelectedPurchase(item); setViewDialog(true); }} title="عرض">
+                        <Icon name="eye" />
                     </button>
                     {canAccess(permissions, "purchases", "edit") && (
                         <button className="icon-btn edit" onClick={() => openEditDialog(item)} title="تعديل">
-                            {getIcon("edit")}
+                            <Icon name="edit" />
                         </button>
                     )}
                     {canAccess(permissions, "purchases", "delete") && (
-                        <button className="icon-btn delete" onClick={() => confirmDelete(item.id)} title="حذف">
-                            {getIcon("trash")}
+                        <button className="icon-btn delete" onClick={() => { setDeleteId(item.id); setConfirmDialog(true); }} title="حذف">
+                            <Icon name="trash" />
                         </button>
                     )}
                 </div>
@@ -342,17 +268,11 @@ export default function PurchasesPage() {
             dataLabel: "الإجراءات",
             render: (item) => (
                 <div className="action-buttons">
-                    <button
-                        className="btn btn-sm btn-primary"
-                        onClick={() => convertRequestToPurchase(item)}
-                    >
+                    <button className="btn btn-sm btn-primary" onClick={() => convertRequestToPurchase(item)}>
                         تحويل لمشترى
                     </button>
-                    <button
-                        className="btn btn-sm btn-success"
-                        onClick={() => markRequestDone(item.id)}
-                    >
-                        {getIcon("check")}
+                    <button className="btn btn-sm btn-success" onClick={() => markRequestDone(item.id)}>
+                        <Icon name="check" />
                     </button>
                 </div>
             ),
@@ -370,19 +290,17 @@ export default function PurchasesPage() {
                         placeholder="بحث..."
                         value={searchTerm}
                         onChange={handleSearch}
-                        style={{ width: "200px" }}
+                        className="search-control"
                     />
                 }
                 actions={
                     <>
                         <button className="btn btn-secondary" onClick={openRequestsDialog}>
-                            <i className="fas fa-clipboard-list"></i>
-                            طلبات الشراء
+                            <Icon name="list" /> طلبيات الشراء
                         </button>
                         {canAccess(permissions, "purchases", "create") && (
                             <button className="btn btn-primary" onClick={openAddDialog}>
-                                {getIcon("plus")}
-                                إضافة مشترى
+                                <Icon name="plus" /> إضافة مشترى
                             </button>
                         )}
                     </>
@@ -393,8 +311,7 @@ export default function PurchasesPage() {
                 <Table
                     columns={columns}
                     data={purchases}
-                    keyExtractor={(item) => item.id}
-                    emptyMessage="لا توجد مشتريات"
+                    keyExtractor={(it) => it.id}
                     isLoading={isLoading}
                     pagination={{
                         currentPage,
@@ -409,12 +326,10 @@ export default function PurchasesPage() {
                 isOpen={purchaseDialog}
                 onClose={() => setPurchaseDialog(false)}
                 title={selectedPurchase ? "تعديل المشترى" : "إضافة مشترى جديد"}
-                maxWidth="600px"
+                maxWidth="800px"
                 footer={
                     <>
-                        <button className="btn btn-secondary" onClick={() => setPurchaseDialog(false)}>
-                            إلغاء
-                        </button>
+                        <button className="btn btn-secondary" onClick={() => setPurchaseDialog(false)}>إلغاء</button>
                         <button className="btn btn-primary" onClick={handleSubmit}>
                             {selectedPurchase ? "تحديث" : "إضافة"}
                         </button>
@@ -433,22 +348,17 @@ export default function PurchasesPage() {
 
                 <div className="form-row">
                     <div className="form-group">
-                        <label htmlFor="quantity">الكمية *</label>
+                        <label>الكمية *</label>
                         <input
                             type="number"
-                            id="quantity"
                             value={formData.quantity}
                             onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                            min="1"
+                            min="0.01"
                         />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="unit_type">نوع الوحدة</label>
-                        <select
-                            id="unit_type"
-                            value={formData.unit_type}
-                            onChange={(e) => setFormData({ ...formData, unit_type: e.target.value })}
-                        >
+                        <label>نوع الوحدة</label>
+                        <select value={formData.unit_type} onChange={(e) => setFormData({ ...formData, unit_type: e.target.value })}>
                             <option value="piece">قطعة</option>
                             <option value="package">صندوق</option>
                         </select>
@@ -457,44 +367,35 @@ export default function PurchasesPage() {
 
                 <div className="form-row">
                     <div className="form-group">
-                        <label htmlFor="unit_price">سعر الوحدة *</label>
+                        <label>سعر الوحدة *</label>
                         <input
                             type="number"
-                            id="unit_price"
                             value={formData.unit_price}
                             onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
-                            min="0"
                             step="0.01"
                         />
                     </div>
                     <div className="form-group">
                         <label>الإجمالي</label>
-                        <input
-                            type="text"
-                            value={formatCurrency(
-                                (parseInt(formData.quantity) || 0) * (parseFloat(formData.unit_price) || 0)
-                            )}
-                            readOnly
-                            className="highlight-input"
-                        />
+                        <div className="info-value primary">
+                            {formatCurrency((parseFloat(formData.quantity) || 0) * (parseFloat(formData.unit_price) || 0))}
+                        </div>
                     </div>
                 </div>
 
                 <div className="form-row">
                     <div className="form-group">
-                        <label htmlFor="supplier">المورد</label>
+                        <label>المورد</label>
                         <input
                             type="text"
-                            id="supplier"
                             value={formData.supplier}
                             onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
                         />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="purchase_date">تاريخ الشراء</label>
+                        <label>تاريخ الشراء</label>
                         <input
                             type="date"
-                            id="purchase_date"
                             value={formData.purchase_date}
                             onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
                         />
@@ -502,19 +403,17 @@ export default function PurchasesPage() {
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="expiry_date">تاريخ الانتهاء</label>
+                    <label>تاريخ الانتهاء</label>
                     <input
                         type="date"
-                        id="expiry_date"
                         value={formData.expiry_date}
                         onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
                     />
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="notes">ملاحظات</label>
+                    <label>ملاحظات</label>
                     <textarea
-                        id="notes"
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                         rows={2}
@@ -523,48 +422,43 @@ export default function PurchasesPage() {
             </Dialog>
 
             {/* View Dialog */}
-            <Dialog
-                isOpen={viewDialog}
-                onClose={() => setViewDialog(false)}
-                title="تفاصيل المشترى"
-                maxWidth="500px"
-            >
+            <Dialog isOpen={viewDialog} onClose={() => setViewDialog(false)} title="تفاصيل المشترى" maxWidth="600px">
                 {selectedPurchase && (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                        <div>
-                            <p className="stat-label">المنتج</p>
-                            <p style={{ fontWeight: 700 }}>{selectedPurchase.product_name}</p>
+                    <div className="details-grid">
+                        <div className="detail-item">
+                            <span className="label">المنتج</span>
+                            <span className="value strong">{selectedPurchase.product_name}</span>
                         </div>
-                        <div>
-                            <p className="stat-label">الكمية</p>
-                            <p>{selectedPurchase.quantity} {selectedPurchase.unit_type === "piece" ? "قطعة" : "صندوق"}</p>
+                        <div className="detail-item">
+                            <span className="label">الكمية</span>
+                            <span className="value">{selectedPurchase.quantity} {selectedPurchase.unit_type === "piece" ? "قطعة" : "صندوق"}</span>
                         </div>
-                        <div>
-                            <p className="stat-label">سعر الوحدة</p>
-                            <p>{formatCurrency(selectedPurchase.unit_price)}</p>
+                        <div className="detail-item">
+                            <span className="label">سعر الوحدة</span>
+                            <span className="value">{formatCurrency(selectedPurchase.unit_price)}</span>
                         </div>
-                        <div>
-                            <p className="stat-label">الإجمالي</p>
-                            <p style={{ fontWeight: 700, color: "var(--primary-color)" }}>
-                                {formatCurrency(selectedPurchase.total_price)}
-                            </p>
+                        <div className="detail-item">
+                            <span className="label">الإجمالي</span>
+                            <span className="value primary strong">{formatCurrency(selectedPurchase.total_price)}</span>
                         </div>
-                        <div>
-                            <p className="stat-label">المورد</p>
-                            <p>{selectedPurchase.supplier || "-"}</p>
+                        <div className="detail-item">
+                            <span className="label">المورد</span>
+                            <span className="value">{selectedPurchase.supplier || "-"}</span>
                         </div>
-                        <div>
-                            <p className="stat-label">تاريخ الشراء</p>
-                            <p>{formatDate(selectedPurchase.purchase_date)}</p>
+                        <div className="detail-item">
+                            <span className="label">تاريخ الشراء</span>
+                            <span className="value">{formatDate(selectedPurchase.purchase_date)}</span>
                         </div>
-                        <div>
-                            <p className="stat-label">تاريخ الانتهاء</p>
-                            <p>{selectedPurchase.expiry_date ? formatDate(selectedPurchase.expiry_date) : "-"}</p>
-                        </div>
+                        {selectedPurchase.expiry_date && (
+                            <div className="detail-item">
+                                <span className="label">تاريخ الانتهاء</span>
+                                <span className="value">{formatDate(selectedPurchase.expiry_date)}</span>
+                            </div>
+                        )}
                         {selectedPurchase.notes && (
-                            <div style={{ gridColumn: "span 2" }}>
-                                <p className="stat-label">ملاحظات</p>
-                                <p>{selectedPurchase.notes}</p>
+                            <div className="detail-item full-width">
+                                <span className="label">ملاحظات</span>
+                                <span className="value">{selectedPurchase.notes}</span>
                             </div>
                         )}
                     </div>
@@ -572,31 +466,17 @@ export default function PurchasesPage() {
             </Dialog>
 
             {/* Requests Dialog */}
-            <Dialog
-                isOpen={requestsDialog}
-                onClose={() => setRequestsDialog(false)}
-                title="طلبات الشراء"
-                maxWidth="800px"
-            >
-                <Table
-                    columns={requestColumns}
-                    data={requests}
-                    keyExtractor={(item) => item.id}
-                    emptyMessage="لا توجد طلبات معلقة"
-                />
+            <Dialog isOpen={requestsDialog} onClose={() => setRequestsDialog(false)} title="طلبات الشراء" maxWidth="800px">
+                <Table columns={requestColumns} data={requests} keyExtractor={(it) => it.id} emptyMessage="لا توجد طلبات معلقة" />
             </Dialog>
 
-            {/* Confirm Delete Dialog */}
             <ConfirmDialog
                 isOpen={confirmDialog}
                 onClose={() => setConfirmDialog(false)}
                 onConfirm={handleDelete}
                 title="تأكيد الحذف"
-                message="هل أنت متأكد من حذف هذا المشترى؟"
-                confirmText="حذف"
-                confirmVariant="danger"
+                message="هل أنت متأكد من حذف هذا المشترى؟ سيتم خصم الكمية من المخزون."
             />
         </MainLayout>
     );
 }
-
