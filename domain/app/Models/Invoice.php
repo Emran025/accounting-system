@@ -23,6 +23,8 @@ class Invoice extends Model
         'is_reversed',
         'reversed_at',
         'reversed_by',
+        'currency_id',
+        'exchange_rate',
     ];
 
     protected function casts(): array
@@ -62,5 +64,10 @@ class Invoice extends Model
     public function zatcaEinvoice()
     {
         return $this->hasOne(ZatcaEinvoice::class);
+    }
+
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
     }
 }

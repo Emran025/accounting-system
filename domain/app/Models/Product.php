@@ -20,6 +20,7 @@ class Product extends Model
         'sub_unit_name',
         'weighted_average_cost',
         'created_by',
+        'purchase_currency_id',
     ];
 
     protected function casts(): array
@@ -51,5 +52,10 @@ class Product extends Model
     public function invoiceItems(): HasMany
     {
         return $this->hasMany(InvoiceItem::class);
+    }
+
+    public function purchaseCurrency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'purchase_currency_id');
     }
 }

@@ -8,6 +8,8 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, Permission, getStoredUser, getStoredPermissions, canAccess } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
 
+import { ExchangeRatesWidget } from "./components/ExchangeRatesWidget";
+
 interface DashboardStats {
     daily_sales: number;
     total_products: number;
@@ -225,6 +227,8 @@ export default function DashboardPage() {
     return (
         <MainLayout requiredModule="dashboard">
             <PageHeader title="لوحة التحكم" user={user} showDate={true} />
+
+            <ExchangeRatesWidget />
 
             {/* Stats Grid */}
             <div className="dashboard-stats animate-fade">

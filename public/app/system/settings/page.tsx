@@ -12,6 +12,8 @@ import { SecurityTab } from "./components/SecurityTab";
 import { SessionsTab } from "./components/SessionsTab";
 import { RolesTab } from "./components/RolesTab";
 
+import { CurrencySettingsTab } from "./components/CurrencySettingsTab"; // Import added manually in thought but here in replacement chunk
+
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -33,6 +35,7 @@ export default function SettingsPage() {
           tabs={[
             { key: "store", label: "معلومات المتجر", icon: "fa-store" },
             { key: "invoice", label: "إعدادات الفاتورة", icon: "fa-file-invoice" },
+            { key: "currency", label: "العملات", icon: "fa-money-bill-wave" },
             { key: "security", label: "الحساب والأمان", icon: "fa-lock" },
             { key: "sessions", label: "الجلسات النشطة", icon: "fa-desktop" },
             ...(canAccess(permissions, "settings", "edit") 
@@ -47,6 +50,7 @@ export default function SettingsPage() {
         <div style={{ marginTop: "1rem" }}>
             {activeTab === "store" && <StoreSettingsTab />}
             {activeTab === "invoice" && <InvoiceSettingsTab />}
+            {activeTab === "currency" && <CurrencySettingsTab />}
             {activeTab === "security" && <SecurityTab />}
             {activeTab === "sessions" && <SessionsTab />}
             {activeTab === "roles" && canAccess(permissions, "settings", "edit") && <RolesTab />}

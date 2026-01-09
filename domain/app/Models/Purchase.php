@@ -27,6 +27,8 @@ class Purchase extends Model
         'reversed_at',
         'reversed_by',
         'purchase_date',
+        'currency_id',
+        'exchange_rate',
     ];
 
     protected function casts(): array
@@ -68,5 +70,10 @@ class Purchase extends Model
     public function reversedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reversed_by');
+    }
+
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
     }
 }

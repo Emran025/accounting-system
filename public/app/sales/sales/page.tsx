@@ -8,6 +8,7 @@ import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/u
 import { User, getStoredUser, canAccess, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
 import { printInvoice, generateInvoiceHTML, getSettings } from "@/lib/invoice-utils";
+import { Currency } from "../../system/settings/types";
 
 interface Product {
     id: number;
@@ -64,6 +65,10 @@ interface Invoice {
 export default function SalesPage() {
     const [user, setUser] = useState<User | null>(null);
     const [permissions, setPermissions] = useState<Permission[]>([]);
+    
+    // Currency
+    const [currencies, setCurrencies] = useState<Currency[]>([]);
+    const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null);
 
     // Products
     const [products, setProducts] = useState<Product[]>([]);
@@ -154,6 +159,18 @@ export default function SalesPage() {
             const storedPermissions = getStoredPermissions();
             setUser(storedUser);
             setPermissions(storedPermissions);
+
+            // Load currencies
+            try {
+                const res = await fetchAPI("/api/currencies");
+                if (res.success) {
+                    const list = res.data as Currency[];
+                    const activeList = list.filter(c => c.is_active);
+                    setCurrencies(activeList);
+                    const primary = activeList.find(c => c.is_primary);
+                    if (primary) setSelectedCurrency(primary);
+                }
+            } catch (e) { console.error(e); }
 
             await Promise.all([loadProducts(), loadInvoices()]);
             generateInvoiceNumber();
@@ -323,6 +340,8 @@ export default function SalesPage() {
         try {
             const invoiceData = {
                 invoice_number: invoiceNumber,
+                currency_id: selectedCurrency?.id,
+                exchange_rate: selectedCurrency?.exchange_rate,
                 items: invoiceItems.map((item) => ({
                     product_id: item.product_id,
                     quantity: item.total_sub_units,
@@ -509,6 +528,30 @@ export default function SalesPage() {
                                     className="minimal-input"
                                 />
                             </div>
+                            
+                            {/* Currency Selector */}
+                            {currencies.length > 0 && (
+                                <div className="invoice-badge" style={{ marginTop: "0.5rem" }}>
+                                    <span className="stat-label">العملة:</span>
+                                    <select 
+                                        className="minimal-input" 
+                                        value={selectedCurrency?.id || ""}
+                                        onChange={e => {
+                                            const id = parseInt(e.target.value);
+                                            const curr = currencies.find(c => c.id === id);
+                                            if (curr) setSelectedCurrency(curr);
+                                        }}
+                                        style={{ minWidth: "80px" }}
+                                    >
+                                        {currencies.map(c => <option key={c.id} value={c.id}>{c.code}</option>)}
+                                    </select>
+                                    {selectedCurrency && !selectedCurrency.is_primary && (
+                                        <span style={{ fontSize: "0.8em", marginLeft: "5px", color: "var(--text-secondary)" }}>
+                                            = {selectedCurrency.exchange_rate}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <form

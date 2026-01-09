@@ -46,4 +46,21 @@ export interface StoreSettings {
     name_en: string;
     category: string;
   }
+
+  export interface CurrencyDenomination {
+    id?: number;
+    value: number;
+    label: string;
+    image_path?: string;
+  }
   
+  export interface Currency {
+    id: number;
+    code: string;
+    name: string;
+    symbol: string;
+    exchange_rate: number;
+    is_primary: boolean;
+    is_active: boolean;
+    denominations?: CurrencyDenomination[];
+  }

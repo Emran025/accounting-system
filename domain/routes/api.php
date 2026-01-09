@@ -185,5 +185,12 @@ Route::middleware(['api.auth'])->group(function () {
     Route::post('/recurring_transactions', [\App\Http\Controllers\Api\RecurringTransactionsController::class, 'store'])->name('api.recurring.store');
     Route::put('/recurring_transactions', [\App\Http\Controllers\Api\RecurringTransactionsController::class, 'update'])->name('api.recurring.update');
     Route::delete('/recurring_transactions', [\App\Http\Controllers\Api\RecurringTransactionsController::class, 'destroy'])->name('api.recurring.destroy');
+
+    // Currencies
+    Route::get('/currencies', [\App\Http\Controllers\Api\CurrencyController::class, 'index'])->name('api.currencies.index');
+    Route::post('/currencies', [\App\Http\Controllers\Api\CurrencyController::class, 'store'])->name('api.currencies.store');
+    Route::put('/currencies/{id}', [\App\Http\Controllers\Api\CurrencyController::class, 'update'])->name('api.currencies.update');
+    Route::delete('/currencies/{id}', [\App\Http\Controllers\Api\CurrencyController::class, 'destroy'])->name('api.currencies.destroy');
+    Route::post('/currencies/{id}/toggle', [\App\Http\Controllers\Api\CurrencyController::class, 'toggleActive'])->name('api.currencies.toggle');
 });
 
