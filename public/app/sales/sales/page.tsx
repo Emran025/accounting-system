@@ -126,17 +126,29 @@ export default function SalesPage() {
 
     const [isLoading, setIsLoading] = useState(true);
 
-    const itemsTotal = invoiceItems.reduce((sum, item) => sum + item.subtotal, 0);
+    const baseItemsTotal = invoiceItems.reduce((sum, item) => {
+        const basePrice = calculateBasePrice(item.unit_price);
+        return sum + (basePrice * item.quantity * (item.unit_type === "main" ? (selectedProduct?.items_per_unit || 1) : 1));
+    }, 0);
+
+    const totalVAT = baseItemsTotal * vatRate;
     
+    const totalFees = invoiceItems.reduce((sum, item) => {
+        const base = calculateBasePrice(item.unit_price);
+        const feesPercentage = governmentFees.reduce((s, f) => s + (Number(f.percentage) || 0), 0) / 100;
+        const fixedFees = governmentFees.reduce((s, f) => s + (Number(f.fixed_amount) || 0), 0);
+        return sum + (base * feesPercentage + fixedFees) * item.quantity;
+    }, 0);
+
     const calculatedDiscount = useCallback(() => {
         const val = parseNumber(discountValue);
         if (discountType === "percent") {
-            return (itemsTotal * val) / 100;
+            return (baseItemsTotal * val) / 100;
         }
         return val;
-    }, [discountValue, discountType, itemsTotal]);
+    }, [discountValue, discountType, baseItemsTotal]);
 
-    const finalTotal = (itemsTotal - calculatedDiscount()) * (1 + vatRate);
+    const finalTotal = baseItemsTotal + totalFees + totalVAT - calculatedDiscount();
 
     const generateInvoiceNumber = useCallback(() => {
         const num = "INV-" + Date.now().toString().slice(-8);
@@ -463,7 +475,7 @@ export default function SalesPage() {
                     unit_type: item.unit_type,
                 })),
                 discount_amount: calculatedDiscount(),
-                subtotal: itemsTotal,
+                subtotal: baseItemsTotal,
                 payment_type: paymentType,
                 customer_id: selectedCustomer?.id,
                 // Note: VAT rate is enforced server-side from config, not sent by client
@@ -932,8 +944,8 @@ export default function SalesPage() {
 
                         <div className="sales-summary-bar">
                             <div className="summary-stat">
-                                <span className="stat-label">مجموع العناصر</span>
-                                <span className="stat-value">{formatCurrency(itemsTotal)}</span>
+                                <span className="stat-label">مجموع المنتجات</span>
+                                <span className="stat-value">{formatCurrency(baseItemsTotal)}</span>
                             </div>
 
                             {/* Show EACH government fee specifically */}
@@ -955,8 +967,15 @@ export default function SalesPage() {
                                 );
                             })}
                             
+                            {totalVAT > 0 && (
+                                <div className="summary-stat">
+                                    <span className="stat-label">ضريبة القيمة المضافة ({ (vatRate * 100).toFixed(0) }%)</span>
+                                    <span className="stat-value">{formatCurrency(totalVAT)}</span>
+                                </div>
+                            )}
+
                             <div className="summary-stat">
-                                <span className="stat-label">إجمالي الفاتورة (شامل الضريبة)</span>
+                                <span className="stat-label">إجمالي الفاتورة</span>
                                 <span id="total-amount" className="stat-value highlight">
                                     {formatCurrency(finalTotal)}
                                 </span>
@@ -964,11 +983,10 @@ export default function SalesPage() {
                             
                             <button
                                 type="button"
-                                className="btn btn-primary"
+                                className="btn btn-primary btn-add"
                                 onClick={finishInvoice}
                                 id="finish-btn"
                                 data-icon="check"
-                                style={{ height: "100%", padding: "0 2rem" }}
                                 disabled={invoiceItems.length === 0}
                             >
                                 إنهاء الفاتورة
@@ -1036,14 +1054,14 @@ export default function SalesPage() {
                         <div className="invoice-items-minimal">
                             <h4 style={{ marginBottom: "1rem" }}>المنتجات المباعة:</h4>
                             {selectedInvoice.items?.map((item, index) => (
-                                <div key={index} className="item-row-minimal">
+                                <div key={index} className="item-row-minimal" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem", borderBottom: "1px solid var(--border-color)" }}>
                                     <div className="item-info-pkg">
-                                        <span className="item-name-pkg">{item.product_name}</span>
-                                        <span className="item-meta-pkg">سعر الوحدة: {formatCurrency(item.unit_price)}</span>
+                                        <span className="item-name-pkg" style={{ display: "block", fontWeight: "600" }}>{item.product_name}</span>
+                                        <span className="item-meta-pkg" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>سعر الوحدة: {formatCurrency(item.unit_price)}</span>
                                     </div>
                                     <div className="item-info-pkg" style={{ textAlign: "left" }}>
-                                        <span className="item-name-pkg">{formatCurrency(item.subtotal)}</span>
-                                        <span className="item-meta-pkg">الكمية: {item.quantity}</span>
+                                        <span className="item-name-pkg" style={{ display: "block", fontWeight: "600" }}>{formatCurrency(item.subtotal)}</span>
+                                        <span className="item-meta-pkg" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>الكمية: {item.quantity}</span>
                                     </div>
                                 </div>
                             ))}
@@ -1053,22 +1071,32 @@ export default function SalesPage() {
                             className="sales-summary-bar"
                             style={{ marginTop: "2rem", background: "var(--grad-primary)", color: "white" }}
                         >
-                            <div className="summary-stat">
-                                <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>
-                                    مجموع العناصر: {formatCurrency(selectedInvoice.subtotal || 0)}
-                                </span>
-                                {selectedInvoice.discount_amount && selectedInvoice.discount_amount > 0 && (
-                                    <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>
-                                        الخصم: {formatCurrency(selectedInvoice.discount_amount)}
+                                <div className="summary-stat">
+                                    <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>عدد الأصناف</span>
+                                    <span className="stat-value" style={{ color: "white", fontSize: "1.2rem" }}>
+                                        {selectedInvoice.item_count || 0}
                                     </span>
+                                </div>
+                                <div className="summary-stat">
+                                    <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>المجموع الفرعي</span>
+                                    <span className="stat-value" style={{ color: "white", fontSize: "1.2rem" }}>
+                                        {formatCurrency(selectedInvoice.subtotal || 0)}
+                                    </span>
+                                </div>
+                                {selectedInvoice.discount_amount && selectedInvoice.discount_amount > 0 && (
+                                    <div className="summary-stat">
+                                        <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>الخصم</span>
+                                        <span className="stat-value" style={{ color: "#ffccd5", fontSize: "1.2rem" }}>
+                                            -{formatCurrency(selectedInvoice.discount_amount)}
+                                        </span>
+                                    </div>
                                 )}
-                                <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>
-                                    المبلغ الإجمالي (شامل الضريبة)
-                                </span>
-                                <span className="stat-value highlight" style={{ color: "white" }}>
-                                    {formatCurrency(selectedInvoice.total_amount)}
-                                </span>
-                            </div>
+                                <div className="summary-stat">
+                                    <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>الإجمالي</span>
+                                    <span className="stat-value highlight" style={{ color: "white" }}>
+                                        {formatCurrency(selectedInvoice.total_amount)}
+                                    </span>
+                                </div>
                             <button
                                 type="button"
                                 className="btn"

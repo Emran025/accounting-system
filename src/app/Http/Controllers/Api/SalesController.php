@@ -31,7 +31,7 @@ class SalesController extends Controller
         $paymentType = $request->input('payment_type');
         $customerId = $request->input('customer_id');
 
-        $query = Invoice::with(['user', 'customer']);
+        $query = Invoice::with(['user', 'customer'])->withCount('items');
 
         if ($paymentType) {
             $query->where('payment_type', $paymentType);
@@ -107,6 +107,7 @@ class SalesController extends Controller
         PermissionService::requirePermission('sales', 'view');
 
         $invoice = Invoice::with(['items.product', 'user', 'customer', 'zatcaEinvoice'])
+            ->withCount('items')
             ->findOrFail($id);
 
         return $this->successResponse(new \App\Http\Resources\InvoiceResource($invoice));
