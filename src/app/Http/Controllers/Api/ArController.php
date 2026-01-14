@@ -76,13 +76,12 @@ class ArController extends Controller
         $validated = $request->validated();
 
         // Check for duplicates
-        $exists = ArCustomer::where('name', $validated['name'])
-            ->orWhere(function ($q) use ($validated) {
-                if (!empty($validated['phone'])) {
-                    $q->where('phone', $validated['phone']);
-                }
-            })
-            ->exists();
+        $exists = ArCustomer::where(function ($query) use ($validated) {
+            $query->where('name', $validated['name']);
+            if (!empty($validated['phone'])) {
+                $query->orWhere('phone', $validated['phone']);
+            }
+        })->exists();
 
         if ($exists) {
             return $this->errorResponse('Customer with this name or phone already exists', 409);
@@ -112,6 +111,21 @@ class ArController extends Controller
         ]);
 
         $customer = ArCustomer::findOrFail($validated['id']);
+    
+        // Check for duplicates (excluding self)
+        $exists = ArCustomer::where('id', '!=', $customer->id)
+            ->where(function ($query) use ($validated) {
+                $query->where('name', $validated['name']);
+                if (!empty($validated['phone'])) {
+                    $query->orWhere('phone', $validated['phone']);
+                }
+            })
+            ->exists();
+
+        if ($exists) {
+            return $this->errorResponse('Another customer with this name or phone already exists', 409);
+        }
+
         $oldValues = $customer->toArray();
         $customer->update($validated);
 
@@ -195,10 +209,8 @@ class ArController extends Controller
                 'created_by' => auth()->id() ?? session('user_id'),
             ]);
 
-            // Update customer balance
-            $balanceChange = $validated['type'] === 'payment' 
-                ? -$validated['amount'] 
-                : $validated['amount'];
+            // Update customer balance: Both payments and returns reduce the customer's debt
+            $balanceChange = -$validated['amount'];
             
             ArCustomer::where('id', $validated['customer_id'])
                 ->increment('current_balance', $balanceChange);
@@ -261,11 +273,14 @@ class ArController extends Controller
         $id = $request->input('id');
         $transaction = ArTransaction::findOrFail($id);
 
+        if ($transaction->type === 'invoice') {
+            return $this->errorResponse('Cannot delete invoice transactions from here. Please use the Invoices module.', 400);
+        }
+
         return DB::transaction(function () use ($transaction) {
-            // Reverse balance change
-            $balanceChange = $transaction->type === 'payment' 
-                ? $transaction->amount 
-                : -$transaction->amount;
+            // Reverse balance change: Both payments and returns previously reduced debt,
+            // so deleting either should increase the debt (increment current_balance).
+            $balanceChange = $transaction->amount;
             
             ArCustomer::where('id', $transaction->customer_id)
                 ->increment('current_balance', $balanceChange);
@@ -302,17 +317,19 @@ class ArController extends Controller
 
         $transaction = ArTransaction::findOrFail($validated['id']);
 
+        if ($transaction->type === 'invoice') {
+            return $this->errorResponse('Cannot restore invoice transactions from here. Please use the Invoices module.', 400);
+        }
+
         if ($validated['restore'] ?? false) {
             return DB::transaction(function () use ($transaction) {
                 if (!$transaction->is_deleted) {
                     return $this->errorResponse('Transaction is not deleted', 400);
                 }
 
-                // Restore transaction balance impact
-                $balanceChange = $transaction->type === 'payment' 
-                    ? -$transaction->amount 
-                    : $transaction->amount;
-                
+                // Restore transaction balance impact: Both payments and returns reduce debt.
+                $balanceChange = -$transaction->amount;
+            
                 ArCustomer::where('id', $transaction->customer_id)
                     ->increment('current_balance', $balanceChange);
 

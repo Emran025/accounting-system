@@ -34,6 +34,8 @@ return new class extends Migration
             $table->foreignId('reversed_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('purchase_date')->useCurrent();
             $table->timestamp('created_at')->useCurrent();
+            $table->foreignId('currency_id')->nullable()->constrained('currencies')->nullOnDelete();
+            $table->decimal('exchange_rate', 12, 4)->nullable();
             $table->index('approval_status');
         });
     }

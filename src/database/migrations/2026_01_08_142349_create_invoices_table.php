@@ -27,6 +27,8 @@ return new class extends Migration
             $table->boolean('is_reversed')->default(false);
             $table->dateTime('reversed_at')->nullable();
             $table->foreignId('reversed_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('currency_id')->nullable()->constrained('currencies')->nullOnDelete();
+            $table->decimal('exchange_rate', 12, 4)->nullable();
             $table->timestamps();
         });
     }

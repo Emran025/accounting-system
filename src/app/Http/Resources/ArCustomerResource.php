@@ -16,6 +16,7 @@ class ArCustomerResource extends JsonResource
             'address' => $this->address,
             'tax_number' => $this->tax_number,
             'current_balance' => (float)$this->current_balance,
+            'balance' => (float)$this->current_balance,
             'total_debt' => (float)($this->total_debt ?? 0),
             'total_paid' => (float)($this->total_paid ?? 0),
             'created_at' => $this->created_at->toDateTimeString(),

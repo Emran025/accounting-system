@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('sub_unit_name', 50)->nullable()->default('حبة');
             $table->decimal('weighted_average_cost', 10, 2)->default(0.00);
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('purchase_currency_id')->nullable()->constrained('currencies')->nullOnDelete();
             $table->timestamps();
         });
     }
