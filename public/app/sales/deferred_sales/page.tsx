@@ -9,6 +9,14 @@ import { User, getStoredUser, canAccess, getStoredPermissions, Permission, check
 import { Icon } from "@/lib/icons";
 import { printInvoice, generateInvoiceHTML, getSettings } from "@/lib/invoice-utils";
 
+interface GovernmentFee {
+    id: number;
+    name: string;
+    percentage: number;
+    fixed_amount: number;
+    is_active: boolean;
+}
+
 interface Product {
   id: number;
   name: string;
@@ -20,6 +28,7 @@ interface Product {
   sub_unit_name: string;
   latest_purchase_price?: number;
   minimum_profit_margin?: number;
+  weighted_average_cost?: number;
 }
 
 interface Pagination {
@@ -68,6 +77,10 @@ interface Invoice {
 export default function DeferredSalesPage() {
   const [user, setUser] = useState<User | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
+
+  // Government Fees
+  const [governmentFees, setGovernmentFees] = useState<GovernmentFee[]>([]);
+  const [vatRate, setVatRate] = useState(0.0); // Default 0%
 
   // Products
   const [products, setProducts] = useState<Product[]>([]);
@@ -121,11 +134,22 @@ export default function DeferredSalesPage() {
     return val;
   }, [discountValue, discountType, itemsTotal]);
 
-  const finalTotal = (itemsTotal - calculatedDiscount()) * 1.15;
+  const finalTotal = (itemsTotal - calculatedDiscount()) * (1 + vatRate);
 
   const generateInvoiceNumber = useCallback(() => {
     const num = "INV-" + Date.now().toString().slice(-8);
     setInvoiceNumber(num);
+  }, []);
+
+  const loadFees = useCallback(async () => {
+    try {
+        const response: any = await fetchAPI("government_fees");
+        if (response.success && response.data && response.data.fees) {
+            setGovernmentFees(response.data.fees.filter((f: GovernmentFee) => f.is_active));
+        }
+    } catch (e) {
+        console.error("Failed to load fees", e);
+    }
   }, []);
 
   const loadProducts = useCallback(async () => {
@@ -182,12 +206,52 @@ export default function DeferredSalesPage() {
       setUser(storedUser);
       setPermissions(storedPermissions);
 
-      await Promise.all([loadProducts(), loadInvoices()]);
+      // Load Settings (VAT Rate)
+      try {
+        const settingsRes = await fetchAPI("/api/settings");
+        if (settingsRes.success && settingsRes.data) {
+             const vatSetting = (settingsRes.data as any[]).find((s: any) => s.setting_key === 'vat_rate');
+             if (vatSetting) {
+                 setVatRate(parseFloat(vatSetting.setting_value) / 100);
+             }
+        }
+      } catch (e) { console.error("Failed to load VAT rate", e); }
+
+      await Promise.all([loadProducts(), loadInvoices(), loadFees()]);
       generateInvoiceNumber();
       setIsLoading(false);
     };
     init();
-  }, [loadProducts, loadInvoices, generateInvoiceNumber]);
+  }, [loadProducts, loadInvoices, generateInvoiceNumber, loadFees]);
+
+  // Pricing Helpers
+  const calculateSellingPrice = (basePrice: number) => {
+    // basePrice is the amount subject to fees and VAT
+    const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
+    const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
+    
+    // Fee amount based on base price
+    const variableFeeAmount = basePrice * feesPercentage;
+    
+    // VAT is calculated on base price (Taxable Base)
+    const vatAmount = basePrice * vatRate;
+
+    // Final = Base + Fees + VAT + Fixed
+    return basePrice + variableFeeAmount + vatAmount + fixedFees;
+  };
+
+  const calculateBasePrice = (finalPrice: number) => {
+    // Reverse calculation to extract Base Price from Final Price
+    const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
+    const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
+    
+    // Formula: Final = Base * (1 + fee% + vat%) + Fixed
+    // Base = (Final - Fixed) / (1 + fee% + vat%)
+    
+    const divisor = 1 + feesPercentage + vatRate;
+    const base = (finalPrice - fixedFees) / divisor;
+    return base > 0 ? base : 0;
+  };
 
   // Customer search debounce
   useEffect(() => {
@@ -227,7 +291,7 @@ export default function DeferredSalesPage() {
       const availableStock = selectedProduct.stock_quantity - cartQtyInSubUnits;
       setItemStock(String(availableStock));
 
-      setUnitPrice(String(selectedProduct.unit_price));
+      // setUnitPrice(String(selectedProduct.unit_price)); // Removed to prevent overwriting calculation
       setQuantity("1");
 
       if (availableStock <= 0) {
@@ -263,6 +327,19 @@ export default function DeferredSalesPage() {
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
     setProductSearchTerm(product.name);
+    
+    // Calculate initial display price: (Cost + Margin) + Tax + Fees
+    // Use weighted_average_cost if available as it is the system's true cost, otherwise fallback to unit_price or purchase_price
+    const cost = Number(product.weighted_average_cost) || Number(product.unit_price) || 0;
+    const margin = Number(product.minimum_profit_margin) || 0;
+    const basePrice = cost + margin;
+    
+    // Set the display price (Final Price)
+    const displayPrice = calculateSellingPrice(basePrice);
+    
+    // Store display price in the input for user to see/edit
+    setUnitPrice(displayPrice.toFixed(2));
+    
     setProductOptionsVisible(false);
   };
 
@@ -316,12 +393,16 @@ export default function DeferredSalesPage() {
     }
 
     // Check minimum profit margin
-    const latestPurchasePrice = parseNumber(selectedProduct.latest_purchase_price);
-    const minProfitMargin = parseNumber(selectedProduct.minimum_profit_margin);
-    const minAllowedPrice = latestPurchasePrice + minProfitMargin;
+    const costBasis = Number(selectedProduct.weighted_average_cost) || 0;
+    const minProfitMargin = Number(selectedProduct.minimum_profit_margin) || 0;
+    
+    // We need to compare the "Base Price" (what we send to server) vs the "Minimum Price"
+    const currentBasePrice = calculateBasePrice(price);
+    const minAllowedBasePrice = costBasis + minProfitMargin;
 
-    if (latestPurchasePrice > 0 && price < minAllowedPrice) {
-      const confirmMsg = `تحذير: السعر (${formatCurrency(price)}) أقل من الحد الأدنى للبيع (${formatCurrency(minAllowedPrice)}).\n(سعر الشراء: ${formatCurrency(latestPurchasePrice)} + هامش الربح: ${formatCurrency(minProfitMargin)})\n\nهل تريد الاستمرار؟`;
+    if (costBasis > 0 && currentBasePrice < minAllowedBasePrice) {
+      const displayMinPrice = calculateSellingPrice(minAllowedBasePrice);
+      const confirmMsg = `تحذير: السعر النهائي (${formatCurrency(price)}) أقل من الحد الأدنى المسموح به (${formatCurrency(displayMinPrice)}).\n(التكلفة: ${formatCurrency(costBasis)} + الهامش: ${formatCurrency(minProfitMargin)} + الرسوم والضريبة)\n\nهل تريد الاستمرار؟`;
       const confirmed = window.confirm(confirmMsg);
       if (!confirmed) {
         return;
@@ -384,6 +465,21 @@ export default function DeferredSalesPage() {
         discount_amount: calculatedDiscount(),
         subtotal: itemsTotal,
       };
+
+      // Convert prices back to Base Price (Cost+Margin) before sending
+      // The backend expects unit_price to be the Taxable Base
+      invoiceData.items = invoiceData.items.map(item => {
+        // item.unit_price is the Display Price (Final)
+        const basePrice = calculateBasePrice(item.unit_price);
+        return {
+            ...item,
+            unit_price: Number(basePrice.toFixed(2)),
+            subtotal: Number((basePrice * item.quantity).toFixed(2))
+        };
+      });
+
+      // Ensure subtotal matches the items
+      invoiceData.subtotal = invoiceData.items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
 
       const response = await fetchAPI("invoices", {
         method: "POST",
@@ -798,38 +894,43 @@ export default function DeferredSalesPage() {
               </div>
 
                 <div className="invoice-adjustments">
-                    <div className="summary-stat" style={{ width: "250px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: "4px" }}>
-                            <span className="stat-label">الخصم</span>
-                            <div className="discount-type-toggle">
+                  <div className="discount-section">
+                    <div className="form-group" style={{ marginBottom: 0, width: '200px' }}>
+                        <NumberInput
+                            id="invoice-discount"
+                            label="قيمة الخصم"
+                            value={discountValue}
+                            onChange={(val) => setDiscountValue(val)}
+                            min={0}
+                            placeholder="0.00"
+                        />
+                    </div>
+                    
+                    <div className="discount-config" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span className="stat-label" style={{ fontSize: '0.75rem' }}>نوع التخفيض</span>
+                        <div className="discount-type-toggle">
                             <button 
                                 className={discountType === "fixed" ? "active" : ""} 
                                 onClick={() => setDiscountType("fixed")}
                                 type="button"
-                            >$</button>
+                            >مبلغ</button>
                             <button 
                                 className={discountType === "percent" ? "active" : ""} 
                                 onClick={() => setDiscountType("percent")}
                                 type="button"
-                            >%</button>
-                            </div>
-                        </div>
-                        <div style={{ position: "relative" }}>
-                            <input
-                            type="number"
-                            value={discountValue}
-                            onChange={(e) => setDiscountValue(e.target.value)}
-                            className="minimal-input"
-                            style={{ width: "100%", textAlign: "center", paddingBottom: "4px" }}
-                            min="0"
-                            />
-                            {calculatedDiscount() > 0 && (
-                            <div style={{ fontSize: "10px", color: "var(--text-secondary)", position: "absolute", bottom: "-14px", width: "100%", textAlign: "center" }}>
-                                مبلغ الخصم: {formatCurrency(calculatedDiscount())}
-                            </div>
-                            )}
+                            >نسبة</button>
                         </div>
                     </div>
+                  </div>
+
+                  {calculatedDiscount() > 0 && (
+                    <div className="summary-stat animate-fade" style={{ marginRight: 'auto', borderRight: '1px solid var(--border-color)', paddingRight: '1.5rem' }}>
+                        <span className="stat-label">إجمالي الخصم</span>
+                        <span className="stat-value text-danger" style={{ fontSize: '1.1rem' }}>
+                            -{formatCurrency(calculatedDiscount())}
+                        </span>
+                    </div>
+                  )}
                 </div>
 
               <div className="sales-summary-bar">
@@ -837,6 +938,25 @@ export default function DeferredSalesPage() {
                   <span className="stat-label">مجموع العناصر</span>
                   <span className="stat-value">{formatCurrency(itemsTotal)}</span>
                 </div>
+
+                {/* Show EACH government fee specifically */}
+                {governmentFees.map((fee) => {
+                    const feeAmount = invoiceItems.reduce((sum, item) => {
+                        const base = calculateBasePrice(item.unit_price);
+                        const variable = (base * (Number(fee.percentage) || 0) / 100);
+                        const fixed = (Number(fee.fixed_amount) || 0);
+                        return sum + (variable + fixed) * item.quantity;
+                    }, 0);
+
+                    if (feeAmount <= 0) return null;
+
+                    return (
+                        <div className="summary-stat" key={fee.id}>
+                            <span className="stat-label">{fee.name} (التزام)</span>
+                            <span className="stat-value">{formatCurrency(feeAmount)}</span>
+                        </div>
+                    );
+                })}
                 
                 <div className="summary-stat">
                   <span className="stat-label">المبلغ الإجمالي</span>

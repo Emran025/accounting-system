@@ -63,7 +63,7 @@ function MobileTabDropdown({
 
 export function TabNavigation({ tabs, activeTab, onTabChange, className = "" }: TabNavigationProps) {
   return (
-    <div className={`settings-tabs ${className}`}>
+    <div className={`settings-tabs ${className}`} style={{ flexWrap: "wrap", height: "auto", whiteSpace: "normal", gap: "10px" }}>
       {/* Mobile Dropdown */}
       <MobileTabDropdown 
         tabs={tabs}
@@ -77,6 +77,7 @@ export function TabNavigation({ tabs, activeTab, onTabChange, className = "" }: 
           key={tab.key}
           className={`tab-btn ${activeTab === tab.key ? "active" : ""}`}
           onClick={() => onTabChange(tab.key)}
+          style={{ whiteSpace: "nowrap", flexShrink: 0 }}
         >
           <i className={`fas ${tab.icon}`}></i>
           {tab.label}

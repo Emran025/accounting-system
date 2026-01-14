@@ -26,6 +26,7 @@ class ProductResource extends JsonResource
             'minimum_profit_margin' => (float)$this->minimum_profit_margin,
             'is_active' => (bool)$this->is_active,
             'created_at' => $this->created_at->toDateTimeString(),
+            'weighted_average_cost' => (float)$this->weighted_average_cost,
         ];
     }
 }

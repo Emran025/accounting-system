@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GeneralLedger extends Model
 {
+    public $timestamps = false;
     protected $table = 'general_ledger';
 
     protected $fillable = [

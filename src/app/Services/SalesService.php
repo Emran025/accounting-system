@@ -8,6 +8,8 @@ use App\Models\Product;
 use App\Models\ArCustomer;
 use App\Models\ArTransaction;
 use App\Models\GeneralLedger;
+use App\Models\GovernmentFee;
+use App\Models\InvoiceFee;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -114,10 +116,39 @@ class SalesService
             // Fix BUG-002: Enforce Server Sovereignty for Tax Rates
             // We strictly use the system configuration and ignore any client-provided rate.
             // Config stores VAT as decimal (0.15 = 15%)
-            $vatRate = (float)config('accounting.vat_rate', 0.15); 
+            $vatRate = (float)config('accounting.vat_rate', 0.0); 
             $taxableAmount = $subtotal - $discountAmount;
             $vatAmount = round($taxableAmount * $vatRate, 2);
-            $totalAmount = $taxableAmount + $vatAmount;
+
+            // Calculate Government Fees (Kharaaj)
+            // Fetch active fees
+            $activeFees = GovernmentFee::where('is_active', true)->with('account')->get();
+            $totalFees = 0;
+            $calculatedFees = [];
+
+            foreach ($activeFees as $fee) {
+                // Calculate percentage based fee on Taxable Amount (Revenue post-discount)
+                $feeVal = 0;
+                if ($fee->percentage > 0) {
+                    $feeVal += round($taxableAmount * ($fee->percentage / 100), 2);
+                }
+                if ($fee->fixed_amount > 0) {
+                    $feeVal += $fee->fixed_amount; // Per Invoice Fee
+                }
+                
+                if ($feeVal > 0) {
+                    $totalFees += $feeVal;
+                    $calculatedFees[] = [
+                        'fee_id' => $fee->id,
+                        'fee_name' => $fee->name,
+                        'fee_percentage' => $fee->percentage,
+                        'amount' => $feeVal,
+                        'account_code' => $fee->account->account_code ?? null 
+                    ];
+                }
+            }
+
+            $totalAmount = $taxableAmount + $vatAmount + $totalFees;
 
             // Default amount_paid for cash sales
             if ($paymentType === 'cash' && (!isset($data['amount_paid']) || $data['amount_paid'] === null)) {
@@ -165,6 +196,17 @@ class SalesService
                 ]);
             }
 
+            // Save Invoice Fees
+            foreach ($calculatedFees as $calcFee) {
+                InvoiceFee::create([
+                    'invoice_id' => $invoice->id,
+                    'fee_id' => $calcFee['fee_id'],
+                    'fee_name' => $calcFee['fee_name'],
+                    'fee_percentage' => $calcFee['fee_percentage'],
+                    'amount' => $calcFee['amount']
+                ]);
+            }
+
             // Update customer balance (if credit)
             if ($paymentType === 'credit' && $customerId) {
                 $netDue = $totalAmount - $amountPaid;
@@ -203,6 +245,18 @@ class SalesService
                     'amount' => $vatAmount,
                     'description' => "VAT Output - Invoice #$invoiceNumber"
                 ];
+            }
+
+            // Government Fees (Credit)
+            foreach ($calculatedFees as $calcFee) {
+                if ($calcFee['account_code']) {
+                     $glEntries[] = [
+                        'account_code' => $calcFee['account_code'],
+                        'entry_type' => 'CREDIT',
+                        'amount' => $calcFee['amount'],
+                        'description' => "Fee: {$calcFee['fee_name']} - Invoice #$invoiceNumber"
+                    ];
+                }
             }
 
             // Debit Side (Cash + AR)

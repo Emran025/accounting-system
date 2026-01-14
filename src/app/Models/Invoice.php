@@ -61,6 +61,11 @@ class Invoice extends Model
         return $this->belongsTo(User::class, 'reversed_by');
     }
 
+    public function fees(): HasMany
+    {
+        return $this->hasMany(InvoiceFee::class);
+    }
+
     public function zatcaEinvoice()
     {
         return $this->hasOne(ZatcaEinvoice::class);

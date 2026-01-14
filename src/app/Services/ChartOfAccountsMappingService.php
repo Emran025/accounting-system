@@ -16,7 +16,7 @@ class ChartOfAccountsMappingService
             'input_vat' => $this->getAccountCode('Liability', 'مدخلات') ?? $this->getAccountCode('Liability', 'Input') ?? '2220',
             'capital' => $this->getAccountCode('Equity', 'رأس المال') ?? $this->getAccountCode('Equity', 'Capital') ?? '3100',
             'retained_earnings' => $this->getAccountCode('Equity', 'الأرباح المحتجزة') ?? $this->getAccountCode('Equity', 'Retained') ?? '3200',
-            'sales_revenue' => $this->getAccountCode('Revenue', 'مبيعات') ?? $this->getAccountCode('Revenue', 'Sales') ?? '4100',
+            'sales_revenue' => $this->getAccountCode('Revenue', '4101') ?? $this->getAccountCode('Revenue', 'مبيعات') ?? '4100',
             'sales_discount' => $this->getAccountCode('Revenue', 'خصم المبيعات') ?? $this->getAccountCode('Revenue', 'Discount') ?? '4110',
             'other_revenue' => $this->getAccountCode('Revenue', 'إيرادات أخرى') ?? $this->getAccountCode('Revenue', 'Other') ?? '4200',
             'cost_of_goods_sold' => $this->getAccountCode('Expense', 'تكلفة البضاعة') ?? $this->getAccountCode('Expense', 'COGS') ?? '5100',
@@ -32,6 +32,14 @@ class ChartOfAccountsMappingService
         $query = \App\Models\ChartOfAccount::where('account_type', $accountType)
             ->where('is_active', true);
 
+        // Preference: Accounts that are NOT parents (no children)
+        // We check for absence of children by looking for accounts whose ID is not a parent_id
+        $query->whereNotExists(function ($q) {
+            $q->select(\DB::raw(1))
+              ->from('chart_of_accounts as children')
+              ->whereColumn('children.parent_id', 'chart_of_accounts.id');
+        });
+
         if ($namePattern) {
             $query->where(function ($q) use ($namePattern) {
                 $q->where('account_name', 'like', "%$namePattern%")
@@ -40,6 +48,18 @@ class ChartOfAccountsMappingService
         }
 
         $account = $query->orderBy('account_code')->first();
+
+        // If no leaf account found, fallback to any account (might still be a header but we tried)
+        if (!$account && $namePattern) {
+            $account = \App\Models\ChartOfAccount::where('account_type', $accountType)
+                ->where('is_active', true)
+                ->where(function ($q) use ($namePattern) {
+                    $q->where('account_name', 'like', "%$namePattern%")
+                      ->orWhere('account_code', 'like', "%$namePattern%");
+                })
+                ->orderBy('account_code')
+                ->first();
+        }
 
         return $account?->account_code;
     }

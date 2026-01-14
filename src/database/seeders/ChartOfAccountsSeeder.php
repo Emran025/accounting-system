@@ -39,13 +39,15 @@ class ChartOfAccountsSeeder extends Seeder
 
             // Revenue
             ['account_code' => '4000', 'account_name' => 'الإيرادات', 'account_type' => 'Revenue'],
-            ['account_code' => '4100', 'account_name' => 'مبيعات', 'account_type' => 'Revenue'],
+            ['account_code' => '4100', 'account_name' => 'مجموعة المبيعات', 'account_type' => 'Revenue'],
+            ['account_code' => '4101', 'account_name' => 'مبيعات', 'account_type' => 'Revenue'],
             ['account_code' => '4110', 'account_name' => 'خصم المبيعات', 'account_type' => 'Revenue'],
-            ['account_code' => '4200', 'account_name' => 'إيرادات أخرى', 'account_type' => 'Revenue'],
-
+            ['account_code' => '4200', 'account_name' => 'مجموعة الإيرادات الأخرى', 'account_type' => 'Revenue'],
+            ['account_code' => '4210', 'account_name' => 'إيرادات أخرى', 'account_type' => 'Revenue'],            
             // Expenses
             ['account_code' => '5000', 'account_name' => 'المصروفات', 'account_type' => 'Expense'],
-            ['account_code' => '5100', 'account_name' => 'تكلفة البضاعة المباعة', 'account_type' => 'Expense'],
+            ['account_code' => '5100', 'account_name' => 'مجموعة تكلفة البضاعة المباعة', 'account_type' => 'Expense'],
+            ['account_code' => '5101', 'account_name' => 'تكلفة البضاعة المباعة', 'account_type' => 'Expense'],
             ['account_code' => '5200', 'account_name' => 'المصروفات التشغيلية', 'account_type' => 'Expense'],
             ['account_code' => '5210', 'account_name' => 'إيجار', 'account_type' => 'Expense'],
             ['account_code' => '5220', 'account_name' => 'مرتبات', 'account_type' => 'Expense'],
@@ -83,6 +85,7 @@ class ChartOfAccountsSeeder extends Seeder
             '3100' => '3000',
             '3200' => '3000',
             '4100' => '4000',
+            '4101' => '4100',
             '4110' => '4100',
             '4200' => '4000',
             '5100' => '5000',

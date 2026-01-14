@@ -128,6 +128,9 @@ Route::middleware(['api.auth'])->group(function () {
     Route::put('/settings/store', [SettingsController::class, 'updateStoreSettings'])->name('api.settings.store.update');
     Route::get('/settings/invoice', [SettingsController::class, 'getInvoiceSettings'])->name('api.settings.invoice');
     Route::put('/settings/invoice', [SettingsController::class, 'updateInvoiceSettings'])->name('api.settings.invoice.update');
+    
+    // Government Fees (Kharaaj)
+    Route::apiResource('government_fees', \App\Http\Controllers\Api\GovernmentFeesController::class);
 
     // Audit Logs
     Route::get('/audit-logs', [\App\Http\Controllers\Api\AuditLogController::class, 'index'])->name('api.audit_logs.index');
