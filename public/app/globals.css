@@ -237,8 +237,8 @@ body {
 
 /* Page Header */
 .page-header {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 2fr 5fr;
   align-items: center;
   margin-bottom: 2rem;
 }
@@ -250,7 +250,8 @@ body {
 }
 
 .header-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto;
   align-items: center;
   gap: 1rem;
 }
@@ -389,7 +390,13 @@ body {
 }
 
 /* Form Styles */
-.form-group {
+.form-group 
+ {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: 100%;
+
   margin-bottom: 1.25rem;
   position: relative;
   align-items: right;
@@ -805,6 +812,26 @@ tbody tr:hover {
 
 .btn:active {
   transform: translateY(1px) scale(0.98);
+}
+
+.btn-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: btn-spin 0.8s linear infinite;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn-secondary .btn-spinner {
+  border-color: rgba(0, 0, 0, 0.1);
+  border-top-color: var(--primary-color);
 }
 
 .discount-type-toggle {
@@ -1562,16 +1589,71 @@ tbody tr:hover {
 
 .searchable-select input[type="text"] {
   padding-left: 2.5rem !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23a45a3d' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z' /%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: left 0.75rem center;
-  background-size: 1.1rem;
+  padding-right: 2.5rem !important;
+  transition: all 0.3s ease;
 }
 
 [dir="rtl"] .searchable-select input[type="text"] {
-  background-position: left 0.75rem center;
+  padding-right: 2.5rem !important;
   padding-left: 2.5rem !important;
-  padding-right: 1rem !important;
+}
+
+.searchable-select .search-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--primary-color);
+  opacity: 0.8;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+[dir="rtl"] .searchable-select .search-icon {
+  right: 0.85rem;
+  left: auto;
+}
+
+[dir="ltr"] .searchable-select .search-icon {
+  left: 0.85rem;
+  right: auto;
+}
+
+.searchable-select .clear-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-light);
+  padding: 4px;
+  font-size: 1.25rem;
+  z-index: 2;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.2s, color 0.2s;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.searchable-select .clear-btn:hover {
+  opacity: 1;
+  transform: translateY(-50%) scale(1.2);
+  color: var(--danger-color);
+}
+
+[dir="rtl"] .searchable-select .clear-btn {
+  left: 0.75rem !important;
+  right: auto !important;
+}
+
+[dir="ltr"] .searchable-select .clear-btn {
+  right: 0.75rem !important;
+  left: auto !important;
 }
 
 .options-list {
@@ -2248,7 +2330,7 @@ body.sidebar-is-collapsed .sidebar-toggle-btn {
 .number-input-container {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.3rem;
   width: 100%;
 }
 

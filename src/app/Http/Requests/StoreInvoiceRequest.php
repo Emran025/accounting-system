@@ -14,7 +14,7 @@ class StoreInvoiceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'invoice_number' => 'nullable|string|max:50',
+            'invoice_number' => 'nullable|string|max:50|unique:invoices,invoice_number',
             'payment_type' => 'required|in:cash,credit',
             'customer_id' => 'required_if:payment_type,credit|nullable|exists:ar_customers,id',
             'amount_paid' => 'nullable|numeric|min:0',

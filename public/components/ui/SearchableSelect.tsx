@@ -1,31 +1,45 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { Icon } from "@/lib/icons";
 
 export interface SelectOption {
     value: string | number;
     label: string;
     subtitle?: string;
+    original?: any; // Keep the original object if needed
 }
 
 interface SearchableSelectProps {
     options: SelectOption[];
     value: string | number | null;
     onChange: (value: string | number | null, option: SelectOption | null) => void;
+    onSearch?: (term: string) => void;
     placeholder?: string;
     disabled?: boolean;
     id?: string;
     name?: string;
+    required?: boolean;
+    className?: string;
+    noResultsText?: string;
+    renderOption?: (option: SelectOption) => React.ReactNode;
+    filterOption?: (option: SelectOption, searchTerm: string) => boolean;
 }
 
 export function SearchableSelect({
     options,
     value,
     onChange,
+    onSearch,
     placeholder = "بحث...",
     disabled = false,
     id,
     name,
+    required = false,
+    className = "",
+    noResultsText = "لا توجد نتائج",
+    renderOption,
+    filterOption,
 }: SearchableSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -43,17 +57,21 @@ export function SearchableSelect({
         if (selectedOption) {
             setInputValue(selectedOption.label);
             setSearchTerm("");
-        } else {
+        } else if (!value) {
             setInputValue("");
+            setSearchTerm("");
         }
     }, [selectedOption, value]);
 
-    // Filter options based on search
-    const filteredOptions = Array.isArray(options)
-        ? options.filter((opt) =>
-            opt.label.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        : [];
+    // Filter options based on search (only if onSearch is not provided)
+    const filteredOptions = onSearch 
+        ? options 
+        : Array.isArray(options)
+            ? options.filter((opt) => {
+                if (filterOption) return filterOption(opt, searchTerm);
+                return opt.label.toLowerCase().includes(searchTerm.toLowerCase());
+            })
+            : [];
 
     // Handle click outside
     useEffect(() => {
@@ -72,6 +90,9 @@ export function SearchableSelect({
         const val = e.target.value;
         setInputValue(val);
         setSearchTerm(val);
+        if (onSearch) {
+            onSearch(val);
+        }
         if (!isOpen) setIsOpen(true);
     };
 
@@ -79,6 +100,7 @@ export function SearchableSelect({
         setIsOpen(true);
         if (!selectedOption) {
             setSearchTerm(inputValue);
+            if (onSearch) onSearch(inputValue);
         }
     };
 
@@ -92,15 +114,17 @@ export function SearchableSelect({
         [onChange]
     );
 
-    const handleClear = () => {
+    const handleClear = (e: React.MouseEvent) => {
+        e.stopPropagation();
         onChange(null, null);
         setInputValue("");
         setSearchTerm("");
+        if (onSearch) onSearch("");
         inputRef.current?.focus();
     };
 
     return (
-        <div className="searchable-select" ref={containerRef}>
+        <div className={`searchable-select ${className}`} ref={containerRef}>
             <input
                 ref={inputRef}
                 type="text"
@@ -112,29 +136,24 @@ export function SearchableSelect({
                 placeholder={placeholder}
                 disabled={disabled}
                 autoComplete="off"
+                required={required && !value}
             />
+            <div className="search-icon">
+                <Icon name="search" size={18} />
+            </div>
             {value && !isOpen && (
                 <button
                     type="button"
                     onClick={handleClear}
-                    style={{
-                        position: "absolute",
-                        left: "40px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "var(--text-light)",
-                        padding: "4px",
-                    }}
+                    className="clear-btn"
+                    title="مسح"
                 >
-                    ×
+                    <Icon name="x" size={16} />
                 </button>
             )}
             <div className={`options-list ${isOpen ? "active" : ""}`}>
                 {filteredOptions.length === 0 ? (
-                    <div className="no-results">لا توجد نتائج</div>
+                    <div className="no-results">{noResultsText}</div>
                 ) : (
                     filteredOptions.map((option) => (
                         <div
@@ -142,15 +161,23 @@ export function SearchableSelect({
                             className={`option-item ${value === option.value ? "selected" : ""}`}
                             onClick={() => handleOptionClick(option)}
                         >
-                            <span className="option-name">{option.label}</span>
-                            {option.subtitle && (
-                                <span className="option-stock">{option.subtitle}</span>
+                            {renderOption ? (
+                                renderOption(option)
+                            ) : (
+                                <>
+                                    <span className="option-name">{option.label}</span>
+                                    {option.subtitle && (
+                                        <span className="option-stock">{option.subtitle}</span>
+                                    )}
+                                </>
                             )}
                         </div>
                     ))
                 )}
             </div>
+            <input type="hidden" name={name} value={value || ""} required={required} />
         </div>
     );
 }
+
 

@@ -315,12 +315,16 @@ export default function PurchasesPage() {
                 title="المشتريات"
                 user={user}
                 searchInput={
-                    <input
-                        type="text"
-                        placeholder="بحث..."
-                        value={searchTerm}
-                        onChange={handleSearch}
-                        className="search-control"
+                    <SearchableSelect
+                        options={[]}
+                        value={null}
+                        onChange={() => {}}
+                        onSearch={(val) => {
+                            setSearchTerm(val);
+                            loadPurchases(1, val);
+                        }}
+                        placeholder="بحث سريع..."
+                        className="header-search-bar"
                     />
                 }
                 actions={

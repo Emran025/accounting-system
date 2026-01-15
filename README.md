@@ -32,6 +32,10 @@ cp .env.example .env
 php artisan key:generate
 touch database/database.sqlite
 php artisan migrate
+php artisan db:seed
+
+# or 
+php artisan migrate:fresh --seed
 
 # 3. Frontend Setup
 cd ../public

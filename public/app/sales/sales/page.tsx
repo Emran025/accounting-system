@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert, NumberInput } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, showToast, SegmentedToggle } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
-import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
-import { User, getStoredUser, canAccess, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
+import { formatCurrency, formatDateTime, parseNumber } from "@/lib/utils";
+import { User, getStoredUser, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
-import { printInvoice, generateInvoiceHTML, getSettings } from "@/lib/invoice-utils";
+import { printInvoice } from "@/lib/invoice-utils";
 import { Currency } from "../../system/settings/types";
 import { PaginatedResponse } from "@/lib/types";
 
@@ -87,14 +87,9 @@ export default function SalesPage() {
     // Products
     const [products, setProducts] = useState<Product[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const [productSearchTerm, setProductSearchTerm] = useState("");
-    const [productOptionsVisible, setProductOptionsVisible] = useState(false);
-    const productSearchRef = useRef<HTMLDivElement>(null);
 
     // Customer
-    const [customers, setCustomers] = useState<{id: number, name: string}[]>([]);
     const [selectedCustomer, setSelectedCustomer] = useState<{id: number, name: string} | null>(null);
-    const [paymentType, setPaymentType] = useState<"cash" | "credit">("cash");
 
     // Invoice form
     const [quantity, setQuantity] = useState("1");
@@ -126,9 +121,38 @@ export default function SalesPage() {
 
     const [isLoading, setIsLoading] = useState(true);
 
+    // Pricing Helpers
+    const calculateSellingPrice = (basePrice: number) => {
+        // basePrice is the Taxable amount (e.g. Price before fees/VAT)
+        const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
+        const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
+        
+        // Fee amount based on base price
+        const variableFeeAmount = basePrice * feesPercentage;
+        
+        // VAT is calculated on base price (Taxable Base)
+        const vatAmount = basePrice * vatRate;
+
+        // Final = Base + Fees + VAT + Fixed
+        return basePrice + variableFeeAmount + vatAmount + fixedFees;
+    };
+
+    const calculateBasePrice = (finalPrice: number) => {
+        // Reverse calculation to extract Base Price from Final Price
+        const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
+        const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
+        
+        // Formula: Final = Base * (1 + fee% + vat%) + Fixed
+        // Base = (Final - Fixed) / (1 + fee% + vat%)
+        
+        const divisor = 1 + feesPercentage + vatRate;
+        const base = (finalPrice - fixedFees) / divisor;
+        return base > 0 ? base : 0;
+    };
+
     const baseItemsTotal = invoiceItems.reduce((sum, item) => {
         const basePrice = calculateBasePrice(item.unit_price);
-        return sum + (basePrice * item.quantity * (item.unit_type === "main" ? (selectedProduct?.items_per_unit || 1) : 1));
+        return sum + (basePrice * item.total_sub_units);
     }, 0);
 
     const totalVAT = baseItemsTotal * vatRate;
@@ -137,7 +161,7 @@ export default function SalesPage() {
         const base = calculateBasePrice(item.unit_price);
         const feesPercentage = governmentFees.reduce((s, f) => s + (Number(f.percentage) || 0), 0) / 100;
         const fixedFees = governmentFees.reduce((s, f) => s + (Number(f.fixed_amount) || 0), 0);
-        return sum + (base * feesPercentage + fixedFees) * item.quantity;
+        return sum + (base * feesPercentage + fixedFees) * item.total_sub_units;
     }, 0);
 
     const calculatedDiscount = useCallback(() => {
@@ -151,18 +175,11 @@ export default function SalesPage() {
     const finalTotal = baseItemsTotal + totalFees + totalVAT - calculatedDiscount();
 
     const generateInvoiceNumber = useCallback(() => {
-        const num = "INV-" + Date.now().toString().slice(-8);
+        // Use last 6 digits of timestamp + 4 digits of randomness
+        const ts = Date.now().toString().slice(-6);
+        const rand = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        const num = "INV-" + ts + rand;
         setInvoiceNumber(num);
-    }, []);
-
-    const loadCustomers = useCallback(async () => {
-        try {
-            const response = await fetchAPI(`ar_customers`);
-            if (response.success && response.data) {
-                // Fix BUG-007: Use proper type instead of 'any'
-                setCustomers(response.data as Array<{id: number, name: string}>);
-            }
-        } catch (e) {}
     }, []);
 
     const loadFees = useCallback(async () => {
@@ -244,41 +261,13 @@ export default function SalesPage() {
 
 
 
-            await Promise.all([loadProducts(), loadInvoices(), loadCustomers(), loadFees()]);
+            await Promise.all([loadProducts(), loadInvoices(), loadFees()]);
             generateInvoiceNumber();
             setIsLoading(false);
         };
         init();
-    }, [loadProducts, loadInvoices, generateInvoiceNumber, loadCustomers, loadFees]);
+    }, [loadProducts, loadInvoices, generateInvoiceNumber, loadFees]);
 
-    // Pricing Helpers
-    const calculateSellingPrice = (basePrice: number) => {
-        // basePrice is the Taxable amount (e.g. Price before fees/VAT)
-        const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
-        const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
-        
-        // Fee amount based on base price
-        const variableFeeAmount = basePrice * feesPercentage;
-        
-        // VAT is calculated on base price (Taxable Base)
-        const vatAmount = basePrice * vatRate;
-
-        // Final = Base + Fees + VAT + Fixed
-        return basePrice + variableFeeAmount + vatAmount + fixedFees;
-    };
-
-    const calculateBasePrice = (finalPrice: number) => {
-        // Reverse calculation to extract Base Price from Final Price
-        const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
-        const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
-        
-        // Formula: Final = Base * (1 + fee% + vat%) + Fixed
-        // Base = (Final - Fixed) / (1 + fee% + vat%)
-        
-        const divisor = 1 + feesPercentage + vatRate;
-        const base = (finalPrice - fixedFees) / divisor;
-        return base > 0 ? base : 0;
-    };
 
     // Calculate subtotal
     useEffect(() => {
@@ -326,26 +315,22 @@ export default function SalesPage() {
         }
     }, [selectedProduct, invoiceItems]);
 
-    // Click outside handler
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (productSearchRef.current && !productSearchRef.current.contains(e.target as Node)) {
-                setProductOptionsVisible(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
 
-    const filteredProducts = products.filter(
-        (p) =>
-            p.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
-            (p.barcode && p.barcode.includes(productSearchTerm))
-    ).slice(0, 50);
 
-    const handleProductSelect = (product: Product) => {
+    const productOptions: SelectOption[] = products.map((p) => ({
+        value: p.id,
+        label: p.name,
+        subtitle: `${p.stock_quantity} ${p.sub_unit_name || "حبة"}`,
+        original: p,
+    }));
+
+    const handleProductSelect = (value: string | number | null, option: SelectOption | null) => {
+        if (!option) {
+            setSelectedProduct(null);
+            return;
+        }
+        const product = option.original as Product;
         setSelectedProduct(product);
-        setProductSearchTerm(product.name);
         
         // Calculate initial display price: Base Price + Tax + Fees
     // Base Price is the starting price for calculation (Cost + Margin)
@@ -358,8 +343,6 @@ export default function SalesPage() {
         
         // Store display price in the input for user to see/edit
         setUnitPrice(displayPrice.toFixed(2));
-        
-        setProductOptionsVisible(false);
     };
 
     const calculateSubtotal = () => {
@@ -440,7 +423,6 @@ export default function SalesPage() {
 
         // Reset form
         setSelectedProduct(null);
-        setProductSearchTerm("");
         setQuantity("1");
         setUnitPrice("");
         setItemStock("");
@@ -454,11 +436,6 @@ export default function SalesPage() {
     const finishInvoice = async () => {
         if (invoiceItems.length === 0) {
             showAlert("alert-container", "الفاتورة فارغة!", "error");
-            return;
-        }
-
-        if (paymentType === "credit" && !selectedCustomer) {
-            showAlert("alert-container", "يرجى اختيار العميل للفواتير الآجلة", "error");
             return;
         }
 
@@ -476,7 +453,7 @@ export default function SalesPage() {
                 })),
                 discount_amount: calculatedDiscount(),
                 subtotal: baseItemsTotal,
-                payment_type: paymentType,
+                payment_type: 'cash',
                 customer_id: selectedCustomer?.id,
                 // Note: VAT rate is enforced server-side from config, not sent by client
             };
@@ -539,15 +516,22 @@ export default function SalesPage() {
                 setInvoiceItems([]);
                 setDiscountValue("0");
                 generateInvoiceNumber();
-                setPaymentType("cash");
                 setSelectedCustomer(null);
                 await loadProducts();
                 await loadInvoices();
             } else {
                 showAlert("alert-container", response.message || "فشل حفظ الفاتورة", "error");
+                // Regenerate if it might be a duplicate number error
+                if (response.message?.includes("UNIQUE") || response.message?.includes("exists") || response.message?.includes("موجود")) {
+                    generateInvoiceNumber();
+                }
             }
         } catch (error) {
-            showAlert("alert-container", "خطأ: " + (error instanceof Error ? error.message : "خطأ غير معروف"), "error");
+            const msg = error instanceof Error ? error.message : "خطأ غير معروف";
+            showAlert("alert-container", "خطأ: " + msg, "error");
+            if (msg.includes("UNIQUE") || msg.includes("exists") || msg.includes("موجود")) {
+                generateInvoiceNumber();
+            }
         }
     };
 
@@ -659,7 +643,7 @@ export default function SalesPage() {
 
     return (
         <MainLayout requiredModule="sales">
-            <PageHeader title="المبيعات / نقطة البيع" user={user} />
+            <PageHeader title="المبيعات النقدية / نقطة البيع" user={user} />
 
             <div id="alert-container"></div>
 
@@ -668,7 +652,7 @@ export default function SalesPage() {
                     {/* Left: Input Form */}
                     <div className="sales-card compact animate-slide">
                         <div className="card-header-flex">
-                            <h3>باجة المبيعات / الفواتير</h3>
+                            <h3> المبيعات / الفواتير</h3>
                             <div className="invoice-badge-group" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                                 <div className="invoice-badge">
                                     <span className="stat-label">رقم الفاتورة:</span>
@@ -681,60 +665,8 @@ export default function SalesPage() {
                                         style={{ width: '100px' }}
                                     />
                                 </div>
-                                
-                                {/* Payment Type Selector */}
-                                <div className="invoice-badge">
-                                    <span className="stat-label">الدفع:</span>
-                                    <select 
-                                        className="minimal-input"
-                                        value={paymentType}
-                                        onChange={(e) => setPaymentType(e.target.value as "cash" | "credit")}
-                                        style={{ minWidth: "80px" }}
-                                    >
-                                        <option value="cash">نقدي</option>
-                                        <option value="credit">آجل / ذمم</option>
-                                    </select>
-                                </div>
-
-                                {/* Currency Selector */}
-                                {currencies.length > 0 && (
-                                    <div className="invoice-badge">
-                                        <span className="stat-label">العملة:</span>
-                                        <select 
-                                            className="minimal-input" 
-                                            value={selectedCurrency?.id || ""}
-                                            onChange={e => {
-                                                const id = parseInt(e.target.value);
-                                                const curr = currencies.find(c => c.id === id);
-                                                if (curr) setSelectedCurrency(curr);
-                                            }}
-                                            style={{ minWidth: "80px" }}
-                                        >
-                                            {currencies.map(c => <option key={c.id} value={c.id}>{c.code}</option>)}
-                                        </select>
-                                    </div>
-                                )}
                             </div>
                         </div>
-
-                        {/* Customer Seelctor for Credit Sales */}
-                        {paymentType === 'credit' && (
-                             <div className="form-group animate-slide-up" style={{ marginTop: '1rem', background: '#eef2f7', padding: '10px', borderRadius: '6px' }}>
-                                <label style={{ fontSize: '0.9rem', marginBottom: '5px', display: 'block' }}>اختر العميل (مطلوب للآجل)</label>
-                                <select 
-                                    className="form-control"
-                                    value={selectedCustomer?.id || ""}
-                                    onChange={(e) => {
-                                        const id = parseInt(e.target.value);
-                                        const cust = customers.find(c => c.id === id);
-                                        setSelectedCustomer(cust || null);
-                                    }}
-                                >
-                                    <option value="">-- اختر العميل --</option>
-                                    {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                             </div>
-                        )}
 
                         <form
                             id="invoice-form"
@@ -745,42 +677,18 @@ export default function SalesPage() {
                         >
                             <div className="form-group">
                                 <label htmlFor="product-select">اختر المنتج *</label>
-                                <div className="searchable-select" id="product-search-container" ref={productSearchRef}>
-                                    <input
-                                        type="text"
-                                        id="product-search-input"
-                                        value={productSearchTerm}
-                                        onChange={(e) => {
-                                            setProductSearchTerm(e.target.value);
-                                            setProductOptionsVisible(true);
-                                        }}
-                                        onFocus={() => setProductOptionsVisible(true)}
-                                        placeholder="ابحث عن منتج..."
-                                        autoComplete="off"
-                                    />
-                                    <div
-                                        className={`options-list ${productOptionsVisible ? "active" : ""}`}
-                                        id="product-options-list"
-                                    >
-                                        {filteredProducts.length === 0 ? (
-                                            <div className="no-results">لا توجد منتجات مطابقة</div>
-                                        ) : (
-                                            filteredProducts.map((product) => (
-                                                <div
-                                                    key={product.id}
-                                                    className="option-item"
-                                                    onClick={() => handleProductSelect(product)}
-                                                >
-                                                    <span className="option-name">{product.name}</span>
-                                                    <span className="option-stock">
-                                                        {product.stock_quantity} {product.sub_unit_name || "حبة"}
-                                                    </span>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                    <input type="hidden" id="product-select" value={selectedProduct?.id || ""} required />
-                                </div>
+                                <SearchableSelect
+                                    id="product-select"
+                                    options={productOptions}
+                                    value={selectedProduct?.id || null}
+                                    onChange={handleProductSelect}
+                                    placeholder="ابحث عن منتج..."
+                                    required
+                                    filterOption={(opt, term) => 
+                                        opt.label.toLowerCase().includes(term.toLowerCase()) || 
+                                        (opt.original?.barcode && opt.original.barcode.includes(term))
+                                    }
+                                />
                             </div>
 
                             <div className="form-row">
@@ -915,21 +823,15 @@ export default function SalesPage() {
                                     />
                                 </div>
                                 
-                                <div className="discount-config" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                    <span className="stat-label" style={{ fontSize: '0.75rem' }}>نوع التخفيض</span>
-                                    <div className="discount-type-toggle">
-                                        <button 
-                                            className={discountType === "fixed" ? "active" : ""} 
-                                            onClick={() => setDiscountType("fixed")}
-                                            type="button"
-                                        >مبلغ</button>
-                                        <button 
-                                            className={discountType === "percent" ? "active" : ""} 
-                                            onClick={() => setDiscountType("percent")}
-                                            type="button"
-                                        >نسبة</button>
-                                    </div>
-                                </div>
+                                <SegmentedToggle
+                                    label="نوع التخفيض"
+                                    value={discountType}
+                                    onChange={(val) => setDiscountType(val as "fixed" | "percent")}
+                                    options={[
+                                        { value: "fixed", label: "مبلغ" },
+                                        { value: "percent", label: "نسبة" }
+                                    ]}
+                                />
                             </div>
 
                             {calculatedDiscount() > 0 && (

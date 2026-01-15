@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, SearchableSelect, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate, translateExpenseCategory } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
@@ -241,14 +241,19 @@ export default function ExpensesPage() {
         title="المصروفات"
         user={user}
         searchInput={
-          <input
-            type="text"
-            placeholder="بحث..."
-            value={searchTerm}
-            onChange={handleSearch}
-            style={{ width: "200px" }}
+          <SearchableSelect
+              options={[]}
+              value={null}
+              onChange={() => {}}
+              onSearch={(val) => {
+                  setSearchTerm(val);
+                  loadExpenses(1, val);
+              }}
+              placeholder="بحث سريع..."
+              className="header-search-bar"
           />
         }
+        
         actions={
           canAccess(permissions, "expenses", "create") && (
             <button className="btn btn-primary" onClick={openAddDialog}>

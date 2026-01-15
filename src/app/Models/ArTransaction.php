@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ArTransaction extends Model
 {
+    const UPDATED_AT = null;
+
     protected $fillable = [
         'customer_id',
         'type',

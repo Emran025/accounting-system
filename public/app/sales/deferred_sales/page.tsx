@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert, NumberInput } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, SegmentedToggle } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
-import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
+import { formatCurrency, formatDateTime, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, canAccess, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
-import { printInvoice, generateInvoiceHTML, getSettings } from "@/lib/invoice-utils";
+import { printInvoice } from "@/lib/invoice-utils";
 
 interface GovernmentFee {
     id: number;
@@ -86,16 +86,11 @@ export default function DeferredSalesPage() {
   // Products
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [productSearchTerm, setProductSearchTerm] = useState("");
-  const [productOptionsVisible, setProductOptionsVisible] = useState(false);
-  const productSearchRef = useRef<HTMLDivElement>(null);
 
   // Customers
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
-  const [customerOptionsVisible, setCustomerOptionsVisible] = useState(false);
-  const customerSearchRef = useRef<HTMLDivElement>(null);
 
   // Invoice form
   const [quantity, setQuantity] = useState("1");
@@ -125,6 +120,35 @@ export default function DeferredSalesPage() {
 
   const [isLoading, setIsLoading] = useState(true);
 
+  // Pricing Helpers
+  const calculateSellingPrice = (basePrice: number) => {
+    // basePrice is the amount subject to fees and VAT
+    const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
+    const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
+    
+    // Fee amount based on base price
+    const variableFeeAmount = basePrice * feesPercentage;
+    
+    // VAT is calculated on base price (Taxable Base)
+    const vatAmount = basePrice * vatRate;
+
+    // Final = Base + Fees + VAT + Fixed
+    return basePrice + variableFeeAmount + vatAmount + fixedFees;
+  };
+
+  const calculateBasePrice = (finalPrice: number) => {
+    // Reverse calculation to extract Base Price from Final Price
+    const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
+    const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
+    
+    // Formula: Final = Base * (1 + fee% + vat%) + Fixed
+    // Base = (Final - Fixed) / (1 + fee% + vat%)
+    
+    const divisor = 1 + feesPercentage + vatRate;
+    const base = (finalPrice - fixedFees) / divisor;
+    return base > 0 ? base : 0;
+  };
+
   const baseItemsTotal = invoiceItems.reduce((sum, item) => {
     const basePrice = calculateBasePrice(item.unit_price);
     return sum + (basePrice * item.quantity);
@@ -150,7 +174,10 @@ export default function DeferredSalesPage() {
   const finalTotal = baseItemsTotal + totalFees + totalVAT - calculatedDiscount();
 
   const generateInvoiceNumber = useCallback(() => {
-    const num = "INV-" + Date.now().toString().slice(-8);
+    // Use last 6 digits of timestamp + 4 digits of randomness
+    const ts = Date.now().toString().slice(-6);
+    const rand = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    const num = "INV-" + ts + rand;
     setInvoiceNumber(num);
   }, []);
 
@@ -237,34 +264,6 @@ export default function DeferredSalesPage() {
     init();
   }, [loadProducts, loadInvoices, generateInvoiceNumber, loadFees]);
 
-  // Pricing Helpers
-  const calculateSellingPrice = (basePrice: number) => {
-    // basePrice is the amount subject to fees and VAT
-    const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
-    const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
-    
-    // Fee amount based on base price
-    const variableFeeAmount = basePrice * feesPercentage;
-    
-    // VAT is calculated on base price (Taxable Base)
-    const vatAmount = basePrice * vatRate;
-
-    // Final = Base + Fees + VAT + Fixed
-    return basePrice + variableFeeAmount + vatAmount + fixedFees;
-  };
-
-  const calculateBasePrice = (finalPrice: number) => {
-    // Reverse calculation to extract Base Price from Final Price
-    const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
-    const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
-    
-    // Formula: Final = Base * (1 + fee% + vat%) + Fixed
-    // Base = (Final - Fixed) / (1 + fee% + vat%)
-    
-    const divisor = 1 + feesPercentage + vatRate;
-    const base = (finalPrice - fixedFees) / divisor;
-    return base > 0 ? base : 0;
-  };
 
   // Customer search debounce
   useEffect(() => {
@@ -317,29 +316,29 @@ export default function DeferredSalesPage() {
     }
   }, [selectedProduct, invoiceItems]);
 
-  // Click outside handlers
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (productSearchRef.current && !productSearchRef.current.contains(e.target as Node)) {
-        setProductOptionsVisible(false);
-      }
-      if (customerSearchRef.current && !customerSearchRef.current.contains(e.target as Node)) {
-        setCustomerOptionsVisible(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
-  const filteredProducts = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
-      (p.barcode && p.barcode.includes(productSearchTerm))
-  ).slice(0, 50);
 
-  const handleProductSelect = (product: Product) => {
+  const productOptions: SelectOption[] = products.map((p) => ({
+    value: p.id,
+    label: p.name,
+    subtitle: `${p.stock_quantity} ${p.sub_unit_name || "حبة"}`,
+    original: p,
+  }));
+
+  const customerOptions: SelectOption[] = customers.map((c) => ({
+    value: c.id,
+    label: c.name,
+    subtitle: c.phone || "",
+    original: c,
+  }));
+
+  const handleProductSelect = (value: string | number | null, option: SelectOption | null) => {
+    if (!option) {
+      setSelectedProduct(null);
+      return;
+    }
+    const product = option.original as Product;
     setSelectedProduct(product);
-    setProductSearchTerm(product.name);
     
     // Calculate initial display price: (Cost + Margin) + Tax + Fees
     // Use weighted_average_cost if available as it is the system's true cost, otherwise fallback to unit_price or purchase_price
@@ -352,14 +351,17 @@ export default function DeferredSalesPage() {
     
     // Store display price in the input for user to see/edit
     setUnitPrice(displayPrice.toFixed(2));
-    
-    setProductOptionsVisible(false);
   };
 
-  const handleCustomerSelect = (customer: Customer) => {
+  const handleCustomerSelect = (value: string | number | null, option: SelectOption | null) => {
+    if (!option) {
+      setSelectedCustomer(null);
+      setCustomerSearchTerm("");
+      return;
+    }
+    const customer = option.original as Customer;
     setSelectedCustomer(customer);
     setCustomerSearchTerm(customer.name);
-    setCustomerOptionsVisible(false);
   };
 
   const calculateSubtotal = () => {
@@ -441,7 +443,6 @@ export default function DeferredSalesPage() {
 
     // Reset form
     setSelectedProduct(null);
-    setProductSearchTerm("");
     setQuantity("1");
     setUnitPrice("");
     setItemStock("");
@@ -522,9 +523,17 @@ export default function DeferredSalesPage() {
         await loadInvoices();
       } else {
         showAlert("alert-container", response.message || "فشل حفظ الفاتورة", "error");
+        // Regenerate if it might be a duplicate number error
+        if (response.message?.includes("UNIQUE") || response.message?.includes("exists") || response.message?.includes("موجود")) {
+          generateInvoiceNumber();
+        }
       }
     } catch (error) {
-      showAlert("alert-container", "خطأ: " + (error instanceof Error ? error.message : "خطأ غير معروف"), "error");
+      const msg = error instanceof Error ? error.message : "خطأ غير معروف";
+      showAlert("alert-container", "خطأ: " + msg, "error");
+      if (msg.includes("UNIQUE") || msg.includes("exists") || msg.includes("موجود")) {
+        generateInvoiceNumber();
+      }
     }
   };
 
@@ -680,42 +689,18 @@ export default function DeferredSalesPage() {
               >
                 <div className="form-group">
                   <label htmlFor="product-select">اختر المنتج *</label>
-                  <div className="searchable-select" id="product-search-container" ref={productSearchRef}>
-                    <input
-                      type="text"
-                      id="product-search-input"
-                      value={productSearchTerm}
-                      onChange={(e) => {
-                        setProductSearchTerm(e.target.value);
-                        setProductOptionsVisible(true);
-                      }}
-                      onFocus={() => setProductOptionsVisible(true)}
-                      placeholder="ابحث عن منتج..."
-                      autoComplete="off"
-                    />
-                    <div
-                      className={`options-list ${productOptionsVisible ? "active" : ""}`}
-                      id="product-options-list"
-                    >
-                      {filteredProducts.length === 0 ? (
-                        <div className="no-results">لا توجد منتجات مطابقة</div>
-                      ) : (
-                        filteredProducts.map((product) => (
-                          <div
-                            key={product.id}
-                            className="option-item"
-                            onClick={() => handleProductSelect(product)}
-                          >
-                            <span className="option-name">{product.name}</span>
-                            <span className="option-stock">
-                              {product.stock_quantity} {product.sub_unit_name || "حبة"}
-                            </span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                    <input type="hidden" id="product-select" value={selectedProduct?.id || ""} required />
-                  </div>
+                  <SearchableSelect
+                    id="product-select"
+                    options={productOptions}
+                    value={selectedProduct?.id || null}
+                    onChange={handleProductSelect}
+                    placeholder="ابحث عن منتج..."
+                    required
+                    filterOption={(opt, term) => 
+                      opt.label.toLowerCase().includes(term.toLowerCase()) || 
+                      (opt.original?.barcode && opt.original.barcode.includes(term))
+                    }
+                  />
                 </div>
 
                 <div className="form-row">
@@ -798,58 +783,28 @@ export default function DeferredSalesPage() {
               <div className="form-row" style={{ marginTop: "1rem" }}>
                 <div className="form-group">
                   <label htmlFor="customer-select">اختر العميل *</label>
-                  <div className="searchable-select" id="customer-search-container" ref={customerSearchRef}>
-                    <input
-                      type="text"
-                      id="customer-search-input"
-                      value={customerSearchTerm}
-                      onChange={(e) => {
-                        setCustomerSearchTerm(e.target.value);
-                        setCustomerOptionsVisible(true);
-                      }}
-                      onFocus={() => {
-                        if (customerSearchTerm.length >= 2) {
-                          setCustomerOptionsVisible(true);
-                        }
-                      }}
-                      placeholder="ابحث عن عميل..."
-                      autoComplete="off"
-                    />
-                    <div
-                      className={`options-list ${customerOptionsVisible ? "active" : ""}`}
-                      id="customer-options-list"
-                    >
-                      {customers.length === 0 ? (
-                        <div className="no-results">لا يوجد عملاء</div>
-                      ) : (
-                        customers.map((customer) => (
-                          <div
-                            key={customer.id}
-                            className="option-item"
-                            onClick={() => handleCustomerSelect(customer)}
-                          >
-                            <span className="option-name">{customer.name}</span>
-                            {customer.phone && <span className="option-stock">{customer.phone}</span>}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                    <input type="hidden" id="customer-select" value={selectedCustomer?.id || ""} required />
-                  </div>
+                  <SearchableSelect
+                    id="customer-select"
+                    options={customerOptions}
+                    value={selectedCustomer?.id || null}
+                    onChange={handleCustomerSelect}
+                    onSearch={(term) => setCustomerSearchTerm(term)}
+                    placeholder="ابحث عن عميل..."
+                    required
+                    noResultsText={customerSearchTerm.length < 2 ? "اكتب حرفين على الأقل للبحث" : "لا يوجد عملاء"}
+                  />
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="amount-paid">المبلغ المدفوع (نقدًا)</label>
-                  <input
-                    type="number"
-                    id="amount-paid"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={amountPaid}
-                    onChange={(e) => setAmountPaid(e.target.value)}
-                    className="highlight-input"
-                  />
+                    <NumberInput
+                      id="item-unit-price"
+                      label="المبلغ المدفوع (نقدًا)"
+                      min={0}
+                      step={0.01}
+                      value={amountPaid}
+                      onChange={(val) => setAmountPaid(val)}
+                      required
+                    />
                 </div>
               </div>
               <small style={{ color: "var(--text-light)", display: "block" }}>
@@ -919,21 +874,15 @@ export default function DeferredSalesPage() {
                         />
                     </div>
                     
-                    <div className="discount-config" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span className="stat-label" style={{ fontSize: '0.75rem' }}>نوع التخفيض</span>
-                        <div className="discount-type-toggle">
-                            <button 
-                                className={discountType === "fixed" ? "active" : ""} 
-                                onClick={() => setDiscountType("fixed")}
-                                type="button"
-                            >مبلغ</button>
-                            <button 
-                                className={discountType === "percent" ? "active" : ""} 
-                                onClick={() => setDiscountType("percent")}
-                                type="button"
-                            >نسبة</button>
-                        </div>
-                    </div>
+                    <SegmentedToggle
+                        label="نوع التخفيض"
+                        value={discountType}
+                        onChange={(val) => setDiscountType(val as "fixed" | "percent")}
+                        options={[
+                            { value: "fixed", label: "مبلغ" },
+                            { value: "percent", label: "نسبة" }
+                        ]}
+                    />
                   </div>
 
                   {calculatedDiscount() > 0 && (

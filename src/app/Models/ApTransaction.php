@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ApTransaction extends Model
 {
+    const UPDATED_AT = null;
+
     protected $fillable = [
         'supplier_id',
         'type',

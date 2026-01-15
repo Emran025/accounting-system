@@ -52,31 +52,6 @@ export function PageHeader({
         
         {actions}
 
-        {/* Global Settings Button */}
-        {canShowSettings && (
-          <Link 
-            href="/system/settings" 
-            className="icon-btn view" 
-            title="إعدادات النظام"
-            style={{
-              marginLeft: "10px",
-              padding: "10px",
-              borderRadius: "12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--primary-color)",
-              backgroundColor: "var(--primary-subtle)",
-              border: "1px solid var(--border-color)",
-              transition: "all 0.2s ease",
-              width: "40px",
-              height: "40px"
-            }}
-          >
-            {getIcon("settings")}
-          </Link>
-        )}
-
         {user && (
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
 

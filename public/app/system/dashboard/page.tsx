@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, showToast, Column } from "@/components/ui";
+import { Table, Dialog, showToast, Column, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, Permission, getStoredUser, getStoredPermissions, canAccess } from "@/lib/auth";
@@ -215,13 +215,14 @@ export default function DashboardPage() {
             header: "الإجراءات",
             dataLabel: "الإجراءات",
             render: (item) => (
-                <button
-                    className="btn btn-sm btn-primary"
+                <Button
+                    size="sm"
+                    variant="primary"
                     onClick={() => initiateRestock(item.id, item.name)}
+                    icon="plus"
                 >
-                    {getIcon("plus")}
                     طلب تخزين
-                </button>
+                </Button>
             ),
         },
     ];
@@ -247,7 +248,7 @@ export default function DashboardPage() {
             <div className="dashboard-stats animate-fade">
                 <div className="stat-card" onClick={openLowStockDialog} style={{ cursor: "pointer" }}>
                     <div className="stat-icon sales">
-                        <i className="fas fa-shopping-cart"></i>
+                        {getIcon("cart")}
                     </div>
                     <div className="stat-info">
                         <h3>مبيعات اليوم</h3>
@@ -257,7 +258,7 @@ export default function DashboardPage() {
 
                 <div className="stat-card">
                     <div className="stat-icon products">
-                        <i className="fas fa-box"></i>
+                        {getIcon("box")}
                     </div>
                     <div className="stat-info">
                         <h3>إجمالي المنتجات</h3>
@@ -267,7 +268,7 @@ export default function DashboardPage() {
 
                 <div className="stat-card" onClick={openLowStockDialog} style={{ cursor: "pointer" }}>
                     <div className="stat-icon alert">
-                        <i className="fas fa-exclamation-triangle"></i>
+                        {getIcon("alert")}
                     </div>
                     <div className="stat-info">
                         <h3>مخزون منخفض</h3>
@@ -277,7 +278,7 @@ export default function DashboardPage() {
 
                 <div className="stat-card" onClick={openExpiringDialog} style={{ cursor: "pointer" }}>
                     <div className="stat-icon total">
-                        <i className="fas fa-clock"></i>
+                        {getIcon("clock")}
                     </div>
                     <div className="stat-info">
                         <h3>قرب انتهاء الصلاحية</h3>
@@ -287,7 +288,7 @@ export default function DashboardPage() {
 
                 <div className="stat-card">
                     <div className="stat-icon sales">
-                        <i className="fas fa-chart-line"></i>
+                        {getIcon("chart-line")}
                     </div>
                     <div className="stat-info">
                         <h3>إجمالي المبيعات</h3>
@@ -297,7 +298,7 @@ export default function DashboardPage() {
 
                 <div className="stat-card">
                     <div className="stat-icon alert">
-                        <i className="fas fa-money-bill-wave"></i>
+                        {getIcon("dollar")}
                     </div>
                     <div className="stat-info">
                         <h3>مصروفات اليوم</h3>
@@ -307,7 +308,7 @@ export default function DashboardPage() {
 
                 <div className="stat-card">
                     <div className="stat-icon total">
-                        <i className="fas fa-wallet"></i>
+                        {getIcon("wallet")}
                     </div>
                     <div className="stat-info">
                         <h3>إجمالي المصروفات</h3>
@@ -317,7 +318,7 @@ export default function DashboardPage() {
 
                 <div className="stat-card">
                     <div className="stat-icon products">
-                        <i className="fas fa-coins"></i>
+                        {getIcon("coins")}
                     </div>
                     <div className="stat-info">
                         <h3>إيرادات اليوم</h3>
@@ -327,7 +328,7 @@ export default function DashboardPage() {
 
                 <div className="stat-card">
                     <div className="stat-icon sales">
-                        <i className="fas fa-hand-holding-usd"></i>
+                        {getIcon("hand-holding")}
                     </div>
                     <div className="stat-info">
                         <h3>إجمالي الإيرادات</h3>
@@ -337,7 +338,7 @@ export default function DashboardPage() {
 
                 <div className="stat-card">
                     <div className="stat-icon products">
-                        <i className="fas fa-building"></i>
+                        {getIcon("building")}
                     </div>
                     <div className="stat-info">
                         <h3>إجمالي الأصول</h3>
@@ -353,9 +354,9 @@ export default function DashboardPage() {
                     <div className="section-header">
                         <h3>المبيعات الأخيرة</h3>
                         {canAccess(permissions, "sales", "view") && (
-                            <a href="/sales/sales" className="btn btn-sm btn-secondary">
+                            <Button href="/sales/sales" size="sm" variant="secondary">
                                 عرض الكل
-                            </a>
+                            </Button>
                         )}
                     </div>
                     <Table
@@ -374,31 +375,28 @@ export default function DashboardPage() {
                     </div>
                     <div className="action-buttons">
                         {canAccess(permissions, "sales", "create") && (
-                            <a href="/sales/sales" className="btn btn-primary">
-                                <i className="fas fa-plus"></i>
+                            <Button href="/sales/sales" variant="primary" icon="plus">
                                 بيع جديد
-                            </a>
+                            </Button>
                         )}
                         {canAccess(permissions, "products", "create") && (
-                            <a href="/inventory/products" className="btn btn-secondary">
-                                <i className="fas fa-box"></i>
+                            <Button href="/inventory/products" variant="secondary" icon="box">
                                 إضافة منتج
-                            </a>
+                            </Button>
                         )}
                         {canAccess(permissions, "purchases", "create") && (
-                            <button
-                                className="btn btn-secondary"
+                            <Button
+                                variant="secondary"
                                 onClick={() => setRequestDialog(true)}
+                                icon="clipboard-list"
                             >
-                                <i className="fas fa-clipboard-list"></i>
                                 طلب جديد
-                            </button>
+                            </Button>
                         )}
                         {canAccess(permissions, "reports", "view") && (
-                            <a href="/system/reports" className="btn btn-secondary">
-                                <i className="fas fa-chart-bar"></i>
+                            <Button href="/system/reports" variant="secondary" icon="chart-bar">
                                 عرض التقارير
-                            </a>
+                            </Button>
                         )}
                     </div>
                 </div>
@@ -441,15 +439,15 @@ export default function DashboardPage() {
                 title="طلب جديد"
                 footer={
                     <>
-                        <button
-                            className="btn btn-secondary"
+                        <Button
+                            variant="secondary"
                             onClick={() => setRequestDialog(false)}
                         >
                             إلغاء
-                        </button>
-                        <button className="btn btn-primary" onClick={submitNewRequest}>
+                        </Button>
+                        <Button variant="primary" onClick={submitNewRequest}>
                             إرسال الطلب
-                        </button>
+                        </Button>
                     </>
                 }
             >

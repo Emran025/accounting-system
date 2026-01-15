@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Table, Column } from "@/components/ui/Table";
+import { Table, Column, SearchableSelect , Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { Employee } from "../types";
 
@@ -80,21 +80,27 @@ export function EmployeesTab() {
 
   return (
     <div className="sales-card animate-fade">
-      <div className="form-row" style={{ marginBottom: "1.5rem", display: 'flex', gap: '1rem', alignItems: 'center' }}>
-        <div className="form-group" style={{ flex: 1 }}>
-          <input
-            type="text"
-            className="form-control"
-            placeholder="بحث بالاسم أو البريد الإلكتروني..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+      <div className="form-row">
+        <div className="form-group">
+          <SearchableSelect
+              options={[]}
+              value={null}
+              onChange={() => {}}
+              onSearch={(val) => {
+                  setSearchTerm(val);
+              }}
+              placeholder="بحث سريع..."
+              className="header-search-bar"
           />
         </div>
         {/* Department Select could be added here if departments loaded */}
         <div className="form-group">
-          <button className="btn btn-primary" onClick={() => router.push('/hr/employees/add')}>
-            <i className="fas fa-plus"></i> إضافة موظف
-          </button>
+          <Button
+            variant="primary"
+            onClick={() => router.push('/hr/employees/add')}
+            icon="plus">
+            إضافة موظف
+          </Button>
         </div>
       </div>
 

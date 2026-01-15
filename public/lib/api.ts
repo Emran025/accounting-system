@@ -36,6 +36,7 @@ export async function fetchAPI(
 ): Promise<APIResponse> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
     ...options?.headers,
   };
 

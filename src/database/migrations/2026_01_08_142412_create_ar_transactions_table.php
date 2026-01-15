@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('ar_transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('customer_id')->constrained()->onDelete('cascade');
+            $table->foreignId('customer_id')->constrained('ar_customers')->onDelete('cascade');
             $table->string('type', 20); // 'invoice', 'payment', 'return'
             $table->decimal('amount', 10, 2);
             $table->text('description')->nullable();

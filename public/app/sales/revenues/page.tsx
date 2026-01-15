@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, SearchableSelect, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
@@ -210,20 +210,23 @@ export default function RevenuesPage() {
                 title="الإيرادات"
                 user={user}
                 searchInput={
-                    <input
-                        type="text"
-                        placeholder="بحث..."
-                        value={searchTerm}
-                        onChange={handleSearch}
-                        style={{ width: "200px" }}
+                    <SearchableSelect
+                        options={[]}
+                        value={null}
+                        onChange={() => {}}
+                        onSearch={(val) => {
+                            setSearchTerm(val);
+                            loadRevenues(1, val);
+                        }}
+                        placeholder="بحث سريع..."
+                        className="header-search-bar"
                     />
                 }
                 actions={
                     canAccess(permissions, "revenues", "create") && (
-                        <button className="btn btn-primary" onClick={openAddDialog}>
-                            {getIcon("plus")}
+                        <Button icon="plus" onClick={openAddDialog}>
                             إضافة إيراد
-                        </button>
+                        </Button>
                     )
                 }
             />
@@ -250,12 +253,12 @@ export default function RevenuesPage() {
                 title={selectedRevenue ? "تعديل الإيراد" : "إضافة إيراد جديد"}
                 footer={
                     <>
-                        <button className="btn btn-secondary" onClick={() => setFormDialog(false)}>
+                        <Button variant="secondary" onClick={() => setFormDialog(false)}>
                             إلغاء
-                        </button>
-                        <button className="btn btn-primary" onClick={handleSubmit}>
+                        </Button>
+                        <Button variant="primary" onClick={handleSubmit}>
                             {selectedRevenue ? "تحديث" : "إضافة"}
-                        </button>
+                        </Button>
                     </>
                 }
             >
@@ -283,17 +286,13 @@ export default function RevenuesPage() {
                     </div>
                     <div className="form-group">
                         <label htmlFor="category">الفئة</label>
-                        <select
+                        <SearchableSelect
                             id="category"
+                            options={revenueCategories}
                             value={formData.category}
-                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        >
-                            {revenueCategories.map((cat) => (
-                                <option key={cat.value} value={cat.value}>
-                                    {cat.label}
-                                </option>
-                            ))}
-                        </select>
+                            onChange={(val) => setFormData({ ...formData, category: String(val) })}
+                            placeholder="اختر الفئة..."
+                        />
                     </div>
                 </div>
 
