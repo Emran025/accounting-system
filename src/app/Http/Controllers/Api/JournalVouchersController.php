@@ -63,13 +63,13 @@ class JournalVouchersController extends Controller
             return [
                 'id' => $vNum, // Frontend uses .id for key and routing
                 'voucher_number' => $vNum,
-                'voucher_date' => $first->voucher_date->format('Y-m-d'),
+                'voucher_date' => $first->voucher_date?->format('Y-m-d'),
                 'description' => $first->description,
                 'total_debit' => (float)$entries->where('entry_type', 'DEBIT')->sum('amount'),
                 'total_credit' => (float)$entries->where('entry_type', 'CREDIT')->sum('amount'),
                 'status' => 'posted', // In this system, they are posted immediately
                 'created_by_name' => $first->creator?->username,
-                'created_at' => $first->created_at->toDateTimeString(),
+                'created_at' => $first->created_at?->toDateTimeString(),
                 'lines' => $entries->map(function($e) {
                     return [
                         'id' => $e->id,
@@ -107,7 +107,7 @@ class JournalVouchersController extends Controller
         $voucher = [
             'id' => $id,
             'voucher_number' => $id,
-            'voucher_date' => $first->voucher_date->format('Y-m-d'),
+            'voucher_date' => $first->voucher_date?->format('Y-m-d'),
             'description' => $first->description,
             'total_debit' => (float)$entries->where('entry_type', 'DEBIT')->sum('amount'),
             'total_credit' => (float)$entries->where('entry_type', 'CREDIT')->sum('amount'),

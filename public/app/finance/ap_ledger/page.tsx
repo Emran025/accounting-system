@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
@@ -189,10 +189,13 @@ function APLedgerPageContent() {
         title={`دفتر المورد: ${supplier?.name || "..."}`}
         user={user}
         actions={
-          <button className="btn btn-primary" onClick={() => setPaymentDialog(true)}>
-            <Icon name="plus" />
+          <Button 
+            variant="primary" 
+            icon="plus" 
+            onClick={() => setPaymentDialog(true)}
+          >
             صرف دفعة للمورد
-          </button>
+          </Button>
         }
       />
 
@@ -246,14 +249,14 @@ function APLedgerPageContent() {
         onClose={() => setPaymentDialog(false)}
         title="صرف دفعة مالية للمورد"
         footer={
-          <div className="flex gap-2 justify-end">
-            <button className="btn btn-secondary" onClick={() => setPaymentDialog(false)}>
+          <FilterActions className="flex gap-2 justify-end">
+            <Button variant="secondary" onClick={() => setPaymentDialog(false)}>
               إلغاء
-            </button>
-            <button className="btn btn-primary" onClick={handlePayment}>
+            </Button>
+            <Button variant="primary" onClick={handlePayment}>
               تأكيد الصرف
-            </button>
-          </div>
+            </Button>
+          </FilterActions>
         }
       >
         <div className="form-group">

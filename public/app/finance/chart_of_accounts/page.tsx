@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column , SearchableSelect} from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
@@ -243,6 +243,16 @@ export default function ChartOfAccountsPage() {
       <PageHeader
         title="دليل الحسابات"
         user={user}
+        searchInput={
+          <SearchableSelect
+            placeholder="بحث بالرقم أو الاسم..."
+            value={searchTerm}
+            onSearch={() => {handleSearch}}
+            onChange={() => {handleSearch}}
+            options={[]}
+            className="header-search-bar"
+          />
+        }
         actions={
           canAccess(permissions, "chart_of_accounts", "create") && (
             <button className="btn btn-primary" onClick={openAddDialog}>
@@ -252,17 +262,14 @@ export default function ChartOfAccountsPage() {
           )
         }
       />
-
+{/* 
       <div className="filter-section animate-fade" style={{ marginBottom: "1.5rem" }}>
         <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
           <input
-            type="text"
-            placeholder="بحث بالرقم أو الاسم..."
-            value={searchTerm}
-            onChange={handleSearch}
+
           />
         </div>
-      </div>
+      </div> */}
 
       <div className="sales-card animate-fade">
         <Table

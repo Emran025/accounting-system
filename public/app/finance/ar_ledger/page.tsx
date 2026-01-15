@@ -3,13 +3,11 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
-import { getIcon } from "@/lib/icons";
-import { generateInvoiceHTML, getSettings } from "@/lib/invoice-utils";
-
+import { getIcon, Icon } from "@/lib/icons";
 interface LedgerTransaction {
   id: number;
   transaction_date: string;
@@ -243,13 +241,13 @@ function ARLedgerPageContent() {
 
   const viewInvoice = async (id: number) => {
     try {
-      const response = await fetchAPI(`invoice_details&id=${id}`);
+      const response = await fetchAPI(`invoice_details?id=${id}`);
       if (response.success && response.data) {
         setSelectedInvoice(response.data as Invoice);
         setViewDialog(true);
       }
     } catch {
-      showToast("خطأ في جلب التفاصيل", "error");
+      showAlert("alert-container", "خطأ في جلب التفاصيل", "error");
     }
   };
 
@@ -332,7 +330,15 @@ function ARLedgerPageContent() {
       key: "id",
       header: "#",
       dataLabel: "#",
-      render: (item) => item.id,
+      render: (item) => (
+        <span 
+          className={item.reference_type === "invoices" ? "clickable-id" : ""}
+          onClick={() => item.reference_type === "invoices" && viewInvoice(item.reference_id!)}
+          style={{ cursor: item.reference_type === "invoices" ? "pointer" : "default", fontWeight: "bold", color: item.reference_type === "invoices" ? "var(--primary-color)" : "inherit" }}
+        >
+          {item.id}
+        </span>
+      ),
     },
     {
       key: "transaction_date",
@@ -363,9 +369,13 @@ function ARLedgerPageContent() {
       header: "الوصف",
       dataLabel: "الوصف",
       render: (item) => (
-        <>
+        <div 
+          className={item.reference_type === "invoices" ? "clickable-desc" : ""}
+          onClick={() => item.reference_type === "invoices" && viewInvoice(item.reference_id!)}
+          style={{ cursor: item.reference_type === "invoices" ? "pointer" : "default" }}
+        >
           {item.description || "-"} {item.is_deleted && "(محذوف)"}
-        </>
+        </div>
       ),
     },
     {
@@ -401,38 +411,22 @@ function ARLedgerPageContent() {
       render: (item) => (
         <div className="action-buttons">
           {item.is_deleted ? (
-            <button
-              className="icon-btn edit"
-              onClick={() => confirmRestoreTransaction(item.id)}
-              title="استعادة"
-            >
-              {getIcon("check")}
+            <button className="icon-btn edit" onClick={() => confirmRestoreTransaction(item.id)} title="استعادة">
+              <Icon name="check" />
             </button>
           ) : (
             <>
               {canEdit(item) && (
-                <button
-                  className="icon-btn edit"
-                  onClick={() => openEditTransaction(item)}
-                  title="تعديل"
-                >
-                  {getIcon("edit")}
+                <button className="icon-btn edit" onClick={() => openEditTransaction(item)} title="تعديل">
+                  <Icon name="edit" />
                 </button>
               )}
-              <button
-                className="icon-btn delete"
-                onClick={() => confirmDeleteTransaction(item.id)}
-                title="حذف"
-              >
-                {getIcon("trash")}
+              <button className="icon-btn delete" onClick={() => confirmDeleteTransaction(item.id)} title="حذف">
+                <Icon name="trash" />
               </button>
               {item.reference_type === "invoices" && (
-                <button
-                  className="icon-btn view"
-                  onClick={() => viewInvoice(item.reference_id!)}
-                  title="عرض الفاتورة"
-                >
-                  {getIcon("eye")}
+                <button className="icon-btn view" onClick={() => viewInvoice(item.reference_id!)} title="عرض الفاتورة">
+                  <Icon name="eye" />
                 </button>
               )}
             </>
@@ -461,21 +455,26 @@ function ARLedgerPageContent() {
         user={user}
         actions={
           <>
-            <button className="btn btn-secondary" onClick={() => setFilterDialog(true)}>
-              {getIcon("edit")}
+            <Button 
+              variant="secondary" 
+              icon="search" 
+              onClick={() => setFilterDialog(true)}
+            >
               تصفية
-            </button>
-            <button className="btn btn-primary" onClick={openAddTransactionDialog}>
-              {getIcon("plus")}
+            </Button>
+            <Button 
+              variant="primary" 
+              icon="plus" 
+              onClick={openAddTransactionDialog}
+            >
               عملية جديدة
-            </button>
+            </Button>
           </>
         }
       />
 
-      {/* Profile Header */}
       {customer && (
-        <div className="filter-section animate-fade" style={{ marginBottom: "1.5rem", background: "var(--surface-white)" }}>
+        <FilterSection className="animate-fade" style={{ marginBottom: "1.5rem" }}>
            <div className="title-with-icon">
               <div className="stat-icon products" style={{ width: "45px", height: "45px", fontSize: "1.2rem" }}>
                 {getIcon("user")}
@@ -488,7 +487,7 @@ function ARLedgerPageContent() {
               </div>
            </div>
            
-           <div className="checkbox-group" style={{ marginLeft: "auto" }}>
+           <FilterGroup className="checkbox-group" style={{ marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: "0.5rem" }}>
               <input
                 type="checkbox"
                 id="show-deleted-toggle"
@@ -498,11 +497,11 @@ function ARLedgerPageContent() {
                   loadLedger(1);
                 }}
               />
-              <label htmlFor="show-deleted-toggle" style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
+              <label htmlFor="show-deleted-toggle" style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: 0, cursor: "pointer" }}>
                 عرض المحذوفات
               </label>
-           </div>
-        </div>
+           </FilterGroup>
+        </FilterSection>
       )}
 
       {/* Stats Cards */}
@@ -562,48 +561,39 @@ function ARLedgerPageContent() {
         onClose={() => setFilterDialog(false)}
         title="تصفية العمليات"
         footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setFilterDialog(false)}>
+          <FilterActions>
+            <Button variant="secondary" onClick={() => setFilterDialog(false)}>
               إلغاء
-            </button>
-            <button className="btn btn-primary" onClick={applyFilters}>
+            </Button>
+            <Button variant="primary" onClick={applyFilters}>
               تطبيق
-            </button>
-          </>
+            </Button>
+          </FilterActions>
         }
       >
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="filter-from">من تاريخ</label>
-            <input
-              type="date"
-              id="filter-from"
-              value={filters.date_from}
-              onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
+        <div className="form-group">
+          <FilterGroup label="الفترة">
+            <DateRangePicker
+              startDate={filters.date_from}
+              endDate={filters.date_to}
+              onStartDateChange={(val) => setFilters({ ...filters, date_from: val })}
+              onEndDateChange={(val) => setFilters({ ...filters, date_to: val })}
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="filter-to">إلى تاريخ</label>
-            <input
-              type="date"
-              id="filter-to"
-              value={filters.date_to}
-              onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
-            />
-          </div>
+          </FilterGroup>
         </div>
         <div className="form-group">
-          <label htmlFor="filter-type">نوع العملية</label>
-          <select
-            id="filter-type"
-            value={filters.type}
-            onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-          >
-            <option value="">الكل</option>
-            <option value="invoice">فاتورة مبيعات</option>
-            <option value="payment">سند قبض (دفعة)</option>
-            <option value="return">مرتجع</option>
-          </select>
+          <FilterGroup label="نوع العملية">
+            <select
+              id="filter-type"
+              value={filters.type}
+              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+            >
+              <option value="">الكل</option>
+              <option value="invoice">فاتورة مبيعات</option>
+              <option value="payment">سند قبض (دفعة)</option>
+              <option value="return">مرتجع</option>
+            </select>
+          </FilterGroup>
         </div>
       </Dialog>
 
@@ -613,14 +603,14 @@ function ARLedgerPageContent() {
         onClose={() => setTransactionDialog(false)}
         title={currentTransactionId ? "تعديل عملية" : "تسجيل عملية جديدة"}
         footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setTransactionDialog(false)}>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setTransactionDialog(false)}>
               إلغاء
-            </button>
-            <button className="btn btn-primary" onClick={saveTransaction}>
+            </Button>
+            <Button variant="primary" onClick={saveTransaction}>
               حفظ
-            </button>
-          </>
+            </Button>
+          </div>
         }
       >
         <form

@@ -2,7 +2,7 @@
 import { formatCurrency } from "@/lib/utils";
 import { ProfitLossView, APIProfitLoss } from "../types";
 import { fetchAPI } from "@/lib/api";
-import { showToast } from "@/components/ui";
+import { showToast, FilterSection, DateRangePicker, FilterActions, Button } from "@/components/ui";
 import { useState, useCallback, useEffect } from "react";
 
 export function ProfitLossTab() {
@@ -51,29 +51,20 @@ export function ProfitLossTab() {
         <div className="sales-card">
             <h2><i className="fas fa-chart-line"></i> قائمة الدخل</h2>
 
-            <div className="filter-section">
-                <div className="filter-group">
-                    <label>فترة التقرير</label>
-                    <div className="date-range-group">
-                        <input
-                            type="date"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                        />
-                        <span>إلى</span>
-                        <input
-                            type="date"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                        />
-                    </div>
-                </div>
-                <div className="filter-actions">
-                    <button className="btn btn-primary" onClick={loadProfitLoss}>
-                        <i className="fas fa-search"></i> عرض التقرير
-                    </button>
-                </div>
-            </div>
+            <FilterSection>
+                <DateRangePicker
+                    label="فترة التقرير"
+                    startDate={startDate}
+                    endDate={endDate}
+                    onStartDateChange={setStartDate}
+                    onEndDateChange={setEndDate}
+                />
+                <FilterActions>
+                    <Button onClick={loadProfitLoss} icon="search">
+                        عرض التقرير
+                    </Button>
+                </FilterActions>
+            </FilterSection>
 
             {isLoading ? (
                 <div style={{ textAlign: "center", padding: "3rem" }}>

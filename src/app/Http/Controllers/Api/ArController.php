@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Api\BaseApiController;
-
+use App\Http\Resources\ArTransactionResource;
 use App\Services\LedgerService;
 use App\Services\ChartOfAccountsMappingService;
 
@@ -162,11 +162,18 @@ class ArController extends Controller
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
 
         $query = ArTransaction::where('customer_id', $customerId)
-            ->where('is_deleted', false)
-            ->with('createdBy');
+            ->where('is_deleted', false);
+
+        // Stats calculation
+        $statsData = (clone $query)->selectRaw('
+            SUM(CASE WHEN type = "invoice" THEN amount ELSE 0 END) as total_debit,
+            SUM(CASE WHEN type IN ("payment", "return") THEN amount ELSE 0 END) as total_credit,
+            COUNT(*) as transaction_count
+        ')->first();
 
         $total = $query->count();
-        $transactions = $query->orderBy('transaction_date', 'desc')
+        $transactions = $query->with('createdBy')
+            ->orderBy('transaction_date', 'desc')
             ->skip(($page - 1) * $perPage)
             ->take($perPage)
             ->get();
@@ -177,7 +184,13 @@ class ArController extends Controller
                 'name' => $customer->name,
                 'current_balance' => (float)$customer->current_balance,
             ],
-            'transactions' => \App\Http\Resources\ArTransactionResource::collection($transactions),
+            'data' => ArTransactionResource::collection($transactions),
+            'stats' => [
+                'total_debit' => (float)($statsData->total_debit ?? 0),
+                'total_credit' => (float)($statsData->total_credit ?? 0),
+                'balance' => (float)$customer->current_balance,
+                'transaction_count' => (int)($statsData->transaction_count ?? 0),
+            ],
             'pagination' => [
                 'current_page' => $page,
                 'per_page' => $perPage,

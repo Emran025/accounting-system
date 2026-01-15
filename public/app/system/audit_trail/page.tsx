@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, showToast, Column } from "@/components/ui";
+import { Table, showToast, Column, FilterSection, FilterGroup, DateRangePicker, FilterActions, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
 import { User, getStoredUser } from "@/lib/auth";
@@ -147,40 +147,26 @@ export default function AuditTrailPage() {
         user={user}
         showDate={true}
         actions={
-          <button className="btn btn-secondary" onClick={handleExport}>
-            {getIcon("download")}
+          <Button variant="secondary" onClick={handleExport} icon="download">
             تصدير
-          </button>
+          </Button>
         }
       />
 
       <div className="sales-card animate-fade">
         {/* Filters */}
-        <div className="filter-section">
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label>من تاريخ</label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              style={{ width: "150px" }}
-            />
-          </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label>إلى تاريخ</label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              style={{ width: "150px" }}
-            />
-          </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label>الإجراء</label>
+        <FilterSection>
+          <DateRangePicker
+            label="فترة المراجعة"
+            startDate={dateFrom}
+            endDate={dateTo}
+            onStartDateChange={setDateFrom}
+            onEndDateChange={setDateTo}
+          />
+          <FilterGroup label="الإجراء">
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              style={{ width: "150px" }}
             >
               {actionTypes.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -188,13 +174,11 @@ export default function AuditTrailPage() {
                 </option>
               ))}
             </select>
-          </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label>الوحدة</label>
+          </FilterGroup>
+          <FilterGroup label="الوحدة">
             <select
               value={moduleFilter}
               onChange={(e) => setModuleFilter(e.target.value)}
-              style={{ width: "150px" }}
             >
               {moduleTypes.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -202,24 +186,21 @@ export default function AuditTrailPage() {
                 </option>
               ))}
             </select>
-          </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label>بحث</label>
+          </FilterGroup>
+          <FilterGroup label="بحث">
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="بحث بالمستخدم أو الوصف..."
-              style={{ width: "200px" }}
             />
-          </div>
-          <button
-            className="btn btn-primary"
-            onClick={handleFilter}
-          >
-            تصفية
-          </button>
-        </div>
+          </FilterGroup>
+          <FilterActions>
+            <Button onClick={handleFilter} icon="search">
+              تصفية
+            </Button>
+          </FilterActions>
+        </FilterSection>
 
         <Table
           columns={columns}

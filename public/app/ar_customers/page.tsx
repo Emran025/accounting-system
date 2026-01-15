@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, Button } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
-import { Icon } from "@/lib/icons";
+import { Icon, getIcon } from "@/lib/icons";
 import { Customer } from "./types";
 import { useCustomers } from "./useCustomers";
 
 export default function ARCustomersPage() {
+    const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [permissions, setPermissions] = useState<Permission[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -128,7 +130,18 @@ export default function ARCustomersPage() {
             dataLabel: "الإجراءات",
             render: (it) => (
                 <div className="action-buttons">
-                    <button className="icon-btn view" onClick={() => { setSelectedCustomer(it); setViewDialog(true); }} title="عرض">
+                    <button 
+                        className="icon-btn view" 
+                        onClick={() => router.push(`/finance/ar_ledger?customer_id=${it.id}`)} 
+                        title="كشف الحساب"
+                    >
+                        <Icon name="clipboard-list" />
+                    </button>
+                    <button 
+                        className="icon-btn info" 
+                        onClick={() => { setSelectedCustomer(it); setViewDialog(true); }} 
+                        title="تفاصيل"
+                    >
                         <Icon name="eye" />
                     </button>
                     {canAccess(permissions, "ar_customers", "edit") && (
@@ -162,9 +175,9 @@ export default function ARCustomersPage() {
                 }
                 actions={
                     canAccess(permissions, "ar_customers", "create") && (
-                        <button className="btn btn-primary" onClick={openAddDialog}>
-                            <Icon name="plus" /> إضافة عميل
-                        </button>
+                        <Button variant="primary" icon="plus" onClick={openAddDialog}>
+                            إضافة عميل
+                        </Button>
                     )
                 }
             />
@@ -191,8 +204,8 @@ export default function ARCustomersPage() {
                 maxWidth="600px"
                 footer={
                     <>
-                        <button className="btn btn-secondary" onClick={() => setFormDialog(false)}>إلغاء</button>
-                        <button className="btn btn-primary" onClick={handleSubmit}>{selectedCustomer ? "تحديث" : "إضافة"}</button>
+                        <Button variant="secondary" onClick={() => setFormDialog(false)}>إلغاء</Button>
+                        <Button variant="primary" onClick={handleSubmit}>{selectedCustomer ? "تحديث" : "إضافة"}</Button>
                     </>
                 }
             >
@@ -224,47 +237,86 @@ export default function ARCustomersPage() {
             </Dialog>
 
             {/* View Dialog */}
-            <Dialog isOpen={viewDialog} onClose={() => setViewDialog(false)} title="تفاصيل العميل" maxWidth="600px">
+            <Dialog 
+                isOpen={viewDialog} 
+                onClose={() => setViewDialog(false)} 
+                title="ملف العميل" 
+                maxWidth="600px"
+            >
                 {selectedCustomer && (
-                    <div className="customer-details">
-                        <div className="details-grid">
-                            <div className="detail-item">
-                                <span className="label">اسم العميل</span>
-                                <span className="value strong">{selectedCustomer.name}</span>
+                    <div className="customer-profile-view">
+                        <div className="profile-header">
+                            <div className="profile-avatar">
+                                <Icon name="user" size={32} />
                             </div>
-                            <div className="detail-item">
-                                <span className="label">الهاتف</span>
-                                <span className="value">{selectedCustomer.phone || "-"}</span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="label">البريد الإلكتروني</span>
-                                <span className="value">{selectedCustomer.email || "-"}</span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="label">الرقم الضريبي</span>
-                                <span className="value">{selectedCustomer.tax_number || "-"}</span>
-                            </div>
-                            <div className="detail-item full-width">
-                                <span className="label">العنوان</span>
-                                <span className="value">{selectedCustomer.address || "-"}</span>
+                            <div className="profile-info">
+                                <h2>{selectedCustomer.name}</h2>
+                                <span className={`badge ${selectedCustomer.balance > 0 ? "badge-danger" : "badge-success"}`}>
+                                    {selectedCustomer.balance > 0 ? "مدين" : "رصيد مكتمل"}
+                                </span>
                             </div>
                         </div>
 
-                        <div className="balance-cards">
-                            <div className="balance-card">
-                                <span className="label">إجمالي المديونية</span>
-                                <span className="value danger">{formatCurrency(selectedCustomer.total_debt)}</span>
+                        <div className="details-section">
+                            <div className="info-grid">
+                                <div className="info-item">
+                                    <Icon name="user" className="info-icon" />
+                                    <div className="info-content">
+                                        <label>رقم الهاتف</label>
+                                        <span>{selectedCustomer.phone || "غير متوفر"}</span>
+                                    </div>
+                                </div>
+                                <div className="info-item">
+                                    <Icon name="check" className="info-icon" />
+                                    <div className="info-content">
+                                        <label>الرقم الضريبي</label>
+                                        <span>{selectedCustomer.tax_number || "غير متوفر"}</span>
+                                    </div>
+                                </div>
+                                <div className="info-item full-width">
+                                    <Icon name="home" className="info-icon" />
+                                    <div className="info-content">
+                                        <label>العنوان</label>
+                                        <span>{selectedCustomer.address || "بدون عنوان مسجل"}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="balance-card">
-                                <span className="label">إجمالي المدفوعات</span>
-                                <span className="value success">{formatCurrency(selectedCustomer.total_paid)}</span>
+                        </div>
+
+                        <div className="dashboard-stats compact" style={{ padding: 0, marginTop: "1.5rem" }}>
+                            <div className="stat-card">
+                                <div className="stat-icon alert">{getIcon("dollar")}</div>
+                                <div className="stat-info">
+                                    <h3>المبيعات (مدين)</h3>
+                                    <p className="text-danger">{formatCurrency(selectedCustomer.total_debt)}</p>
+                                </div>
                             </div>
-                            <div className="balance-card highlighted">
-                                <span className="label">الرصيد المستحق</span>
-                                <span className={`value ${selectedCustomer.balance > 0 ? "danger" : "success"}`}>
-                                    {formatCurrency(selectedCustomer.balance)}
-                                </span>
+                            <div className="stat-card">
+                                <div className="stat-icon products">{getIcon("check")}</div>
+                                <div className="stat-info">
+                                    <h3>المدفوعات (دائن)</h3>
+                                    <p className="text-success">{formatCurrency(selectedCustomer.total_paid)}</p>
+                                </div>
                             </div>
+                            <div className="stat-card highlighted">
+                                <div className="stat-icon total">{getIcon("building")}</div>
+                                <div className="stat-info">
+                                    <h3>الرصيد المستحق</h3>
+                                    <p className={selectedCustomer.balance > 0 ? "text-danger" : "text-success"}>
+                                        {formatCurrency(selectedCustomer.balance)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="dialog-actions-alt mt-6" style={{ marginTop: "2rem", display: "flex", justifyContent: "flex-end" }}>
+                            <Button 
+                                variant="primary" 
+                                icon="clipboard-list" 
+                                onClick={() => router.push(`/finance/ar_ledger?customer_id=${selectedCustomer.id}`)}
+                            >
+                                عرض كشف الحساب الكامل
+                            </Button>
                         </div>
                     </div>
                 )}

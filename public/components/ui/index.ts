@@ -17,3 +17,4 @@ export { TabNavigation } from "./TabNavigation";
 export type { Tab } from "./TabNavigation";
 export { SegmentedToggle } from "./SegmentedToggle";
 export type { ToggleOption } from "./SegmentedToggle";
+export { FilterSection, FilterGroup, DateRangePicker, FilterActions } from "./FilterSection";

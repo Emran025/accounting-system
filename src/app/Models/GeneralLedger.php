@@ -30,6 +30,7 @@ class GeneralLedger extends Model
             'amount' => 'decimal:2',
             'voucher_date' => 'date',
             'is_closed' => 'boolean',
+            'created_at' => 'datetime',
         ];
     }
 

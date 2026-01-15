@@ -2,7 +2,7 @@
 import { formatCurrency } from "@/lib/utils";
 import { APIComparative } from "../types";
 import { fetchAPI } from "@/lib/api";
-import { showToast } from "@/components/ui";
+import { showToast, FilterSection, DateRangePicker, FilterActions, Button } from "@/components/ui";
 import { useState, useCallback, useEffect } from "react";
 
 export function ComparativeTab() {
@@ -57,45 +57,27 @@ export function ComparativeTab() {
         <div className="sales-card">
             <h2><i className="fas fa-chart-bar"></i> المقارنة المالية</h2>
 
-            <div className="filter-section">
-                <div className="filter-group">
-                    <label>الفترة الحالية</label>
-                    <div className="date-range-group">
-                        <input
-                            type="date"
-                            value={currentStart}
-                            onChange={(e) => setCurrentStart(e.target.value)}
-                        />
-                        <span>إلى</span>
-                        <input
-                            type="date"
-                            value={currentEnd}
-                            onChange={(e) => setCurrentEnd(e.target.value)}
-                        />
-                    </div>
-                </div>
-                <div className="filter-group">
-                    <label>الفترة السابقة (اختياري)</label>
-                    <div className="date-range-group">
-                        <input
-                            type="date"
-                            value={previousStart}
-                            onChange={(e) => setPreviousStart(e.target.value)}
-                        />
-                        <span>إلى</span>
-                        <input
-                            type="date"
-                            value={previousEnd}
-                            onChange={(e) => setPreviousEnd(e.target.value)}
-                        />
-                    </div>
-                </div>
-                <div className="filter-actions">
-                    <button className="btn btn-primary" onClick={loadComparative}>
-                        <i className="fas fa-search"></i> عرض المقارنة
-                    </button>
-                </div>
-            </div>
+            <FilterSection>
+                <DateRangePicker
+                    label="الفترة الحالية"
+                    startDate={currentStart}
+                    endDate={currentEnd}
+                    onStartDateChange={setCurrentStart}
+                    onEndDateChange={setCurrentEnd}
+                />
+                <DateRangePicker
+                    label="الفترة السابقة (اختياري)"
+                    startDate={previousStart}
+                    endDate={previousEnd}
+                    onStartDateChange={setPreviousStart}
+                    onEndDateChange={setPreviousEnd}
+                />
+                <FilterActions>
+                    <Button onClick={loadComparative} icon="search">
+                        عرض المقارنة
+                    </Button>
+                </FilterActions>
+            </FilterSection>
 
             {isLoading ? (
                 <div style={{ textAlign: "center", padding: "3rem" }}>

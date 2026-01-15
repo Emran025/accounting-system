@@ -10,11 +10,10 @@ import { getIcon } from "@/lib/icons";
 
 interface Revenue {
     id: number;
-    description: string;
+    source: string;
     amount: number;
-    category: string;
+    description: string;
     revenue_date: string;
-    notes?: string;
     created_at: string;
 }
 
@@ -99,9 +98,9 @@ export default function RevenuesPage() {
         setFormData({
             description: revenue.description,
             amount: String(revenue.amount),
-            category: revenue.category,
+            category: revenue.source,
             revenue_date: revenue.revenue_date.split("T")[0],
-            notes: revenue.notes || "",
+            notes: "",
         });
         setFormDialog(true);
     };
@@ -117,8 +116,11 @@ export default function RevenuesPage() {
                 await fetchAPI(`/api/revenues/${selectedRevenue.id}`, {
                     method: "PUT",
                     body: JSON.stringify({
-                        ...formData,
+                        id: selectedRevenue.id,
+                        source: formData.category,
                         amount: parseFloat(formData.amount),
+                        revenue_date: formData.revenue_date,
+                        description: formData.description,
                     }),
                 });
                 showToast("تم تحديث الإيراد بنجاح", "success");
@@ -126,8 +128,10 @@ export default function RevenuesPage() {
                 await fetchAPI("/api/revenues", {
                     method: "POST",
                     body: JSON.stringify({
-                        ...formData,
+                        source: formData.category,
                         amount: parseFloat(formData.amount),
+                        revenue_date: formData.revenue_date,
+                        description: formData.description,
                     }),
                 });
                 showToast("تمت إضافة الإيراد بنجاح", "success");
@@ -170,11 +174,11 @@ export default function RevenuesPage() {
             render: (item) => <span className="text-success">{formatCurrency(item.amount)}</span>,
         },
         {
-            key: "category",
+            key: "source",
             header: "الفئة",
             dataLabel: "الفئة",
             render: (item) => (
-                <span className="badge badge-info">{getCategoryLabel(item.category)}</span>
+                <span className="badge badge-info">{getCategoryLabel(item.source)}</span>
             ),
         },
         {

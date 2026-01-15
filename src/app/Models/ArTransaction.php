@@ -29,6 +29,7 @@ class ArTransaction extends Model
             'is_deleted' => 'boolean',
             'transaction_date' => 'datetime',
             'deleted_at' => 'datetime',
+            'created_at' => 'datetime',
         ];
     }
 

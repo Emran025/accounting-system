@@ -182,7 +182,7 @@ class GeneralLedgerController extends Controller
                 return [
                     'id' => $entry->id,
                     'entry_number' => $entry->voucher_number,
-                    'entry_date' => $entry->voucher_date->format('Y-m-d'),
+                    'entry_date' => $entry->voucher_date?->format('Y-m-d'),
                     'account_code' => $entry->account?->account_code,
                     'account_name' => $entry->account?->account_name,
                     'debit_account' => $entry->entry_type === 'DEBIT' ? $entry->account?->account_name : '-',
@@ -192,7 +192,7 @@ class GeneralLedgerController extends Controller
                     'description' => $entry->description,
                     'reference' => $entry->reference_type ? "{$entry->reference_type} #{$entry->reference_id}" : '-',
                     'created_by' => $entry->createdBy?->username,
-                    'created_at' => $entry->created_at->toDateTimeString(),
+                    'created_at' => $entry->created_at?->toDateTimeString(),
                 ];
             });
 

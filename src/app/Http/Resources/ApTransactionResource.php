@@ -17,10 +17,10 @@ class ApTransactionResource extends JsonResource
             'description' => $this->description,
             'reference_type' => $this->reference_type,
             'reference_id' => $this->reference_id,
-            'transaction_date' => $this->transaction_date ? $this->transaction_date->toDateTimeString() : null,
+            'transaction_date' => $this->transaction_date?->toDateTimeString(),
             'created_by' => $this->createdBy?->username,
             'is_deleted' => (bool)$this->is_deleted,
-            'created_at' => $this->created_at->toDateTimeString(),
+            'created_at' => $this->created_at?->toDateTimeString(),
         ];
     }
 }

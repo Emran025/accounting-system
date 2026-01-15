@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, Button } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
@@ -10,6 +11,7 @@ import { Supplier } from "./types";
 import { useSuppliers } from "./useSuppliers";
 
 export default function SuppliersPage() {
+    const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [permissions, setPermissions] = useState<Permission[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -121,7 +123,18 @@ export default function SuppliersPage() {
             dataLabel: "الإجراءات",
             render: (it) => (
                 <div className="action-buttons">
-                    <button className="icon-btn view" onClick={() => { setSelectedSupplier(it); setViewDialog(true); }} title="عرض">
+                    <button 
+                        className="icon-btn view" 
+                        onClick={() => router.push(`/finance/ap_ledger?supplier_id=${it.id}`)} 
+                        title="كشف الحساب"
+                    >
+                        <Icon name="clipboard-list" />
+                    </button>
+                    <button 
+                        className="icon-btn info" 
+                        onClick={() => { setSelectedSupplier(it); setViewDialog(true); }} 
+                        title="تفاصيل"
+                    >
                         <Icon name="eye" />
                     </button>
                     {canAccess(permissions, "ap_suppliers", "edit") && (
@@ -155,9 +168,9 @@ export default function SuppliersPage() {
                 }
                 actions={
                     canAccess(permissions, "ap_suppliers", "create") && (
-                        <button className="btn btn-primary" onClick={openAddDialog}>
-                            <Icon name="plus" /> إضافة مورد
-                        </button>
+                        <Button variant="primary" icon="plus" onClick={openAddDialog}>
+                            إضافة مورد
+                        </Button>
                     )
                 }
             />
@@ -184,8 +197,8 @@ export default function SuppliersPage() {
                 maxWidth="600px"
                 footer={
                     <>
-                        <button className="btn btn-secondary" onClick={() => setFormDialog(false)}>إلغاء</button>
-                        <button className="btn btn-primary" onClick={handleSubmit}>{selectedSupplier ? "تحديث" : "إضافة"}</button>
+                        <Button variant="secondary" onClick={() => setFormDialog(false)}>إلغاء</Button>
+                        <Button variant="primary" onClick={handleSubmit}>{selectedSupplier ? "تحديث" : "إضافة"}</Button>
                     </>
                 }
             >
@@ -268,12 +281,13 @@ export default function SuppliersPage() {
                         </div>
 
                         <div className="mt-4 flex justify-end">
-                            <button 
-                                className="btn btn-primary"
-                                onClick={() => window.location.href = `/finance/ap_ledger?supplier_id=${selectedSupplier.id}`}
+                            <Button 
+                                variant="primary"
+                                icon="list"
+                                onClick={() => router.push(`/finance/ap_ledger?supplier_id=${selectedSupplier.id}`)}
                             >
-                                <Icon name="list" /> عرض كشف الحساب
-                            </button>
+                                عرض كشف الحساب
+                            </Button>
                         </div>
                     </div>
                 )}

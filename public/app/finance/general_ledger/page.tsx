@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, showToast, Column, TabNavigation } from "@/components/ui";
+import { Table, showToast, Column, TabNavigation, FilterSection, FilterGroup, DateRangePicker, FilterActions, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser } from "@/lib/auth";
@@ -257,14 +257,12 @@ export default function GeneralLedgerPage() {
         user={user}
         actions={
           <>
-            <button className="btn btn-secondary" onClick={handleExport}>
-              {getIcon("download")}
+            <Button variant="secondary" onClick={handleExport} icon="download">
               تصدير
-            </button>
-            <button className="btn btn-primary" onClick={handleRefresh}>
-              {getIcon("refresh")}
+            </Button>
+            <Button variant="primary" onClick={handleRefresh} icon="refresh">
               تحديث
-            </button>
+            </Button>
           </>
         }
       />
@@ -283,33 +281,20 @@ export default function GeneralLedgerPage() {
         {/* Journal Entries Tab */}
         <div className={`tab-content ${activeTab === "journal" ? "active" : ""}`}>
           <div className="sales-card">
-            <div className="filter-section">
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>من تاريخ</label>
-                <input
-                  type="date"
-                  value={journalDateFrom}
-                  onChange={(e) => setJournalDateFrom(e.target.value)}
-                  style={{ width: "150px" }}
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>إلى تاريخ</label>
-                <input
-                  type="date"
-                  value={journalDateTo}
-                  onChange={(e) => setJournalDateTo(e.target.value)}
-                  style={{ width: "150px" }}
-                />
-              </div>
-              <button
-                className="btn btn-primary"
-                onClick={() => loadJournalEntries(1)}
-                style={{ alignSelf: "flex-end" }}
-              >
-                بحث
-              </button>
-            </div>
+            <FilterSection>
+              <DateRangePicker
+                label="فترة التقرير"
+                startDate={journalDateFrom}
+                endDate={journalDateTo}
+                onStartDateChange={setJournalDateFrom}
+                onEndDateChange={setJournalDateTo}
+              />
+              <FilterActions>
+                <Button onClick={() => loadJournalEntries(1)} icon="search">
+                  بحث
+                </Button>
+              </FilterActions>
+            </FilterSection>
 
             <Table
               columns={journalColumns}
@@ -362,9 +347,8 @@ export default function GeneralLedgerPage() {
         {/* Account History Tab */}
         <div className={`tab-content ${activeTab === "history" ? "active" : ""}`}>
           <div className="sales-card">
-            <div className="filter-section">
-              <div className="form-group" style={{ marginBottom: 0, minWidth: "200px" }}>
-                <label>الحساب</label>
+            <FilterSection>
+              <FilterGroup label="الحساب">
                 <select
                   value={selectedAccountId}
                   onChange={(e) => setSelectedAccountId(e.target.value)}
@@ -376,34 +360,24 @@ export default function GeneralLedgerPage() {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>من تاريخ</label>
-                <input
-                  type="date"
-                  value={historyDateFrom}
-                  onChange={(e) => setHistoryDateFrom(e.target.value)}
-                  style={{ width: "150px" }}
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>إلى تاريخ</label>
-                <input
-                  type="date"
-                  value={historyDateTo}
-                  onChange={(e) => setHistoryDateTo(e.target.value)}
-                  style={{ width: "150px" }}
-                />
-              </div>
-              <button
-                className="btn btn-primary"
-                onClick={loadAccountHistory}
-                style={{ alignSelf: "flex-end" }}
-                disabled={!selectedAccountId}
-              >
-                عرض
-              </button>
-            </div>
+              </FilterGroup>
+              <DateRangePicker
+                label="الفترة"
+                startDate={historyDateFrom}
+                endDate={historyDateTo}
+                onStartDateChange={setHistoryDateFrom}
+                onEndDateChange={setHistoryDateTo}
+              />
+              <FilterActions>
+                <Button
+                  onClick={loadAccountHistory}
+                  disabled={!selectedAccountId}
+                  icon="search"
+                >
+                  عرض
+                </Button>
+              </FilterActions>
+            </FilterSection>
 
             {selectedAccountId ? (
               <Table

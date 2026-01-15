@@ -372,6 +372,15 @@ class ApController extends Controller
             ->take($perPage)
             ->get();
 
+        // Stats calculation for the summary cards
+        $statsData = ApTransaction::where('supplier_id', $supplierId)
+            ->where('is_deleted', false)
+            ->selectRaw('
+                SUM(CASE WHEN type = "invoice" THEN amount ELSE 0 END) as total_debit,
+                SUM(CASE WHEN type IN ("payment", "return") THEN amount ELSE 0 END) as total_credit,
+                COUNT(*) as transaction_count
+            ')->first();
+
         // Calculate aging using a targeted query for efficiency
         $agingData = ApTransaction::where('supplier_id', $supplierId)
             ->where('is_deleted', false)
@@ -400,7 +409,13 @@ class ApController extends Controller
                 'current_balance' => (float)$supplier->current_balance,
             ],
             'aging' => $aging,
-            'transactions' => \App\Http\Resources\ApTransactionResource::collection($transactions),
+            'data' => ApTransactionResource::collection($transactions),
+            'stats' => [
+                'total_debit' => (float)($statsData->total_debit ?? 0),
+                'total_credit' => (float)($statsData->total_credit ?? 0),
+                'balance' => (float)$supplier->current_balance,
+                'transaction_count' => (int)($statsData->transaction_count ?? 0),
+            ],
             'pagination' => [
                 'current_page' => $page,
                 'per_page' => $perPage,
