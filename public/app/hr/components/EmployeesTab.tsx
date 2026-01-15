@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Table, Column, SearchableSelect , Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { Employee } from "../types";
+import { getIcon } from "@/lib/icons";
 
 export function EmployeesTab() {
   const router = useRouter();
@@ -80,8 +81,11 @@ export function EmployeesTab() {
 
   return (
     <div className="sales-card animate-fade">
-      <div className="form-row">
-        <div className="form-group">
+      <div className="card-header-flex" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h3 style={{ margin: 0 }}>{getIcon("users")} إدارة الموظفين</h3>
+        </div>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <SearchableSelect
               options={[]}
               value={null}
@@ -92,9 +96,6 @@ export function EmployeesTab() {
               placeholder="بحث سريع..."
               className="header-search-bar"
           />
-        </div>
-        {/* Department Select could be added here if departments loaded */}
-        <div className="form-group">
           <Button
             variant="primary"
             onClick={() => router.push('/hr/employees/add')}

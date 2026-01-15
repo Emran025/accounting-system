@@ -72,6 +72,22 @@ export function getCurrentDate(): string {
 }
 
 /**
+ * Get current date and time formatted for display
+ */
+export function getCurrentDateTime(): string {
+  const now = new Date();
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  };
+  return now.toLocaleString("ar-SA", options);
+}
+
+/**
  * Get role badge text in Arabic
  */
 export function getRoleBadgeText(role: string): string {

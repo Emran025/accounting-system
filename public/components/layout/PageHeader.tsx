@@ -1,10 +1,8 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
-import Link from "next/link";
-import { getCurrentDate, getRoleBadgeText, getRoleBadgeClass } from "@/lib/utils";
-import { User, getStoredPermissions, canAccess } from "@/lib/auth";
-import { getIcon } from "@/lib/icons";
+import { ReactNode } from "react";
+import { getCurrentDateTime, getRoleBadgeText, getRoleBadgeClass } from "@/lib/utils";
+import { User } from "@/lib/auth";
 
 interface PageHeaderProps {
   title: string;
@@ -21,20 +19,6 @@ export function PageHeader({
   actions,
   searchInput,
 }: PageHeaderProps) {
-  const [canShowSettings, setCanShowSettings] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-        const perms = getStoredPermissions();
-        if (
-            canAccess(perms, "settings") || 
-            canAccess(perms, "roles_permissions") || // mapped to 'users' or 'settings' usually, but custom check here
-            canAccess(perms, "audit_trail")
-        ) {
-            setCanShowSettings(true);
-        }
-    }
-  }, [user]);
 
   return (
     <header className="page-header">
@@ -42,19 +26,18 @@ export function PageHeader({
         <h1>{title}</h1>
         {showDate && (
           <span style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-            {getCurrentDate()}
+            {getCurrentDateTime()}
           </span>
         )}
       </div>
 
-      <div className="header-actions">
-        {searchInput}
+      <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "1rem", flex: 1 }}>
+        {searchInput && <div style={{ flex: 1 }}>{searchInput}</div>}
         
         {actions}
 
         {user && (
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginInlineStart: "auto" }}>
             <span style={{ fontWeight: 600 }}>{user.full_name}</span>
             <span className={`badge ${getRoleBadgeClass(user.role)}`}>
               {getRoleBadgeText(user.role)}

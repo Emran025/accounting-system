@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, showToast } from "@/components/ui";
+import { Table, Column, Dialog, showToast, Button, SearchableSelect } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { PayrollCycle, PayrollItem, Employee } from "../types";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
@@ -82,6 +82,7 @@ export function PayrollTab() {
   // Filter States
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [cycleSearch] = useState("");
 
   useEffect(() => {
     loadUser();
@@ -489,15 +490,22 @@ export function PayrollTab() {
     <>
       <div className="sales-card animate-fade">
         <div className="card-header-flex" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
-          <h3 style={{ margin: 0 }}>{getIcon("dollar")} إدارة الرواتب واعتمادات الصرف</h3>
-          <button className="btn btn-primary" onClick={() => setShowCreateCycleDialog(true)}>
-            {getIcon("plus")} صرف جديد (مكافأة/حافز/راتب)
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h3 style={{ margin: 0 }}>{getIcon("dollar")} إدارة الرواتب واعتمادات الصرف</h3>
+          </div>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <Button
+              variant="primary"
+              onClick={() => setShowCreateCycleDialog(true)}
+              icon="plus">
+               صرف جديد (مكافأة/حافز/راتب)
+            </Button>
+          </div>
         </div>
 
         <Table
           columns={cycleColumns}
-          data={payrollCycles}
+          data={payrollCycles.filter(c => !cycleSearch || c.cycle_name.toLowerCase().includes(cycleSearch.toLowerCase()))}
           keyExtractor={(item) => item.id}
           emptyMessage="لا توجد دورات رواتب مسجلة"
           isLoading={isLoading}
