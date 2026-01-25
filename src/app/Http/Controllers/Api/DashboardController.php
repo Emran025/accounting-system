@@ -54,7 +54,7 @@ class DashboardController extends Controller
         $totalSales = GeneralLedger::whereHas('account', function($q) {
                 $q->where('account_type', 'Revenue');
             })
-            ->selectRaw('SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as net_revenue')
+            ->selectRaw("SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) as net_revenue")
             ->value('net_revenue') ?? 0;
         
         // Sales Breakdown
@@ -65,7 +65,7 @@ class DashboardController extends Controller
                 $q->where('account_type', 'Revenue'); 
             })
             ->select('invoices.payment_type')
-            ->selectRaw('SUM(CASE WHEN general_ledger.entry_type = "CREDIT" THEN general_ledger.amount ELSE -general_ledger.amount END) as total_value')
+            ->selectRaw("SUM(CASE WHEN general_ledger.entry_type = 'CREDIT' THEN general_ledger.amount ELSE -general_ledger.amount END) as total_value")
             ->selectRaw('COUNT(DISTINCT invoices.id) as total_count')
             ->groupBy('invoices.payment_type')
             ->get()
@@ -82,7 +82,7 @@ class DashboardController extends Controller
                 $q->where('account_type', 'Revenue');
             })
             ->whereDate('voucher_date', $today)
-            ->selectRaw('SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as net_revenue')
+            ->selectRaw("SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) as net_revenue")
             ->value('net_revenue') ?? 0;
         
         // Today's Breakdown
@@ -94,7 +94,7 @@ class DashboardController extends Controller
                 $q->where('account_type', 'Revenue'); 
             })
             ->select('invoices.payment_type')
-            ->selectRaw('SUM(CASE WHEN general_ledger.entry_type = "CREDIT" THEN general_ledger.amount ELSE -general_ledger.amount END) as total')
+            ->selectRaw("SUM(CASE WHEN general_ledger.entry_type = 'CREDIT' THEN general_ledger.amount ELSE -general_ledger.amount END) as total")
             ->groupBy('invoices.payment_type')
             ->get()
             ->mapWithKeys(function ($item) {
@@ -130,35 +130,35 @@ class DashboardController extends Controller
         $totalExpenses = GeneralLedger::whereHas('account', function($q) {
                 $q->where('account_type', 'Expense');
             })
-            ->selectRaw('SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) as net_expense')
+            ->selectRaw("SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) as net_expense")
             ->value('net_expense') ?? 0;
         
         $todaysExpenses = GeneralLedger::whereHas('account', function($q) {
                 $q->where('account_type', 'Expense');
             })
             ->whereDate('voucher_date', $today)
-            ->selectRaw('SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) as net_expense')
+            ->selectRaw("SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) as net_expense")
             ->value('net_expense') ?? 0;
 
         // Revenues (Credit Balance in Revenue Accounts - excluding Sales which is already captured above)
         $totalRevenues = GeneralLedger::whereHas('account', function($q) {
                 $q->where('account_type', 'Revenue');
             })
-            ->selectRaw('SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as net_revenue')
+            ->selectRaw("SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) as net_revenue")
             ->value('net_revenue') ?? 0;
         
         $todaysRevenues = GeneralLedger::whereHas('account', function($q) {
                 $q->where('account_type', 'Revenue');
             })
             ->whereDate('voucher_date', $today)
-            ->selectRaw('SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as net_revenue')
+            ->selectRaw("SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) as net_revenue")
             ->value('net_revenue') ?? 0;
 
         // Assets (Debit Balance in Asset Accounts)
         $totalAssets = GeneralLedger::whereHas('account', function($q) {
                 $q->where('account_type', 'Asset');
             })
-            ->selectRaw('SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) as net_assets')
+            ->selectRaw("SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) - SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) as net_assets")
             ->value('net_assets') ?? 0;
 
         // Recent Sales
@@ -184,7 +184,7 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        return $this->successResponse([
+        return $this->successResponse(['data' => [
             'todays_sales' => (float)$todaysSales,
             'total_sales' => (float)$totalSales,
             'low_stock_count' => $lowStockCount,
@@ -200,6 +200,6 @@ class DashboardController extends Controller
             'total_revenues' => (float)$totalRevenues,
             'todays_revenues' => (float)$todaysRevenues,
             'total_assets' => (float)$totalAssets,
-        ]);
+        ]]);
     }
 }

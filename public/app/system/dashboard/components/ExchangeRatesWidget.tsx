@@ -14,16 +14,33 @@ export function ExchangeRatesWidget() {
     });
   }, []);
 
-  const primary = currencies.find(c => c.is_primary);
-  const foreign = currencies.filter(c => !c.is_primary);
+   const primary = currencies.find(c => c.is_primary);
+   
+   // Logic to pivot display to SAR if available (Common for this region)
+   const sar = currencies.find(c => c.code === 'SAR');
+   const displayBase = sar || primary; // Default to SAR if found, else Primary
+   
+   // Filter currencies to display (exclude the base itself)
+   const displayCurrencies = currencies.filter(c => c.code !== displayBase?.code && c.is_active);
 
-  if (foreign.length === 0) return null;
+   if (displayCurrencies.length === 0) return null;
 
-  return (
+   return (
     <div className="sales-card mb-4" style={{ marginBottom: "1.5rem" }}>
-      <h3 style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>أسعار الصرف اليوم</h3>
+      <h3 style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>
+        أسعار الصرف اليوم 
+        <span style={{ fontSize: "0.8em", color: "var(--text-secondary)", marginRight: "10px" }}>
+            (مقابل {displayBase?.symbol})
+        </span>
+      </h3>
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-         {foreign.map(curr => (
+         {displayCurrencies.map(curr => {
+             // Calculate cross rate: (Foreign/Primary) / (Base/Primary)
+             const baseRate = Number(displayBase?.exchange_rate) || 1;
+             const currRate = Number(curr.exchange_rate) || 1;
+             const crossRate = currRate / baseRate;
+
+             return (
              <div key={curr.id} style={{ 
                  padding: "0.5rem 1rem", 
                  background: "var(--background-secondary)", 
@@ -36,13 +53,14 @@ export function ExchangeRatesWidget() {
                  <strong>{curr.code}</strong>
                  <span style={{ color: "var(--text-secondary)" }}>=</span>
                  <span style={{ fontWeight: "bold", color: "var(--primary-color)" }}>
-                    {Number(curr.exchange_rate).toFixed(2)}
+                    {crossRate.toFixed(2)}
                  </span>
                  <span style={{ fontSize: "0.9em" }}>
-                    {primary?.symbol}
+                    {displayBase?.symbol}
                  </span>
              </div>
-         ))}
+             );
+         })}
       </div>
     </div>
   );
