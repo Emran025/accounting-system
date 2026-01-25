@@ -208,112 +208,234 @@ class SalesService
             }
 
             // Update customer balance (if credit)
+            // Update customer balance (if credit)
             if ($paymentType === 'credit' && $customerId) {
-                $netDue = $totalAmount - $amountPaid;
-                if ($netDue > 0) {
-                    ArTransaction::create([
+                // 1. Record the full invoice amount as a debt
+                ArTransaction::create([
+                    'customer_id' => $customerId,
+                    'type' => 'invoice',
+                    'amount' => $totalAmount,
+                    'description' => "Invoice #$invoiceNumber",
+                    'reference_type' => 'invoices',
+                    'reference_id' => $invoice->id,
+                    'created_by' => $userId,
+                ]);
+
+                ArCustomer::where('id', $customerId)
+                    ->increment('current_balance', $totalAmount);
+
+                // 2. Record the payment as a separate credit entry (Prepayment/Down Payment)
+                if ($amountPaid > 0) {
+                     ArTransaction::create([
                         'customer_id' => $customerId,
-                        'type' => 'invoice',
-                        'amount' => $netDue,
-                        'description' => "Invoice #$invoiceNumber",
+                        'type' => 'receipt', // Using 'receipt' as per standard convention for incoming money
+                        'amount' => $amountPaid,
+                        'description' => "Payment for Invoice #$invoiceNumber",
                         'reference_type' => 'invoices',
-                        'reference_id' => $invoice->id,
+                        'reference_id' => $invoice->id, // Linking to same invoice
                         'created_by' => $userId,
                     ]);
 
-                    ArCustomer::where('id', $customerId)
-                        ->increment('current_balance', $netDue);
+                     ArCustomer::where('id', $customerId)
+                        ->decrement('current_balance', $amountPaid);
                 }
             }
 
             // GL Entries
-            $glEntries = [];
+            // GL Entries
+            if ($paymentType === 'credit') {
+                // --- Transaction 1: The Invoice (Accrual Method) ---
+                $invoiceEntries = [];
 
-            // Revenue (Credit)
-            $glEntries[] = [
-                'account_code' => $this->coaService->getStandardAccounts()['sales_revenue'],
-                'entry_type' => 'CREDIT',
-                'amount' => $subtotal,
-                'description' => "Sales Revenue - Invoice #$invoiceNumber"
-            ];
-
-            // VAT Payable (Credit)
-            if ($vatAmount > 0) {
-                $glEntries[] = [
-                    'account_code' => $this->coaService->getStandardAccounts()['output_vat'],
+                // Credit Side (Revenue, VAT, Fees)
+                 $invoiceEntries[] = [
+                    'account_code' => $this->coaService->getStandardAccounts()['sales_revenue'],
                     'entry_type' => 'CREDIT',
-                    'amount' => $vatAmount,
-                    'description' => "VAT Output - Invoice #$invoiceNumber"
+                    'amount' => $subtotal,
+                    'description' => "Sales Revenue - Invoice #$invoiceNumber"
                 ];
-            }
 
-            // Government Fees (Credit)
-            foreach ($calculatedFees as $calcFee) {
-                if ($calcFee['account_code']) {
-                     $glEntries[] = [
-                        'account_code' => $calcFee['account_code'],
+                if ($vatAmount > 0) {
+                    $invoiceEntries[] = [
+                        'account_code' => $this->coaService->getStandardAccounts()['output_vat'],
                         'entry_type' => 'CREDIT',
-                        'amount' => $calcFee['amount'],
-                        'description' => "Fee: {$calcFee['fee_name']} - Invoice #$invoiceNumber"
+                        'amount' => $vatAmount,
+                        'description' => "VAT Output - Invoice #$invoiceNumber"
                     ];
                 }
-            }
 
-            // Debit Side (Cash + AR)
-            if ($amountPaid > 0) {
-                $glEntries[] = [
-                    'account_code' => $this->coaService->getStandardAccounts()['cash'],
-                    'entry_type' => 'DEBIT',
-                    'amount' => $amountPaid,
-                    'description' => "Cash Received - Invoice #$invoiceNumber"
-                ];
-            }
+                foreach ($calculatedFees as $calcFee) {
+                    if ($calcFee['account_code']) {
+                         $invoiceEntries[] = [
+                            'account_code' => $calcFee['account_code'],
+                            'entry_type' => 'CREDIT',
+                            'amount' => $calcFee['amount'],
+                            'description' => "Fee: {$calcFee['fee_name']} - Invoice #$invoiceNumber"
+                        ];
+                    }
+                }
 
-            $amountDue = $totalAmount - $amountPaid;
-            if ($amountDue > 0.01) {
-                $glEntries[] = [
+                // Debit Side (AR - Full Amount)
+                $invoiceEntries[] = [
                     'account_code' => $this->coaService->getStandardAccounts()['accounts_receivable'],
                     'entry_type' => 'DEBIT',
-                    'amount' => $amountDue,
+                    'amount' => $totalAmount,
                     'description' => "Accounts Receivable - Invoice #$invoiceNumber"
                 ];
-            }
 
-            // COGS (Debit) and Inventory (Credit)
-            if ($totalCost > 0) {
-                $glEntries[] = [
-                    'account_code' => $this->coaService->getStandardAccounts()['cost_of_goods_sold'],
-                    'entry_type' => 'DEBIT',
-                    'amount' => $totalCost,
-                    'description' => "Cost of Goods Sold - Invoice #$invoiceNumber"
-                ];
+                // Debit Discount
+                if ($discountAmount > 0) {
+                    $invoiceEntries[] = [
+                        'account_code' => $this->coaService->getStandardAccounts()['sales_discount'],
+                        'entry_type' => 'DEBIT',
+                        'amount' => $discountAmount,
+                        'description' => "Sales Discount - Invoice #$invoiceNumber"
+                    ];
+                }
+                
+                // COGS (Debit) and Inventory (Credit)
+                if ($totalCost > 0) {
+                    $invoiceEntries[] = [
+                        'account_code' => $this->coaService->getStandardAccounts()['cost_of_goods_sold'],
+                        'entry_type' => 'DEBIT',
+                        'amount' => $totalCost,
+                        'description' => "Cost of Goods Sold - Invoice #$invoiceNumber"
+                    ];
+    
+                    $invoiceEntries[] = [
+                        'account_code' => $this->coaService->getStandardAccounts()['inventory'],
+                        'entry_type' => 'CREDIT',
+                        'amount' => $totalCost,
+                        'description' => "Inventory usage - Invoice #$invoiceNumber"
+                    ];
+                }
 
+                // Post Invoice GL
+                $this->ledgerService->postTransaction(
+                    $invoiceEntries,
+                    'invoices',
+                    $invoice->id,
+                    null,
+                    now()->format('Y-m-d')
+                );
+
+                // --- Transaction 2: The Payment (Prepayment) ---
+                if ($amountPaid > 0) {
+                    $paymentEntries = [];
+                    // Dr Cash
+                    $paymentEntries[] = [
+                        'account_code' => $this->coaService->getStandardAccounts()['cash'],
+                        'entry_type' => 'DEBIT',
+                        'amount' => $amountPaid,
+                        'description' => "Payment Received - Invoice #$invoiceNumber"
+                    ];
+                    // Cr AR
+                    $paymentEntries[] = [
+                        'account_code' => $this->coaService->getStandardAccounts()['accounts_receivable'],
+                        'entry_type' => 'CREDIT',
+                        'amount' => $amountPaid,
+                        'description' => "Payment Applied - Invoice #$invoiceNumber"
+                    ];
+
+                    $this->ledgerService->postTransaction(
+                        $paymentEntries,
+                        'invoices',
+                        $invoice->id,
+                        null,
+                        now()->format('Y-m-d')
+                    );
+                }
+
+            } else {
+                // Cash Sales (Standard single voucher behavior)
+                $glEntries = [];
+
+                // Revenue (Credit)
                 $glEntries[] = [
-                    'account_code' => $this->coaService->getStandardAccounts()['inventory'],
+                    'account_code' => $this->coaService->getStandardAccounts()['sales_revenue'],
                     'entry_type' => 'CREDIT',
-                    'amount' => $totalCost,
-                    'description' => "Inventory usage - Invoice #$invoiceNumber"
+                    'amount' => $subtotal,
+                    'description' => "Sales Revenue - Invoice #$invoiceNumber"
                 ];
-            }
 
-            // Sales Discount (Debit)
-            if ($discountAmount > 0) {
-                $glEntries[] = [
-                    'account_code' => $this->coaService->getStandardAccounts()['sales_discount'],
-                    'entry_type' => 'DEBIT',
-                    'amount' => $discountAmount,
-                    'description' => "Sales Discount - Invoice #$invoiceNumber"
-                ];
-            }
+                // VAT Payable (Credit)
+                if ($vatAmount > 0) {
+                    $glEntries[] = [
+                        'account_code' => $this->coaService->getStandardAccounts()['output_vat'],
+                        'entry_type' => 'CREDIT',
+                        'amount' => $vatAmount,
+                        'description' => "VAT Output - Invoice #$invoiceNumber"
+                    ];
+                }
 
-            // Post GL
-            $this->ledgerService->postTransaction(
-                $glEntries,
-                'invoices',
-                $invoice->id,
-                null,
-                now()->format('Y-m-d')
-            );
+                // Government Fees (Credit)
+                foreach ($calculatedFees as $calcFee) {
+                    if ($calcFee['account_code']) {
+                         $glEntries[] = [
+                            'account_code' => $calcFee['account_code'],
+                            'entry_type' => 'CREDIT',
+                            'amount' => $calcFee['amount'],
+                            'description' => "Fee: {$calcFee['fee_name']} - Invoice #$invoiceNumber"
+                        ];
+                    }
+                }
+
+                // Debit Side (Cash + AR)
+                if ($amountPaid > 0) {
+                    $glEntries[] = [
+                        'account_code' => $this->coaService->getStandardAccounts()['cash'],
+                        'entry_type' => 'DEBIT',
+                        'amount' => $amountPaid,
+                        'description' => "Cash Received - Invoice #$invoiceNumber"
+                    ];
+                }
+
+                $amountDue = $totalAmount - $amountPaid;
+                if ($amountDue > 0.01) {
+                    $glEntries[] = [
+                        'account_code' => $this->coaService->getStandardAccounts()['accounts_receivable'],
+                        'entry_type' => 'DEBIT',
+                        'amount' => $amountDue,
+                        'description' => "Accounts Receivable - Invoice #$invoiceNumber"
+                    ];
+                }
+
+                // COGS (Debit) and Inventory (Credit)
+                if ($totalCost > 0) {
+                    $glEntries[] = [
+                        'account_code' => $this->coaService->getStandardAccounts()['cost_of_goods_sold'],
+                        'entry_type' => 'DEBIT',
+                        'amount' => $totalCost,
+                        'description' => "Cost of Goods Sold - Invoice #$invoiceNumber"
+                    ];
+
+                    $glEntries[] = [
+                        'account_code' => $this->coaService->getStandardAccounts()['inventory'],
+                        'entry_type' => 'CREDIT',
+                        'amount' => $totalCost,
+                        'description' => "Inventory usage - Invoice #$invoiceNumber"
+                    ];
+                }
+
+                // Sales Discount (Debit)
+                if ($discountAmount > 0) {
+                    $glEntries[] = [
+                        'account_code' => $this->coaService->getStandardAccounts()['sales_discount'],
+                        'entry_type' => 'DEBIT',
+                        'amount' => $discountAmount,
+                        'description' => "Sales Discount - Invoice #$invoiceNumber"
+                    ];
+                }
+
+                // Post GL
+                $this->ledgerService->postTransaction(
+                    $glEntries,
+                    'invoices',
+                    $invoice->id,
+                    null,
+                    now()->format('Y-m-d')
+                );
+            }
 
             return $invoice->id;
         });

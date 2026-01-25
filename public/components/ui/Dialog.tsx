@@ -70,9 +70,7 @@ export function Dialog({
       >
         <div className="dialog-header">
           <h2 id="dialog-title">{title}</h2>
-          <button className="close-btn" onClick={onClose} aria-label="إغلاق">
-            ×
-          </button>
+          <button className="close-btn" onClick={onClose} aria-label="إغلاق">×</button>
         </div>
         <div className="dialog-body">{children}</div>
         {footer && <div className="dialog-footer">{footer}</div>}

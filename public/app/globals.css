@@ -1060,7 +1060,7 @@ tbody tr:hover {
   border: 1px solid var(--border-color);
   background: white;
   color: var(--text-light);
-  font-size: 1.25rem;
+  font-size: 1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
