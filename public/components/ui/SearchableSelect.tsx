@@ -138,7 +138,7 @@ export function SearchableSelect({
                 autoComplete="off"
                 required={required && !value}
             />
-            <div className="search-icon">
+            <div className="input-icon">
                 <Icon name="search" size={18} />
             </div>
             {value && !isOpen && (

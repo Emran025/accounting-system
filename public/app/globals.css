@@ -1601,7 +1601,7 @@ tbody tr:hover {
   padding-left: 2.5rem !important;
 }
 
-.searchable-select .search-icon {
+.searchable-select .input-icon {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -1614,12 +1614,12 @@ tbody tr:hover {
   z-index: 2;
 }
 
-[dir="rtl"] .searchable-select .search-icon {
+[dir="rtl"] .searchable-select .input-icon {
   right: 0.85rem;
   left: auto;
 }
 
-[dir="ltr"] .searchable-select .search-icon {
+[dir="ltr"] .searchable-select .input-icon {
   left: 0.85rem;
   right: auto;
 }

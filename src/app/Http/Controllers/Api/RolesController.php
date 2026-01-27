@@ -27,7 +27,7 @@ class RolesController extends Controller
                 ->get();
             return response()->json(['success' => true, 'roles' => $roles]);
         }
-        
+
         if ($action === 'roles') {
             $roles = Role::orderBy('role_name_ar')->get();
             return response()->json(['success' => true, 'data' => $roles]);
@@ -43,7 +43,7 @@ class RolesController extends Controller
             $roleId = $request->query('role_id');
             $permissions = RolePermission::where('role_id', $roleId)
                 ->join('modules', 'role_permissions.module_id', '=', 'modules.id')
-                ->select('role_permissions.*', 'modules.module_key')
+                ->select('role_permissions.*', 'modules.module_key, modules.module_name_ar, modules.module_name_en')
                 ->get();
             return response()->json(['success' => true, 'data' => $permissions]);
         }
@@ -108,7 +108,7 @@ class RolesController extends Controller
         PermissionService::requirePermission('settings', 'delete');
 
         $role = Role::findOrFail($id);
-        
+
         if ($role->is_system) {
             return $this->errorResponse('Cannot delete system role', 403);
         }

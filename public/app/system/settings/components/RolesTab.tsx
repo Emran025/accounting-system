@@ -294,7 +294,7 @@ export function RolesTab() {
                     </div>
                     {modules.map((module) => (
                       <div key={module.module_key} className="module-row">
-                        <div className="module-name">{module.name_ar || module.name_en}</div>
+                        <div className="module-name">{module.module_name_ar || module.module_name_ar}</div>
                         <div className="actions-grid">
                           <label className="action-checkbox">
                             <input

@@ -42,8 +42,8 @@ export interface StoreSettings {
   export interface ModuleData {
     id: number;
     module_key: string;
-    name_ar: string;
-    name_en: string;
+    module_name_ar: string;
+    module_name_en: string;
     category: string;
   }
 

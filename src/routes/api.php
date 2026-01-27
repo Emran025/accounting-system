@@ -22,6 +22,11 @@ use App\Http\Controllers\Api\RolesController;
 use App\Http\Controllers\Api\ChartOfAccountsController;
 use App\Http\Controllers\Api\AccrualAccountingController;
 use App\Http\Controllers\Api\BankReconciliationController;
+use App\Http\Controllers\Api\BatchController;
+use App\Http\Controllers\Api\CurrencyController;
+use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\GovernmentFeesController;
+use App\Http\Controllers\Api\ZATCAInvoiceController;
 use App\Http\Controllers\Api\RecurringTransactionsController;
 use App\Http\Controllers\Api\SessionsController;
 use App\Http\Controllers\Api\EmployeesController;
@@ -56,8 +61,8 @@ Route::middleware(['api.auth'])->group(function () {
     Route::delete('/invoices', [SalesController::class, 'destroy'])->name('api.invoices.destroy');
 
     // ZATCA
-    Route::post('/invoices/{id}/zatca/submit', [\App\Http\Controllers\Api\ZATCAInvoiceController::class, 'submit'])->name('api.invoices.zatca.submit');
-    Route::get('/invoices/{id}/zatca/status', [\App\Http\Controllers\Api\ZATCAInvoiceController::class, 'getStatus'])->name('api.invoices.zatca.status');
+    Route::post('/invoices/{id}/zatca/submit', [ZATCAInvoiceController::class, 'submit'])->name('api.invoices.zatca.submit');
+    Route::get('/invoices/{id}/zatca/status', [ZATCAInvoiceController::class, 'getStatus'])->name('api.invoices.zatca.status');
 
     // Purchases
     Route::get('/purchases', [PurchasesController::class, 'index'])->name('api.purchases.index');
@@ -130,10 +135,10 @@ Route::middleware(['api.auth'])->group(function () {
     Route::put('/settings/invoice', [SettingsController::class, 'updateInvoiceSettings'])->name('api.settings.invoice.update');
     
     // Government Fees (Kharaaj)
-    Route::apiResource('government_fees', \App\Http\Controllers\Api\GovernmentFeesController::class);
+    Route::apiResource('government_fees', GovernmentFeesController::class);
 
     // Audit Logs
-    Route::get('/audit-logs', [\App\Http\Controllers\Api\AuditLogController::class, 'index'])->name('api.audit_logs.index');
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('api.audit_logs.index');
 
     // Users
     Route::get('/users', [UsersController::class, 'index'])->name('api.users.index');
@@ -169,9 +174,9 @@ Route::middleware(['api.auth'])->group(function () {
     Route::delete('/assets', [AssetsController::class, 'destroy'])->name('api.assets.destroy');
 
     // Batch Processing
-    Route::get('/batch', [\App\Http\Controllers\Api\BatchController::class, 'index'])->name('api.batch.index');
-    Route::post('/batch', [\App\Http\Controllers\Api\BatchController::class, 'store'])->name('api.batch.store');
-    Route::delete('/batch', [\App\Http\Controllers\Api\BatchController::class, 'destroy'])->name('api.batch.destroy');
+    Route::get('/batch', [BatchController::class, 'index'])->name('api.batch.index');
+    Route::post('/batch', [BatchController::class, 'store'])->name('api.batch.store');
+    Route::delete('/batch', [BatchController::class, 'destroy'])->name('api.batch.destroy');
 
     // Revenues
     Route::get('/revenues', [RevenuesController::class, 'index'])->name('api.revenues.index');
@@ -182,31 +187,31 @@ Route::middleware(['api.auth'])->group(function () {
     // Chart of Accounts
     Route::get('/accounts', [ChartOfAccountsController::class, 'index'])->name('api.accounts.index');
     Route::post('/accounts', [ChartOfAccountsController::class, 'store'])->name('api.accounts.store');
-    Route::put('/accounts/{id}', [\App\Http\Controllers\Api\ChartOfAccountsController::class, 'update'])->name('api.accounts.update');
-    Route::delete('/accounts/{id}', [\App\Http\Controllers\Api\ChartOfAccountsController::class, 'destroy'])->name('api.accounts.destroy');
+    Route::put('/accounts/{id}', [ChartOfAccountsController::class, 'update'])->name('api.accounts.update');
+    Route::delete('/accounts/{id}', [ChartOfAccountsController::class, 'destroy'])->name('api.accounts.destroy');
 
     // Accrual Accounting
-    Route::get('/accrual', [\App\Http\Controllers\Api\AccrualAccountingController::class, 'index'])->name('api.accrual.index');
-    Route::post('/accrual', [\App\Http\Controllers\Api\AccrualAccountingController::class, 'store'])->name('api.accrual.store');
-    Route::put('/accrual', [\App\Http\Controllers\Api\AccrualAccountingController::class, 'update'])->name('api.accrual.update');
+    Route::get('/accrual', [AccrualAccountingController::class, 'index'])->name('api.accrual.index');
+    Route::post('/accrual', [AccrualAccountingController::class, 'store'])->name('api.accrual.store');
+    Route::put('/accrual', [AccrualAccountingController::class, 'update'])->name('api.accrual.update');
 
     // Bank Reconciliation
-    Route::get('/reconciliation', [\App\Http\Controllers\Api\BankReconciliationController::class, 'index'])->name('api.reconciliation.index');
-    Route::post('/reconciliation', [\App\Http\Controllers\Api\BankReconciliationController::class, 'store'])->name('api.reconciliation.store');
-    Route::put('/reconciliation', [\App\Http\Controllers\Api\BankReconciliationController::class, 'update'])->name('api.reconciliation.update');
+    Route::get('/reconciliation', [BankReconciliationController::class, 'index'])->name('api.reconciliation.index');
+    Route::post('/reconciliation', [BankReconciliationController::class, 'store'])->name('api.reconciliation.store');
+    Route::put('/reconciliation', [BankReconciliationController::class, 'update'])->name('api.reconciliation.update');
 
     // Recurring Transactions
-    Route::get('/recurring_transactions', [\App\Http\Controllers\Api\RecurringTransactionsController::class, 'index'])->name('api.recurring.index');
-    Route::post('/recurring_transactions', [\App\Http\Controllers\Api\RecurringTransactionsController::class, 'store'])->name('api.recurring.store');
-    Route::put('/recurring_transactions', [\App\Http\Controllers\Api\RecurringTransactionsController::class, 'update'])->name('api.recurring.update');
-    Route::delete('/recurring_transactions', [\App\Http\Controllers\Api\RecurringTransactionsController::class, 'destroy'])->name('api.recurring.destroy');
+    Route::get('/recurring_transactions', [RecurringTransactionsController::class, 'index'])->name('api.recurring.index');
+    Route::post('/recurring_transactions', [RecurringTransactionsController::class, 'store'])->name('api.recurring.store');
+    Route::put('/recurring_transactions', [RecurringTransactionsController::class, 'update'])->name('api.recurring.update');
+    Route::delete('/recurring_transactions', [RecurringTransactionsController::class, 'destroy'])->name('api.recurring.destroy');
 
     // Currencies
-    Route::get('/currencies', [\App\Http\Controllers\Api\CurrencyController::class, 'index'])->name('api.currencies.index');
-    Route::post('/currencies', [\App\Http\Controllers\Api\CurrencyController::class, 'store'])->name('api.currencies.store');
-    Route::put('/currencies/{id}', [\App\Http\Controllers\Api\CurrencyController::class, 'update'])->name('api.currencies.update');
-    Route::delete('/currencies/{id}', [\App\Http\Controllers\Api\CurrencyController::class, 'destroy'])->name('api.currencies.destroy');
-    Route::post('/currencies/{id}/toggle', [\App\Http\Controllers\Api\CurrencyController::class, 'toggleActive'])->name('api.currencies.toggle');
+    Route::get('/currencies', [CurrencyController::class, 'index'])->name('api.currencies.index');
+    Route::post('/currencies', [CurrencyController::class, 'store'])->name('api.currencies.store');
+    Route::put('/currencies/{id}', [CurrencyController::class, 'update'])->name('api.currencies.update');
+    Route::delete('/currencies/{id}', [CurrencyController::class, 'destroy'])->name('api.currencies.destroy');
+    Route::post('/currencies/{id}/toggle', [CurrencyController::class, 'toggleActive'])->name('api.currencies.toggle');
 
     // HR & Payroll
     Route::get('/employees', [EmployeesController::class, 'index'])->name('api.employees.index');
