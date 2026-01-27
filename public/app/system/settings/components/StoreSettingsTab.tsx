@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
 import { showToast } from "@/components/ui";
 import { StoreSettings } from "../types";
+import { TextInput } from "@/components/ui/TextInput";
+import { Textarea } from "@/components/ui/Textarea";
 
 export function StoreSettingsTab() {
   const [storeSettings, setStoreSettings] = useState<StoreSettings>({
@@ -45,54 +47,51 @@ export function StoreSettingsTab() {
     <div className="sales-card">
       <h3>معلومات المتجر</h3>
       <div className="settings-form-grid">
-        <div className="form-group">
-          <label htmlFor="store_name">اسم المتجر</label>
-          <input
-            type="text"
+        <div className="form-group pb-0">
+          <TextInput
+            label="اسم المتجر"
             id="store_name"
             value={storeSettings.store_name}
             onChange={(e) => setStoreSettings({ ...storeSettings, store_name: e.target.value })}
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="store_phone">رقم الهاتف</label>
-          <input
+        <div className="form-group pb-0">
+          <TextInput
+            label="رقم الهاتف"
             type="tel"
             id="store_phone"
             value={storeSettings.store_phone}
             onChange={(e) => setStoreSettings({ ...storeSettings, store_phone: e.target.value })}
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="store_email">البريد الإلكتروني</label>
-          <input
+        <div className="form-group pb-0">
+          <TextInput
+            label="البريد الإلكتروني"
             type="email"
             id="store_email"
             value={storeSettings.store_email}
             onChange={(e) => setStoreSettings({ ...storeSettings, store_email: e.target.value })}
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="tax_number">الرقم الضريبي</label>
-          <input
-            type="text"
-            id="tax_number"
+        <div className="form-group pb-0">
+          <TextInput
+            label="الرقم الضريبي"
+             id="tax_number"
             value={storeSettings.tax_number}
             onChange={(e) => setStoreSettings({ ...storeSettings, tax_number: e.target.value })}
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="cr_number">السجل التجاري</label>
-          <input
-            type="text"
+        <div className="form-group pb-0">
+          <TextInput
+            label="السجل التجاري"
             id="cr_number"
             value={storeSettings.cr_number}
             onChange={(e) => setStoreSettings({ ...storeSettings, cr_number: e.target.value })}
           />
         </div>
-        <div className="form-group full-width">
-          <label htmlFor="store_address">العنوان</label>
-          <textarea
+        <div className="form-group full-width pb-0">
+          <Textarea
+            label="العنوان"
             id="store_address"
             value={storeSettings.store_address}
             onChange={(e) => setStoreSettings({ ...storeSettings, store_address: e.target.value })}

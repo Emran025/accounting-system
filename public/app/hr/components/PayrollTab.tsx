@@ -6,6 +6,11 @@ import { fetchAPI } from "@/lib/api";
 import { PayrollCycle, PayrollItem, Employee } from "../types";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
+import { TextInput } from "@/components/ui/TextInput";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/Textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/RadioGroup";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface PayrollItemExtended extends PayrollItem {
   employee_name?: string;
@@ -529,26 +534,24 @@ export function PayrollTab() {
       >
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             <div style={{ display: 'grid', gap: '1rem' }}>
-                <div className="form-group">
-                    <label className="form-label">طبيعة الصرف</label>
-                    <select 
-                        className="form-control" 
+                <div className="form-group pb-0">
+                    <Select
+                        label="طبيعة الصرف" 
                         value={newCycle.payment_nature} 
-                        onChange={(e: any) => setNewCycle({...newCycle, payment_nature: e.target.value, cycle_name: e.target.value === 'salary' ? '' : newCycle.cycle_name})}
+                        onChange={(e) => setNewCycle({...newCycle, payment_nature: e.target.value as any, cycle_name: e.target.value === 'salary' ? '' : newCycle.cycle_name})}
                     >
                         <option value="salary">راتب شهري أساسي</option>
                         <option value="incentive">حافز أداء</option>
                         <option value="bonus">مكافأة استثنائية</option>
                         <option value="other">أخرى</option>
-                    </select>
+                    </Select>
                 </div>
 
                 {newCycle.payment_nature !== 'salary' && (
-                    <div className="form-group">
-                        <label className="form-label">عنوان المسير / المناسبة</label>
-                        <input 
+                    <div className="form-group pb-0">
+                        <TextInput
+                            label="عنوان المسير / المناسبة" 
                             type="text" 
-                            className="form-control" 
                             placeholder="مثال: حوافز مبيعات شهر يناير"
                             value={newCycle.cycle_name}
                             onChange={(e) => setNewCycle({...newCycle, cycle_name: e.target.value})}
@@ -556,29 +559,28 @@ export function PayrollTab() {
                     </div>
                 )}
 
-                <div className="form-group">
-                    <label className="form-label">تاريخ الاستحقاق/الصرف</label>
-                    <input 
+                <div className="form-group pb-0">
+                    <TextInput
+                        label="تاريخ الاستحقاق/الصرف" 
                         type="date" 
-                        className="form-control" 
                         value={newCycle.payment_date}
                         onChange={(e) => setNewCycle({...newCycle, payment_date: e.target.value})}
                     />
                 </div>
 
                 {newCycle.payment_nature !== 'salary' && (
-                    <div className="form-group">
-                        <label className="form-label">المبلغ الموحد (اختياري)</label>
-                        <div className="input-with-icon">
-                            <input 
-                                type="number" 
-                                className="form-control" 
-                                placeholder="0.00"
-                                value={newCycle.base_amount}
-                                onChange={(e) => setNewCycle({...newCycle, base_amount: e.target.value})}
-                            />
-                            <span className="icon-right">ر.س</span>
-                        </div>
+                    <div className="form-group pb-0">
+                         {/* Note: TextInput doesn't strictly support icon-right span natively via props yet, so using classic input or adapting TextInput logic. 
+                             Using TextInput for consistency, assuming label support is sufficient. The "SAR" suffix is visual sugar. 
+                             I'll wrap it or use `TextInput` normally.
+                          */}
+                        <TextInput
+                            label="المبلغ الموحد (اختياري)" 
+                            type="number" 
+                            placeholder="0.00"
+                            value={newCycle.base_amount}
+                            onChange={(e) => setNewCycle({...newCycle, base_amount: e.target.value})}
+                        />
                     </div>
                 )}
             </div>
@@ -587,28 +589,25 @@ export function PayrollTab() {
                 <label className="form-label" style={{ fontWeight: 600, marginBottom: '1rem', display: 'block' }}>تخصيص الموظفين المشمولين</label>
                 
                 <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                        <label className="radio-label">
-                            <input type="radio" checked={newCycle.target_type === 'all'} onChange={() => setNewCycle({...newCycle, target_type: 'all', employee_ids: []})} /> الكل
-                        </label>
-                        <label className="radio-label">
-                            <input type="radio" checked={newCycle.target_type === 'selected'} onChange={() => setNewCycle({...newCycle, target_type: 'selected'})} /> محددين
-                        </label>
-                        <label className="radio-label">
-                            <input type="radio" checked={newCycle.target_type === 'excluded'} onChange={() => setNewCycle({...newCycle, target_type: 'excluded'})} /> استثناء
-                        </label>
-                    </div>
+                    <RadioGroup 
+                        className="flex gap-4 mb-4" 
+                        value={newCycle.target_type}
+                        onValueChange={(val) => setNewCycle({...newCycle, target_type: val as any, employee_ids: val === 'all' ? [] : newCycle.employee_ids})}
+                    >
+                        <RadioGroupItem value="all" label="الكل" />
+                        <RadioGroupItem value="selected" label="محددين" />
+                        <RadioGroupItem value="excluded" label="استثناء" />
+                    </RadioGroup>
 
                     {(newCycle.target_type === 'selected' || newCycle.target_type === 'excluded') && (
-                        <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #eee', padding: '5px' }}>
+                        <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #eee', padding: '10px', borderRadius: '4px' }}>
                             {allEmployees.map(emp => (
-                                <div key={emp.id} style={{ display: 'flex', gap: '10px', padding: '5px', borderBottom: '1px solid #f9f9f9' }}>
-                                    <input 
-                                        type="checkbox" 
+                                <div key={emp.id} style={{ marginBottom: '8px' }}>
+                                    <Checkbox 
+                                        label={emp.full_name}
                                         checked={newCycle.employee_ids.includes(emp.id)}
                                         onChange={() => toggleEmployeeSelection(emp.id)}
                                     />
-                                    <span style={{ fontSize: '0.85rem' }}>{emp.full_name}</span>
                                 </div>
                             ))}
                         </div>
@@ -778,15 +777,13 @@ export function PayrollTab() {
           </div>
         }
       >
-         <div className="form-group">
-            <label className="form-label">طريقة الصرف</label>
-            <select className="form-control" value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
+         <div className="form-group pb-0">
+            <Select label="طريقة الصرف" value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
                 {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>)}
-            </select>
+            </Select>
          </div>
-         <div className="form-group">
-            <label className="form-label">المبلغ</label>
-            <input type="number" className="form-control" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
+         <div className="form-group pb-0">
+            <TextInput label="المبلغ" type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
          </div>
       </Dialog>
 
@@ -801,11 +798,10 @@ export function PayrollTab() {
           </div>
         }
       >
-         <div className="form-group">
-            <label className="form-label">الصرف من حساب</label>
-            <select className="form-control" value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
+         <div className="form-group pb-0">
+            <Select label="الصرف من حساب" value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
                 {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>)}
-            </select>
+            </Select>
          </div>
          <div style={{ padding: '15px', background: '#e8f5e9', borderRadius: '8px', marginTop: '10px' }}>
             إجمالي المبلغ: <strong>{formatCurrency(selectedCycle?.total_net || 0)}</strong>

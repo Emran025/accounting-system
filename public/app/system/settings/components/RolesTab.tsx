@@ -1,9 +1,9 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
 import { showToast, Dialog, ConfirmDialog } from "@/components/ui";
 import { getIcon } from "@/lib/icons";
 import { Role, RolePermission, ModuleData } from "../types";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export function RolesTab() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -296,34 +296,26 @@ export function RolesTab() {
                       <div key={module.module_key} className="module-row">
                         <div className="module-name">{module.module_name_ar || module.module_name_ar}</div>
                         <div className="actions-grid">
-                          <label className="action-checkbox">
-                            <input
-                              type="checkbox"
-                              checked={getPermissionValue(module.module_key, "can_view")}
-                              onChange={(e) => updateRolePermission(module.module_key, "can_view", e.target.checked)}
-                            /> عرض
-                          </label>
-                          <label className="action-checkbox">
-                            <input
-                              type="checkbox"
-                              checked={getPermissionValue(module.module_key, "can_create")}
-                              onChange={(e) => updateRolePermission(module.module_key, "can_create", e.target.checked)}
-                            /> إضافة
-                          </label>
-                          <label className="action-checkbox">
-                            <input
-                              type="checkbox"
-                              checked={getPermissionValue(module.module_key, "can_edit")}
-                              onChange={(e) => updateRolePermission(module.module_key, "can_edit", e.target.checked)}
-                            /> تعديل
-                          </label>
-                          <label className="action-checkbox">
-                            <input
-                              type="checkbox"
-                              checked={getPermissionValue(module.module_key, "can_delete")}
-                              onChange={(e) => updateRolePermission(module.module_key, "can_delete", e.target.checked)}
-                            /> حذف
-                          </label>
+                          <Checkbox
+                            label="عرض"
+                            checked={getPermissionValue(module.module_key, "can_view")}
+                            onChange={(e) => updateRolePermission(module.module_key, "can_view", e.target.checked)}
+                          />
+                          <Checkbox
+                            label="إضافة"
+                            checked={getPermissionValue(module.module_key, "can_create")}
+                            onChange={(e) => updateRolePermission(module.module_key, "can_create", e.target.checked)}
+                          />
+                          <Checkbox
+                            label="تعديل"
+                            checked={getPermissionValue(module.module_key, "can_edit")}
+                            onChange={(e) => updateRolePermission(module.module_key, "can_edit", e.target.checked)}
+                          />
+                          <Checkbox
+                            label="حذف"
+                            checked={getPermissionValue(module.module_key, "can_delete")}
+                            onChange={(e) => updateRolePermission(module.module_key, "can_delete", e.target.checked)}
+                          />
                         </div>
                       </div>
                     ))}

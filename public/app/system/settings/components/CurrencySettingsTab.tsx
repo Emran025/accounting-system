@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
-import { showToast, Dialog } from "@/components/ui";
+import { showToast, Dialog, Table, Column } from "@/components/ui";
 import { Currency, CurrencyDenomination } from "../types";
 import { getIcon } from "@/lib/icons";
+import { Switch } from "@/components/ui/switch";
+import { TextInput } from "@/components/ui/TextInput";
+import { Input } from "@/components/ui/Input";
 
 export function CurrencySettingsTab() {
   const [currencies, setCurrencies] = useState<Currency[]>([]);
@@ -124,6 +127,52 @@ export function CurrencySettingsTab() {
       setFormData({...formData, denominations: currentDenoms});
   };
 
+  const columns: Column<Currency>[] = [
+    {
+      key: "name",
+      header: "العملة",
+      render: (curr) => (
+        <>
+            {curr.name} <span className="text-muted">({curr.code})</span>
+            {curr.is_primary && <span className="badge badge-success-light mr-2">الرئيسية</span>}
+        </>
+      )
+    },
+    { key: "symbol", header: "الرمز" },
+    { 
+        key: "exchange_rate", 
+        header: "سعر الصرف",
+        render: (curr) => Number(curr.exchange_rate).toFixed(4)
+    },
+    {
+        key: "is_active",
+        header: "الحالة",
+        render: (curr) => (
+             <Switch
+                  checked={curr.is_active}
+                  onChange={() => handleToggleActive(curr)}
+                  disabled={curr.is_primary}
+              />
+        )
+    },
+    {
+        key: "actions",
+        header: "إجراءات",
+        render: (curr) => (
+             <div className="action-buttons">
+                <button className="icon-btn edit" onClick={() => handleEdit(curr)} title="تعديل">
+                  {getIcon("edit")}
+                </button>
+                {!curr.is_primary && (
+                  <button className="icon-btn delete" onClick={() => handleDelete(curr.id)} title="حذف">
+                    {getIcon("trash")}
+                  </button>
+                )}
+            </div>
+        )
+    }
+  ];
+
   return (
     <div className="sales-card">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
@@ -137,54 +186,12 @@ export function CurrencySettingsTab() {
         </button>
       </div>
 
-      <div className="table-responsive">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>العملة</th>
-              <th>الرمز</th>
-              <th>سعر الصرف</th>
-              <th>الحالة</th>
-              <th>إجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currencies.map(curr => (
-              <tr key={curr.id}>
-                <td>
-                    {curr.name} <span className="text-muted">({curr.code})</span>
-                    {curr.is_primary && <span className="badge badge-success-light mr-2">الرئيسية</span>}
-                </td>
-                <td>{curr.symbol}</td>
-                <td>{Number(curr.exchange_rate).toFixed(4)}</td>
-                <td>
-                  <label className="switch">
-                    <input 
-                        type="checkbox" 
-                        checked={curr.is_active} 
-                        onChange={() => handleToggleActive(curr)}
-                        disabled={curr.is_primary}
-                    />
-                    <span className="slider round"></span>
-                  </label>
-                </td>
-                <td>
-                  <div className="action-buttons">
-                    <button className="icon-btn edit" onClick={() => handleEdit(curr)} title="تعديل">
-                      {getIcon("edit")}
-                    </button>
-                    {!curr.is_primary && (
-                      <button className="icon-btn delete" onClick={() => handleDelete(curr.id)} title="حذف">
-                        {getIcon("trash")}
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        data={currencies}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        isLoading={loading}
+      />
 
       <Dialog
         isOpen={isModalOpen}
@@ -200,38 +207,35 @@ export function CurrencySettingsTab() {
       >
         <div className="settings-form-grid">
              <div className="form-group">
-                <label>اسم العملة</label>
-                <input 
-                    type="text" 
+                <TextInput
+                    label="اسم العملة"
                     value={formData.name || ""} 
                     onChange={e => setFormData({...formData, name: e.target.value})}
                 />
             </div>
             <div className="form-group">
-                <label>الكود (ISO)</label>
-                <input 
-                    type="text" 
+                <TextInput
+                    label="الكود (ISO)"
                     value={formData.code || ""} 
                     maxLength={3}
                     onChange={e => setFormData({...formData, code: e.target.value.toUpperCase()})}
                 />
             </div>
             <div className="form-group">
-                <label>الرمز</label>
-                <input 
-                    type="text" 
+                <TextInput
+                    label="الرمز"
                     value={formData.symbol || ""} 
                     onChange={e => setFormData({...formData, symbol: e.target.value})}
                 />
             </div>
             <div className="form-group">
-                <label>سعر الصرف (مقابل العملة الرئيسية)</label>
-                <input 
+                <TextInput
+                    label="سعر الصرف (مقابل العملة الرئيسية)"
                     type="number" 
                     step="0.0001"
                     value={formData.exchange_rate} 
                     onChange={e => setFormData({...formData, exchange_rate: parseFloat(e.target.value)})}
-                    disabled={editingCurrency?.is_primary} // Primary always 1
+                    disabled={editingCurrency?.is_primary} 
                 />
             </div>
         </div>
@@ -257,7 +261,7 @@ export function CurrencySettingsTab() {
                     {formData.denominations?.map((denom, idx) => (
                         <tr key={idx}>
                             <td>
-                                <input 
+                                <Input 
                                     type="number" 
                                     className="form-control form-control-sm"
                                     value={denom.value}
@@ -265,7 +269,7 @@ export function CurrencySettingsTab() {
                                 />
                             </td>
                             <td>
-                                <input 
+                                <Input 
                                     type="text" 
                                     className="form-control form-control-sm"
                                     value={denom.label}

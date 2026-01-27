@@ -5,6 +5,8 @@ import { showToast, Dialog } from "@/components/ui";
 import { getIcon } from "@/lib/icons";
 import { InvoiceSettings, StoreSettings } from "../types";
 import { generateInvoiceHTML } from "@/lib/invoice-utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/Textarea";
 import type { InvoiceData } from "@/lib/invoice-utils";
 
 export function InvoiceSettingsTab() {
@@ -131,26 +133,20 @@ export function InvoiceSettingsTab() {
         <h3>إعدادات الفاتورة</h3>
         <div className="settings-form-grid">
           <div className="form-group">
-            <div className="checkbox-group">
-              <input
-                type="checkbox"
+            <Checkbox
                 id="show_logo"
+                label="عرض الشعار"
                 checked={invoiceSettings.show_logo}
                 onChange={(e) => setInvoiceSettings({ ...invoiceSettings, show_logo: e.target.checked })}
-              />
-              <label htmlFor="show_logo">عرض الشعار</label>
-            </div>
+            />
           </div>
           <div className="form-group">
-            <div className="checkbox-group">
-              <input
-                type="checkbox"
+            <Checkbox
                 id="show_qr"
+                label="عرض رمز QR"
                 checked={invoiceSettings.show_qr}
                 onChange={(e) => setInvoiceSettings({ ...invoiceSettings, show_qr: e.target.checked })}
-              />
-              <label htmlFor="show_qr">عرض رمز QR</label>
-            </div>
+            />
           </div>
           
           <div style={{ marginTop: "2rem", paddingTop: "1rem", borderTop: "1px dashed var(--border-color)" }}>
@@ -162,16 +158,19 @@ export function InvoiceSettingsTab() {
                     background: invoiceSettings.zatca_enabled ? "var(--bg-secondary)" : "transparent",
                     padding: "1rem",
                     borderRadius: "8px",
-                    transition: "all 0.3s ease"
+                    transition: "all 0.3s ease",
+                    display: "flex", // Checkbox component is inline-flex, wrap it 
+                    alignItems: "flex-start",
+                    gap: "10px"
                 }}>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     id="zatca_enabled"
                     checked={invoiceSettings.zatca_enabled}
                     onChange={(e) => setInvoiceSettings({ ...invoiceSettings, zatca_enabled: e.target.checked })}
+                    style={{ marginTop: "4px" }} 
                   />
                   <div>
-                    <label htmlFor="zatca_enabled" style={{ fontWeight: 600 }}>تفعيل الربط الحكومي (مثل هيئة الزكاة / ZATCA)</label>
+                    <label htmlFor="zatca_enabled" style={{ fontWeight: 600, display: "block", cursor: "pointer" }}>تفعيل الربط الحكومي (مثل هيئة الزكاة / ZATCA)</label>
                     <p style={{ marginTop: "0.25rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
                         تفعيل هذا الخيار سيقوم بتشغيل خصائص الفوترة الإلكترونية وإرسال الفواتير للمنصات الحكومية المعتمدة تلقائياً.
                         <br/>
@@ -182,8 +181,8 @@ export function InvoiceSettingsTab() {
              </div>
           </div>
           <div className="form-group full-width">
-            <label htmlFor="footer_text">نص التذييل</label>
-            <textarea
+            <Textarea
+              label="نص التذييل"
               id="footer_text"
               value={invoiceSettings.footer_text}
               onChange={(e) => setInvoiceSettings({ ...invoiceSettings, footer_text: e.target.value })}
@@ -191,8 +190,8 @@ export function InvoiceSettingsTab() {
             />
           </div>
           <div className="form-group full-width">
-            <label htmlFor="terms_text">الشروط والأحكام</label>
-            <textarea
+            <Textarea
+              label="الشروط والأحكام"
               id="terms_text"
               value={invoiceSettings.terms_text}
               onChange={(e) => setInvoiceSettings({ ...invoiceSettings, terms_text: e.target.value })}

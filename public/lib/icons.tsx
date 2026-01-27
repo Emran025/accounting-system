@@ -1,7 +1,7 @@
 // React Icons - Using Lucide React
 import React from 'react';
 import { 
-    Plus, SquarePen, Trash2, Eye, Check, Printer, Box, Download, ShoppingCart, 
+    Mail,Plus, SquarePen, Trash2, Eye, Check, Printer, Box, Download, ShoppingCart, 
     LogOut, X, CircleAlert, Home, Users, User, ChevronUp, ChevronDown, 
     ChevronRight, Settings, DollarSign, Building2, Lock, Unlock, 
     RefreshCw, Minus, History, Search, Clock, CircleCheck, List, 
@@ -15,6 +15,7 @@ interface IconProps {
 }
 
 export const icons = {
+    mail: (props: IconProps) => <Mail className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     plus: (props: IconProps) => <Plus className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     edit: (props: IconProps) => <SquarePen className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     trash: (props: IconProps) => <Trash2 className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,

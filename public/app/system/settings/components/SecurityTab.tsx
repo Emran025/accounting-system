@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { fetchAPI } from "@/lib/api";
 import { showToast } from "@/components/ui";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export function SecurityTab() {
   const [passwordData, setPasswordData] = useState({
@@ -45,28 +46,25 @@ export function SecurityTab() {
     <div className="sales-card">
       <h3>تغيير كلمة المرور</h3>
       <div className="settings-form-narrow">
-        <div className="form-group">
-          <label htmlFor="current_password">كلمة المرور الحالية</label>
-          <input
-            type="password"
+        <div className="form-group pb-0">
+          <PasswordInput
+            label="كلمة المرور الحالية"
             id="current_password"
             value={passwordData.current_password}
             onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="new_password">كلمة المرور الجديدة</label>
-          <input
-            type="password"
+        <div className="form-group pb-0">
+          <PasswordInput
+            label="كلمة المرور الجديدة"
             id="new_password"
             value={passwordData.new_password}
             onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="confirm_password">تأكيد كلمة المرور</label>
-          <input
-            type="password"
+        <div className="form-group pb-0">
+          <PasswordInput
+            label="تأكيد كلمة المرور"
             id="confirm_password"
             value={passwordData.confirm_password}
             onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}

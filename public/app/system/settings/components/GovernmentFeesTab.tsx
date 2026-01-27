@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
 import { showToast, Dialog, ConfirmDialog } from "@/components/ui";
 import { getIcon } from "@/lib/icons";
+import { Checkbox } from "@/components/ui/checkbox";
+import { TextInput } from "@/components/ui/TextInput";
+import { Select } from "@/components/ui/select";
 
 interface GovernmentFee {
   id: number;
@@ -230,33 +233,30 @@ export function GovernmentFeesTab() {
             }
         >
             <div className="form-group">
-                <label>الاسم *</label>
-                <input 
-                    type="text" 
-                    className="form-control"
+                <TextInput
+                    label="الاسم *"
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
+                    placeholder="أدخل اسم الالتزام"
                 />
             </div>
             
             <div className="row">
                 <div className="col-md-6 form-group">
-                    <label>النسبة المئوية (%)</label>
-                    <input 
+                    <TextInput 
+                        label="النسبة المئوية (%)"
                         type="number" 
                         step="0.01"
-                        className="form-control"
                         value={formData.percentage}
                         onChange={e => setFormData({...formData, percentage: parseFloat(e.target.value)})}
                     />
                     <small className="text-muted">نسبة من السعر الخاضع للرسوم (السعر الأساسي)</small>
                 </div>
                 <div className="col-md-6 form-group">
-                    <label>مبلغ ثابت (إضافي)</label>
-                    <input 
+                    <TextInput 
+                        label="مبلغ ثابت (إضافي)"
                         type="number" 
                         step="0.01"
-                        className="form-control"
                         value={formData.fixed_amount}
                         onChange={e => setFormData({...formData, fixed_amount: parseFloat(e.target.value)})}
                     />
@@ -264,9 +264,8 @@ export function GovernmentFeesTab() {
             </div>
 
             <div className="form-group">
-                <label>ربط بحساب محاسبي (GL) *</label>
-                <select 
-                    className="form-control"
+                <Select
+                    label="ربط بحساب محاسبي (GL) *"
                     value={formData.account_id || ""}
                     onChange={e => setFormData({...formData, account_id: Number(e.target.value)})}
                 >
@@ -276,19 +275,16 @@ export function GovernmentFeesTab() {
                             {acc.account_code} - {acc.account_name}
                         </option>
                     ))}
-                </select>
+                </Select>
                 <small className="text-muted">سيتم تسجيل الالتزام في هذا الحساب عند البيع</small>
             </div>
 
             <div className="form-group checkbox-group">
-                <label>
-                    <input 
-                        type="checkbox"
-                        checked={formData.is_active}
-                        onChange={e => setFormData({...formData, is_active: e.target.checked})}
-                    />
-                    &nbsp; تفعيل هذا الرسوم
-                </label>
+                <Checkbox
+                    label="تفعيل هذا الرسوم"
+                    checked={formData.is_active}
+                    onChange={e => setFormData({...formData, is_active: e.target.checked})}
+                />
             </div>
 
             <div className="alert alert-info mt-3">

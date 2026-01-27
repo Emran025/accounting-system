@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { login } from "@/lib/auth";
 import { Alert } from "@/components/ui";
-import { getIcon } from "@/lib/icons";
+import { TextInput } from "@/components/ui/TextInput";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export default function LoginPage() {
     const router = useRouter();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -57,49 +57,27 @@ export default function LoginPage() {
 
                 {error && <Alert type="error" message={error} />}
 
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label htmlFor="username">اسم المستخدم</label>
-                        <div className="user-name-container">
-                            <input
-                                type="text"
-                                id="username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                placeholder="أدخل اسم المستخدم"
-                                autoComplete="username"
-                                disabled={isLoading}
-                            />
-                            <button
-                                type="button"
-                                className="user-name-toggle"
-                            >
-                                {getIcon("user")}
-                            </button>
-                        </div>
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="password">كلمة المرور</label>
-                        <div className="password-container">
-                            <input
-                                type={showPassword ? "text" : "password"}
-                                id="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="أدخل كلمة المرور"
-                                autoComplete="current-password"
-                                disabled={isLoading}
-                            />
-                            <button
-                                type="button"
-                                className="password-toggle"
-                                onClick={() => setShowPassword(!showPassword)}
-                                aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-                            >
-                                {showPassword ? getIcon("unlock") : getIcon("lock")}
-                            </button>
-                        </div>
-                    </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <TextInput
+                        id="username"
+                        label="اسم المستخدم"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="أدخل اسم المستخدم"
+                        autoComplete="username"
+                        disabled={isLoading}
+                        icon="user"
+                    />
+
+                    <PasswordInput
+                        id="password"
+                        label="كلمة المرور"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="أدخل كلمة المرور"
+                        autoComplete="current-password"
+                        disabled={isLoading}
+                    />
 
                     <button
                         type="submit"

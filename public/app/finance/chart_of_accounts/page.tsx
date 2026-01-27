@@ -5,8 +5,12 @@ import { MainLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column , SearchableSelect} from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
-import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
+import { Permission, User, canAccess, getStoredPermissions, getStoredUser } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
+import { Checkbox } from "@/components/ui/checkbox";
+import { TextInput } from "@/components/ui/TextInput";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/Textarea";
 
 interface Account {
   id: number;
@@ -298,18 +302,17 @@ export default function ChartOfAccountsPage() {
         }
       >
         <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="code">رقم الحساب *</label>
-            <input
-              type="text"
+          <div className="form-group pb-0">
+            <TextInput
+              label="رقم الحساب *"
               id="code"
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value })}
             />
           </div>
           <div className="form-group">
-            <label htmlFor="type">النوع *</label>
-            <select
+            <Select
+              label="النوع *"
               id="type"
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -319,14 +322,13 @@ export default function ChartOfAccountsPage() {
                   {type.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
 
         <div className="form-group">
-          <label htmlFor="name">اسم الحساب *</label>
-          <input
-            type="text"
+          <TextInput
+            label="اسم الحساب *"
             id="name"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -334,8 +336,8 @@ export default function ChartOfAccountsPage() {
         </div>
 
         <div className="form-group">
-          <label htmlFor="parent_id">الحساب الرئيسي</label>
-          <select
+          <Select
+            label="الحساب الرئيسي"
             id="parent_id"
             value={formData.parent_id}
             onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
@@ -348,12 +350,12 @@ export default function ChartOfAccountsPage() {
                   {acc.code} - {acc.name}
                 </option>
               ))}
-          </select>
+          </Select>
         </div>
 
         <div className="form-group">
-          <label htmlFor="description">الوصف</label>
-          <textarea
+          <Textarea
+            label="الوصف"
             id="description"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -362,15 +364,12 @@ export default function ChartOfAccountsPage() {
         </div>
 
         <div className="form-group">
-          <div className="checkbox-group">
-            <input
-              type="checkbox"
+            <Checkbox
+              label="نشط"
               id="is_active"
               checked={formData.is_active}
               onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
             />
-            <label htmlFor="is_active">نشط</label>
-          </div>
         </div>
       </Dialog>
 
