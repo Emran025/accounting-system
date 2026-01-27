@@ -33,7 +33,7 @@ class CurrencySeeder extends Seeder
 
         // Foreign Currencies
         $foreign = [
-            ['code' => 'SAR', 'name' => 'Saudi Riyal', 'symbol' => 'SAR', 'rate' => 140.00], // Example rate
+            ['code' => 'SAR', 'name' => 'Saudi Riyal', 'symbol' => 'ر.س', 'rate' => 140.00], // Example rate
             ['code' => 'USD', 'name' => 'US Dollar', 'symbol' => '$', 'rate' => 530.00], 
             ['code' => 'AED', 'name' => 'UAE Dirham', 'symbol' => 'AED', 'rate' => 144.00],
             ['code' => 'EUR', 'name' => 'Euro', 'symbol' => '€', 'rate' => 570.00],

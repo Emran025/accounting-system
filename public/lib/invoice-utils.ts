@@ -53,16 +53,16 @@ export async function getSettings(): Promise<InvoiceSettings> {
   if (systemSettings) return systemSettings;
   try {
     const result = await fetchAPI("/api/settings");
-    const data = result.data as InvoiceSettings;
+    const data = (result.settings || result.data || {}) as any;
     if (result.success || data.store_name) {
       systemSettings = {
-        store_name: data.store_name || data.store_name,
-        store_address: data.store_address || data.store_address,
-        store_phone: data.store_phone || data.store_phone,
-        tax_number: data.tax_number || data.tax_number,
-        invoice_size: data.invoice_size || data.invoice_size || "thermal",
-        footer_message: data.footer_message || data.footer_message,
-        currency_symbol: data.currency_symbol || data.currency_symbol || "ر.س",
+        store_name: data.store_name,
+        store_address: data.store_address,
+        store_phone: data.store_phone,
+        tax_number: data.tax_number,
+        invoice_size: data.invoice_size || "thermal",
+        footer_message: data.footer_message || data.footer_text,
+        currency_symbol: data.currency_symbol || "ر.س",
         show_logo: data.show_logo !== false,
         show_qr: data.show_qr !== false,
         zatca_enabled: data.zatca_enabled === true,

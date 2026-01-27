@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { ToastContainer } from "@/components/ui";
 import { checkAuth, Permission, User } from "@/lib/auth";
+import { initSystemSettings } from "@/lib/api";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -25,6 +26,9 @@ export function MainLayout({
 
   useEffect(() => {
     const verifyAuth = async () => {
+      // Initialize settings first so they are available for all components
+      await initSystemSettings();
+      
       const authState = await checkAuth();
 
       if (!authState.isAuthenticated) {

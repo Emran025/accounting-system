@@ -98,15 +98,47 @@ export async function fetchAPI(
 }
 
 /**
- * Format currency in Saudi Riyal
+ * Global settings cache for the application
+ */
+let systemSettings: any = null;
+
+/**
+ * Initialize settings - should be called at app startup
+ */
+export async function initSystemSettings() {
+  if (systemSettings) return systemSettings;
+  try {
+    const result = await fetchAPI("/api/settings");
+    if (result.success && result.settings) {
+      systemSettings = result.settings;
+      return systemSettings;
+    }
+  } catch (e) {
+    console.error("Failed to initialize system settings", e);
+  }
+  return null;
+}
+
+/**
+ * Get a setting value by key
+ */
+export function getSetting(key: string, defaultValue: any = null): any {
+  if (!systemSettings) return defaultValue;
+  return systemSettings[key] !== undefined ? systemSettings[key] : defaultValue;
+}
+
+/**
+ * Format currency using dynamic symbol from settings
  */
 export function formatCurrency(amount: number | string): string {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  const symbol = getSetting('currency_symbol', 'ر.س');
+  
   return (
     new Intl.NumberFormat('ar-SA', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(num || 0) + ' ر.س'
+    }).format(num || 0) + ' ' + symbol
   );
 }
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Table, Column, SearchableSelect , Button } from "@/components/ui";
-import { fetchAPI } from "@/lib/api";
+import { fetchAPI, formatCurrency } from "@/lib/api";
 import { Employee } from "../types";
 import { getIcon } from "@/lib/icons";
 
@@ -61,7 +61,7 @@ export function EmployeesTab() {
     { key: "full_name", header: "الاسم الكامل", dataLabel: "الاسم الكامل" },
     { key: "role", header: "المسمى الوظيفي", dataLabel: "المسمى الوظيفي", render: (item) => item.role?.role_name_ar || '-' },
     { key: "department", header: "القسم", dataLabel: "القسم", render: (item) => item.department?.name_ar || '-' },
-    { key: "base_salary", header: "الراتب الأساسي", dataLabel: "الراتب الأساسي" },
+    { key: "base_salary", header: "الراتب الأساسي", dataLabel: "الراتب الأساسي", render: (item) => formatCurrency(item.base_salary) },
     { key: "employment_status", header: "الحالة", dataLabel: "الحالة", render: (item) => (
       <span className={`badge ${getStatusBadgeClass(item.employment_status)}`}>
         {getStatusText(item.employment_status)}

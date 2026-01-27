@@ -1,14 +1,18 @@
 // Utility functions - migrated from common.js
 
+import { getSetting } from "./api";
+
 /**
- * Format a number as currency (SAR)
+ * Format a number as currency
  */
 export function formatCurrency(amount: number | string | null | undefined): string {
   const num = parseFloat(String(amount)) || 0;
+  const symbol = getSetting('currency_symbol', 'ر.س');
+  
   return num.toLocaleString("ar-SA", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }) + " ر.س";
+  }) + " " + symbol;
 }
 
 /**

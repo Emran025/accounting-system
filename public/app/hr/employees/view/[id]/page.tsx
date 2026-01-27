@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MainLayout, PageHeader } from "@/components/layout";
 import { getStoredUser, User } from "@/lib/auth";
-import { fetchAPI } from "@/lib/api";
+import { fetchAPI, formatCurrency } from "@/lib/api";
 import { Employee } from "../../../types";
 
 export default function ViewEmployeePage({ params }: { params: { id: string } }) {
@@ -128,7 +128,7 @@ export default function ViewEmployeePage({ params }: { params: { id: string } })
             <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                 <div>
                     <label className="text-muted">الراتب الأساسي</label>
-                    <div className="fw-bold text-success">{Number(employee.base_salary).toLocaleString()} ر.س</div>
+                    <div className="fw-bold text-success">{formatCurrency(employee.base_salary)}</div>
                 </div>
                 <div>
                     <label className="text-muted">رقم التأمينات (GOSI)</label>

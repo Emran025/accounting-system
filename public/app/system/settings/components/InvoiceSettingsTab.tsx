@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { fetchAPI } from "@/lib/api";
+import { fetchAPI, getSetting } from "@/lib/api";
 import { showToast, Dialog } from "@/components/ui";
 import { getIcon } from "@/lib/icons";
 import { InvoiceSettings, StoreSettings } from "../types";
@@ -100,7 +100,7 @@ export function InvoiceSettingsTab() {
         tax_number: storeSettings!.tax_number,
         invoice_size: (invoiceSettings.show_qr ? "thermal" : "a4") as "thermal" | "a4",
         footer_message: invoiceSettings.footer_text,
-        currency_symbol: "ر.ي",
+        currency_symbol: getSetting("currency_symbol", "ر.ي"),
         show_logo: invoiceSettings.show_logo,
         show_qr: invoiceSettings.show_qr,
       };
