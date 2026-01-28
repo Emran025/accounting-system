@@ -20,7 +20,7 @@ class ChartOfAccountsMappingService
             'sales_discount' => $this->getAccountCode('Revenue', 'خصم المبيعات') ?? $this->getAccountCode('Revenue', 'Discount') ?? '4110',
             'other_revenue' => $this->getAccountCode('Revenue', 'إيرادات أخرى') ?? $this->getAccountCode('Revenue', 'Other') ?? '4200',
             'cost_of_goods_sold' => $this->getAccountCode('Expense', 'تكلفة البضاعة') ?? $this->getAccountCode('Expense', 'COGS') ?? '5100',
-            'operating_expenses' => $this->getAccountCode('Expense', 'المصروفات التشغيلية') ?? $this->getAccountCode('Expense', 'Operating') ?? '5200',
+            'operating_expenses' => $this->getAccountCode('Expense', 'مصروفات متنوعة') ?? $this->getAccountCode('Expense', 'Operating') ?? $this->getAccountCode('Expense', '5290') ?? $this->getAccountCode('Expense', '5210') ?? '5210',
             'salaries_expense' => $this->getAccountCode('Expense', 'مرتبات') ?? $this->getAccountCode('Expense', 'Salary') ?? '5220',
             'salaries_payable' => $this->getAccountCode('Liability', 'رواتب مستحقة') ?? $this->getAccountCode('Liability', 'Salary Payable') ?? '2120',
             'depreciation_expense' => $this->getAccountCode('Expense', 'الإهلاك') ?? $this->getAccountCode('Expense', 'Depreciation') ?? '5300',
@@ -49,13 +49,18 @@ class ChartOfAccountsMappingService
 
         $account = $query->orderBy('account_code')->first();
 
-        // If no leaf account found, fallback to any account (might still be a header but we tried)
+        // If no leaf account found, try searching with name pattern but still strictly leaf only
         if (!$account && $namePattern) {
             $account = \App\Models\ChartOfAccount::where('account_type', $accountType)
                 ->where('is_active', true)
                 ->where(function ($q) use ($namePattern) {
                     $q->where('account_name', 'like', "%$namePattern%")
                       ->orWhere('account_code', 'like', "%$namePattern%");
+                })
+                ->whereNotExists(function ($q) {
+                    $q->select(\DB::raw(1))
+                      ->from('chart_of_accounts as children')
+                      ->whereColumn('children.parent_id', 'chart_of_accounts.id');
                 })
                 ->orderBy('account_code')
                 ->first();

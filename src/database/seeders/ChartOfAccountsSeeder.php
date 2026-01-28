@@ -52,6 +52,8 @@ class ChartOfAccountsSeeder extends Seeder
             ['account_code' => '5210', 'account_name' => 'إيجار', 'account_type' => 'Expense'],
             ['account_code' => '5220', 'account_name' => 'مرتبات', 'account_type' => 'Expense'],
             ['account_code' => '5230', 'account_name' => 'مرافق', 'account_type' => 'Expense'],
+            ['account_code' => '5240', 'account_name' => 'مصروفات تشغيلية أخرى', 'account_type' => 'Expense'],
+            ['account_code' => '5290', 'account_name' => 'مصروفات متنوعة', 'account_type' => 'Expense'],
             ['account_code' => '5300', 'account_name' => 'مصروف الإهلاك', 'account_type' => 'Expense'],
         ];
 
@@ -93,6 +95,8 @@ class ChartOfAccountsSeeder extends Seeder
             '5210' => '5200',
             '5220' => '5200',
             '5230' => '5200',
+            '5240' => '5200',
+            '5290' => '5200',
             '5300' => '5000',
         ];
 

@@ -78,9 +78,8 @@ class BankReconciliationController extends Controller
             
             // Post adjustment to GL
             // This is a simplified adjustment against a suspense/difference account
-            $targetAccount = $validated['entry_type'] === 'DEBIT' ? '1110' : '5200'; // Simplified
-            $offsetAccount = $validated['entry_type'] === 'DEBIT' ? '5100' : '1110'; 
-
+            $targetAccount = $validated['entry_type'] === 'DEBIT' ? '1110' : '5290'; // Adjusted from 5200 to 5290 (leaf)
+            $offsetAccount = $validated['entry_type'] === 'DEBIT' ? '5101' : '1110'; // Adjusted from 5100 to 5101 (leaf)
             $this->ledgerService->postTransaction([
                 ['account_code' => $targetAccount, 'entry_type' => $validated['entry_type'], 'amount' => $validated['amount'], 'description' => $validated['description']],
                 ['account_code' => $offsetAccount, 'entry_type' => $validated['entry_type'] === 'DEBIT' ? 'CREDIT' : 'DEBIT', 'amount' => $validated['amount'], 'description' => $validated['description']],

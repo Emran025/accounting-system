@@ -61,7 +61,30 @@ class ExpensesController extends Controller
         ]);
 
         return DB::transaction(function () use ($validated) {
-            $accountCode = $validated['account_code'] ?? $this->coaService->getStandardAccounts()['operating_expenses'];
+            $category = $validated['category'];
+            $accountCode = $validated['account_code'] ?? null;
+            
+            if (!$accountCode) {
+                // Try to find a leaf account matching the category
+                $mapping = [
+                    'rent' => 'إيجار',
+                    'utilities' => 'مرافق',
+                    'salaries' => 'رواتب',
+                    'maintenance' => 'صيانة',
+                    'supplies' => 'مستلزمات',
+                    'marketing' => 'تسويق',
+                    'transport' => 'نقل',
+                ];
+                
+                if (isset($mapping[$category])) {
+                    $accountCode = $this->coaService->getAccountCode('Expense', $mapping[$category]);
+                }
+                
+                // If still not found, use standard operating expenses leaf
+                if (!$accountCode) {
+                    $accountCode = $this->coaService->getStandardAccounts()['operating_expenses'];
+                }
+            }
             
             // Validate account code
             if (!$this->coaService->validateAccountCode($accountCode)) {
