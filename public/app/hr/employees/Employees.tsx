@@ -7,7 +7,7 @@ import { fetchAPI, formatCurrency } from "@/lib/api";
 import { Employee } from "../types";
 import { getIcon } from "@/lib/icons";
 
-export function EmployeesTab() {
+export function Employees() {
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);

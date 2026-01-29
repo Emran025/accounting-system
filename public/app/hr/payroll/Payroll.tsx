@@ -36,7 +36,7 @@ interface Account {
     type: string;
 }
 
-export function PayrollTab() {
+export function Payroll() {
   const [payrollCycles, setPayrollCycles] = useState<PayrollCycle[]>([]);
   const [selectedCycle, setSelectedCycle] = useState<PayrollCycle | null>(null);
   const [payrollItems, setPayrollItems] = useState<PayrollItemExtended[]>([]);

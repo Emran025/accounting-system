@@ -129,8 +129,8 @@ export const navigationGroups: NavigationGroup[] = [
     label: "الموارد البشرية",
     icon: "users",
     links: [
-      { href: "/hr", icon: "users", label: "الموظفين", description: "قاعدة بيانات الموظفين", module: "hr" },
-      { href: "/system/dashboard", icon: "dollar", label: "الرواتب", description: "إدارة المسيرات (قريباً)", module: "dashboard" },
+      { href: "/hr/employees", icon: "users", label: "الموظفين", description: "قاعدة بيانات الموظفين", module: "employees" },
+      { href: "/hr/payroll", icon: "dollar", label: "الرواتب", description: "إدارة المسيرات (قريباً)", module: "payroll" },
       { href: "/system/dashboard", icon: "check", label: "الحضور والانصراف", description: "تتبع الدوام (قريباً)", module: "dashboard" },
       { href: "/system/dashboard", icon: "check", label: "الإجازات", description: "إدارة الإجازات (قريباً)", module: "dashboard" },
       { href: "/system/dashboard", icon: "building", label: "الأقسام", description: "الهيكل التنظيمي (قريباً)", module: "dashboard" },
