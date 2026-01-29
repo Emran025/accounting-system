@@ -184,7 +184,7 @@ function APLedgerPageContent() {
   ];
 
   return (
-    <ModuleLayout groupKey="purchases" requiredModule="ap_suppliers">
+    <ModuleLayout groupKey="purchases" requiredModule="ap_supplier">
       <PageHeader
         title={`دفتر المورد: ${supplier?.name || "..."}`}
         user={user}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
-import { showToast, Dialog, ConfirmDialog } from "@/components/ui";
+import { showToast, Dialog, ConfirmDialog, Table, Column } from "@/components/ui";
 import { getIcon } from "@/lib/icons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TextInput } from "@/components/ui/TextInput";
@@ -157,6 +157,56 @@ export function GovernmentFeesTab() {
       }
   };
 
+  const feesColumns: Column<GovernmentFee>[] = [
+    {
+      key: "name",
+      header: "الاسم",
+    },
+    {
+      key: "percentage",
+      header: "النسبة المئوية",
+      render: (fee) => `${fee.percentage}%`,
+    },
+    {
+      key: "fixed_amount",
+      header: "مبلغ ثابت",
+      render: (fee) => fee.fixed_amount ? fee.fixed_amount.toFixed(2) : '-',
+    },
+    {
+      key: "account",
+      header: "حساب الالتزام (GL)",
+      render: (fee) => fee.account ? (
+        <span className="badge badge-secondary">
+          {fee.account.account_code} - {fee.account.account_name}
+        </span>
+      ) : '-',
+    },
+    {
+      key: "is_active",
+      header: "الحالة",
+      render: (fee) => (
+        <span className={`badge ${fee.is_active ? 'badge-success' : 'badge-danger'}`}>
+          {fee.is_active ? 'نشط' : 'غير نشط'}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "إجراءات",
+      className: "text-right",
+      render: (fee) => (
+        <div className="btn-group">
+          <button className="btn btn-sm btn-icon" onClick={() => handleOpenDialog(fee)} title="تعديل">
+            <i className="fas fa-edit"></i>
+          </button>
+          <button className="btn btn-sm btn-icon text-danger" onClick={() => handleDeleteClick(fee.id)} title="حذف">
+            <i className="fas fa-trash"></i>
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="card">
         <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -166,59 +216,13 @@ export function GovernmentFeesTab() {
             </button>
         </div>
         <div className="card-body">
-            {isLoading ? (
-                <div className="text-center p-4"><i className="fas fa-spinner fa-spin"></i> جاري التحميل...</div>
-            ) : (
-                <div className="table-responsive">
-                    <table className="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>الاسم</th>
-                                <th>النسبة المئوية</th>
-                                <th>مبلغ ثابت</th>
-                                <th>حساب الالتزام (GL)</th>
-                                <th>الحالة</th>
-                                <th style={{ width: "120px" }}>إجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {fees.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="text-center">لا توجد سجلات</td>
-                                </tr>
-                            ) : fees.map(fee => (
-                                <tr key={fee.id}>
-                                    <td>{fee.name}</td>
-                                    <td>{fee.percentage}%</td>
-                                    <td>{fee.fixed_amount ? fee.fixed_amount.toFixed(2) : '-'}</td>
-                                    <td>
-                                        {fee.account ? (
-                                            <span className="badge badge-secondary">
-                                                {fee.account.account_code} - {fee.account.account_name}
-                                            </span>
-                                        ) : '-'}
-                                    </td>
-                                    <td>
-                                        <span className={`badge ${fee.is_active ? 'badge-success' : 'badge-danger'}`}>
-                                            {fee.is_active ? 'نشط' : 'غير نشط'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div className="btn-group">
-                                            <button className="btn btn-sm btn-icon" onClick={() => handleOpenDialog(fee)} title="تعديل">
-                                                <i className="fas fa-edit"></i>
-                                            </button>
-                                            <button className="btn btn-sm btn-icon text-danger" onClick={() => handleDeleteClick(fee.id)} title="حذف">
-                                                <i className="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+            <Table
+                columns={feesColumns}
+                data={fees}
+                keyExtractor={(fee) => fee.id}
+                isLoading={isLoading}
+                emptyMessage="لا توجد التزامات مسجلة"
+            />
         </div>
 
         <Dialog
