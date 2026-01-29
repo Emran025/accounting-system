@@ -112,10 +112,13 @@ button {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.logo-img {
-  width: 50px;
-  height: 50px;
-  object-fit: contain;
+.full-logo {
+  height: 70px;
+  width: 240;
+  margin: 10px;
+  align-items: center;
+  /* border-radius: 1rem ; */
+  background-color: white;
 }
 
 .sidebar-header h2 {

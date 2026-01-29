@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
 import { getIcon } from "@/lib/icons";
 import { Permission, getSidebarLinks, logout } from "@/lib/auth";
+import { FullLogo } from "@/components/ui/Logo";
 
 interface SidebarProps {
   permissions: Permission[];
@@ -103,17 +103,7 @@ export function Sidebar({ permissions, onCollapsedChange }: SidebarProps) {
 
       {/* Sidebar */}
       <aside className={`sidebar ${isCollapsed ? "collapsed" : ""} ${isMobileOpen ? "mobile-visible" : ""}`}>
-        <div className="sidebar-header">
-          <Image
-            src="/logo.svg"
-            alt="Logo"
-            width={50}
-            height={50}
-            className="logo-img"
-            priority
-          />
-          <h2>نظام نُمو</h2>
-        </div>
+        <FullLogo></FullLogo>
 
         <nav className="sidebar-nav">
           {links.map((link) => (
