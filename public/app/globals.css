@@ -1776,6 +1776,12 @@ body.sidebar-is-collapsed .sidebar-toggle-btn {
   transform: rotate(180deg);
 }
 
+/* Navigation Sidebar Collapsed Toggle Position */
+body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
+  right: 68px !important;
+  transform: rotate(180deg);
+}
+
 /* Custom Dropdown for Settings */
 .custom-dropdown {
   position: relative;
@@ -2437,4 +2443,259 @@ body.sidebar-is-collapsed .sidebar-toggle-btn {
   margin-top: 1.5rem;
   border: 1px solid var(--primary-light);
   box-shadow: var(--shadow-sm);
+}
+
+/* ===== Navigation Page Styles ===== */
+.navigation-page {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-color);
+}
+
+.navigation-content {
+  margin-right: 260px;
+  width: calc(100% - 260px);
+  padding: 2.5rem 3rem;
+  transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navigation-content.expanded {
+  margin-right: 80px;
+  width: calc(100% - 80px);
+}
+
+.navigation-header {
+  margin-bottom: 2.5rem;
+}
+
+.navigation-header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.navigation-header p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Navigation Grid */
+.nav-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 1400px) {
+  .nav-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1100px) {
+  .nav-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .navigation-content {
+    margin-right: 0;
+    width: 100%;
+    padding: 1.5rem;
+  }
+}
+
+/* ===== Premium Navigation Card ===== */
+.premium-nav-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  position: relative;
+}
+
+.premium-nav-card:hover {
+  border-color: transparent;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+  transform: translateY(-6px);
+}
+
+/* Card Header with Gradient */
+.premium-nav-card-header {
+  position: relative;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.premium-nav-card-pattern {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.premium-nav-card-pattern svg {
+  width: 100%;
+  height: 100%;
+}
+
+.premium-nav-card-icon {
+  position: relative;
+  z-index: 1;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.premium-nav-card:hover .premium-nav-card-icon {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.premium-nav-card-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Coming Soon Badge */
+.premium-nav-card-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  z-index: 2;
+}
+
+/* Card Body */
+.premium-nav-card-body {
+  padding: 1.25rem 1.5rem 1rem;
+  flex: 1;
+}
+
+.premium-nav-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary);
+}
+
+.premium-nav-card-description {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Card Footer */
+.premium-nav-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-hover);
+}
+
+.premium-nav-card-action {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.premium-nav-card-arrow {
+  color: var(--primary-color);
+  opacity: 0;
+  transform: translateX(8px);
+  transition: all 0.3s ease;
+}
+
+.premium-nav-card:hover .premium-nav-card-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.premium-nav-card-arrow svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Navigation Sidebar Button Style (matches Link style) */
+.sidebar-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--sidebar-text);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  font-weight: 600;
+  font-size: 0.95rem;
+  opacity: 0.8;
+  white-space: nowrap;
+  cursor: pointer;
+  width: 100%;
+  text-align: right;
+  font-family: inherit;
+}
+
+.sidebar-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  opacity: 1;
+}
+
+.sidebar-nav-btn.active {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+  opacity: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-nav-btn svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Collapsed sidebar - hide button text */
+.sidebar.collapsed .sidebar-nav-btn {
+  justify-content: center;
+  padding: 0.75rem;
+  gap: 0;
+}
+
+.sidebar.collapsed .sidebar-nav-btn span {
+  display: none;
 }
