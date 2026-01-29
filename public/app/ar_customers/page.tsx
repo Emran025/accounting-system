@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, Button } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
@@ -160,7 +160,7 @@ export default function ARCustomersPage() {
     ];
 
     return (
-        <MainLayout requiredModule="ar_customers">
+        <ModuleLayout groupKey="ar_customers" requiredModule="ar_customers">
             <PageHeader
                 title="عملاء الآجل (Accounts Receivable)"
                 user={user}
@@ -329,6 +329,6 @@ export default function ARCustomersPage() {
                 title="تأكيد الحذف"
                 message="هل أنت متأكد من حذف هذا العميل؟ سيتم حذف جميع الفواتير المرتبطة به."
             />
-        </MainLayout>
+        </ModuleLayout>
     );
 }

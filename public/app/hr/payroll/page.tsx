@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { getStoredUser } from "@/lib/auth";
 
 import { Payroll } from "./Payroll";
@@ -17,9 +17,9 @@ export default function HRPage() {
   }, []);
 
   return (
-    <MainLayout requiredModule="payroll">
+    <ModuleLayout groupKey="hr" requiredModule="payroll">
       <PageHeader title="الرواتب والمستحقات" user={user} showDate={true} />
       <Payroll />
-    </MainLayout>
+    </ModuleLayout>
   );
 }

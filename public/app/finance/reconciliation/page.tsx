@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate, parseNumber } from "@/lib/utils";
@@ -226,7 +226,7 @@ export default function ReconciliationPage() {
   ];
 
   return (
-    <MainLayout requiredModule="reconciliation">
+    <ModuleLayout groupKey="finance" requiredModule="reconciliation">
       <PageHeader
         title="التسوية البنكية"
         user={user}
@@ -360,7 +360,7 @@ export default function ReconciliationPage() {
           </div>
         )}
       </Dialog>
-    </MainLayout>
+    </ModuleLayout>
   );
 }
 

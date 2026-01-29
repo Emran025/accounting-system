@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { TabNavigation } from "@/components/ui";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
@@ -37,7 +37,7 @@ export default function AccrualAccountingPage() {
   };
 
   return (
-    <MainLayout requiredModule="accrual_accounting">
+    <ModuleLayout groupKey="finance" requiredModule="accrual_accounting">
       <PageHeader
         title="المحاسبة الاستحقاقية"
         user={user}
@@ -74,6 +74,6 @@ export default function AccrualAccountingPage() {
         onClose={() => setAccrualDialog(false)} 
         onSuccess={handleCreateSuccess}
       />
-    </MainLayout>
+    </ModuleLayout>
   );
 }

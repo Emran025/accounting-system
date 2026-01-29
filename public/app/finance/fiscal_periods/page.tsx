@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
@@ -283,7 +283,7 @@ export default function FiscalPeriodsPage() {
   ];
 
   return (
-    <MainLayout requiredModule="fiscal_periods">
+    <ModuleLayout groupKey="finance" requiredModule="fiscal_periods">
       <PageHeader
         title="الفترات المالية"
         user={user}
@@ -389,7 +389,7 @@ export default function FiscalPeriodsPage() {
         confirmText="تأكيد"
         confirmVariant={confirmAction?.type === "close" ? "danger" : "primary"}
       />
-    </MainLayout>
+    </ModuleLayout>
   );
 }
 

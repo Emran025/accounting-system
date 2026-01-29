@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { getStoredUser, User } from "@/lib/auth";
 import { fetchAPI } from "@/lib/api";
 import { Role, Department, Employee } from "../../../types";
@@ -114,7 +114,7 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
   if (isLoading) return <div className="p-5 text-center">جاري التحميل...</div>;
 
   return (
-    <MainLayout requiredModule="hr">
+    <ModuleLayout groupKey="hr" requiredModule="hr">
       <PageHeader title="تعديل بيانات الموظف" user={user} showDate={true} />
       
       <div className="settings-wrapper animate-fade">
@@ -287,6 +287,6 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
             )}
         </div>
       </div>
-    </MainLayout>
+    </ModuleLayout>
   );
 }

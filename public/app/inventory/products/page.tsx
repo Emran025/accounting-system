@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -231,7 +231,7 @@ export default function ProductsPage() {
     ];
 
     return (
-        <MainLayout requiredModule="products">
+        <ModuleLayout groupKey="inventory" requiredModule="products">
             <PageHeader
                 title="المنتجات / المخزون"
                 user={user}
@@ -407,6 +407,6 @@ export default function ProductsPage() {
                 title="تأكيد الحذف"
                 message="هل أنت متأكد من حذف هذا المنتج؟ سيتم حذف جميع السجلات المتعلقة به."
             />
-        </MainLayout>
+        </ModuleLayout>
     );
 }

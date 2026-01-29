@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
@@ -184,7 +184,7 @@ function APLedgerPageContent() {
   ];
 
   return (
-    <MainLayout requiredModule="fiscal_periods">
+    <ModuleLayout groupKey="purchases" requiredModule="ap_suppliers">
       <PageHeader
         title={`دفتر المورد: ${supplier?.name || "..."}`}
         user={user}
@@ -282,7 +282,7 @@ function APLedgerPageContent() {
           * سيتم خصم هذا المبلغ من رصيد المورد وتأثيره على حساب النقدية في دفتر الأستاذ العام.
         </div>
       </Dialog>
-    </MainLayout>
+    </ModuleLayout>
   );
 }
 

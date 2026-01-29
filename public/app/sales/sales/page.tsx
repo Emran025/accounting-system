@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, showToast, SegmentedToggle } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDateTime, parseNumber } from "@/lib/utils";
@@ -642,7 +642,7 @@ export default function SalesPage() {
     ];
 
     return (
-        <MainLayout requiredModule="sales">
+        <ModuleLayout groupKey="sales" requiredModule="sales">
             <PageHeader title="المبيعات النقدية / نقطة البيع" user={user} />
 
             <div id="alert-container"></div>
@@ -1033,6 +1033,6 @@ export default function SalesPage() {
                 confirmText="نعم، متابعة"
                 confirmVariant="primary"
             />
-        </MainLayout>
+        </ModuleLayout>
     );
 }

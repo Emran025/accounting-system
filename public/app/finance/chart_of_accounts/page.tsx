@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column , SearchableSelect} from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
@@ -243,7 +243,7 @@ export default function ChartOfAccountsPage() {
   ];
 
   return (
-    <MainLayout requiredModule="chart_of_accounts">
+    <ModuleLayout groupKey="finance" requiredModule="chart_of_accounts">
       <PageHeader
         title="دليل الحسابات"
         user={user}
@@ -383,7 +383,7 @@ export default function ChartOfAccountsPage() {
         confirmText="حذف"
         confirmVariant="danger"
       />
-    </MainLayout>
+    </ModuleLayout>
   );
 }
 

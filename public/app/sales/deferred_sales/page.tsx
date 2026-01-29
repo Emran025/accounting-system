@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, SegmentedToggle } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDateTime, parseNumber } from "@/lib/utils";
@@ -656,7 +656,7 @@ export default function DeferredSalesPage() {
   ];
 
   return (
-    <MainLayout requiredModule="deferred_sales">
+    <ModuleLayout groupKey="sales" requiredModule="deferred_sales">
       <PageHeader title="المبيعات الآجلة (ذمم)" user={user} />
 
       <div id="alert-container"></div>
@@ -1125,6 +1125,6 @@ export default function DeferredSalesPage() {
         confirmText="نعم، متابعة"
         confirmVariant="primary"
       />
-    </MainLayout>
+    </ModuleLayout>
   );
 }

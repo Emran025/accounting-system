@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, showToast, Column, TabNavigation, FilterSection, FilterGroup, DateRangePicker, FilterActions, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -251,7 +251,7 @@ export default function GeneralLedgerPage() {
   ];
 
   return (
-    <MainLayout requiredModule="general_ledger">
+    <ModuleLayout groupKey="finance" requiredModule="general_ledger">
       <PageHeader
         title="دفتر الأستاذ العام"
         user={user}
@@ -395,6 +395,6 @@ export default function GeneralLedgerPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </ModuleLayout>
   );
 }

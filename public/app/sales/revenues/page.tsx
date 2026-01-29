@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, SearchableSelect, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -209,7 +209,7 @@ export default function RevenuesPage() {
     ];
 
     return (
-        <MainLayout requiredModule="revenues">
+        <ModuleLayout groupKey="sales" requiredModule="revenues">
             <PageHeader
                 title="الإيرادات"
                 user={user}
@@ -331,7 +331,7 @@ export default function RevenuesPage() {
                 confirmText="حذف"
                 confirmVariant="danger"
             />
-        </MainLayout>
+        </ModuleLayout>
     );
 }
 

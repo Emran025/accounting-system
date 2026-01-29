@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, SearchableSelect, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate, translateExpenseCategory } from "@/lib/utils";
@@ -236,7 +236,7 @@ export default function ExpensesPage() {
   ];
 
   return (
-    <MainLayout requiredModule="expenses">
+    <ModuleLayout groupKey="purchases" requiredModule="expenses">
       <PageHeader
         title="المصروفات"
         user={user}
@@ -398,7 +398,7 @@ export default function ExpensesPage() {
         confirmText="حذف"
         confirmVariant="danger"
       />
-    </MainLayout>
+    </ModuleLayout>
   );
 }
 

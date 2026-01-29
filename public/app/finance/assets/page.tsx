@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate, parseNumber } from "@/lib/utils";
@@ -263,7 +263,7 @@ export default function AssetsPage() {
     ];
 
     return (
-        <MainLayout requiredModule="assets">
+        <ModuleLayout groupKey="finance" requiredModule="assets">
             <PageHeader
                 title="إدارة الأصول"
                 user={user}
@@ -411,7 +411,7 @@ export default function AssetsPage() {
                 confirmText="حذف"
                 confirmVariant="danger"
             />
-        </MainLayout>
+        </ModuleLayout>
     );
 }
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { getStoredUser, User } from "@/lib/auth";
 import { fetchAPI, formatCurrency } from "@/lib/api";
 import { Employee } from "../../../types";
@@ -33,7 +33,7 @@ export default function ViewEmployeePage({ params }: { params: { id: string } })
   if (!employee) return <div className="p-5 text-center">الموظف غير موجود</div>;
 
   return (
-    <MainLayout requiredModule="hr">
+    <ModuleLayout groupKey="hr" requiredModule="hr">
       <PageHeader title={`ملف الموظف: ${employee.full_name}`} user={user} showDate={true} />
       
       <div className="settings-wrapper animate-fade">
@@ -149,6 +149,6 @@ export default function ViewEmployeePage({ params }: { params: { id: string } })
             </div>
         </div>
       </div>
-    </MainLayout>
+    </ModuleLayout>
   );
 }

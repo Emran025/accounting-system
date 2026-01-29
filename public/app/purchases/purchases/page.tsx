@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, SearchableSelect, SelectOption, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -310,7 +310,7 @@ export default function PurchasesPage() {
     ];
 
     return (
-        <MainLayout requiredModule="purchases">
+        <ModuleLayout groupKey="purchases" requiredModule="purchases">
             <PageHeader
                 title="المشتريات"
                 user={user}
@@ -529,6 +529,6 @@ export default function PurchasesPage() {
                 title="تأكيد الحذف"
                 message="هل أنت متأكد من حذف هذا المشترى؟ سيتم خصم الكمية من المخزون."
             />
-        </MainLayout>
+        </ModuleLayout>
     );
 }

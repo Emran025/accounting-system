@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
@@ -449,7 +449,7 @@ function ARLedgerPageContent() {
   }
 
   return (
-    <MainLayout requiredModule="ar_customers">
+    <ModuleLayout groupKey="sales" requiredModule="ar_customers">
       <PageHeader
         title={`كشف حساب: ${customer?.name || ""}`}
         user={user}
@@ -804,7 +804,7 @@ function ARLedgerPageContent() {
         confirmText="تأكيد"
         confirmVariant={deleteTransactionId ? "danger" : "primary"}
       />
-    </MainLayout>
+    </ModuleLayout>
   );
 }
 

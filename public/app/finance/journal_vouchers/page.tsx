@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -284,7 +284,7 @@ export default function JournalVouchersPage() {
   ];
 
   return (
-    <MainLayout requiredModule="journal_vouchers">
+    <ModuleLayout groupKey="finance" requiredModule="journal_vouchers">
       <PageHeader
         title="سندات القيد"
         user={user}
@@ -513,7 +513,7 @@ export default function JournalVouchersPage() {
         confirmText="حذف"
         confirmVariant="danger"
       />
-    </MainLayout>
+    </ModuleLayout>
   );
 }
 

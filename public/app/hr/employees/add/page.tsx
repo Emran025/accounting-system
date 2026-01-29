@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader } from "@/components/layout";
 import { getStoredUser, User } from "@/lib/auth";
 import { fetchAPI } from "@/lib/api";
 import { Role, Department } from "../../types";
@@ -86,7 +86,7 @@ export default function AddEmployeePage() {
   };
 
   return (
-    <MainLayout requiredModule="hr">
+    <ModuleLayout groupKey="hr" requiredModule="hr">
       <PageHeader title="إضافة موظف جديد" user={user} showDate={true} />
       
       <div className="settings-wrapper animate-fade">
@@ -244,6 +244,6 @@ export default function AddEmployeePage() {
             </div>
         </form>
       </div>
-    </MainLayout>
+    </ModuleLayout>
   );
 }
