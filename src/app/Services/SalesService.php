@@ -495,4 +495,218 @@ class SalesService
             $invoice->delete();
         });
     }
+
+    /**
+     * Create a sales return for an invoice
+     * Handles proportional VAT/fee reversal, stock restoration, and GL entries
+     */
+    public function createReturn(int $invoiceId, array $items, ?string $reason, int $userId): int
+    {
+        return DB::transaction(function () use ($invoiceId, $items, $reason, $userId) {
+            $invoice = Invoice::with(['items.product', 'fees', 'customer'])->findOrFail($invoiceId);
+
+            // Validate that invoice hasn't been fully returned
+            $existingReturns = \App\Models\SalesReturn::where('invoice_id', $invoiceId)->sum('subtotal');
+            if ($existingReturns >= $invoice->subtotal) {
+                throw new \Exception("هذه الفاتورة تم إرجاعها بالكامل مسبقاً");
+            }
+
+            // Calculate return amounts
+            $returnSubtotal = 0;
+            $returnItems = [];
+
+            foreach ($items as $item) {
+                $invoiceItem = $invoice->items->firstWhere('id', $item['invoice_item_id']);
+                if (!$invoiceItem) {
+                    throw new \Exception("عنصر الفاتورة غير موجود: {$item['invoice_item_id']}");
+                }
+
+                $returnQuantity = (int)$item['return_quantity'];
+
+                // Check if return quantity is valid
+                $previouslyReturned = \App\Models\SalesReturnItem::where('invoice_item_id', $invoiceItem->id)
+                    ->sum('quantity');
+                $availableToReturn = $invoiceItem->quantity - $previouslyReturned;
+
+                if ($returnQuantity > $availableToReturn) {
+                    throw new \Exception("الكمية المطلوبة للإرجاع ({$returnQuantity}) أكبر من المتاح ({$availableToReturn}) للمنتج: {$invoiceItem->product->name}");
+                }
+
+                $lineSubtotal = $invoiceItem->unit_price * $returnQuantity;
+                $returnSubtotal += $lineSubtotal;
+
+                $returnItems[] = [
+                    'invoice_item_id' => $invoiceItem->id,
+                    'product_id' => $invoiceItem->product_id,
+                    'quantity' => $returnQuantity,
+                    'unit_price' => $invoiceItem->unit_price,
+                    'subtotal' => $lineSubtotal,
+                    'unit_type' => $invoiceItem->unit_type ?? 'sub',
+                    'product' => $invoiceItem->product,
+                ];
+            }
+
+            // Calculate proportional VAT and Fees
+            $proportion = $invoice->subtotal > 0 ? $returnSubtotal / $invoice->subtotal : 0;
+            $returnVat = round($invoice->vat_amount * $proportion, 2);
+            $returnFees = round($invoice->fees->sum('amount') * $proportion, 2);
+            $returnTotal = $returnSubtotal + $returnVat + $returnFees;
+
+            // Generate return number
+            $returnNumber = 'RET-' . date('Ymd') . '-' . str_pad(
+                \App\Models\SalesReturn::whereDate('created_at', today())->count() + 1,
+                4,
+                '0',
+                STR_PAD_LEFT
+            );
+
+            // Create return record
+            $return = \App\Models\SalesReturn::create([
+                'return_number' => $returnNumber,
+                'invoice_id' => $invoiceId,
+                'total_amount' => $returnTotal,
+                'subtotal' => $returnSubtotal,
+                'vat_amount' => $returnVat,
+                'fees_amount' => $returnFees,
+                'reason' => $reason,
+                'user_id' => $userId,
+            ]);
+
+            // Create return items and restore stock
+            foreach ($returnItems as $item) {
+                \App\Models\SalesReturnItem::create([
+                    'sales_return_id' => $return->id,
+                    'invoice_item_id' => $item['invoice_item_id'],
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'subtotal' => $item['subtotal'],
+                    'unit_type' => $item['unit_type'],
+                ]);
+
+                // Restore stock (convert to base units if needed)
+                $stockRestore = $item['quantity'];
+                if ($item['unit_type'] === 'main' || $item['unit_type'] === 'package') {
+                    $stockRestore = $item['quantity'] * ($item['product']->items_per_unit ?? 1);
+                }
+                Product::where('id', $item['product_id'])->increment('stock_quantity', $stockRestore);
+            }
+
+            // Post GL reversal entries
+            $glEntries = [];
+            $invoiceNumber = $invoice->invoice_number;
+
+            // Reverse Revenue (Debit)
+            $glEntries[] = [
+                'account_code' => $this->coaService->getStandardAccounts()['sales_revenue'],
+                'entry_type' => 'DEBIT',
+                'amount' => $returnSubtotal,
+                'description' => "Sales Return - Invoice #$invoiceNumber (Return #$returnNumber)"
+            ];
+
+            // Reverse VAT (Debit) if applicable
+            if ($returnVat > 0) {
+                $glEntries[] = [
+                    'account_code' => $this->coaService->getStandardAccounts()['output_vat'],
+                    'entry_type' => 'DEBIT',
+                    'amount' => $returnVat,
+                    'description' => "VAT Reversal - Return #$returnNumber"
+                ];
+            }
+
+            // Reverse Government Fees proportionally (Debit)
+            if ($returnFees > 0 && $invoice->fees->count() > 0) {
+                foreach ($invoice->fees as $fee) {
+                    $feeReturn = round($fee->amount * $proportion, 2);
+                    if ($feeReturn > 0 && $fee->account_code) {
+                        $glEntries[] = [
+                            'account_code' => $fee->account_code,
+                            'entry_type' => 'DEBIT',
+                            'amount' => $feeReturn,
+                            'description' => "Fee Reversal: {$fee->fee_name} - Return #$returnNumber"
+                        ];
+                    }
+                }
+            }
+
+            // Credit side depends on payment type
+            if ($invoice->payment_type === 'credit') {
+                // Credit AR (reduce customer debt)
+                $glEntries[] = [
+                    'account_code' => $this->coaService->getStandardAccounts()['accounts_receivable'],
+                    'entry_type' => 'CREDIT',
+                    'amount' => $returnTotal,
+                    'description' => "AR Reduction - Return #$returnNumber"
+                ];
+            } else {
+                // Cash refund
+                $glEntries[] = [
+                    'account_code' => $this->coaService->getStandardAccounts()['cash'],
+                    'entry_type' => 'CREDIT',
+                    'amount' => $returnTotal,
+                    'description' => "Cash Refund - Return #$returnNumber"
+                ];
+            }
+
+            // Reverse COGS (Credit) and Inventory (Debit)
+            // Calculate return cost based on weighted average
+            $returnCost = 0;
+            foreach ($returnItems as $item) {
+                $product = Product::find($item['product_id']);
+                $cost = (float)($product->weighted_average_cost ?? 0);
+                $stockRestore = $item['quantity'];
+                if ($item['unit_type'] === 'main' || $item['unit_type'] === 'package') {
+                    $stockRestore = $item['quantity'] * ($product->items_per_unit ?? 1);
+                }
+                $returnCost += $cost * $stockRestore;
+            }
+
+            if ($returnCost > 0) {
+                $glEntries[] = [
+                    'account_code' => $this->coaService->getStandardAccounts()['inventory'],
+                    'entry_type' => 'DEBIT',
+                    'amount' => $returnCost,
+                    'description' => "Inventory Restored - Return #$returnNumber"
+                ];
+
+                $glEntries[] = [
+                    'account_code' => $this->coaService->getStandardAccounts()['cost_of_goods_sold'],
+                    'entry_type' => 'CREDIT',
+                    'amount' => $returnCost,
+                    'description' => "COGS Reversal - Return #$returnNumber"
+                ];
+            }
+
+            // Post to General Ledger
+            $voucherNumber = $this->ledgerService->postTransaction(
+                $glEntries,
+                'sales_returns',
+                $return->id,
+                null,
+                now()->format('Y-m-d')
+            );
+
+            $return->update(['voucher_number' => $voucherNumber]);
+
+            // Update AR transaction if credit sale
+            if ($invoice->payment_type === 'credit' && $invoice->customer_id) {
+                ArTransaction::create([
+                    'customer_id' => $invoice->customer_id,
+                    'type' => 'return',
+                    'amount' => $returnTotal,
+                    'description' => "مرتجع مبيعات - فاتورة #{$invoiceNumber} (مرتجع #{$returnNumber})",
+                    'reference_type' => 'sales_returns',
+                    'reference_id' => $return->id,
+                    'created_by' => $userId,
+                ]);
+
+                // Reduce customer balance
+                ArCustomer::where('id', $invoice->customer_id)
+                    ->decrement('current_balance', $returnTotal);
+            }
+
+            return $return->id;
+        });
+    }
 }
+

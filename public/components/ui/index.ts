@@ -18,3 +18,6 @@ export type { Tab } from "./TabNavigation";
 export { SegmentedToggle } from "./SegmentedToggle";
 export type { ToggleOption } from "./SegmentedToggle";
 export { FilterSection, FilterGroup, DateRangePicker, FilterActions } from "./FilterSection";
+export { SelectableInvoiceTable } from "./SelectableInvoiceTable";
+export type { InvoiceTableColumn, SelectedItem, Invoice as SelectableInvoice, InvoiceItem as SelectableInvoiceItem } from "./SelectableInvoiceTable";
+export { SalesReturnDialog } from "./SalesReturnDialog";

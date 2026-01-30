@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\SessionsController;
 use App\Http\Controllers\Api\EmployeesController;
 use App\Http\Controllers\Api\PayrollController;
 use App\Http\Controllers\Api\JournalVouchersController;
+use App\Http\Controllers\Api\SalesReturnController;
 
 use App\Http\Controllers\Api\DepartmentsController;
 
@@ -59,6 +60,11 @@ Route::middleware(['api.auth'])->group(function () {
     Route::post('/invoices', [SalesController::class, 'store'])->name('api.invoices.store');
     Route::get('/invoice_details', [SalesController::class, 'show'])->name('api.invoice_details');
     Route::delete('/invoices', [SalesController::class, 'destroy'])->name('api.invoices.destroy');
+
+    // Sales Returns
+    Route::get('/sales/returns', [SalesReturnController::class, 'index'])->name('api.sales_returns.index');
+    Route::post('/sales/returns', [SalesReturnController::class, 'store'])->name('api.sales_returns.store');
+    Route::get('/sales/returns/show', [SalesReturnController::class, 'show'])->name('api.sales_returns.show');
 
     // ZATCA
     Route::post('/invoices/{id}/zatca/submit', [ZATCAInvoiceController::class, 'submit'])->name('api.invoices.zatca.submit');

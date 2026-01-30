@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, SegmentedToggle } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, SegmentedToggle, SelectableInvoiceTable, SalesReturnDialog, SelectedItem, SelectableInvoiceItem as UiInvoiceItem, showToast, InvoiceTableColumn } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDateTime, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, canAccess, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
@@ -64,15 +64,12 @@ interface Invoice {
   customer_phone?: string;
   customer_tax?: string;
   created_at: string;
-  items?: Array<{
-    product_name: string;
-    quantity: number;
-    unit_price: number;
-    subtotal: number;
-  }>;
-  subtotal?: number;
-  discount_amount?: number;
+  items?: any[];
+  subtotal: number;
+  discount_amount: number;
+  vat_amount: number;
   payment_type: string;
+  customer?: { id: number; name: string };
 }
 
 export default function DeferredSalesPage() {
@@ -117,6 +114,11 @@ export default function DeferredSalesPage() {
   const [confirmDialog, setConfirmDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [deleteInvoiceId, setDeleteInvoiceId] = useState<number | null>(null);
+
+  // Returns
+  const [returnDialog, setReturnDialog] = useState(false);
+  const [selectedReturnItems, setSelectedReturnItems] = useState<SelectedItem[]>([]);
+  const [originalReturnInvoice, setOriginalReturnInvoice] = useState<Invoice | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -583,19 +585,84 @@ export default function DeferredSalesPage() {
     }
   };
 
-  const invoiceColumns: Column<Invoice>[] = [
+    // Helper to fetch invoice items for the selectable table
+    const getInvoiceItemsForTable = useCallback(async (invoice: Invoice): Promise<UiInvoiceItem[]> => {
+        try {
+            const response = await fetchAPI(`invoice_details?id=${invoice.id}`);
+            if (response.success && response.data) {
+                const detailedInvoice = response.data as any;
+                // Map API items to UI items
+                return detailedInvoice.items.map((item: any) => ({
+                    id: item.id,
+                    product_id: item.product_id,
+                    product: { name: item.product?.name || item.product_name },
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    subtotal: item.subtotal,
+                    unit_type: item.unit_type || 'main'
+                }));
+            }
+            return [];
+        } catch (error) {
+            console.error("Error fetching items:", error);
+            return [];
+        }
+    }, []);
+
+    const handleReturnSelection = useCallback(async (items: SelectedItem[]) => {
+        setSelectedReturnItems(items);
+        if (items.length > 0) {
+            // Fetch the full invoice details to have context for the return dialog
+            const invoiceId = items[0].invoiceId;
+            try {
+                const response = await fetchAPI(`invoice_details?id=${invoiceId}`);
+                if (response.success) {
+                    setOriginalReturnInvoice(response.data as Invoice);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        } else {
+            setOriginalReturnInvoice(null);
+        }
+    }, []);
+
+    const openReturnDialog = () => {
+        if (selectedReturnItems.length === 0) {
+            showToast("يرجى تحديد عناصر للإرجاع أولاً", "warning");
+            return;
+        }
+        setReturnDialog(true);
+    };
+
+    const handleConfirmReturn = async (returnData: any) => {
+        try {
+            const response = await fetchAPI("sales/returns", {
+                method: "POST",
+                body: JSON.stringify(returnData),
+            });
+
+            if (response.success) {
+                showToast("تم إنشاء المرتجع بنجاح", "success");
+                setReturnDialog(false);
+                setSelectedReturnItems([]); // Clear selection
+                // Reload data
+                loadInvoices(); 
+                loadProducts();
+            } else {
+                showAlert("alert-container", response.message || "فشل إنشاء المرتجع", "error");
+            }
+        } catch (error) {
+            showAlert("alert-container", "خطأ في الاتصال", "error");
+        }
+    };
+
+  const invoiceColumns: InvoiceTableColumn<Invoice>[] = [
     {
       key: "invoice_number",
       header: "رقم الفاتورة",
       dataLabel: "رقم الفاتورة",
-      render: (item) => (
-        <>
-          <strong>{item.invoice_number}</strong>{" "}
-          <span className="badge badge-warning" style={{ fontSize: "0.7em" }}>
-            آجل
-          </span>
-        </>
-      ),
+      render: (item) => <strong>{item.invoice_number}</strong>,
     },
     {
       key: "total_amount",
@@ -619,7 +686,6 @@ export default function DeferredSalesPage() {
     {
       key: "customer_name",
       header: "العميل",
-      dataLabel: "العميل",
       render: (item) => item.customer_name || "-",
     },
     {
@@ -633,22 +699,11 @@ export default function DeferredSalesPage() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => {
-        const hoursDiff = (new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 60 * 60);
-        const canDelete = hoursDiff < 48;
         return (
           <div className="action-buttons">
             <button className="icon-btn view" onClick={() => viewInvoice(item.id)} title="عرض">
               <Icon name="eye" />
             </button>
-            {canDelete && canAccess(permissions, "sales", "delete") && (
-              <button
-                className="icon-btn delete"
-                onClick={() => confirmDeleteInvoice(item.id)}
-                title="حذف"
-              >
-                <Icon name="trash" />
-              </button>
-            )}
           </div>
         );
       },
@@ -952,9 +1007,9 @@ export default function DeferredSalesPage() {
           <h3>سجل الفواتير السابقة</h3>
           <div className="table-container">
             <div className="table-wrapper">
-              <Table
+              <SelectableInvoiceTable
+                invoices={invoices}
                 columns={invoiceColumns}
-                data={invoices}
                 keyExtractor={(item) => item.id}
                 emptyMessage="لا توجد فواتير سابقة"
                 isLoading={isLoading}
@@ -963,11 +1018,48 @@ export default function DeferredSalesPage() {
                   totalPages,
                   onPageChange: loadInvoices,
                 }}
+                getInvoiceItems={getInvoiceItemsForTable}
+                onSelectionChange={handleReturnSelection}
+                onSearch={() => {}}
               />
+              {selectedReturnItems.length > 0 && (
+                <div className="floating-action-bar animate-slide-up" style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'var(--bg-card)',
+                    padding: '1rem 2rem',
+                    borderRadius: '50px',
+                    boxShadow: 'var(--shadow-lg)',
+                    zIndex: 1000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    border: '1px solid var(--primary-light)'
+                }}>
+                    <span style={{fontWeight: 'bold'}}>تم تحديد {selectedReturnItems.length} عنصر</span>
+                    <button 
+                        className="btn btn-warning"
+                        onClick={openReturnDialog}
+                    >
+                        تسجيل مرتجع
+                    </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Sales Return Dialog */}
+      <SalesReturnDialog 
+        isOpen={returnDialog}
+        onClose={() => setReturnDialog(false)}
+        selectedItems={selectedReturnItems}
+        originalInvoice={originalReturnInvoice}
+        onConfirmReturn={handleConfirmReturn}
+      />
 
       {/* View Invoice Dialog */}
       <Dialog

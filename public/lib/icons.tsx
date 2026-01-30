@@ -93,6 +93,8 @@ export const icons = {
     "check-square": (props: IconProps) => <CheckSquare className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     hourglass: (props: IconProps) => <Hourglass className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     dashboard: (props: IconProps) => <LayoutDashboard className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "chevron-right": (props: IconProps) => <ChevronRight className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "chevron-down": (props: IconProps) => <ChevronDown className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
 };
 
 export type IconName = keyof typeof icons;

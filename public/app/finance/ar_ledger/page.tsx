@@ -421,9 +421,12 @@ function ARLedgerPageContent() {
                   <Icon name="edit" />
                 </button>
               )}
-              <button className="icon-btn delete" onClick={() => confirmDeleteTransaction(item.id)} title="حذف">
-                <Icon name="trash" />
-              </button>
+              {/* Only allow delete for payment transactions, not invoices */}
+              {item.type !== "invoice" && (
+                <button className="icon-btn delete" onClick={() => confirmDeleteTransaction(item.id)} title="حذف">
+                  <Icon name="trash" />
+                </button>
+              )}
               {item.reference_type === "invoices" && (
                 <button className="icon-btn view" onClick={() => viewInvoice(item.reference_id!)} title="عرض الفاتورة">
                   <Icon name="eye" />
