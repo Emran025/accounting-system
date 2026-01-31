@@ -22,6 +22,7 @@ interface ExpandableTableProps<T> {
   isLoading?: boolean;
   emptyMessage?: string;
   expandable?: boolean;
+  isExpandable?: (item: T) => boolean;
 }
 
 export function ExpandableTable<T>({
@@ -35,6 +36,7 @@ export function ExpandableTable<T>({
   isLoading = false,
   emptyMessage = "لا توجد بيانات",
   expandable = true,
+  isExpandable,
 }: ExpandableTableProps<T>) {
   const [internalExpandedId, setInternalExpandedId] = useState<string | number | null>(null);
 
@@ -42,6 +44,8 @@ export function ExpandableTable<T>({
   const currentExpandedId = isControlled ? controlledExpandedId : internalExpandedId;
 
   const toggleExpand = (item: T) => {
+    if (isExpandable && !isExpandable(item)) return;
+
     const id = keyExtractor(item);
     const isExpanded = currentExpandedId === id;
     const newId = isExpanded ? null : id;
@@ -104,13 +108,15 @@ export function ExpandableTable<T>({
                     >
                       {expandable && (
                         <td>
-                          <button
-                            className="expand-btn"
-                            onClick={() => toggleExpand(item)}
-                            title={isExpanded ? "طي" : "توسيع"}
-                          >
-                             <Icon name={isExpanded ? "chevron-down" : "chevron-right"} size={16} />
-                          </button>
+                          {(isExpandable ? isExpandable(item) : true) && (
+                            <button
+                              className="expand-btn"
+                              onClick={() => toggleExpand(item)}
+                              title={isExpanded ? "طي" : "توسيع"}
+                            >
+                               <Icon name={isExpanded ? "chevron-down" : "chevron-right"} size={16} />
+                            </button>
+                          )}
                         </td>
                       )}
                       {columns.map((col) => (
@@ -137,46 +143,6 @@ export function ExpandableTable<T>({
           </tbody>
         </table>
       </div>
-      <style jsx>{`
-        .expand-btn {
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--text-secondary);
-          transition: color 0.2s;
-        }
-        .expand-btn:hover {
-          color: var(--primary-color);
-        }
-        .expanded {
-          background-color: var(--primary-subtle);
-        }
-        .expanded-row-content td {
-          padding: 0 !important;
-          border-bottom: 1px solid var(--border-color);
-        }
-        .expanded-content-wrapper {
-          padding: 1rem;
-          background-color: var(--bg-hover);
-          border-bottom: 2px solid var(--primary-light);
-        }
-        .loading-spinner {
-          width: 24px;
-          height: 24px;
-          border: 3px solid var(--border-color);
-          border-top-color: var(--primary-color);
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin: 0 auto 0.5rem;
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

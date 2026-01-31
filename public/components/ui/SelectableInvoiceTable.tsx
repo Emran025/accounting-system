@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useRef, useCallback, ReactNode, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ExpandableTable, Column as ExpandableColumn } from "./ExpandableTable";
 import { SelectableTable, SelectableColumn } from "./SelectableTable";
 import { SearchableSelect, SelectOption } from "./SearchableSelect";
-import { Icon } from "@/lib/icons";
+import { FloatingActionTableBar } from "./FloatingActionBar";
+import { ConfirmDialog } from "./Dialog";
+import { formatCurrency } from "@/lib/utils";
 
 // Re-export types for consumers
 export type { ExpandableColumn as InvoiceTableColumn }; 
@@ -60,6 +62,9 @@ interface SelectableInvoiceTableProps<T extends Invoice> {
   pagination?: PaginationProps;
   getInvoiceItems: (invoice: T) => Promise<InvoiceItem[]> | InvoiceItem[];
   emptyMessage?: string;
+  multiInvoiceSelection?: boolean;
+  isExpandable?: (item: T) => boolean;
+  openReturnDialog: () => void;
 }
 
 export function SelectableInvoiceTable<T extends Invoice>({
@@ -73,12 +78,22 @@ export function SelectableInvoiceTable<T extends Invoice>({
   pagination,
   getInvoiceItems,
   emptyMessage = "لا توجد فواتير",
+  multiInvoiceSelection = false,
+  isExpandable,
+  openReturnDialog,
 }: SelectableInvoiceTableProps<T>) {
   // State
   const [invoiceItems, setInvoiceItems] = useState<Record<number, InvoiceItem[]>>({});
   const [loadingItems, setLoadingItems] = useState<Record<number, boolean>>({});
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
+  
+  // Confirmation state
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmData, setConfirmData] = useState<{
+    onConfirm: () => void;
+    message: string;
+  } | null>(null);
   
   // Search State
   const [searchQuery, setSearchQuery] = useState("");
@@ -110,7 +125,7 @@ export function SelectableInvoiceTable<T extends Invoice>({
   const searchOptions: SelectOption[] = invoices.map(inv => ({
     value: inv.id,
     label: inv.invoice_number,
-    subtitle: `الإجمالي: ${inv.total_amount.toFixed(2)}`
+    subtitle: `الإجمالي: ${formatCurrency(inv.total_amount)}`
   }));
 
   // Fetch items when expanding
@@ -130,45 +145,53 @@ export function SelectableInvoiceTable<T extends Invoice>({
 
   // Handle Inner Table Selection
   const handleItemSelectionChange = (selectedIds: (string | number)[], invoiceId: number) => {
-    // Enforce Single Invoice Constraint
-    if (currentInvoiceId && currentInvoiceId !== invoiceId && selectedIds.length > 0) {
-        // If user tries to select from another invoice while one is active
-        // Ideally we should alert or reset. 
-        // For now, we'll reset previous selection if they explicitly interact with a new table?
-        // But the constraint is "Single invoice". Better to prevent or warn.
-        // Actually, let's allow switching invoice by clearing previous selection implicitly IF they explicitly select here.
-        // But user might lose work. 
-        // User logic: "returns to unselected state" complaint implies they want stable selection.
-        // I will clear previous selection and start new if different invoice.
-        // Or strictly enforce.
-        if (!confirm("هل تريد إلغاء تحديد العناصر من الفاتورة السابقة والبدء في هذه؟")) {
-            return;
+    // Process the selection change
+    const processSelection = () => {
+        const items = invoiceItems[invoiceId] || [];
+        const invoiceSelectedItems: SelectedItem[] = items
+            .filter(item => selectedIds.includes(item.id))
+            .map(item => ({
+                invoiceId,
+                invoiceItemId: item.id,
+                quantity: item.quantity,
+                maxQuantity: item.quantity,
+                productName: item.product?.name || `منتج #${item.product_id}`,
+                unitPrice: item.unit_price,
+            }));
+
+        let newSelectedItems: SelectedItem[];
+        if (multiInvoiceSelection) {
+            // Merge with existing items from other invoices
+            const itemsFromOtherInvoices = selectedItems.filter(si => si.invoiceId !== invoiceId);
+            newSelectedItems = [...itemsFromOtherInvoices, ...invoiceSelectedItems];
+        } else {
+            newSelectedItems = invoiceSelectedItems;
         }
+
+        setSelectedItems(newSelectedItems);
+        setSelectionMode(newSelectedItems.length > 0);
+        onSelectionChange(newSelectedItems);
+    };
+
+    // Enforce Single Invoice Constraint if not multi-invoice
+    if (!multiInvoiceSelection && currentInvoiceId && currentInvoiceId !== invoiceId && selectedIds.length > 0) {
+        setConfirmData({
+            message: "هل تريد إلغاء تحديد العناصر من الفاتورة السابقة والبدء في هذه؟",
+            onConfirm: processSelection
+        });
+        setShowConfirm(true);
+        return;
     }
 
-    const items = invoiceItems[invoiceId] || [];
-    const newSelectedItems: SelectedItem[] = items
-        .filter(item => selectedIds.includes(item.id))
-        .map(item => ({
-            invoiceId,
-            invoiceItemId: item.id,
-            quantity: item.quantity,
-            maxQuantity: item.quantity,
-            productName: item.product?.name || `منتج #${item.product_id}`,
-            unitPrice: item.unit_price,
-        }));
-
-    setSelectedItems(newSelectedItems);
-    setSelectionMode(newSelectedItems.length > 0);
-    onSelectionChange(newSelectedItems);
+    processSelection();
   };
 
   // Inner Columns definition
   const itemColumns: SelectableColumn<InvoiceItem>[] = [
     { key: "product_name", header: "المنتج", render: (item) => item.product?.name || item.product_id },
     { key: "quantity", header: "الكمية" },
-    { key: "unit_price", header: "السعر", render: (item) => item.unit_price.toFixed(2) },
-    { key: "subtotal", header: "الإجمالي", render: (item) => item.subtotal.toFixed(2) },
+    { key: "unit_price", header: "السعر", render: (item) => formatCurrency(item.unit_price) },
+    { key: "subtotal", header: "الإجمالي", render: (item) => formatCurrency(item.subtotal) },
   ];
 
   const clearSelection = () => {
@@ -196,15 +219,26 @@ export function SelectableInvoiceTable<T extends Invoice>({
                 }}
             />
         </div>
-        
-        {selectionMode && (
-          <div className="selection-actions animate-fade-in">
-             <span className="selection-info">تم تحديد {selectedItems.length} عنصر</span>
-             <button onClick={clearSelection} className="btn btn-sm btn-secondary">إلغاء التحديد</button>
-          </div>
-        )}
+        <FloatingActionTableBar 
+          isVisible={selectionMode}
+          message={`تم تحديد ${selectedItems.length} عنصر من ${new Set(selectedItems.map(i => i.invoiceId)).size} فاتورة`}
+          actions={[
+              {
+                  label: "تسجيل مرتجع",
+                  icon: "repeat",
+                  onClick: openReturnDialog,
+                  variant: "primary"
+              },
+              {
+                  label: "إلغاء التحديد",
+                  icon: "shield-check",
+                  onClick: clearSelection,
+                  variant: "secondary"
+              }
+          ]}
+        />
       </div>
-
+      
       {/* Main Table */}
       <ExpandableTable
         data={filteredInvoices}
@@ -213,6 +247,7 @@ export function SelectableInvoiceTable<T extends Invoice>({
         isLoading={isLoading}
         emptyMessage={emptyMessage}
         onExpand={handleExpand}
+        isExpandable={isExpandable}
         renderExpandedRow={(invoice) => {
             const isLoading = loadingItems[invoice.id];
             const items = invoiceItems[invoice.id] || [];
@@ -223,74 +258,43 @@ export function SelectableInvoiceTable<T extends Invoice>({
                 .map(si => si.invoiceItemId);
 
             return (
-                <div className="inner-table-container">
-                    {isLoading ? (
-                        <div className="p-4 text-center text-secondary">جاري تحميل العناصر...</div>
-                    ) : (
-                        <SelectableTable
-                            data={items}
-                            columns={itemColumns}
-                            keyExtractor={(item) => item.id}
-                            selectedIds={currentInvoiceSelectedIds}
-                            onSelectionChange={(ids) => handleItemSelectionChange(ids, invoice.id)}
-                            selectionMode={true} // Always allow selection in expanded row
-                            emptyMessage="لا توجد عناصر في هذه الفاتورة"
-                            // If user wants long press to toggle "selection mode" visually (checkboxes), pass state.
-                            // Here we just enable checkboxes always for clarity or logic.
-                            // User "Selection is not long-pressed" fix: 
-                            // We enable strict selection mode.
-                        />
-                    )}
-                </div>
+                <>
+                  {isLoading ? (
+                      <div className="p-4 text-center text-secondary">جاري تحميل العناصر...</div>
+                  ) : (
+                    <div className="inner-table-container">
+                    
+                      <SelectableTable
+                          data={items}
+                          columns={itemColumns}
+                          keyExtractor={(item) => item.id}
+                          selectedIds={currentInvoiceSelectedIds}
+                          onSelectionChange={(ids) => handleItemSelectionChange(ids, invoice.id)}
+                          selectionMode={true} // Always allow selection in expanded row
+                          emptyMessage="لا توجد عناصر في هذه الفاتورة"
+                          // If user wants long press to toggle "selection mode" visually (checkboxes), pass state.
+                          // Here we just enable checkboxes always for clarity or logic.
+                          // User "Selection is not long-pressed" fix: 
+                          // We enable strict selection mode.
+                          />
+                      </div>
+                  )}
+                </>
             );
         }}
       />
       
-      <style jsx>{`
-        .selectable-invoice-table {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .table-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-bottom: 0.5rem;
-        }
-        .search-wrapper {
-            flex: 1;
-            min-width: 300px;
-        }
-        .selection-actions {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            background: var(--primary-subtle);
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--primary-light);
-        }
-        .selection-info {
-            font-weight: 600;
-            color: var(--primary-dark);
-        }
-        .inner-table-container {
-            background: #fff;
-            border-radius: var(--radius-md);
-            overflow: hidden;
-            box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+      {/* Ready-made Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={() => confirmData?.onConfirm()}
+        message={confirmData?.message || ""}
+        title="تأكيد التغيير"
+        confirmText="نعم، ابدأ جديد"
+        cancelText="إلغاء"
+      />
+
     </div>
   );
 }

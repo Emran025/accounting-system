@@ -3,13 +3,12 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions } from "@/components/ui";
+import {Dialog, ConfirmDialog, showToast, showAlert, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions, SelectableInvoiceTable, SelectedItem, SalesReturnDialog, SelectableInvoice, SelectableInvoiceItem, ReturnData, InvoiceTableColumn } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
 import { getIcon, Icon } from "@/lib/icons";
-interface LedgerTransaction {
-  id: number;
+interface LedgerTransaction extends SelectableInvoice {
   transaction_date: string;
   type: "invoice" | "payment" | "return";
   description?: string;
@@ -39,26 +38,15 @@ interface Customer {
   tax_number?: string;
 }
 
-interface Invoice {
-  id: number;
-  invoice_number: string;
+// This interface is for the detailed view of an invoice
+interface DetailedInvoice extends SelectableInvoice {
   voucher_number?: string;
-  created_at: string;
-  payment_type: string;
   customer_name?: string;
   customer_phone?: string;
   customer_tax?: string;
-  total_amount: number;
   amount_paid?: number;
-  vat_amount?: number;
   vat_rate?: number;
-  discount_amount?: number;
-  items: Array<{
-    product_name: string;
-    quantity: number;
-    unit_price: number;
-    subtotal: number;
-  }>;
+  items: Array<SelectableInvoiceItem & { product_name?: string }>;
 }
 
 function ARLedgerPageContent() {
@@ -102,7 +90,13 @@ function ARLedgerPageContent() {
   const [confirmDialog, setConfirmDialog] = useState(false);
   const [deleteTransactionId, setDeleteTransactionId] = useState<number | null>(null);
   const [restoreTransactionId, setRestoreTransactionId] = useState<number | null>(null);
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<DetailedInvoice | null>(null);
+  
+  // Returns state
+  const [selectedReturnItems, setSelectedReturnItems] = useState<SelectedItem[]>([]);
+  const [returnDialog, setReturnDialog] = useState(false);
+  const [invoicesMap, setInvoicesMap] = useState<Record<number, SelectableInvoice>>({});
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
 
   // Form
   const [currentTransactionId, setCurrentTransactionId] = useState<number | null>(null);
@@ -149,8 +143,20 @@ function ARLedgerPageContent() {
 
         const response = await fetchAPI(`ar_ledger?${params}`);
         if (response.success && response.data) {
-          setTransactions(response.data as LedgerTransaction[]);
-          if (response.stats ) {
+          const rawTransactions = response.data as any[];
+          const mappedTransactions: LedgerTransaction[] = rawTransactions.map((item) => ({
+            ...item,
+            invoice_number: item.reference_id ? `REF-${item.reference_id}` : `TRX-${item.id}`,
+            total_amount: item.amount,
+            subtotal: item.amount,
+            vat_amount: 0,
+            discount_amount: 0,
+            payment_type: item.type === "invoice" ? "credit" : "cash",
+            created_at: item.transaction_date,
+          }));
+
+          setTransactions(mappedTransactions);
+          if (response.stats) {
             setStats(response.stats as LedgerStats);
           }
 
@@ -243,11 +249,90 @@ function ARLedgerPageContent() {
     try {
       const response = await fetchAPI(`invoice_details?id=${id}`);
       if (response.success && response.data) {
-        setSelectedInvoice(response.data as Invoice);
+        setSelectedInvoice(response.data as DetailedInvoice);
         setViewDialog(true);
       }
     } catch {
       showAlert("alert-container", "خطأ في جلب التفاصيل", "error");
+    }
+  };
+
+  const getInvoiceItems = async (item: LedgerTransaction): Promise<SelectableInvoiceItem[]> => {
+    if (!item.reference_id) return [];
+    
+    const endpoint = item.reference_type === "sales_returns" 
+        ? `sales/returns/show?id=${item.reference_id}`
+        : `invoice_details?id=${item.reference_id}`;
+        
+    try {
+      const response = await fetchAPI(endpoint);
+      if (response.success && response.data) {
+        const data = response.data as DetailedInvoice;
+          return (data.items as SelectableInvoiceItem[]) || [];
+      }
+      return [];
+    } catch (error) {
+      console.error("Failed to fetch items", error);
+      return [];
+    }
+  };
+
+  const handleReturnSelection = useCallback((items: SelectedItem[]) => {
+    setSelectedReturnItems(items);
+  }, []);
+
+  const openReturnDialog = async () => {
+    if (selectedReturnItems.length === 0) {
+        showToast("يرجى تحديد عناصر للإرجاع أولاً", "warning");
+        return;
+    }
+    
+    // Fetch missing invoice details for calculation
+    const uniqueInvoiceIds = Array.from(new Set(selectedReturnItems.map(i => i.invoiceId)));
+    const missingIds = uniqueInvoiceIds.filter(id => !invoicesMap[id]);
+    
+    if (missingIds.length > 0) {
+      setIsLoadingInvoices(true);
+      try {
+        const newMap = { ...invoicesMap };
+        await Promise.all(missingIds.map(async (id) => {
+          const res = await fetchAPI(`invoice_details?id=${id}`);
+          if (res.success && res.data) {
+            newMap[id] = res.data as SelectableInvoice;
+          }
+        }));
+        setInvoicesMap(newMap);
+      } catch (error) {
+        console.error("Failed to load invoice details", error);
+        showToast("فشل تحميل بيانات الفواتير", "error");
+      } finally {
+        setIsLoadingInvoices(false);
+      }
+    }
+    
+    setReturnDialog(true);
+  };
+
+  const handleConfirmReturn = async (data: ReturnData | ReturnData[]) => {
+    const dataArray = Array.isArray(data) ? data : [data];
+    
+    try {
+      for (const returnData of dataArray) {
+        const response = await fetchAPI("sales/returns/store", {
+          method: "POST",
+          body: JSON.stringify(returnData),
+        });
+        
+        if (!response.success) {
+          throw new Error(response.message || "فشل تسجيل المرتجع");
+        }
+      }
+      
+      showToast("تم تسجيل المرتجع بنجاح", "success");
+      // Result will be handled by onSuccess in dialog
+    } catch (error: any) {
+      showToast(error.message || "خطأ في تسجيل المرتجع", "error");
+      throw error; // Re-throw to keep dialog open if needed
     }
   };
 
@@ -325,7 +410,7 @@ function ARLedgerPageContent() {
     return diffHours < 48;
   };
 
-  const columns: Column<LedgerTransaction>[] = [
+  const columns: InvoiceTableColumn<LedgerTransaction>[] = [
     {
       key: "id",
       header: "#",
@@ -544,17 +629,23 @@ function ARLedgerPageContent() {
       <div id="alert-container"></div>
 
       <div className="sales-card animate-fade">
-        <Table
+        <SelectableInvoiceTable
           columns={columns}
-          data={transactions}
+          invoices={transactions}
           keyExtractor={(item) => item.id}
-          emptyMessage="لا توجد عمليات"
           isLoading={isLoading}
+          onSelectionChange={handleReturnSelection}
+          onSearch={(query) => setFilters({ ...filters, search: query })}
+          getInvoiceItems={getInvoiceItems}
+          emptyMessage="لا توجد عمليات"
+          multiInvoiceSelection={true}
+          isExpandable={(item: LedgerTransaction) => !!item.reference_id && (item.reference_type === "invoices" || item.reference_type === "sales_returns")}
           pagination={{
             currentPage,
             totalPages,
             onPageChange: loadLedger,
           }}
+          openReturnDialog={openReturnDialog}
         />
       </div>
 
@@ -806,6 +897,21 @@ function ARLedgerPageContent() {
         }
         confirmText="تأكيد"
         confirmVariant={deleteTransactionId ? "danger" : "primary"}
+      />
+
+      {/* Sales Return Dialog */}
+      <SalesReturnDialog
+        isOpen={returnDialog}
+        onClose={() => setReturnDialog(false)}
+        selectedItems={selectedReturnItems}
+        invoicesMap={invoicesMap}
+        onConfirmReturn={handleConfirmReturn}
+        onSuccess={() => {
+            setReturnDialog(false);
+            setSelectedReturnItems([]);
+            loadLedger(currentPage);
+            loadCustomerDetails();
+        }}
       />
     </ModuleLayout>
   );

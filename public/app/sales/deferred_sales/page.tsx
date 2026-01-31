@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, SegmentedToggle, SelectableInvoiceTable, SalesReturnDialog, SelectedItem, SelectableInvoiceItem as UiInvoiceItem, showToast, InvoiceTableColumn } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, SegmentedToggle, SelectableInvoiceTable, SalesReturnDialog, SelectedItem, SelectableInvoiceItem as UiInvoiceItem, showToast, InvoiceTableColumn, SelectableInvoice, ReturnData } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDateTime, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, canAccess, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
@@ -114,11 +114,16 @@ export default function DeferredSalesPage() {
   const [confirmDialog, setConfirmDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [deleteInvoiceId, setDeleteInvoiceId] = useState<number | null>(null);
+  
+  // Margin Confirmation
+  const [marginConfirm, setMarginConfirm] = useState(false);
+  const [pendingItem, setPendingItem] = useState<InvoiceItem | null>(null);
 
   // Returns
   const [returnDialog, setReturnDialog] = useState(false);
   const [selectedReturnItems, setSelectedReturnItems] = useState<SelectedItem[]>([]);
-  const [originalReturnInvoice, setOriginalReturnInvoice] = useState<Invoice | null>(null);
+  const [invoicesMap, setInvoicesMap] = useState<Record<number, SelectableInvoice>>({});
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -409,23 +414,6 @@ export default function DeferredSalesPage() {
       return;
     }
 
-    // Check minimum profit margin
-    const costBasis = Number(selectedProduct.weighted_average_cost) || 0;
-    const minProfitMargin = Number(selectedProduct.minimum_profit_margin) || 0;
-    
-    // We need to compare the "Base Price" (what we send to server) vs the "Minimum Price"
-    const currentBasePrice = calculateBasePrice(price);
-    const minAllowedBasePrice = costBasis + minProfitMargin;
-
-    if (costBasis > 0 && currentBasePrice < minAllowedBasePrice) {
-      const displayMinPrice = calculateSellingPrice(minAllowedBasePrice);
-      const confirmMsg = `تحذير: السعر النهائي (${formatCurrency(price)}) أقل من الحد الأدنى المسموح به (${formatCurrency(displayMinPrice)}).\n(التكلفة: ${formatCurrency(costBasis)} + الهامش: ${formatCurrency(minProfitMargin)} + الرسوم والضريبة)\n\nهل تريد الاستمرار؟`;
-      const confirmed = window.confirm(confirmMsg);
-      if (!confirmed) {
-        return;
-      }
-    }
-
     const calcSubtotal = unitType === "main" ? qty * price * itemsPerUnit : qty * price;
     const unitName = unitType === "main" ? selectedProduct.unit_name : selectedProduct.sub_unit_name;
 
@@ -441,6 +429,20 @@ export default function DeferredSalesPage() {
       subtotal: calcSubtotal,
     };
 
+    // Check minimum profit margin
+    const costBasis = Number(selectedProduct.weighted_average_cost) || 0;
+    const minProfitMargin = Number(selectedProduct.minimum_profit_margin) || 0;
+    
+    // We need to compare the "Base Price" (what we send to server) vs the "Minimum Price"
+    const currentBasePrice = calculateBasePrice(price);
+    const minAllowedBasePrice = costBasis + minProfitMargin;
+
+    if (costBasis > 0 && currentBasePrice < minAllowedBasePrice) {
+      setPendingItem(newItem);
+      setMarginConfirm(true);
+      return;
+    }
+
     setInvoiceItems([...invoiceItems, newItem]);
 
     // Reset form
@@ -448,6 +450,20 @@ export default function DeferredSalesPage() {
     setQuantity("1");
     setUnitPrice("");
     setItemStock("");
+  };
+
+  const confirmAddItem = () => {
+    if (pendingItem) {
+        setInvoiceItems([...invoiceItems, pendingItem]);
+        setPendingItem(null);
+        setMarginConfirm(false);
+        
+        // Reset form
+        setSelectedProduct(null);
+        setQuantity("1");
+        setUnitPrice("");
+        setItemStock("");
+    }
   };
 
   const removeInvoiceItem = (index: number) => {
@@ -559,13 +575,6 @@ export default function DeferredSalesPage() {
   const deleteInvoice = async () => {
     if (!deleteInvoiceId) return;
 
-    const confirmed = window.confirm("هل أنت متأكد من حذف هذه الفاتورة؟ سيتم إرجاع المنتجات للمخزون.");
-    if (!confirmed) {
-      setConfirmDialog(false);
-      setDeleteInvoiceId(null);
-      return;
-    }
-
     try {
       const response = await fetchAPI(`invoices?id=${deleteInvoiceId}`, {
         method: "DELETE",
@@ -609,51 +618,61 @@ export default function DeferredSalesPage() {
         }
     }, []);
 
-    const handleReturnSelection = useCallback(async (items: SelectedItem[]) => {
+    const handleReturnSelection = useCallback((items: SelectedItem[]) => {
         setSelectedReturnItems(items);
-        if (items.length > 0) {
-            // Fetch the full invoice details to have context for the return dialog
-            const invoiceId = items[0].invoiceId;
-            try {
-                const response = await fetchAPI(`invoice_details?id=${invoiceId}`);
-                if (response.success) {
-                    setOriginalReturnInvoice(response.data as Invoice);
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        } else {
-            setOriginalReturnInvoice(null);
-        }
     }, []);
 
-    const openReturnDialog = () => {
+    const openReturnDialog = async () => {
         if (selectedReturnItems.length === 0) {
             showToast("يرجى تحديد عناصر للإرجاع أولاً", "warning");
             return;
         }
+        
+        // Fetch missing invoice details for calculation
+        const uniqueInvoiceIds = Array.from(new Set(selectedReturnItems.map(i => i.invoiceId)));
+        const missingIds = uniqueInvoiceIds.filter(id => !invoicesMap[id]);
+        
+        if (missingIds.length > 0) {
+          setIsLoadingInvoices(true);
+          try {
+            const newMap = { ...invoicesMap };
+            await Promise.all(missingIds.map(async (id) => {
+              const res = await fetchAPI(`invoice_details?id=${id}`);
+              if (res.success && res.data) {
+                newMap[id] = res.data as SelectableInvoice;
+              }
+            }));
+            setInvoicesMap(newMap);
+          } catch (error) {
+            console.error("Failed to load invoice details", error);
+            showToast("فشل تحميل بيانات الفواتير", "error");
+          } finally {
+            setIsLoadingInvoices(false);
+          }
+        }
+        
         setReturnDialog(true);
     };
 
-    const handleConfirmReturn = async (returnData: any) => {
+    const handleConfirmReturn = async (data: ReturnData | ReturnData[]) => {
+        const dataArray = Array.isArray(data) ? data : [data];
+        
         try {
-            const response = await fetchAPI("sales/returns", {
-                method: "POST",
-                body: JSON.stringify(returnData),
-            });
-
-            if (response.success) {
-                showToast("تم إنشاء المرتجع بنجاح", "success");
-                setReturnDialog(false);
-                setSelectedReturnItems([]); // Clear selection
-                // Reload data
-                loadInvoices(); 
-                loadProducts();
-            } else {
-                showAlert("alert-container", response.message || "فشل إنشاء المرتجع", "error");
+            for (const returnData of dataArray) {
+                const response = await fetchAPI("sales/returns/store", {
+                    method: "POST",
+                    body: JSON.stringify(returnData),
+                });
+                
+                if (!response.success) {
+                    throw new Error(response.message || "فشل تسجيل المرتجع");
+                }
             }
-        } catch (error) {
-            showAlert("alert-container", "خطأ في الاتصال", "error");
+            
+            showToast("تم تسجيل المرتجع بنجاح", "success");
+        } catch (error: any) {
+            showToast(error.message || "خطأ في تسجيل المرتجع", "error");
+            throw error;
         }
     };
 
@@ -707,6 +726,42 @@ export default function DeferredSalesPage() {
           </div>
         );
       },
+    },
+  ];
+
+  const currentInvoiceColumns: Column<InvoiceItem>[] = [
+    {
+      key: "display_name",
+      header: "المنتج",
+      dataLabel: "المنتج",
+    },
+    {
+      key: "quantity",
+      header: "الكمية",
+      dataLabel: "الكمية",
+      render: (item) => `${item.quantity} ${item.unit_name}`,
+    },
+    {
+      key: "unit_price",
+      header: "السعر",
+      dataLabel: "السعر",
+      render: (item) => formatCurrency(item.unit_price),
+    },
+    {
+      key: "subtotal",
+      header: "المجموع",
+      dataLabel: "المجموع",
+      render: (item) => formatCurrency(item.subtotal),
+    },
+    {
+      key: "actions",
+      header: "",
+      dataLabel: "الإجراءات",
+      render: (_, index) => (
+        <button className="icon-btn delete" onClick={() => removeInvoiceItem(index)}>
+          <Icon name="trash" />
+        </button>
+      ),
     },
   ];
 
@@ -870,50 +925,13 @@ export default function DeferredSalesPage() {
             {/* Card 3: Current Invoice Items */}
             <div className="sales-card animate-slide" style={{ animationDelay: "0.1s" }}>
               <h3>عناصر الفاتورة الحالية</h3>
-              <div className="table-container" style={{ maxHeight: "430px", overflowY: "auto" }}>
-                <table id="invoice-items-table">
-                  <thead>
-                    <tr>
-                      <th>المنتج</th>
-                      <th>الكمية</th>
-                      <th>السعر</th>
-                      <th>المجموع</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="invoice-items-tbody">
-                    {invoiceItems.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--text-secondary)",
-                          }}
-                        >
-                          لا توجد عناصر مضافة
-                        </td>
-                      </tr>
-                    ) : (
-                      invoiceItems.map((item, index) => (
-                        <tr key={index} className="animate-slide-up">
-                          <td data-label="المنتج">{item.display_name}</td>
-                          <td data-label="الكمية">
-                            {item.quantity} {item.unit_name}
-                          </td>
-                          <td data-label="السعر">{formatCurrency(item.unit_price)}</td>
-                          <td data-label="المجموع">{formatCurrency(item.subtotal)}</td>
-                          <td data-label="الإجراءات">
-                            <button className="icon-btn delete" onClick={() => removeInvoiceItem(index)}>
-                              <Icon name="trash" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              <div className="current-invoice-table">
+                <Table
+                  columns={currentInvoiceColumns}
+                  data={invoiceItems}
+                  keyExtractor={(_, index) => index}
+                  emptyMessage="لا توجد عناصر مضافة"
+                />
               </div>
 
                 <div className="invoice-adjustments">
@@ -1021,32 +1039,8 @@ export default function DeferredSalesPage() {
                 getInvoiceItems={getInvoiceItemsForTable}
                 onSelectionChange={handleReturnSelection}
                 onSearch={() => {}}
+                openReturnDialog={openReturnDialog}
               />
-              {selectedReturnItems.length > 0 && (
-                <div className="floating-action-bar animate-slide-up" style={{
-                    position: 'fixed',
-                    bottom: '20px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'var(--bg-card)',
-                    padding: '1rem 2rem',
-                    borderRadius: '50px',
-                    boxShadow: 'var(--shadow-lg)',
-                    zIndex: 1000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem',
-                    border: '1px solid var(--primary-light)'
-                }}>
-                    <span style={{fontWeight: 'bold'}}>تم تحديد {selectedReturnItems.length} عنصر</span>
-                    <button 
-                        className="btn btn-warning"
-                        onClick={openReturnDialog}
-                    >
-                        تسجيل مرتجع
-                    </button>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -1057,8 +1051,14 @@ export default function DeferredSalesPage() {
         isOpen={returnDialog}
         onClose={() => setReturnDialog(false)}
         selectedItems={selectedReturnItems}
-        originalInvoice={originalReturnInvoice}
+        invoicesMap={invoicesMap}
         onConfirmReturn={handleConfirmReturn}
+        onSuccess={() => {
+            setReturnDialog(false);
+            setSelectedReturnItems([]);
+            loadInvoices(currentPage);
+            loadProducts();
+        }}
       />
 
       {/* View Invoice Dialog */}
@@ -1216,6 +1216,19 @@ export default function DeferredSalesPage() {
         message="هل أنت متأكد من حذف هذه الفاتورة؟ سيتم إرجاع المنتجات للمخزون."
         confirmText="نعم، متابعة"
         confirmVariant="primary"
+      />
+
+      <ConfirmDialog
+        isOpen={marginConfirm}
+        onClose={() => {
+            setMarginConfirm(false);
+            setPendingItem(null);
+        }}
+        onConfirm={confirmAddItem}
+        title="تنبيه: هامش الربح منخفض"
+        message="السعر المحدد أقل من الحد الأدنى المسموح به. هل تريد الاستمرار وإضافة المنتج للعارضة؟"
+        confirmText="نعم، أضف المنتج"
+        confirmVariant="danger"
       />
     </ModuleLayout>
   );

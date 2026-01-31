@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, showToast, SegmentedToggle, SelectableInvoiceTable, SalesReturnDialog, SelectedItem, SelectableInvoiceItem as UiInvoiceItem, InvoiceTableColumn } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, showToast, SegmentedToggle, SelectableInvoiceTable, SalesReturnDialog, SelectedItem, SelectableInvoiceItem as UiInvoiceItem, InvoiceTableColumn, SelectableInvoice, ReturnData } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDateTime, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
@@ -121,7 +121,8 @@ export default function SalesPage() {
     // Returns
     const [returnDialog, setReturnDialog] = useState(false);
     const [selectedReturnItems, setSelectedReturnItems] = useState<SelectedItem[]>([]);
-    const [originalReturnInvoice, setOriginalReturnInvoice] = useState<Invoice | null>(null);
+    const [invoicesMap, setInvoicesMap] = useState<Record<number, SelectableInvoice>>({});
+    const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
 
     const [isLoading, setIsLoading] = useState(true);
 
@@ -609,51 +610,61 @@ export default function SalesPage() {
         }
     }, []);
 
-    const handleReturnSelection = useCallback(async (items: SelectedItem[]) => {
+    const handleReturnSelection = useCallback((items: SelectedItem[]) => {
         setSelectedReturnItems(items);
-        if (items.length > 0) {
-            // Fetch the full invoice details to have context for the return dialog
-            const invoiceId = items[0].invoiceId;
-            try {
-                const response = await fetchAPI(`invoice_details?id=${invoiceId}`);
-                if (response.success) {
-                    setOriginalReturnInvoice(response.data as Invoice);
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        } else {
-            setOriginalReturnInvoice(null);
-        }
     }, []);
 
-    const openReturnDialog = () => {
+    const openReturnDialog = async () => {
         if (selectedReturnItems.length === 0) {
             showToast("يرجى تحديد عناصر للإرجاع أولاً", "warning");
             return;
         }
+        
+        // Fetch missing invoice details for calculation
+        const uniqueInvoiceIds = Array.from(new Set(selectedReturnItems.map(i => i.invoiceId)));
+        const missingIds = uniqueInvoiceIds.filter(id => !invoicesMap[id]);
+        
+        if (missingIds.length > 0) {
+          setIsLoadingInvoices(true);
+          try {
+            const newMap = { ...invoicesMap };
+            await Promise.all(missingIds.map(async (id) => {
+              const res = await fetchAPI(`invoice_details?id=${id}`);
+              if (res.success && res.data) {
+                newMap[id] = res.data as SelectableInvoice;
+              }
+            }));
+            setInvoicesMap(newMap);
+          } catch (error) {
+            console.error("Failed to load invoice details", error);
+            showToast("فشل تحميل بيانات الفواتير", "error");
+          } finally {
+            setIsLoadingInvoices(false);
+          }
+        }
+        
         setReturnDialog(true);
     };
 
-    const handleConfirmReturn = async (returnData: any) => {
+    const handleConfirmReturn = async (data: ReturnData | ReturnData[]) => {
+        const dataArray = Array.isArray(data) ? data : [data];
+        
         try {
-            const response = await fetchAPI("sales/returns", {
-                method: "POST",
-                body: JSON.stringify(returnData),
-            });
-
-            if (response.success) {
-                showToast("تم إنشاء المرتجع بنجاح", "success");
-                setReturnDialog(false);
-                setSelectedReturnItems([]); // Clear selection
-                // Reload data to reflect changes (e.g. stock)
-                loadInvoices(); 
-                loadProducts();
-            } else {
-                showAlert("alert-container", response.message || "فشل إنشاء المرتجع", "error");
+            for (const returnData of dataArray) {
+                const response = await fetchAPI("sales/returns/store", {
+                    method: "POST",
+                    body: JSON.stringify(returnData),
+                });
+                
+                if (!response.success) {
+                    throw new Error(response.message || "فشل تسجيل المرتجع");
+                }
             }
-        } catch (error) {
-            showAlert("alert-container", "خطأ في الاتصال", "error");
+            
+            showToast("تم تسجيل المرتجع بنجاح", "success");
+        } catch (error: any) {
+            showToast(error.message || "خطأ في تسجيل المرتجع", "error");
+            throw error;
         }
     };
 
@@ -703,6 +714,42 @@ export default function SalesPage() {
                     </div>
                 );
             },
+        },
+    ];
+
+    const currentInvoiceColumns: Column<InvoiceItem>[] = [
+        {
+            key: "display_name",
+            header: "المنتج",
+            dataLabel: "المنتج",
+        },
+        {
+            key: "quantity",
+            header: "الكمية",
+            dataLabel: "الكمية",
+            render: (item) => `${item.quantity} ${item.unit_name}`,
+        },
+        {
+            key: "unit_price",
+            header: "السعر",
+            dataLabel: "السعر",
+            render: (item) => formatCurrency(item.unit_price),
+        },
+        {
+            key: "subtotal",
+            header: "المجموع",
+            dataLabel: "المجموع",
+            render: (item) => formatCurrency(item.subtotal),
+        },
+        {
+            key: "actions",
+            header: "",
+            dataLabel: "الإجراءات",
+            render: (_, index) => (
+                <button className="icon-btn delete" onClick={() => removeInvoiceItem(index)}>
+                    <Icon name="trash" />
+                </button>
+            ),
         },
     ];
 
@@ -829,50 +876,13 @@ export default function SalesPage() {
                     {/* Right: Current Invoice Items */}
                     <div className="sales-card animate-slide" style={{ animationDelay: "0.1s" }}>
                         <h3>عناصر الفاتورة الحالية</h3>
-                        <div className="table-container" style={{ maxHeight: "400px", overflowY: "auto" }}>
-                            <table id="invoice-items-table">
-                                <thead>
-                                    <tr>
-                                        <th>المنتج</th>
-                                        <th>الكمية</th>
-                                        <th>السعر</th>
-                                        <th>المجموع</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="invoice-items-tbody">
-                                    {invoiceItems.length === 0 ? (
-                                        <tr>
-                                            <td
-                                                colSpan={5}
-                                                style={{
-                                                    textAlign: "center",
-                                                    padding: "2rem",
-                                                    color: "var(--text-secondary)",
-                                                }}
-                                            >
-                                                لا توجد عناصر مضافة
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        invoiceItems.map((item, index) => (
-                                            <tr key={index} className="animate-slide-up">
-                                                <td data-label="المنتج">{item.display_name}</td>
-                                                <td data-label="الكمية">
-                                                    {item.quantity} {item.unit_name}
-                                                </td>
-                                                <td data-label="السعر">{formatCurrency(item.unit_price)}</td>
-                                                <td data-label="المجموع">{formatCurrency(item.subtotal)}</td>
-                                                <td data-label="الإجراءات">
-                                                    <button className="icon-btn delete" onClick={() => removeInvoiceItem(index)}>
-                                                        <Icon name="trash" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                        <div className="current-invoice-table">
+                            <Table
+                                columns={currentInvoiceColumns}
+                                data={invoiceItems}
+                                keyExtractor={(_, index) => index}
+                                emptyMessage="لا توجد عناصر مضافة"
+                            />
                         </div>
 
                         <div className="invoice-adjustments">
@@ -985,32 +995,9 @@ export default function SalesPage() {
                                     // currently loadInvoices doesn't utilize this directly in the simple implementation
                                     // assuming loadInvoices uses a state or we can just ignore if we want simple table filtering
                                 }}
+                                openReturnDialog={openReturnDialog}
+
                             />
-                            {selectedReturnItems.length > 0 && (
-                                <div className="floating-action-bar animate-slide-up" style={{
-                                    position: 'fixed',
-                                    bottom: '20px',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    background: 'var(--bg-card)',
-                                    padding: '1rem 2rem',
-                                    borderRadius: '50px',
-                                    boxShadow: 'var(--shadow-lg)',
-                                    zIndex: 1000,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '1rem',
-                                    border: '1px solid var(--primary-light)'
-                                }}>
-                                    <span style={{fontWeight: 'bold'}}>تم تحديد {selectedReturnItems.length} عنصر</span>
-                                    <button 
-                                        className="btn btn-warning"
-                                        onClick={openReturnDialog}
-                                    >
-                                        تسجيل مرتجع
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -1021,8 +1008,14 @@ export default function SalesPage() {
                 isOpen={returnDialog}
                 onClose={() => setReturnDialog(false)}
                 selectedItems={selectedReturnItems}
-                originalInvoice={originalReturnInvoice}
+                invoicesMap={invoicesMap}
                 onConfirmReturn={handleConfirmReturn}
+                onSuccess={() => {
+                    setReturnDialog(false);
+                    setSelectedReturnItems([]);
+                    loadInvoices(currentPage);
+                    loadProducts();
+                }}
             />
 
             {/* View Invoice Dialog */}

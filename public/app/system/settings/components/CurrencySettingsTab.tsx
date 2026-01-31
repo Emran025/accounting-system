@@ -173,6 +173,43 @@ export function CurrencySettingsTab() {
     }
   ];
 
+  const denominationColumns: Column<CurrencyDenomination>[] = [
+    {
+      key: "value",
+      header: "القيمة",
+      render: (denom, idx) => (
+        <Input 
+          type="number" 
+          className="form-control form-control-sm"
+          value={denom.value}
+          onChange={e => updateDenomination(idx, 'value', parseFloat(e.target.value))}
+        />
+      )
+    },
+    {
+      key: "label",
+      header: "المسمى (اختياري)",
+      render: (denom, idx) => (
+        <Input 
+          type="text" 
+          className="form-control form-control-sm"
+          value={denom.label}
+          onChange={e => updateDenomination(idx, 'label', e.target.value)}
+          placeholder={`${denom.value} ${formData.name || ''}`}
+        />
+      )
+    },
+    {
+      key: "actions",
+      header: "",
+      render: (_, idx) => (
+        <button className="btn-icon text-danger" onClick={() => removeDenomination(idx)}>
+          {getIcon("trash")}
+        </button>
+      )
+    }
+  ];
+
   return (
     <div className="sales-card">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
@@ -248,44 +285,13 @@ export function CurrencySettingsTab() {
             </button>
         </div>
 
-        <div className="table-responsive" style={{ maxHeight: "200px", overflowY: "auto" }}>
-            <table className="table table-sm">
-                <thead>
-                    <tr>
-                        <th>القيمة</th>
-                        <th>المسمى (اختياري)</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {formData.denominations?.map((denom, idx) => (
-                        <tr key={idx}>
-                            <td>
-                                <Input 
-                                    type="number" 
-                                    className="form-control form-control-sm"
-                                    value={denom.value}
-                                    onChange={e => updateDenomination(idx, 'value', parseFloat(e.target.value))}
-                                />
-                            </td>
-                            <td>
-                                <Input 
-                                    type="text" 
-                                    className="form-control form-control-sm"
-                                    value={denom.label}
-                                    onChange={e => updateDenomination(idx, 'label', e.target.value)}
-                                    placeholder={`${denom.value} ${formData.name || ''}`}
-                                />
-                            </td>
-                            <td>
-                                <button className="btn-icon text-danger" onClick={() => removeDenomination(idx)}>
-                                    <i className="fas fa-times"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+        <div className="denominations-table">
+            <Table
+                columns={denominationColumns}
+                data={formData.denominations || []}
+                keyExtractor={(_, idx) => idx}
+                emptyMessage="لا توجد فئات نقدية مضافة"
+            />
         </div>
       </Dialog>
     </div>

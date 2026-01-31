@@ -2,6 +2,7 @@
 
 import { ReactNode, useState, useRef, useCallback } from "react";
 import { Icon } from "@/lib/icons";
+import { Checkbox } from "./checkbox";
 
 export interface SelectableColumn<T> {
   key: string;
@@ -122,9 +123,9 @@ export function SelectableTable<T>({
           <thead>
             <tr>
               {selectionMode && (
-                <th style={{ width: "40px" }}>
-                  <input
-                    type="checkbox"
+                <th className="checkbox-header" style={{ width: "40px" }}>
+                  <Checkbox
+                    className="minimal"
                     checked={data.length > 0 && selectedIds.length === data.length}
                     onChange={(e) => {
                       if (e.target.checked) {
@@ -169,9 +170,9 @@ export function SelectableTable<T>({
                     onTouchMove={handlePressMove}
                   >
                     {selectionMode && (
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
+                      <td className="checkbox-cell" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          className="minimal"
                           checked={isSelected}
                           onChange={() => handleRowClick(item)}
                         />
@@ -191,36 +192,6 @@ export function SelectableTable<T>({
           </tbody>
         </table>
       </div>
-      <style jsx>{`
-        .selectable-row {
-          cursor: pointer;
-          transition: background-color 0.2s;
-          user-select: none; /* Prevent text selection during long press */
-        }
-        .selectable-row:hover {
-          background-color: var(--bg-hover);
-        }
-        .selectable-row.selected {
-          background-color: var(--primary-subtle);
-        }
-        .loading-spinner {
-            width: 24px;
-            height: 24px;
-            border: 3px solid var(--border-color);
-            border-top-color: var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 0.5rem;
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        .empty-cell {
-          text-align: center;
-          padding: 2rem;
-          color: var(--text-secondary);
-        }
-      `}</style>
     </div>
   );
 }

@@ -160,7 +160,7 @@ export default function ARCustomersPage() {
     ];
 
     return (
-        <ModuleLayout groupKey="ar_customers" requiredModule="ar_customers">
+        <ModuleLayout groupKey="sales" requiredModule="ar_customers">
             <PageHeader
                 title="عملاء الآجل (Accounts Receivable)"
                 user={user}

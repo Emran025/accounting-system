@@ -4,7 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { login } from "@/lib/auth";
-import { Alert } from "@/components/ui";
+import { Button, Alert } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
@@ -62,7 +62,7 @@ export default function LoginPage() {
                         id="username"
                         label="اسم المستخدم"
                         value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
                         placeholder="أدخل اسم المستخدم"
                         autoComplete="username"
                         disabled={isLoading}
@@ -73,20 +73,20 @@ export default function LoginPage() {
                         id="password"
                         label="كلمة المرور"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                         placeholder="أدخل كلمة المرور"
                         autoComplete="current-password"
                         disabled={isLoading}
                     />
 
-                    <button
+                    <Button
                         type="submit"
-                        className="btn btn-primary"
+                        variant="primary"
                         style={{ width: "100%", marginTop: "1rem" }}
-                        disabled={isLoading}
+                        isLoading={isLoading}
                     >
-                        {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
-                    </button>
+                        تسجيل الدخول
+                    </Button>
                 </form>
             </div>
         </div>

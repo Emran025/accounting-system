@@ -2,7 +2,7 @@
 import { formatCurrency } from "@/lib/utils";
 import { APIComparative } from "../types";
 import { fetchAPI } from "@/lib/api";
-import { showToast, FilterSection, DateRangePicker, FilterActions, Button } from "@/components/ui";
+import { showToast, FilterSection, DateRangePicker, FilterActions, Button, Table, Column } from "@/components/ui";
 import { useState, useCallback, useEffect } from "react";
 
 export function ComparativeTab() {
@@ -89,46 +89,70 @@ export function ComparativeTab() {
                         <i className="fas fa-chart-bar"></i> المقارنة المالية
                     </h2>
 
-                    <table className="modern-table" style={{ marginTop: "1.5rem" }}>
-                        <thead>
-                            <tr>
-                                <th>البند</th>
-                                <th>الفترة السابقة</th>
-                                <th>الفترة الحالية</th>
-                                <th>التغيير</th>
-                                <th>نسبة التغيير</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>الإيرادات</strong></td>
-                                <td>{formatCurrency(comparative.previous_period?.revenue || 0)}</td>
-                                <td>{formatCurrency(comparative.current_period?.revenue || 0)}</td>
-                                <td className={(comparative.changes?.revenue?.amount || 0) >= 0 ? "text-success" : "text-danger"}>
-                                    {formatCurrency(comparative.changes?.revenue?.amount || 0)}
-                                </td>
-                                <td style={{ direction: 'ltr', textAlign: 'right' }}>{(comparative.changes?.revenue?.percentage || 0).toFixed(2)}%</td>
-                            </tr>
-                            <tr>
-                                <td><strong>المصروفات</strong></td>
-                                <td>{formatCurrency(comparative.previous_period?.expenses || 0)}</td>
-                                <td>{formatCurrency(comparative.current_period?.expenses || 0)}</td>
-                                <td className={(comparative.changes?.expenses?.amount || 0) >= 0 ? "text-danger" : "text-success"}>
-                                    {formatCurrency(comparative.changes?.expenses?.amount || 0)}
-                                </td>
-                                <td style={{ direction: 'ltr', textAlign: 'right' }}>{(comparative.changes?.expenses?.percentage || 0).toFixed(2)}%</td>
-                            </tr>
-                            <tr>
-                                <td><strong>صافي الربح</strong></td>
-                                <td>{formatCurrency(comparative.previous_period?.net_profit || 0)}</td>
-                                <td>{formatCurrency(comparative.current_period?.net_profit || 0)}</td>
-                                <td className={(comparative.changes?.net_profit?.amount || 0) >= 0 ? "text-success" : "text-danger"}>
-                                    {formatCurrency(comparative.changes?.net_profit?.amount || 0)}
-                                </td>
-                                <td style={{ direction: 'ltr', textAlign: 'right' }}>{(comparative.changes?.net_profit?.percentage || 0).toFixed(2)}%</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <Table
+                        columns={[
+                            {
+                                key: "label",
+                                header: "البند",
+                                render: (item) => <strong>{item.label}</strong>
+                            },
+                            {
+                                key: "previous",
+                                header: "الفترة السابقة",
+                                render: (item) => formatCurrency(item.previous)
+                            },
+                            {
+                                key: "current",
+                                header: "الفترة الحالية",
+                                render: (item) => formatCurrency(item.current)
+                            },
+                            {
+                                key: "amount",
+                                header: "التغيير",
+                                render: (item) => (
+                                    <span className={item.amount >= 0 ? (item.positiveIsGood ? "text-success" : "text-danger") : (item.positiveIsGood ? "text-danger" : "text-success")}>
+                                        {formatCurrency(item.amount)}
+                                    </span>
+                                )
+                            },
+                            {
+                                key: "percentage",
+                                header: "نسبة التغيير",
+                                render: (item) => (
+                                    <span style={{ direction: 'ltr', textAlign: 'right', display: 'block' }}>
+                                        {item.percentage.toFixed(2)}%
+                                    </span>
+                                )
+                            }
+                        ]}
+                        data={[
+                            {
+                                label: "الإيرادات",
+                                previous: comparative.previous_period?.revenue || 0,
+                                current: comparative.current_period?.revenue || 0,
+                                amount: comparative.changes?.revenue?.amount || 0,
+                                percentage: comparative.changes?.revenue?.percentage || 0,
+                                positiveIsGood: true
+                            },
+                            {
+                                label: "المصروفات",
+                                previous: comparative.previous_period?.expenses || 0,
+                                current: comparative.current_period?.expenses || 0,
+                                amount: comparative.changes?.expenses?.amount || 0,
+                                percentage: comparative.changes?.expenses?.percentage || 0,
+                                positiveIsGood: false
+                            },
+                            {
+                                label: "صافي الربح",
+                                previous: comparative.previous_period?.net_profit || 0,
+                                current: comparative.current_period?.net_profit || 0,
+                                amount: comparative.changes?.net_profit?.amount || 0,
+                                percentage: comparative.changes?.net_profit?.percentage || 0,
+                                positiveIsGood: true
+                            }
+                        ]}
+                        keyExtractor={(item) => item.label}
+                    />
                 </div>
             ) : (
                 <p style={{ textAlign: "center", padding: "2rem", color: "var(--text-secondary)" }}>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
@@ -283,6 +283,104 @@ export default function JournalVouchersPage() {
     },
   ];
 
+  const voucherLineColumns: Column<any>[] = [
+    {
+      key: "account_id",
+      header: "الحساب",
+      render: (line, index) => (
+        <select
+          value={line.account_id}
+          onChange={(e) => updateLine(index, "account_id", e.target.value)}
+          className="w-full"
+        >
+          <option value="">اختر حساب</option>
+          {accounts.map((acc) => (
+            <option key={acc.id} value={acc.id}>
+              {acc.code} - {acc.name}
+            </option>
+          ))}
+        </select>
+      ),
+    },
+    {
+      key: "debit",
+      header: "مدين",
+      render: (line, index) => (
+        <input
+          type="number"
+          value={line.debit}
+          onChange={(e) => updateLine(index, "debit", e.target.value)}
+          min="0"
+          step="0.01"
+          className="w-full"
+        />
+      ),
+    },
+    {
+      key: "credit",
+      header: "دائن",
+      render: (line, index) => (
+        <input
+          type="number"
+          value={line.credit}
+          onChange={(e) => updateLine(index, "credit", e.target.value)}
+          min="0"
+          step="0.01"
+          className="w-full"
+        />
+      ),
+    },
+    {
+      key: "description",
+      header: "البيان",
+      render: (line, index) => (
+        <input
+          type="text"
+          value={line.description}
+          onChange={(e) => updateLine(index, "description", e.target.value)}
+          placeholder="بيان اختياري..."
+          className="w-full"
+        />
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      render: (_, index) => (
+        <button
+          type="button"
+          className="icon-btn delete"
+          onClick={() => removeLine(index)}
+          disabled={formData.lines.length <= 2}
+        >
+          {getIcon("trash")}
+        </button>
+      ),
+    },
+  ];
+
+  const viewVoucherColumns: Column<VoucherLine>[] = [
+    { key: "account_name", header: "الحساب", dataLabel: "الحساب" },
+    {
+      key: "debit",
+      header: "مدين",
+      dataLabel: "مدين",
+      render: (item) => (item.debit > 0 ? formatCurrency(item.debit) : "-"),
+    },
+    {
+      key: "credit",
+      header: "دائن",
+      dataLabel: "دائن",
+      render: (item) => (item.credit > 0 ? formatCurrency(item.credit) : "-"),
+    },
+    {
+      key: "description",
+      header: "البيان",
+      dataLabel: "البيان",
+      render: (item) => item.description || "-",
+    },
+  ];
+
   return (
     <ModuleLayout groupKey="finance" requiredModule="journal_vouchers">
       <PageHeader
@@ -290,10 +388,9 @@ export default function JournalVouchersPage() {
         user={user}
         actions={
           canAccess(permissions, "journal_vouchers", "create") && (
-            <button className="btn btn-primary" onClick={openAddDialog}>
-              {getIcon("plus")}
+            <Button icon="plus" onClick={openAddDialog}>
               إنشاء سند
-            </button>
+            </Button>
           )
         }
       />
@@ -353,81 +450,21 @@ export default function JournalVouchersPage() {
 
         <h4 style={{ marginTop: "1.5rem", marginBottom: "1rem" }}>بنود السند</h4>
         
-        <div style={{ overflowX: "auto" }}>
-          <table className="modern-table">
-            <thead>
-              <tr>
-                <th style={{ width: "30%" }}>الحساب</th>
-                <th style={{ width: "20%" }}>مدين</th>
-                <th style={{ width: "20%" }}>دائن</th>
-                <th style={{ width: "25%" }}>البيان</th>
-                <th style={{ width: "5%" }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {formData.lines.map((line, index) => (
-                <tr key={index}>
-                  <td>
-                    <select
-                      value={line.account_id}
-                      onChange={(e) => updateLine(index, "account_id", e.target.value)}
-                      style={{ width: "100%" }}
-                    >
-                      <option value="">اختر حساب</option>
-                      {accounts.map((acc) => (
-                        <option key={acc.id} value={acc.id}>
-                          {acc.code} - {acc.name}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      value={line.debit}
-                      onChange={(e) => updateLine(index, "debit", e.target.value)}
-                      min="0"
-                      step="0.01"
-                      style={{ width: "100%" }}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      value={line.credit}
-                      onChange={(e) => updateLine(index, "credit", e.target.value)}
-                      min="0"
-                      step="0.01"
-                      style={{ width: "100%" }}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      value={line.description}
-                      onChange={(e) => updateLine(index, "description", e.target.value)}
-                      style={{ width: "100%" }}
-                    />
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="icon-btn delete"
-                      onClick={() => removeLine(index)}
-                    >
-                      {getIcon("trash")}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={voucherLineColumns}
+          data={formData.lines}
+          keyExtractor={(_, index) => index}
+          emptyMessage="لا توجد بنود"
+        />
 
-        <button type="button" className="btn btn-secondary btn-sm" onClick={addLine} style={{ marginTop: "1rem" }}>
-          {getIcon("plus")}
+        <Button 
+          variant="secondary" 
+          onClick={addLine} 
+          icon="plus"
+          style={{ marginTop: "1rem" }}
+        >
           إضافة سطر
-        </button>
+        </Button>
 
         <div className="summary-stat-box" style={{ marginTop: "1.5rem" }}>
           <div className="stat-item">
@@ -468,26 +505,11 @@ export default function JournalVouchersPage() {
               </p>
             </div>
 
-            <table className="modern-table">
-              <thead>
-                <tr>
-                  <th>الحساب</th>
-                  <th>مدين</th>
-                  <th>دائن</th>
-                  <th>البيان</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedVoucher.lines?.map((line, index) => (
-                  <tr key={index}>
-                    <td>{line.account_name}</td>
-                    <td>{line.debit > 0 ? formatCurrency(line.debit) : "-"}</td>
-                    <td>{line.credit > 0 ? formatCurrency(line.credit) : "-"}</td>
-                    <td>{line.description || "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <Table
+              columns={viewVoucherColumns}
+              data={selectedVoucher.lines || []}
+              keyExtractor={(_, index) => index}
+            />
 
             <div className="summary-stat-box" style={{ marginTop: "1.5rem" }}>
               <div className="stat-item">
