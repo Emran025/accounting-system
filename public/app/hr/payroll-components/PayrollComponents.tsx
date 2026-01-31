@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Table, Column, Dialog, showToast, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { PayrollComponent } from "../types";
+import { formatCurrency } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
@@ -38,7 +39,8 @@ export function PayrollComponents() {
     setIsLoading(true);
     try {
       const res: any = await fetchAPI('/api/payroll-components');
-      setComponents(res.data || res || []);
+      const data = res.data || (Array.isArray(res) ? res : []);
+      setComponents(data);
     } catch (e) {
       showToast("فشل تحميل مكونات الرواتب", "error");
     } finally {
@@ -134,15 +136,18 @@ export function PayrollComponents() {
   const columns: Column<PayrollComponent>[] = [
     {
       key: "component_code",
-      header: "كود المكون"
+      header: "كود المكون",
+      dataLabel: "كود المكون"
     },
     {
       key: "component_name",
-      header: "اسم المكون"
+      header: "اسم المكون",
+      dataLabel: "اسم المكون"
     },
     {
       key: "component_type",
       header: "النوع",
+      dataLabel: "النوع",
       render: (comp) => {
         const types: Record<string, string> = {
           allowance: "بدل",
@@ -157,6 +162,7 @@ export function PayrollComponents() {
     {
       key: "calculation_type",
       header: "نوع الحساب",
+      dataLabel: "نوع الحساب",
       render: (comp) => {
         const types: Record<string, string> = {
           fixed: "ثابت",
@@ -170,11 +176,13 @@ export function PayrollComponents() {
     {
       key: "base_amount",
       header: "المبلغ الأساسي",
-      render: (comp) => comp.base_amount ? comp.base_amount.toFixed(2) : "-"
+      dataLabel: "المبلغ الأساسي",
+      render: (comp) => comp.base_amount ? formatCurrency(comp.base_amount) : "-"
     },
     {
       key: "is_active",
       header: "نشط",
+      dataLabel: "نشط",
       render: (comp) => (
         <span className={comp.is_active ? "badge badge-success" : "badge badge-secondary"}>
           {comp.is_active ? "نعم" : "لا"}
@@ -184,38 +192,54 @@ export function PayrollComponents() {
     {
       key: "actions",
       header: "الإجراءات",
+      dataLabel: "الإجراءات",
       render: (comp) => (
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => handleEdit(comp)}>
-            {getIcon("edit")} تعديل
-          </Button>
-          <Button size="sm" variant="danger" onClick={() => handleDelete(comp.id)}>
-            {getIcon("trash")} حذف
-          </Button>
+        <div className="action-buttons">
+          <button
+            className="icon-btn edit"
+            onClick={() => handleEdit(comp)}
+            title="تعديل"
+          >
+            {getIcon("edit")}
+          </button>
+          <button
+            className="icon-btn delete"
+            onClick={() => handleDelete(comp.id)}
+            title="حذف"
+          >
+            {getIcon("trash")}
+          </button>
         </div>
       )
     }
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">مكونات الرواتب</h2>
-        <Button onClick={() => {
-          resetForm();
-          setShowDialog(true);
-        }}>
-          {getIcon("plus")} إضافة مكون جديد
+    <div className="sales-card animate-fade">
+      <div className="card-header-flex">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h3 style={{ margin: 0 }}>{getIcon("cog")} مكونات الرواتب</h3>
+        </div>
+        <Button
+          variant="primary"
+          onClick={() => {
+            resetForm();
+            setShowDialog(true);
+          }}
+          icon="plus">
+          إضافة مكون جديد
         </Button>
       </div>
 
-      <Table
-        data={components}
-        columns={columns}
-        isLoading={isLoading}
-        emptyMessage="لا توجد مكونات رواتب"
-        keyExtractor={(item) => item.id}
-      />
+      <div className="sales-card">
+        <Table
+          data={components}
+          columns={columns}
+          isLoading={isLoading}
+          emptyMessage="لا توجد مكونات رواتب"
+          keyExtractor={(item) => item.id.toString()}
+        />
+      </div>
 
       <Dialog
         isOpen={showDialog}
@@ -224,12 +248,12 @@ export function PayrollComponents() {
           resetForm();
         }}
         title={editingComponent ? "تعديل مكون الراتب" : "إضافة مكون راتب جديد"}
-        maxWidth="600px"
+        maxWidth="700px"
       >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">كود المكون *</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>كود المكون *</label>
               <TextInput
                 value={formData.component_code}
                 onChange={(e) => setFormData({ ...formData, component_code: e.target.value })}
@@ -237,7 +261,7 @@ export function PayrollComponents() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">اسم المكون *</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>اسم المكون *</label>
               <TextInput
                 value={formData.component_name}
                 onChange={(e) => setFormData({ ...formData, component_name: e.target.value })}
@@ -247,7 +271,7 @@ export function PayrollComponents() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">نوع المكون *</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>نوع المكون *</label>
               <Select
                 value={formData.component_type}
                 onChange={(e) => setFormData({ ...formData, component_type: e.target.value as any })}
@@ -260,7 +284,7 @@ export function PayrollComponents() {
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">نوع الحساب *</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>نوع الحساب *</label>
               <Select
                 value={formData.calculation_type}
                 onChange={(e) => setFormData({ ...formData, calculation_type: e.target.value as any })}
@@ -275,7 +299,7 @@ export function PayrollComponents() {
 
           {formData.calculation_type === 'fixed' && (
             <div>
-              <label className="block text-sm font-medium mb-1">المبلغ الثابت *</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>المبلغ الثابت *</label>
               <TextInput
                 type="number"
                 step="0.01"
@@ -288,7 +312,7 @@ export function PayrollComponents() {
           {formData.calculation_type === 'percentage' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">المبلغ الأساسي *</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>المبلغ الأساسي *</label>
                 <TextInput
                   type="number"
                   step="0.01"
@@ -297,7 +321,7 @@ export function PayrollComponents() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">النسبة المئوية (%) *</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>النسبة المئوية (%) *</label>
                 <TextInput
                   type="number"
                   step="0.01"
@@ -312,13 +336,13 @@ export function PayrollComponents() {
 
           {formData.calculation_type === 'formula' && (
             <div>
-              <label className="block text-sm font-medium mb-1">الصيغة *</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الصيغة *</label>
               <TextInput
                 value={formData.formula}
                 onChange={(e) => setFormData({ ...formData, formula: e.target.value })}
                 placeholder="مثال: hours * rate * 1.5"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs" style={{ color: 'var(--text-light)', marginTop: '0.5rem' }}>
                 المتغيرات المتاحة: hours, rate, overtime_hours, base_salary
               </p>
             </div>
@@ -326,47 +350,47 @@ export function PayrollComponents() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">ترتيب العرض</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>ترتيب العرض</label>
               <TextInput
                 type="number"
                 value={formData.display_order}
                 onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
               />
             </div>
-            <div className="flex items-center gap-4 pt-6">
-              <label className="flex items-center gap-2">
+            <div className="flex items-center gap-6 pt-6">
+              <label className="flex items-center gap-2" style={{ cursor: 'pointer' }}>
                 <Checkbox
                   checked={formData.is_taxable}
                   onChange={(e) => setFormData({ ...formData, is_taxable: e.target.checked })}
                 />
-                <span>خاضع للضريبة</span>
+                <span style={{ color: 'var(--text-secondary)' }}>خاضع للضريبة</span>
               </label>
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-2" style={{ cursor: 'pointer' }}>
                 <Checkbox
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                 />
-                <span>نشط</span>
+                <span style={{ color: 'var(--text-secondary)' }}>نشط</span>
               </label>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">الوصف</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الوصف</label>
             <Textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
             <Button variant="secondary" onClick={() => {
               setShowDialog(false);
               resetForm();
             }}>
               إلغاء
             </Button>
-            <Button onClick={handleSave}>
+            <Button variant="primary" onClick={handleSave} icon="save">
               حفظ
             </Button>
           </div>
@@ -375,4 +399,3 @@ export function PayrollComponents() {
     </div>
   );
 }
-

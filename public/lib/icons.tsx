@@ -11,7 +11,7 @@ import {
     Repeat, Layers, Truck, HandCoins, ShoppingBag, PieChart,
     ShieldCheck, Landmark, BarChart3, UserCog, Bell, FileSearch,
     Tags, Ruler, Factory, Files, Hammer, Cpu, ClipboardCheck,
-    Briefcase, CheckSquare, Hourglass, LayoutDashboard
+    Briefcase, CheckSquare, Hourglass, LayoutDashboard, Save, Calculator
 } from 'lucide-react';
 
 interface IconProps {
@@ -93,6 +93,12 @@ export const icons = {
     "check-square": (props: IconProps) => <CheckSquare className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     hourglass: (props: IconProps) => <Hourglass className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     dashboard: (props: IconProps) => <LayoutDashboard className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    save: (props: IconProps) => <Save className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    times: (props: IconProps) => <X className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "calendar-alt": (props: IconProps) => <Calendar className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    calculator: (props: IconProps) => <Calculator className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    cog: (props: IconProps) => <Settings className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "user-circle": (props: IconProps) => <User className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     "chevron-right": (props: IconProps) => <ChevronRight className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     "chevron-down": (props: IconProps) => <ChevronDown className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
 };

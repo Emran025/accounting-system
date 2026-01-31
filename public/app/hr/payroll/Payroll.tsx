@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, showToast, Button, SearchableSelect } from "@/components/ui";
+import { Table, Column, Dialog, showToast, Button} from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { PayrollCycle, PayrollItem, Employee } from "../types";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/Textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/RadioGroup";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -108,7 +107,8 @@ export function Payroll() {
   const loadAllEmployees = async () => {
     try {
       const res: any = await fetchAPI('/api/employees');
-      setAllEmployees(res.data || res || []);
+      const data = res.data || (Array.isArray(res) ? res : []);
+      setAllEmployees(data);
     } catch (e) {
       console.error(e);
     }
@@ -117,19 +117,19 @@ export function Payroll() {
   const loadAccounts = async () => {
       try {
           const res: any = await fetchAPI('/api/accounts');
-          const data = res.accounts as Account[] || [];
+          const data = res.accounts || (Array.isArray(res) ? res : []);
           
           // Filter for Asset accounts (banks, cash, etc.)
           // Note: account_type from controller is lowercase 'asset'
-          const assetAccounts = data.filter(acc => 
+          const assetAccounts = data.filter((acc: Account) => 
             acc.type === 'asset' || 
             acc.code.startsWith('1')
           );
           
           setAccounts(assetAccounts);
           
-          const cashAcc = assetAccounts.find(a => a.code === '1110') 
-                || assetAccounts.find(a => a.name.toLowerCase().includes('cash'))
+          const cashAcc = assetAccounts.find((a: Account) => a.code === '1110') 
+                || assetAccounts.find((a: Account) => a.name.toLowerCase().includes('cash'))
                 || assetAccounts[0]; // Fallback to first asset
           
           if (cashAcc) setSelectedAccountId(cashAcc.id.toString());
@@ -155,7 +155,8 @@ export function Payroll() {
   const loadCycleDetails = async (cycleId: number) => {
     try {
       const res: any = await fetchAPI(`/api/payroll/cycles/${cycleId}/items`);
-      setPayrollItems(res.data as PayrollItemExtended[] || []);
+      const items = res.data || (Array.isArray(res) ? res : []);
+      setPayrollItems(items as PayrollItemExtended[]);
       
       if (res.cycle) {
         setSelectedCycle(res.cycle as PayrollCycle);

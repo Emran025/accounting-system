@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, showToast, Button } from "@/components/ui";
+import { Table, Column, Dialog, showToast, Button, SearchableSelect } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { LeaveRequest, Employee } from "../types";
 import { formatDate } from "@/lib/utils";
@@ -35,6 +35,9 @@ export function LeaveRequests() {
 
   useEffect(() => {
     loadEmployees();
+  }, []);
+
+  useEffect(() => {
     loadLeaveRequests();
   }, [selectedEmployee, statusFilter]);
 
@@ -55,7 +58,8 @@ export function LeaveRequests() {
       if (statusFilter !== 'all') url += `status=${statusFilter}&`;
       
       const res: any = await fetchAPI(url);
-      setLeaveRequests(res.data || res || []);
+      const data = res.data || (Array.isArray(res) ? res : []);
+      setLeaveRequests(data);
     } catch (e) {
       showToast("فشل تحميل طلبات الإجازة", "error");
     } finally {
@@ -115,11 +119,13 @@ export function LeaveRequests() {
     {
       key: "employee",
       header: "الموظف",
+      dataLabel: "الموظف",
       render: (record) => record.employee?.full_name || "-"
     },
     {
       key: "leave_type",
       header: "نوع الإجازة",
+      dataLabel: "نوع الإجازة",
       render: (record) => {
         const types: Record<string, string> = {
           vacation: "إجازة سنوية",
@@ -134,21 +140,25 @@ export function LeaveRequests() {
     {
       key: "start_date",
       header: "من تاريخ",
+      dataLabel: "من تاريخ",
       render: (record) => formatDate(record.start_date)
     },
     {
       key: "end_date",
       header: "إلى تاريخ",
+      dataLabel: "إلى تاريخ",
       render: (record) => formatDate(record.end_date)
     },
     {
       key: "days_requested",
       header: "عدد الأيام",
+      dataLabel: "عدد الأيام",
       render: (record) => `${record.days_requested} يوم`
     },
     {
       key: "status",
       header: "الحالة",
+      dataLabel: "الحالة",
       render: (record) => {
         const statusMap: Record<string, { text: string; class: string }> = {
           pending: { text: "قيد الانتظار", class: "badge badge-warning" },
@@ -163,19 +173,21 @@ export function LeaveRequests() {
     {
       key: "actions",
       header: "الإجراءات",
+      dataLabel: "الإجراءات",
       render: (record) => (
-        <div className="flex gap-2">
+        <div className="action-buttons">
           {record.status === 'pending' && (
-            <Button
-              size="sm"
+            <button
+              className="icon-btn edit"
               onClick={() => {
                 setSelectedRequest(record);
                 setApprovalData({ action: "approved", reason: "" });
                 setShowApproveDialog(true);
               }}
+              title="معالجة الطلب"
             >
-              {getIcon("check")} معالجة
-            </Button>
+              {getIcon("check-circle")}
+            </button>
           )}
         </div>
       )
@@ -183,75 +195,83 @@ export function LeaveRequests() {
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">طلبات الإجازة</h2>
-        <Button onClick={() => setShowRequestDialog(true)}>
-          {getIcon("plus")} طلب إجازة جديد
+    <div className="sales-card animate-fade">
+      <div className="card-header-flex">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h3 style={{ margin: 0 }}>{getIcon("calendar")} طلبات الإجازة</h3>
+        </div>
+        <Button
+          variant="primary"
+          onClick={() => setShowRequestDialog(true)}
+          icon="plus">
+          طلب إجازة جديد
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-        <div>
-          <label className="block text-sm font-medium mb-1">الموظف</label>
-          <Select
-            value={selectedEmployee?.toString() || ""}
-            onChange={(e) => setSelectedEmployee(e.target.value ? parseInt(e.target.value) : null)}
-          >
-            <option value="">جميع الموظفين</option>
-            {employees.map(emp => (
-              <option key={emp.id} value={emp.id}>{emp.full_name}</option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">الحالة</label>
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">الكل</option>
-            <option value="pending">قيد الانتظار</option>
-            <option value="approved">موافق عليه</option>
-            <option value="rejected">مرفوض</option>
-            <option value="cancelled">ملغي</option>
-          </Select>
-        </div>
-        <div className="flex items-end">
-          <Button onClick={loadLeaveRequests}>
-            {getIcon("search")} بحث
-          </Button>
+      <div className="sales-card compact" style={{ marginBottom: '1.5rem' }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الموظف</label>
+            <SearchableSelect
+              options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
+              value={selectedEmployee?.toString() || ""}
+              onChange={(value) => setSelectedEmployee(value ? Number(value) : null)}
+              placeholder="جميع الموظفين"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الحالة</label>
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">الكل</option>
+              <option value="pending">قيد الانتظار</option>
+              <option value="approved">موافق عليه</option>
+              <option value="rejected">مرفوض</option>
+              <option value="cancelled">ملغي</option>
+            </Select>
+          </div>
+          <div className="flex items-end">
+            <Button 
+              onClick={loadLeaveRequests}
+              variant="primary"
+              icon="search"
+              style={{ width: '100%' }}>
+              بحث
+            </Button>
+          </div>
         </div>
       </div>
 
-      <Table
-        data={leaveRequests}
-        columns={columns}
-        isLoading={isLoading}
-        emptyMessage="لا توجد طلبات إجازة"
-        keyExtractor={(item) => item.id}
-      />
+      <div className="sales-card">
+        <Table
+          data={leaveRequests}
+          columns={columns}
+          isLoading={isLoading}
+          emptyMessage="لا توجد طلبات إجازة"
+          keyExtractor={(item) => item.id.toString()}
+        />
+      </div>
 
       <Dialog
         isOpen={showRequestDialog}
         onClose={() => setShowRequestDialog(false)}
         title="طلب إجازة جديد"
+        maxWidth="600px"
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">الموظف *</label>
-            <Select
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الموظف *</label>
+            <SearchableSelect
+              options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
               value={newRequest.employee_id}
-              onChange={(e) => setNewRequest({ ...newRequest, employee_id: e.target.value })}
-            >
-              <option value="">اختر الموظف</option>
-              {employees.map(emp => (
-                <option key={emp.id} value={emp.id}>{emp.full_name}</option>
-              ))}
-            </Select>
+              onChange={(value) => setNewRequest({ ...newRequest, employee_id: value ? String(value) : "" })}
+              placeholder="اختر الموظف"
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">نوع الإجازة *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>نوع الإجازة *</label>
             <Select
               value={newRequest.leave_type}
               onChange={(e) => setNewRequest({ ...newRequest, leave_type: e.target.value as any })}
@@ -265,7 +285,7 @@ export function LeaveRequests() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">من تاريخ *</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>من تاريخ *</label>
               <TextInput
                 type="date"
                 value={newRequest.start_date}
@@ -273,7 +293,7 @@ export function LeaveRequests() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">إلى تاريخ *</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>إلى تاريخ *</label>
               <TextInput
                 type="date"
                 value={newRequest.end_date}
@@ -282,17 +302,17 @@ export function LeaveRequests() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">السبب</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>السبب</label>
             <Textarea
               value={newRequest.reason}
               onChange={(e) => setNewRequest({ ...newRequest, reason: e.target.value })}
             />
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
             <Button variant="secondary" onClick={() => setShowRequestDialog(false)}>
               إلغاء
             </Button>
-            <Button onClick={handleCreateRequest}>
+            <Button variant="primary" onClick={handleCreateRequest} icon="save">
               حفظ
             </Button>
           </div>
@@ -303,10 +323,11 @@ export function LeaveRequests() {
         isOpen={showApproveDialog}
         onClose={() => setShowApproveDialog(false)}
         title="معالجة طلب الإجازة"
+        maxWidth="500px"
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">الإجراء *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الإجراء *</label>
             <Select
               value={approvalData.action}
               onChange={(e) => setApprovalData({ ...approvalData, action: e.target.value as any })}
@@ -317,7 +338,7 @@ export function LeaveRequests() {
           </div>
           {approvalData.action === 'rejected' && (
             <div>
-              <label className="block text-sm font-medium mb-1">سبب الرفض *</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>سبب الرفض *</label>
               <Textarea
                 value={approvalData.reason}
                 onChange={(e) => setApprovalData({ ...approvalData, reason: e.target.value })}
@@ -325,12 +346,15 @@ export function LeaveRequests() {
               />
             </div>
           )}
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
             <Button variant="secondary" onClick={() => setShowApproveDialog(false)}>
               إلغاء
             </Button>
-            <Button onClick={handleApprove}>
-              حفظ
+            <Button 
+              variant="primary" 
+              onClick={handleApprove}
+              icon={approvalData.action === 'approved' ? 'check' : 'x'}>
+              {approvalData.action === 'approved' ? 'موافقة' : 'رفض'}
             </Button>
           </div>
         </div>
@@ -338,4 +362,3 @@ export function LeaveRequests() {
     </div>
   );
 }
-

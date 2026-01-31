@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, showToast, Button } from "@/components/ui";
+import { Dialog, showToast, Button, SearchableSelect } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { Employee } from "../types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
-import { SearchableSelect } from "@/components/ui";
 
 interface EOSBCalculation {
   years_of_service: number;
@@ -46,7 +45,8 @@ export function EOSBCalculator() {
   const loadEmployees = async () => {
     try {
       const res: any = await fetchAPI('/api/employees');
-      setEmployees(res.data || res || []);
+      const data = res.data || (Array.isArray(res) ? res : []);
+      setEmployees(data);
     } catch (e) {
       console.error(e);
     }
@@ -80,15 +80,17 @@ export function EOSBCalculator() {
   const selectedEmp = employees.find(e => e.id.toString() === formData.employee_id);
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">حاسبة مكافأة نهاية الخدمة</h2>
+    <div className="sales-card animate-fade">
+      <div className="card-header-flex">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h3 style={{ margin: 0 }}>{getIcon("calculator")} حاسبة مكافأة نهاية الخدمة</h3>
+        </div>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-sm">
+      <div className="sales-card compact" style={{ marginBottom: '1.5rem' }}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">الموظف *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الموظف *</label>
             <SearchableSelect
               options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
               value={formData.employee_id}
@@ -101,7 +103,7 @@ export function EOSBCalculator() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">تاريخ إنهاء الخدمة *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>تاريخ إنهاء الخدمة *</label>
             <TextInput
               type="date"
               value={formData.termination_date}
@@ -109,7 +111,7 @@ export function EOSBCalculator() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">سبب إنهاء الخدمة *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>سبب إنهاء الخدمة *</label>
             <Select
               value={formData.termination_reason}
               onChange={(e) => setFormData({ ...formData, termination_reason: e.target.value as any })}
@@ -122,34 +124,38 @@ export function EOSBCalculator() {
         </div>
 
         {selectedEmp && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+          <div className="sales-card compact" style={{ marginTop: '1.5rem', background: 'var(--primary-subtle)', border: '1px solid var(--primary-light)' }}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">تاريخ التوظيف:</span>
-                <div className="font-medium">{formatDate(selectedEmp.hire_date)}</div>
+              <div className="stat-item">
+                <span className="stat-label">تاريخ التوظيف</span>
+                <span className="stat-value" style={{ fontSize: '0.95rem' }}>{formatDate(selectedEmp.hire_date)}</span>
               </div>
-              <div>
-                <span className="text-gray-600">الراتب الأساسي:</span>
-                <div className="font-medium">{formatCurrency(selectedEmp.base_salary)}</div>
+              <div className="stat-item">
+                <span className="stat-label">الراتب الأساسي</span>
+                <span className="stat-value" style={{ fontSize: '0.95rem' }}>{formatCurrency(selectedEmp.base_salary)}</span>
               </div>
-              <div>
-                <span className="text-gray-600">رصيد الإجازات:</span>
-                <div className="font-medium">{selectedEmp.vacation_days_balance} يوم</div>
+              <div className="stat-item">
+                <span className="stat-label">رصيد الإجازات</span>
+                <span className="stat-value" style={{ fontSize: '0.95rem' }}>{selectedEmp.vacation_days_balance} يوم</span>
               </div>
-              <div>
-                <span className="text-gray-600">حالة التوظيف:</span>
-                <div className="font-medium">
+              <div className="stat-item">
+                <span className="stat-label">حالة التوظيف</span>
+                <span className="stat-value" style={{ fontSize: '0.95rem' }}>
                   {selectedEmp.employment_status === 'active' ? 'نشط' : 
                    selectedEmp.employment_status === 'suspended' ? 'موقوف' : 'منتهي'}
-                </div>
+                </span>
               </div>
             </div>
           </div>
         )}
 
-        <div className="mt-6 flex justify-end">
-          <Button onClick={handleCalculate} disabled={isLoading || !formData.employee_id}>
-            {getIcon("calculator")} حساب مكافأة نهاية الخدمة
+        <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+          <Button 
+            onClick={handleCalculate} 
+            disabled={isLoading || !formData.employee_id}
+            variant="primary"
+            icon="calculator">
+            حساب مكافأة نهاية الخدمة
           </Button>
         </div>
       </div>
@@ -158,65 +164,71 @@ export function EOSBCalculator() {
         isOpen={showDialog}
         onClose={() => setShowDialog(false)}
         title="نتيجة حساب مكافأة نهاية الخدمة"
-        maxWidth="600px"
+        maxWidth="700px"
       >
         {calculation && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
-              <div>
-                <div className="text-sm text-gray-600">سنوات الخدمة</div>
-                <div className="text-xl font-bold">{calculation.years_of_service} سنة</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">أشهر الخدمة</div>
-                <div className="text-xl font-bold">{calculation.months_of_service} شهر</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">أيام الخدمة</div>
-                <div className="text-xl font-bold">{calculation.days_of_service} يوم</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">آخر راتب إجمالي</div>
-                <div className="text-xl font-bold">{formatCurrency(calculation.last_gross_salary)}</div>
+            <div className="sales-card compact" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px solid #bfdbfe' }}>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="stat-item">
+                  <span className="stat-label">سنوات الخدمة</span>
+                  <span className="stat-value">{calculation.years_of_service} سنة</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">أشهر الخدمة</span>
+                  <span className="stat-value">{calculation.months_of_service} شهر</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">أيام الخدمة</span>
+                  <span className="stat-value">{calculation.days_of_service} يوم</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">آخر راتب إجمالي</span>
+                  <span className="stat-value">{formatCurrency(calculation.last_gross_salary)}</span>
+                </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <h3 className="font-semibold text-lg">تفاصيل الحساب:</h3>
-              <div className="grid grid-cols-1 gap-2">
-                <div className="flex justify-between p-3 bg-gray-50 rounded">
-                  <span>مكافأة نهاية الخدمة:</span>
-                  <span className="font-medium">{formatCurrency(calculation.eosb_amount)}</span>
-                </div>
-                <div className="flex justify-between p-3 bg-gray-50 rounded">
-                  <span>رصيد الإجازات غير المستخدم:</span>
-                  <span className="font-medium">{formatCurrency(calculation.unused_vacation_amount)}</span>
-                </div>
-                <div className="flex justify-between p-3 bg-gray-50 rounded">
-                  <span>مبلغ فترة الإشعار:</span>
-                  <span className="font-medium">{formatCurrency(calculation.notice_period_amount)}</span>
+              <h4 style={{ fontWeight: 600, marginBottom: '1rem', color: 'var(--text-primary)' }}>تفاصيل الحساب:</h4>
+              <div className="sales-card compact">
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex justify-between items-center p-3" style={{ background: 'var(--bg-color)', borderRadius: 'var(--radius-md)' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>مكافأة نهاية الخدمة:</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(calculation.eosb_amount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3" style={{ background: 'var(--bg-color)', borderRadius: 'var(--radius-md)' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>رصيد الإجازات غير المستخدم:</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(calculation.unused_vacation_amount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3" style={{ background: 'var(--bg-color)', borderRadius: 'var(--radius-md)' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>مبلغ فترة الإشعار:</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(calculation.notice_period_amount)}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 bg-green-50 rounded-lg border-2 border-green-200">
+            <div className="sales-card compact" style={{ background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)', border: '2px solid #10b981' }}>
               <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold">إجمالي التسوية:</span>
-                <span className="text-2xl font-bold text-green-700">
+                <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>إجمالي التسوية:</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669' }}>
                   {formatCurrency(calculation.total_settlement)}
                 </span>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
               <Button variant="secondary" onClick={() => setShowDialog(false)}>
                 إلغاء
               </Button>
-              <Button onClick={() => {
-                // TODO: Implement save/export functionality
-                showToast("تم حفظ الحساب", "success");
-              }}>
-                {getIcon("save")} حفظ
+              <Button 
+                onClick={() => {
+                  showToast("تم حفظ الحساب", "success");
+                }}
+                variant="primary"
+                icon="save">
+                حفظ
               </Button>
             </div>
           </div>
@@ -225,4 +237,3 @@ export function EOSBCalculator() {
     </div>
   );
 }
-

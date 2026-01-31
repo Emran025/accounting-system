@@ -44,7 +44,8 @@ export function EmployeePortal() {
     setIsLoading(true);
     try {
       const res: any = await fetchAPI('/api/employee-portal/my-payslips');
-      setPayslips(res.data || res || []);
+      const data = res.data || (Array.isArray(res) ? res : []);
+      setPayslips(data);
     } catch (e) {
       showToast("فشل تحميل كشوف المرتبات", "error");
     } finally {
@@ -56,7 +57,8 @@ export function EmployeePortal() {
     setIsLoading(true);
     try {
       const res: any = await fetchAPI('/api/employee-portal/my-leave-requests');
-      setLeaveRequests(res.data || res || []);
+      const data = res.data || (Array.isArray(res) ? res : []);
+      setLeaveRequests(data);
     } catch (e) {
       showToast("فشل تحميل طلبات الإجازة", "error");
     } finally {
@@ -70,7 +72,12 @@ export function EmployeePortal() {
       const res: any = await fetchAPI(
         `/api/employee-portal/my-attendance?start_date=${startDate}&end_date=${endDate}`
       );
-      setAttendance(res);
+      if (res && !res.error) {
+        setAttendance(res);
+      } else {
+        setAttendance(null);
+        if (res?.error) showToast(res.error, "error");
+      }
     } catch (e) {
       showToast("فشل تحميل سجلات الحضور", "error");
     } finally {
@@ -102,11 +109,13 @@ export function EmployeePortal() {
     {
       key: "payroll_cycle",
       header: "الفترة",
+      dataLabel: "الفترة",
       render: (item) => item.payroll_cycle?.cycle_name || "-"
     },
     {
       key: "period",
       header: "الفترة الزمنية",
+      dataLabel: "الفترة الزمنية",
       render: (item) => {
         if (!item.payroll_cycle) return "-";
         return `${formatDate(item.payroll_cycle.period_start)} - ${formatDate(item.payroll_cycle.period_end)}`;
@@ -115,32 +124,45 @@ export function EmployeePortal() {
     {
       key: "base_salary",
       header: "الراتب الأساسي",
+      dataLabel: "الراتب الأساسي",
       render: (item) => formatCurrency(item.base_salary)
     },
     {
       key: "total_allowances",
       header: "البدلات",
+      dataLabel: "البدلات",
       render: (item) => formatCurrency(item.total_allowances)
     },
     {
       key: "total_deductions",
       header: "الخصومات",
+      dataLabel: "الخصومات",
       render: (item) => formatCurrency(item.total_deductions)
     },
     {
       key: "net_salary",
       header: "صافي الراتب",
-      render: (item) => formatCurrency(item.net_salary)
+      dataLabel: "صافي الراتب",
+      render: (item) => <span style={{ fontWeight: 700, color: 'var(--primary-color)' }}>{formatCurrency(item.net_salary)}</span>
     },
     {
       key: "paid_amount",
       header: "المدفوع",
+      dataLabel: "المدفوع",
       render: (item) => formatCurrency(item.paid_amount || 0)
     },
     {
       key: "remaining_balance",
       header: "المتبقي",
-      render: (item) => formatCurrency(item.remaining_balance || item.net_salary)
+      dataLabel: "المتبقي",
+      render: (item) => {
+        const remaining = item.remaining_balance || item.net_salary;
+        return remaining > 0 ? (
+          <span className="badge badge-warning">{formatCurrency(remaining)}</span>
+        ) : (
+          <span className="badge badge-success">مدفوع بالكامل</span>
+        );
+      }
     }
   ];
 
@@ -148,6 +170,7 @@ export function EmployeePortal() {
     {
       key: "leave_type",
       header: "نوع الإجازة",
+      dataLabel: "نوع الإجازة",
       render: (record) => {
         const types: Record<string, string> = {
           vacation: "إجازة سنوية",
@@ -162,21 +185,25 @@ export function EmployeePortal() {
     {
       key: "start_date",
       header: "من تاريخ",
+      dataLabel: "من تاريخ",
       render: (record) => formatDate(record.start_date)
     },
     {
       key: "end_date",
       header: "إلى تاريخ",
+      dataLabel: "إلى تاريخ",
       render: (record) => formatDate(record.end_date)
     },
     {
       key: "days_requested",
       header: "عدد الأيام",
+      dataLabel: "عدد الأيام",
       render: (record) => `${record.days_requested} يوم`
     },
     {
       key: "status",
       header: "الحالة",
+      dataLabel: "الحالة",
       render: (record) => {
         const statusMap: Record<string, { text: string; class: string }> = {
           pending: { text: "قيد الانتظار", class: "badge badge-warning" },
@@ -194,147 +221,178 @@ export function EmployeePortal() {
     {
       key: "attendance_date",
       header: "التاريخ",
+      dataLabel: "التاريخ",
       render: (record) => formatDate(record.attendance_date)
     },
     {
       key: "check_in",
       header: "وقت الدخول",
+      dataLabel: "وقت الدخول",
       render: (record) => record.check_in || "-"
     },
     {
       key: "check_out",
       header: "وقت الخروج",
+      dataLabel: "وقت الخروج",
       render: (record) => record.check_out || "-"
     },
     {
       key: "status",
       header: "الحالة",
+      dataLabel: "الحالة",
       render: (record) => {
-        const statusMap: Record<string, string> = {
-          present: "حاضر",
-          absent: "غائب",
-          leave: "إجازة",
-          holiday: "عطلة",
-          weekend: "نهاية أسبوع"
+        const statusMap: Record<string, { text: string; class: string }> = {
+          present: { text: "حاضر", class: "badge badge-success" },
+          absent: { text: "غائب", class: "badge badge-danger" },
+          leave: { text: "إجازة", class: "badge badge-info" },
+          holiday: { text: "عطلة", class: "badge badge-secondary" },
+          weekend: { text: "نهاية أسبوع", class: "badge badge-secondary" }
         };
-        return statusMap[record.status] || record.status;
+        const status = statusMap[record.status] || { text: record.status, class: "badge" };
+        return <span className={status.class}>{status.text}</span>;
       }
     },
     {
       key: "hours_worked",
       header: "ساعات العمل",
-      render: (record) => `${record.hours_worked.toFixed(2)} ساعة`
+      dataLabel: "ساعات العمل",
+      render: (record) => `${(record.hours_worked || 0).toFixed(2)} ساعة`
     }
   ];
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold">البوابة الذاتية للموظف</h2>
-
-      <TabNavigation
-        tabs={[
-          { key: "payslips", label: "كشوف المرتبات", icon: "fa-file-invoice-dollar" },
-          { key: "leave", label: "طلبات الإجازة", icon: "fa-calendar-alt" },
-          { key: "attendance", label: "سجلات الحضور", icon: "fa-clock" }
-        ]}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-
-      {activeTab === "payslips" && (
-        <div className="tab-content active">
-          <Table
-            data={payslips}
-            columns={payslipColumns}
-            isLoading={isLoading}
-            emptyMessage="لا توجد كشوف مرتبات"
-            keyExtractor={(item) => item.id}
-          />
+    <div className="sales-card animate-fade">
+      <div className="card-header-flex">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h3 style={{ margin: 0 }}>{getIcon("user-circle")} البوابة الذاتية للموظف</h3>
         </div>
-      )}
+      </div>
 
-      {activeTab === "leave" && (
-        <div className="tab-content active">
-          <div className="flex justify-end mb-4">
-            <Button onClick={() => setShowLeaveDialog(true)}>
-              {getIcon("plus")} طلب إجازة جديد
-            </Button>
-          </div>
-          <Table
-            data={leaveRequests}
-            columns={leaveColumns}
-            isLoading={isLoading}
-            emptyMessage="لا توجد طلبات إجازة"
-            keyExtractor={(item) => item.id}
-          />
-        </div>
-      )}
+      <div className="settings-wrapper">
+        <TabNavigation
+          tabs={[
+            { key: "payslips", label: "كشوف المرتبات", icon: "fa-file-invoice-dollar" },
+            { key: "leave", label: "طلبات الإجازة", icon: "fa-calendar-alt" },
+            { key: "attendance", label: "سجلات الحضور", icon: "fa-clock" }
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
-      {activeTab === "attendance" && (
-        <div className="tab-content active">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg mb-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">من تاريخ</label>
-              <TextInput
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+        {activeTab === "payslips" && (
+          <div className="tab-content active" style={{ marginTop: '1.5rem' }}>
+            <div className="sales-card">
+              <Table
+                data={payslips}
+                columns={payslipColumns}
+                isLoading={isLoading}
+                emptyMessage="لا توجد كشوف مرتبات"
+                keyExtractor={(item) => item.id.toString()}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">إلى تاريخ</label>
-              <TextInput
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+          </div>
+        )}
+
+        {activeTab === "leave" && (
+          <div className="tab-content active" style={{ marginTop: '1.5rem' }}>
+            <div className="sales-card">
+              <div className="card-header-flex" style={{ marginBottom: '1rem' }}>
+                <h4 style={{ margin: 0 }}>طلبات الإجازة</h4>
+                <Button
+                  variant="primary"
+                  onClick={() => setShowLeaveDialog(true)}
+                  icon="plus">
+                  طلب إجازة جديد
+                </Button>
+              </div>
+              <Table
+                data={leaveRequests}
+                columns={leaveColumns}
+                isLoading={isLoading}
+                emptyMessage="لا توجد طلبات إجازة"
+                keyExtractor={(item) => item.id.toString()}
               />
             </div>
-            <div className="flex items-end">
-              <Button onClick={loadAttendance}>
-                {getIcon("search")} بحث
-              </Button>
+          </div>
+        )}
+
+        {activeTab === "attendance" && (
+          <div className="tab-content active" style={{ marginTop: '1.5rem' }}>
+            <div className="sales-card compact" style={{ marginBottom: '1.5rem' }}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>من تاريخ</label>
+                  <TextInput
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>إلى تاريخ</label>
+                  <TextInput
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button 
+                    onClick={loadAttendance}
+                    variant="primary"
+                    icon="search"
+                    style={{ width: '100%' }}>
+                    بحث
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {attendance?.summary && (
+              <div className="sales-card compact" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px solid #bfdbfe' }}>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="stat-item">
+                    <span className="stat-label">إجمالي الساعات</span>
+                    <span className="stat-value">{attendance.summary.total_hours?.toFixed(2) || 0} ساعة</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">ساعات إضافية</span>
+                    <span className="stat-value highlight">{attendance.summary.total_overtime?.toFixed(2) || 0} ساعة</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">أيام الحضور</span>
+                    <span className="stat-value">{attendance.summary.total_days_present || 0} يوم</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">أيام الغياب</span>
+                    <span className="stat-value">{attendance.summary.total_days_absent || 0} يوم</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="sales-card">
+              <Table
+                data={attendance?.records || []}
+                columns={attendanceColumns}
+                isLoading={isLoading}
+                emptyMessage="لا توجد سجلات حضور"
+                keyExtractor={(item) => item.id.toString()}
+              />
             </div>
           </div>
-
-          {attendance?.summary && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-blue-50 rounded-lg mb-4">
-              <div>
-                <div className="text-sm text-gray-600">إجمالي الساعات</div>
-                <div className="text-xl font-bold">{attendance.summary.total_hours?.toFixed(2) || 0} ساعة</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">ساعات إضافية</div>
-                <div className="text-xl font-bold">{attendance.summary.total_overtime?.toFixed(2) || 0} ساعة</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">أيام الحضور</div>
-                <div className="text-xl font-bold">{attendance.summary.total_days_present || 0} يوم</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">أيام الغياب</div>
-                <div className="text-xl font-bold">{attendance.summary.total_days_absent || 0} يوم</div>
-              </div>
-            </div>
-          )}
-
-          <Table
-            data={attendance?.records || []}
-            columns={attendanceColumns}
-            isLoading={isLoading}
-            emptyMessage="لا توجد سجلات حضور"
-            keyExtractor={(item) => item.id}
-          />
-        </div>
-      )}
+        )}
+      </div>
 
       <Dialog
         isOpen={showLeaveDialog}
         onClose={() => setShowLeaveDialog(false)}
         title="طلب إجازة جديد"
+        maxWidth="600px"
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">نوع الإجازة *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>نوع الإجازة *</label>
             <Select
               value={newLeaveRequest.leave_type}
               onChange={(e) => setNewLeaveRequest({ ...newLeaveRequest, leave_type: e.target.value as any })}
@@ -348,7 +406,7 @@ export function EmployeePortal() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">من تاريخ *</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>من تاريخ *</label>
               <TextInput
                 type="date"
                 value={newLeaveRequest.start_date}
@@ -356,7 +414,7 @@ export function EmployeePortal() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">إلى تاريخ *</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>إلى تاريخ *</label>
               <TextInput
                 type="date"
                 value={newLeaveRequest.end_date}
@@ -365,17 +423,17 @@ export function EmployeePortal() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">السبب</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>السبب</label>
             <Textarea
               value={newLeaveRequest.reason}
               onChange={(e) => setNewLeaveRequest({ ...newLeaveRequest, reason: e.target.value })}
             />
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
             <Button variant="secondary" onClick={() => setShowLeaveDialog(false)}>
               إلغاء
             </Button>
-            <Button onClick={handleCreateLeaveRequest}>
+            <Button variant="primary" onClick={handleCreateLeaveRequest} icon="save">
               حفظ
             </Button>
           </div>
@@ -384,4 +442,3 @@ export function EmployeePortal() {
     </div>
   );
 }
-

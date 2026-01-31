@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, showToast, Button } from "@/components/ui";
+import { Table, Column, Dialog, showToast, Button, SearchableSelect } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { AttendanceRecord, Employee } from "../types";
 import { formatDate, formatTime } from "@/lib/utils";
@@ -42,7 +42,8 @@ export function Attendance() {
   const loadEmployees = async () => {
     try {
       const res: any = await fetchAPI('/api/employees');
-      setEmployees(res.data || res || []);
+      const data = res.data || (Array.isArray(res) ? res : []);
+      setEmployees(data);
     } catch (e) {
       console.error(e);
     }
@@ -56,9 +57,9 @@ export function Attendance() {
       const res: any = await fetchAPI(
         `/api/attendance?employee_id=${selectedEmployee}&start_date=${startDate}&end_date=${endDate}`
       );
-      setAttendanceRecords(res.data || res || []);
+      const data = res.data || (Array.isArray(res) ? res : []);
+      setAttendanceRecords(data);
 
-      // Load summary
       const summaryRes: any = await fetchAPI(
         `/api/attendance/summary?employee_id=${selectedEmployee}&start_date=${startDate}&end_date=${endDate}`
       );
@@ -101,143 +102,168 @@ export function Attendance() {
     {
       key: "attendance_date",
       header: "التاريخ",
+      dataLabel: "التاريخ",
       render: (record) => formatDate(record.attendance_date)
     },
     {
       key: "check_in",
       header: "وقت الدخول",
+      dataLabel: "وقت الدخول",
       render: (record) => record.check_in ? formatTime(record.check_in) : "-"
     },
     {
       key: "check_out",
       header: "وقت الخروج",
+      dataLabel: "وقت الخروج",
       render: (record) => record.check_out ? formatTime(record.check_out) : "-"
     },
     {
       key: "status",
       header: "الحالة",
+      dataLabel: "الحالة",
       render: (record) => {
-        const statusMap: Record<string, string> = {
-          present: "حاضر",
-          absent: "غائب",
-          leave: "إجازة",
-          holiday: "عطلة",
-          weekend: "نهاية أسبوع"
+        const statusMap: Record<string, { text: string; class: string }> = {
+          present: { text: "حاضر", class: "badge badge-success" },
+          absent: { text: "غائب", class: "badge badge-danger" },
+          leave: { text: "إجازة", class: "badge badge-info" },
+          holiday: { text: "عطلة", class: "badge badge-secondary" },
+          weekend: { text: "نهاية أسبوع", class: "badge badge-secondary" }
         };
-        return statusMap[record.status] || record.status;
+        const status = statusMap[record.status] || { text: record.status, class: "badge" };
+        return <span className={status.class}>{status.text}</span>;
       }
     },
     {
       key: "hours_worked",
       header: "ساعات العمل",
+      dataLabel: "ساعات العمل",
       render: (record) => `${record.hours_worked.toFixed(2)} ساعة`
     },
     {
       key: "overtime_hours",
       header: "ساعات إضافية",
-      render: (record) => record.overtime_hours > 0 ? `${record.overtime_hours.toFixed(2)} ساعة` : "-"
+      dataLabel: "ساعات إضافية",
+      render: (record) => record.overtime_hours > 0 ? (
+        <span className="badge badge-warning">{record.overtime_hours.toFixed(2)} ساعة</span>
+      ) : "-"
     },
     {
       key: "is_late",
       header: "تأخير",
-      render: (record) => record.is_late ? `نعم (${record.late_minutes} دقيقة)` : "لا"
+      dataLabel: "تأخير",
+      render: (record) => record.is_late ? (
+        <span className="badge badge-warning">نعم ({record.late_minutes} دقيقة)</span>
+      ) : (
+        <span className="badge badge-success">لا</span>
+      )
     }
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">سجلات الحضور والانصراف</h2>
-        <Button onClick={() => setShowRecordDialog(true)}>
-          {getIcon("plus")} تسجيل حضور جديد
+    <div className="sales-card animate-fade">
+      <div className="card-header-flex">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h3 style={{ margin: 0 }}>{getIcon("clock")} سجلات الحضور والانصراف</h3>
+        </div>
+        <Button
+          variant="primary"
+          onClick={() => setShowRecordDialog(true)}
+          icon="plus">
+          تسجيل حضور جديد
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
-        <div>
-          <label className="block text-sm font-medium mb-1">الموظف</label>
-          <Select
-            value={selectedEmployee?.toString() || ""}
-            onChange={(e) => setSelectedEmployee(e.target.value ? parseInt(e.target.value) : null)}
-          >
-            <option value="">اختر الموظف</option>
-            {employees.map(emp => (
-              <option key={emp.id} value={emp.id}>{emp.full_name}</option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">من تاريخ</label>
-          <TextInput
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">إلى تاريخ</label>
-          <TextInput
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </div>
-        <div className="flex items-end">
-          <Button onClick={loadAttendance} disabled={!selectedEmployee}>
-            {getIcon("search")} بحث
-          </Button>
+      <div className="sales-card compact" style={{ marginBottom: '1.5rem' }}>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الموظف</label>
+            <SearchableSelect
+              options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
+              value={selectedEmployee?.toString() || ""}
+              onChange={(value) => setSelectedEmployee(value ? Number(value) : null)}
+              placeholder="اختر الموظف"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>من تاريخ</label>
+            <TextInput
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>إلى تاريخ</label>
+            <TextInput
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+          <div className="flex items-end">
+            <Button 
+              onClick={loadAttendance} 
+              disabled={!selectedEmployee}
+              variant="primary"
+              icon="search"
+              style={{ width: '100%' }}>
+              بحث
+            </Button>
+          </div>
         </div>
       </div>
 
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-blue-50 rounded-lg">
-          <div>
-            <div className="text-sm text-gray-600">إجمالي الساعات</div>
-            <div className="text-xl font-bold">{summary.total_hours?.toFixed(2) || 0} ساعة</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-600">ساعات إضافية</div>
-            <div className="text-xl font-bold">{summary.total_overtime?.toFixed(2) || 0} ساعة</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-600">أيام الحضور</div>
-            <div className="text-xl font-bold">{summary.total_days_present || 0} يوم</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-600">أيام الغياب</div>
-            <div className="text-xl font-bold">{summary.total_days_absent || 0} يوم</div>
+        <div className="sales-card compact" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px solid #bfdbfe' }}>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="stat-item">
+              <span className="stat-label">إجمالي الساعات</span>
+              <span className="stat-value">{summary.total_hours?.toFixed(2) || 0} ساعة</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">ساعات إضافية</span>
+              <span className="stat-value highlight">{summary.total_overtime?.toFixed(2) || 0} ساعة</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">أيام الحضور</span>
+              <span className="stat-value">{summary.total_days_present || 0} يوم</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">أيام الغياب</span>
+              <span className="stat-value">{summary.total_days_absent || 0} يوم</span>
+            </div>
           </div>
         </div>
       )}
 
-      <Table
-        data={attendanceRecords}
-        columns={columns}
-        isLoading={isLoading}
-        emptyMessage="لا توجد سجلات حضور"
-        keyExtractor={(record) => record.id}
-      />
+      <div className="sales-card">
+        <Table
+          data={attendanceRecords}
+          columns={columns}
+          isLoading={isLoading}
+          emptyMessage="لا توجد سجلات حضور"
+          keyExtractor={(item) => item.id.toString()}
+        />
+      </div>
 
       <Dialog
         isOpen={showRecordDialog}
         onClose={() => setShowRecordDialog(false)}
         title="تسجيل حضور جديد"
+        maxWidth="600px"
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">الموظف *</label>
-            <Select
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الموظف *</label>
+            <SearchableSelect
+              options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
               value={newRecord.employee_id}
-              onChange={(e) => setNewRecord({ ...newRecord, employee_id: e.target.value })}
-            >
-              <option value="">اختر الموظف</option>
-              {employees.map(emp => (
-                <option key={emp.id} value={emp.id}>{emp.full_name}</option>
-              ))}
-            </Select>
+              onChange={(value) => setNewRecord({ ...newRecord, employee_id: value ? String(value) : "" })}
+              placeholder="اختر الموظف"
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">التاريخ *</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>التاريخ *</label>
             <TextInput
               type="date"
               value={newRecord.attendance_date}
@@ -246,7 +272,7 @@ export function Attendance() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">وقت الدخول</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>وقت الدخول</label>
               <TextInput
                 type="time"
                 value={newRecord.check_in}
@@ -254,7 +280,7 @@ export function Attendance() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">وقت الخروج</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>وقت الخروج</label>
               <TextInput
                 type="time"
                 value={newRecord.check_out}
@@ -263,7 +289,7 @@ export function Attendance() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">الحالة</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الحالة</label>
             <Select
               value={newRecord.status}
               onChange={(e) => setNewRecord({ ...newRecord, status: e.target.value as any })}
@@ -276,17 +302,17 @@ export function Attendance() {
             </Select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">ملاحظات</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>ملاحظات</label>
             <Textarea
               value={newRecord.notes}
               onChange={(e) => setNewRecord({ ...newRecord, notes: e.target.value })}
             />
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
             <Button variant="secondary" onClick={() => setShowRecordDialog(false)}>
               إلغاء
             </Button>
-            <Button onClick={handleRecordAttendance}>
+            <Button variant="primary" onClick={handleRecordAttendance} icon="save">
               حفظ
             </Button>
           </div>
@@ -295,4 +321,3 @@ export function Attendance() {
     </div>
   );
 }
-
