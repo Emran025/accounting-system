@@ -1,0 +1,54 @@
+name: Tests
+
+on:
+  push:
+    branches: [master, main, develop]
+  pull_request:
+    branches: [master, main, develop]
+
+jobs:
+  laravel-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      # If you needed a real DB service, you'd define it here.
+      # Since we use SQLite in-memory, we don't need a separate service container.
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite
+          coverage: xdebug
+
+      - name: Copy .env
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+        working-directory: ./src
+
+      - name: Install Dependencies
+        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+        working-directory: ./src
+
+      - name: Generate Key
+        run: php artisan key:generate
+        working-directory: ./src
+
+      - name: Directory Permissions
+        run: chmod -R 777 storage bootstrap/cache
+        working-directory: ./src
+
+      - name: Create Database
+        run: |
+          mkdir -p database
+          touch database/database.sqlite
+        working-directory: ./src
+
+      - name: Execute Tests (Unit and Feature)
+        run: php artisan test
+        working-directory: ./src
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ":memory:"
