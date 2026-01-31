@@ -436,6 +436,130 @@ Get ZATCA submission status.
 
 ---
 
+### Sales Returns
+
+#### GET `/sales/returns` {#sales-returns-list}
+
+Retrieve paginated list of sales returns.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+| ----------- | ------ | ---------- | ------------- |
+| `page` | integer | No | Page number (default: 1) |
+| `per_page` | integer | No | Items per page (default: 20) |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "return_number": "RET-00001",
+      "invoice_id": 123,
+      "invoice_number": "INV-00123",
+      "total_amount": 50.00,
+      "reason": "Defective product",
+      "status": "completed",
+      "created_by": 1,
+      "created_at": "2026-01-30T10:30:00.000000Z"
+    }
+  ],
+  "pagination": { ... }
+}
+```
+
+**Permissions Required:** `sales.view`
+
+---
+
+#### POST `/sales/returns` {#sales-returns-create}
+
+Create a new sales return.
+
+**Request Body:**
+
+```json
+{
+  "invoice_id": 123,
+  "items": [
+    {
+      "invoice_item_id": 1,
+      "quantity": 1,
+      "reason": "Defective"
+    }
+  ],
+  "reason": "Customer return - defective products"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "id": 1,
+  "return_number": "RET-00001"
+}
+```
+
+**Business Logic:**
+
+1. Validates invoice exists and is not already fully returned
+2. Validates return quantities don't exceed original quantities
+3. Creates sales return and return items
+4. Restores product stock quantities
+5. Creates reversing GL entries
+6. Updates AR ledger if credit sale
+
+**Permissions Required:** `sales.create`
+
+---
+
+#### GET `/sales/returns/show` {#sales-returns-show}
+
+Get detailed sales return information.
+
+**Query Parameters:**
+
+| Parameter | Type | Required |
+| ----------- | ------ | ---------- |
+| `id` | integer | Yes |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "return_number": "RET-00001",
+    "invoice_id": 123,
+    "invoice": { ... },
+    "total_amount": 50.00,
+    "reason": "Customer return",
+    "status": "completed",
+    "items": [
+      {
+        "id": 1,
+        "product_id": 1,
+        "product": { "id": 1, "name": "Product A" },
+        "quantity": 1,
+        "unit_price": 50.00,
+        "subtotal": 50.00
+      }
+    ],
+    "created_at": "2026-01-30T10:30:00.000000Z"
+  }
+}
+```
+
+**Permissions Required:** `sales.view`
+
+---
+
 ## Purchases Management
 
 ### GET `/purchases` {#purchases-list}

@@ -1,7 +1,7 @@
 # Database Schema - Entity Relationship Diagram
 
 > **Accounting System Database Structure**  
-> 49 Tables | Full ACID Compliance | Normalized Design
+> 52 Tables | Full ACID Compliance | Normalized Design
 
 ---
 
@@ -36,6 +36,8 @@ This document provides a detailed Entity Relationship Diagram (ERD) for the acco
 - `invoices` - Sales invoices
 - `invoice_items` - Invoice line items
 - `zatca_einvoices` - ZATCA compliance data
+- `sales_returns` - Sales return headers
+- `sales_return_items` - Sales return line items
 
 ### 4. Accounts Receivable
 
@@ -93,6 +95,11 @@ This document provides a detailed Entity Relationship Diagram (ERD) for the acco
 - `batch_items` - Batch job items
 - `recurring_transactions` - Auto-posting templates
 - `telescope` - Audit trail
+
+### 13. Government Fees & Taxes
+
+- `government_fees` - Fee configuration (Kharaaj)
+- `invoice_fees` - Fees applied to invoices
 
 ---
 
@@ -211,6 +218,43 @@ This document provides a detailed Entity Relationship Diagram (ERD) for the acco
       │    quantity    │  │    qr_code      │  │    amount     │
       │    unit_price  │  │    invoice_hash │  │   voucher_#   │
       └────────────────┘  └─────────────────┘  └───────────────┘
+```
+
+### 3b. Sales Returns Flow
+
+```txt
+┌───────────────────┐
+│     invoices      │ 1
+├───────────────────┤
+│ PK: id            ├────────────┐
+│ UK: invoice_number│            │
+└───────────────────┘            │
+                                 │ N
+                       ┌─────────┴─────────┐
+                       │   sales_returns   │
+                       ├───────────────────┤
+                       │ PK: id            │
+                       │ UK: return_number │
+                       │ FK: invoice_id    │
+                       │ FK: created_by    │
+                       │    total_amount   │
+                       │    reason         │
+                       │    status         │
+                       └────────┬──────────┘
+                                │ 1
+                                │
+                                │ N
+                       ┌────────┴──────────┐
+                       │sales_return_items │
+                       ├───────────────────┤
+                       │ PK: id            │
+                       │ FK: sales_return  │
+                       │ FK: invoice_item  │
+                       │ FK: product_id    │
+                       │    quantity       │
+                       │    unit_price     │
+                       │    subtotal       │
+                       └───────────────────┘
 ```
 
 ### 4. Purchases & Accounts Payable

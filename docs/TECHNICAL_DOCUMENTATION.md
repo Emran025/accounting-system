@@ -1,7 +1,7 @@
 # Accounting System - Technical Documentation
 
-> **Last Updated:** January 2026  
-> **Version:** 2.0  
+> **Last Updated:** January 31, 2026  
+> **Version:** 2.1  
 > **Architecture:** Monorepo (Laravel Backend + Next.js Frontend)
 
 ---
@@ -131,18 +131,18 @@ accounting-system/
 ├── src/                          # Laravel Backend
 │   ├── app/
 │   │   ├── Http/
-│   │   │   ├── Controllers/Api/  # 33 API Controllers
+│   │   │   ├── Controllers/Api/  # 35 API Controllers
 │   │   │   ├── Middleware/       # Custom middleware (ApiAuth)
 │   │   │   └── Requests/         # Form validation requests
-│   │   ├── Models/               # 46 Eloquent models
-│   │   ├── Services/             # 10 Business logic services
+│   │   ├── Models/               # 50 Eloquent models
+│   │   ├── Services/             # 11 Business logic services
 │   │   └── Helpers/              # 3 Helper files
 │   ├── database/
-│   │   ├── migrations/           # 49 Migration files
+│   │   ├── migrations/           # 52 Migration files
 │   │   ├── seeders/              # Database seeders
 │   │   └── factories/            # Model factories
 │   ├── routes/
-│   │   ├── api.php              # API routes (224 lines)
+│   │   ├── api.php              # API routes (248 lines)
 │   │   ├── web.php              # Web routes
 │   │   └── console.php          # Artisan commands
 │   ├── config/                   # Configuration files
@@ -155,7 +155,6 @@ accounting-system/
     │   ├── system/              # System management
     │   │   ├── dashboard/
     │   │   ├── settings/
-    │   │   ├── reports/
     │   │   └── [more...]
     │   ├── sales/               # Sales module
     │   ├── purchases/           # Purchase module
@@ -164,8 +163,12 @@ accounting-system/
     │   │   ├── chart_of_accounts/
     │   │   ├── fiscal_periods/
     │   │   └── [more...]
-    │   └── hr/                  # HR & Payroll
+    │   ├── hr/                  # HR & Payroll
+    │   └── navigation/          # Navigation Landing Page
     ├── components/              # Reusable React components
+    │   ├── ui/                  # 34 UI components
+    │   ├── navigation/          # 4 Navigation components
+    │   └── layout/              # Layout components
     ├── lib/                     # Utilities & types
     │   ├── api.ts              # API client
     │   ├── types.ts            # TypeScript interfaces
@@ -276,6 +279,7 @@ Located in `src/app/Http/Controllers/Api/`:
 | ------------ | --------- | ------------- |
 | `AuthController` | Authentication | `login()`, `logout()`, `check()` |
 | `SalesController` | Invoice management | `index()`, `store()`, `show()`, `destroy()` |
+| `SalesReturnController` | Sales returns | `index()`, `store()`, `show()` |
 | `PurchasesController` | Purchase operations | `index()`, `store()`, `approve()`, `update()`, `destroy()` |
 | `ProductsController` | Inventory management | CRUD operations |
 | `ArController` | Accounts Receivable | Customer & transaction management |
@@ -286,6 +290,7 @@ Located in `src/app/Http/Controllers/Api/`:
 | `EmployeesController` | HR management | CRUD, suspend, activate, documents |
 | `CurrencyController` | Multi-currency | CRUD, toggle active |
 | `FiscalPeriodsController` | Period management | Close, lock, unlock periods |
+| `GovernmentFeesController` | Fee configuration | CRUD (apiResource) |
 
 ### 3.6 Service Layer
 
@@ -295,7 +300,8 @@ Located in `src/app/Services/`:
 | --------- | --------------- |
 | `AuthService.php` | Session management, user authentication |
 | `LedgerService.php` | GL posting, voucher numbering, trial balance |
-| `SalesService.php` | Invoice creation, VAT calculation, GL posting |
+| `SalesService.php` | Invoice creation, VAT calculation, GL posting, sales returns |
+| `PurchaseService.php` | Purchase transactions, approval workflow, GL posting |
 | `PayrollService.php` | Payroll generation, approval workflow, GL entries |
 | `InventoryCostingService.php` | FIFO/Average cost calculation |
 | `DepreciationService.php` | Asset depreciation (SL/DB methods) |

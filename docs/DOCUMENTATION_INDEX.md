@@ -16,7 +16,13 @@ Welcome to the comprehensive documentation for the Enterprise Accounting System.
    - Installation instructions
    - Basic usage
 
-2. **[TECHNICAL_DOCUMENTATION.md](./TECHNICAL_DOCUMENTATION.md)** ⭐ **Main Reference**
+2. **[USER_GUIDE.md](./USER_GUIDE.md)** ⭐ **للمستخدمين | For Users**
+   - دليل مبسط بالعربية والإنجليزية
+   - شرح جميع أقسام النظام
+   - من يستخدم كل قسم
+   - لا يحتاج خبرة تقنية
+
+3. **[TECHNICAL_DOCUMENTATION.md](./TECHNICAL_DOCUMENTATION.md)** - **For Developers**
    - Complete system architecture
    - Backend & frontend detailed documentation
    - Business logic & services
@@ -24,14 +30,14 @@ Welcome to the comprehensive documentation for the Enterprise Accounting System.
    - Deployment guide
    - **~200 pages of comprehensive documentation**
 
-3. **[DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)**
+4. **[DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)**
    - Entity Relationship Diagrams (ERD)
-   - All 49 tables documented
+   - All 52 tables documented
    - Relationships and constraints
    - Normalization strategy
    - Data integrity rules
 
-4. **[API_REFERENCE.md](./API_REFERENCE.md)**
+5. **[API_REFERENCE.md](./API_REFERENCE.md)**
    - Complete REST API documentation
    - All endpoints with examples
    - Request/response formats
@@ -176,10 +182,10 @@ Integrate with the system:
 ### Documentation Coverage
 
 - **Total Pages:** ~250+ (combined)
-- **Tables Documented:** 49/49 (100%)
-- **API Endpoints Documented:** 100+ endpoints
-- **Controllers Documented:** 33/33
-- **Services Documented:** 10/10
+- **Tables Documented:** 52/52 (100%)
+- **API Endpoints Documented:** 110+ endpoints
+- **Controllers Documented:** 35/35
+- **Services Documented:** 11/11
 - **Code Examples:** 100+ snippets
 
 ### Codebase Metrics
@@ -188,10 +194,10 @@ Integrate with the system:
 
 - Laravel 12
 - PHP 8.2+
-- 49 migrations
-- 46 models
-- 33 controllers
-- 10 services
+- 52 migrations
+- 50 models
+- 35 controllers
+- 11 services
 - 3 helpers
 
 **Frontend:**
@@ -199,16 +205,17 @@ Integrate with the system:
 - Next.js 16
 - React 19
 - TypeScript 5
-- 26+ pages
-- 13+ components
+- 30+ pages
+- 34 UI components
+- 4 navigation components
 - 7 utility files
 
 **Database:**
 
-- 49 tables
-- 200+ columns
-- 50+ foreign keys
-- 20+ indexes
+- 52 tables
+- 220+ columns
+- 55+ foreign keys
+- 25+ indexes
 
 ---
 
@@ -265,8 +272,8 @@ All documentation follows these principles:
 
 ## 🔄 Documentation Updates
 
-**Last Updated:** January 9, 2026  
-**Version:** 2.0  
+**Last Updated:** January 31, 2026  
+**Version:** 2.1  
 **Codebase Version:** Laravel 12 + Next.js 16
 
 ### Update Policy

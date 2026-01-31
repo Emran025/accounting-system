@@ -64,7 +64,7 @@ For **complete technical documentation**, see:
 This comprehensive guide includes:
 
 - **Architecture & Design Patterns**
-- **Complete Database Schema** (49 tables, 46 models)
+- **Complete Database Schema** (52 tables, 50 models)
 - **API Reference** (All endpoints with examples)
 - **Business Logic** (Services, workflows)
 - **Security & Authentication**
@@ -126,11 +126,11 @@ accounting-system/
 │
 ├── src/                      # Laravel Backend (API)
 │   ├── app/
-│   │   ├── Http/Controllers/Api/  # 33 Controllers
-│   │   ├── Models/                # 46 Eloquent Models
-│   │   ├── Services/              # 10 Business Services
+│   │   ├── Http/Controllers/Api/  # 35 Controllers
+│   │   ├── Models/                # 50 Eloquent Models
+│   │   ├── Services/              # 11 Business Services
 │   │   └── Helpers/               # Utility Functions
-│   ├── database/migrations/       # 49 Migration Files
+│   ├── database/migrations/       # 52 Migration Files
 │   ├── routes/api.php            # API Routes
 │   └── ...
 │
@@ -141,8 +141,9 @@ accounting-system/
     │   ├── sales/            # Sales & Invoicing
     │   ├── purchases/        # Purchases & Expenses
     │   ├── finance/          # GL, Accounts, Periods
-    │   └── hr/               # HR & Payroll
-    ├── components/           # Reusable Components
+    │   ├── hr/               # HR & Payroll
+    │   └── navigation/       # Navigation Landing Page
+    ├── components/           # Reusable Components (34 UI + 4 Navigation)
     ├── lib/                  # API, Types, Utilities
     └── ...
 ```
@@ -222,18 +223,18 @@ php artisan test
 
 ## Database Schema Highlights
 
-**49 Tables Covering:**
+**52 Tables Covering:**
 
 | Category | Tables |
 | ---------- | -------- |
 | **Auth & Users** | users, sessions, roles, modules, role_permissions, login_attempts |
 | **Inventory** | products, categories, purchases, purchase_requests, inventory_costing, inventory_counts |
-| **Sales** | invoices, invoice_items, zatca_einvoices |
+| **Sales** | invoices, invoice_items, zatca_einvoices, sales_returns, sales_return_items |
 | **AR/AP** | ar_customers, ar_transactions, ap_suppliers, ap_transactions |
 | **Finance** | chart_of_accounts, general_ledger, fiscal_periods, journal_vouchers |
 | **HR & Payroll** | employees, departments, payroll_cycles, payroll_items, payroll_transactions, employee_documents, employee_allowances, employee_deductions |
 | **Advanced** | assets, asset_depreciation, prepayments, unearned_revenue, reconciliations, currencies, currency_denominations |
-| **System** | settings, document_sequences, batch_processing, batch_items, recurring_transactions, telescope (audit) |
+| **System** | settings, document_sequences, batch_processing, batch_items, recurring_transactions, telescope (audit), government_fees, invoice_fees |
 
 ---
 
