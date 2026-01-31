@@ -64,4 +64,20 @@ class Employee extends Authenticatable
     public function payrollItems() {
         return $this->hasMany(PayrollItem::class);
     }
+
+    public function attendanceRecords() {
+        return $this->hasMany(AttendanceRecord::class);
+    }
+
+    public function leaveRequests() {
+        return $this->hasMany(LeaveRequest::class);
+    }
+
+    public function contracts() {
+        return $this->hasMany(EmployeeContract::class);
+    }
+
+    public function currentContract() {
+        return $this->hasOne(EmployeeContract::class)->where('is_current', true);
+    }
 }

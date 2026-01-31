@@ -318,7 +318,7 @@ function ARLedgerPageContent() {
     
     try {
       for (const returnData of dataArray) {
-        const response = await fetchAPI("sales/returns/store", {
+        const response = await fetchAPI("sales/returns", {
           method: "POST",
           body: JSON.stringify(returnData),
         });

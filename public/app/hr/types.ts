@@ -113,4 +113,62 @@ export interface PayrollItem {
   net_salary: number;
   status: 'active' | 'on_hold';
   notes?: string;
+  paid_amount?: number;
+  remaining_balance?: number;
+  payroll_cycle?: PayrollCycle;
+}
+
+export interface AttendanceRecord {
+  id: number;
+  employee_id: number;
+  employee?: Employee;
+  attendance_date: string;
+  check_in?: string;
+  check_out?: string;
+  status: 'present' | 'absent' | 'leave' | 'holiday' | 'weekend';
+  hours_worked: number;
+  overtime_hours: number;
+  is_late: boolean;
+  late_minutes: number;
+  notes?: string;
+  source: 'manual' | 'biometric' | 'import';
+  created_at: string;
+}
+
+export interface LeaveRequest {
+  id: number;
+  employee_id: number;
+  employee?: Employee;
+  leave_type: 'vacation' | 'sick' | 'emergency' | 'unpaid' | 'other';
+  start_date: string;
+  end_date: string;
+  days_requested: number;
+  reason?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  approved_by?: number;
+  approver?: { id: number; full_name: string };
+  approved_at?: string;
+  rejection_reason?: string;
+  approval_trail?: Array<{
+    user_id: number;
+    user_name: string;
+    action: string;
+    timestamp: string;
+  }>;
+  created_at: string;
+}
+
+export interface PayrollComponent {
+  id: number;
+  component_code: string;
+  component_name: string;
+  component_type: 'allowance' | 'deduction' | 'overtime' | 'bonus' | 'other';
+  calculation_type: 'fixed' | 'percentage' | 'formula' | 'attendance_based';
+  base_amount?: number;
+  percentage?: number;
+  formula?: string;
+  is_taxable: boolean;
+  is_active: boolean;
+  display_order: number;
+  description?: string;
 }

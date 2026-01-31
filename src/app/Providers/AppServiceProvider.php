@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Services\SalaryCalculatorInterface;
+use App\Services\SalaryCalculatorService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -11,7 +13,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Bind SalaryCalculator interface to implementation
+        $this->app->bind(SalaryCalculatorInterface::class, SalaryCalculatorService::class);
     }
 
     /**

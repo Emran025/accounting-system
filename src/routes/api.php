@@ -33,6 +33,10 @@ use App\Http\Controllers\Api\EmployeesController;
 use App\Http\Controllers\Api\PayrollController;
 use App\Http\Controllers\Api\JournalVouchersController;
 use App\Http\Controllers\Api\SalesReturnController;
+use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\LeaveController;
+use App\Http\Controllers\Api\EOSBController;
+use App\Http\Controllers\Api\PayrollComponentsController;
 
 use App\Http\Controllers\Api\DepartmentsController;
 
@@ -243,5 +247,33 @@ Route::middleware(['api.auth'])->group(function () {
     Route::post('/payroll/items/{itemId}/pay', [PayrollController::class, 'payIndividualItem'])->name('api.payroll.item.pay');
     Route::post('/payroll/items/{itemId}/toggle-status', [PayrollController::class, 'toggleItemStatus'])->name('api.payroll.item.toggle_status');
     Route::put('/payroll/items/{itemId}', [PayrollController::class, 'updateItem'])->name('api.payroll.item.update');
+
+    // Attendance Management
+    Route::get('/attendance', [AttendanceController::class, 'index'])->name('api.attendance.index');
+    Route::post('/attendance', [AttendanceController::class, 'store'])->name('api.attendance.store');
+    Route::post('/attendance/bulk-import', [AttendanceController::class, 'bulkImport'])->name('api.attendance.bulk_import');
+    Route::get('/attendance/summary', [AttendanceController::class, 'getSummary'])->name('api.attendance.summary');
+
+    // Leave Management
+    Route::get('/leave-requests', [LeaveController::class, 'index'])->name('api.leave_requests.index');
+    Route::post('/leave-requests', [LeaveController::class, 'store'])->name('api.leave_requests.store');
+    Route::get('/leave-requests/{id}', [LeaveController::class, 'show'])->name('api.leave_requests.show');
+    Route::post('/leave-requests/{id}/approve', [LeaveController::class, 'approve'])->name('api.leave_requests.approve');
+    Route::post('/leave-requests/{id}/cancel', [LeaveController::class, 'cancel'])->name('api.leave_requests.cancel');
+
+    // Employee Portal Routes (Phase 3)
+    Route::prefix('employee-portal')->group(function () {
+        Route::get('/my-payslips', [PayrollController::class, 'myPayslips'])->name('api.employee_portal.payslips');
+        Route::get('/my-leave-requests', [LeaveController::class, 'myLeaveRequests'])->name('api.employee_portal.leave_requests');
+        Route::post('/my-leave-requests', [LeaveController::class, 'store'])->name('api.employee_portal.leave_requests.store');
+        Route::get('/my-attendance', [AttendanceController::class, 'myAttendance'])->name('api.employee_portal.attendance');
+    });
+
+    // EOSB Calculator
+    Route::post('/eosb/preview', [EOSBController::class, 'preview'])->name('api.eosb.preview');
+    Route::post('/eosb/{employeeId}/calculate', [EOSBController::class, 'calculate'])->name('api.eosb.calculate');
+
+    // Payroll Components Management
+    Route::apiResource('payroll-components', PayrollComponentsController::class);
 });
 

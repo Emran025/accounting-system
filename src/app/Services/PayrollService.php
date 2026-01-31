@@ -9,6 +9,8 @@ use App\Models\GeneralLedger;
 use App\Models\ChartOfAccount;
 use App\Models\PayrollTransaction;
 use App\Models\User;
+use App\Services\SalaryCalculatorInterface;
+use App\Services\LeaveService;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -17,15 +19,21 @@ class PayrollService
     protected $accountService;
     protected $mappingService;
     protected $ledgerService;
+    protected $salaryCalculator;
+    protected $leaveService;
 
     public function __construct(
         EmployeeAccountService $accountService, 
         ChartOfAccountsMappingService $mappingService,
-        LedgerService $ledgerService
+        LedgerService $ledgerService,
+        SalaryCalculatorInterface $salaryCalculator,
+        LeaveService $leaveService
     ) {
         $this->accountService = $accountService;
         $this->mappingService = $mappingService;
         $this->ledgerService = $ledgerService;
+        $this->salaryCalculator = $salaryCalculator;
+        $this->leaveService = $leaveService;
     }
 
     /**
@@ -87,28 +95,56 @@ class PayrollService
             $totalDeductions = 0;
             $totalNet = 0;
 
+            $periodStart = $data['period_start'] ?? now()->startOfMonth();
+            $periodEnd = $data['period_end'] ?? now()->endOfMonth();
+
             foreach ($employees as $employee) {
+                // Check for pending leave requests (Phase 1 requirement)
                 if ($nature === 'salary') {
-                    $baseSalary = $employee->base_salary;
-                    $allowances = $employee->allowances()->where('is_active', true)->sum('amount');
-                    $deductions = $employee->deductions()->where('is_active', true)->sum('amount');
+                    $hasPendingLeave = $this->leaveService->hasPendingLeaveRequests(
+                        $employee->id,
+                        $periodStart,
+                        $periodEnd
+                    );
+
+                    if ($hasPendingLeave) {
+                        // Log warning but continue (or throw exception based on business rule)
+                        \Log::warning("Employee {$employee->id} has pending leave requests for period {$periodStart} to {$periodEnd}");
+                    }
+                }
+
+                if ($nature === 'salary') {
+                    // Use SalaryCalculator for dynamic calculation
+                    $calculation = $this->salaryCalculator->calculate(
+                        $employee,
+                        $periodStart,
+                        $periodEnd
+                    );
+
+                    $baseSalary = $calculation['base_salary'];
+                    $allowances = $calculation['total_allowances'];
+                    $deductions = $calculation['total_deductions'];
+                    $overtime = $calculation['overtime'] ?? 0;
+                    $gross = $calculation['gross_salary'];
+                    $net = $calculation['net_salary'];
                 } else {
+                    // For bonuses/incentives, use static calculation
                     $baseSalary = $data['base_amount'] ?? 0;
                     if (isset($data['individual_amounts'][$employee->id])) {
                         $baseSalary = $data['individual_amounts'][$employee->id];
                     }
                     $allowances = 0;
                     $deductions = 0;
+                    $overtime = 0;
+                    $gross = $baseSalary;
+                    $net = $gross;
                 }
-
-                $gross = $baseSalary + $allowances;
-                $net = $gross - $deductions;
 
                 PayrollItem::create([
                     'payroll_cycle_id' => $cycle->id,
                     'employee_id' => $employee->id,
                     'base_salary' => $baseSalary,
-                    'total_allowances' => $allowances,
+                    'total_allowances' => $allowances + ($overtime ?? 0), // Include overtime in allowances
                     'total_deductions' => $deductions,
                     'gross_salary' => $gross,
                     'net_salary' => $net,

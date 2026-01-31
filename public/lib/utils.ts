@@ -52,6 +52,23 @@ export function formatDateTime(dateStr: string | null | undefined): string {
 }
 
 /**
+ * Format time string (HH:mm format)
+ */
+export function formatTime(timeStr: string | null | undefined): string {
+  if (!timeStr) return "-";
+  try {
+    // Handle both "HH:mm" and "HH:mm:ss" formats
+    const parts = timeStr.split(':');
+    if (parts.length >= 2) {
+      return `${parts[0]}:${parts[1]}`;
+    }
+    return timeStr;
+  } catch {
+    return timeStr;
+  }
+}
+
+/**
  * Escape HTML to prevent XSS
  */
 export function escapeHtml(text: string | null | undefined): string {

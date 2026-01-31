@@ -26,4 +26,8 @@ class PayrollItem extends Model
     public function payrollCycle() {
         return $this->belongsTo(PayrollCycle::class, 'payroll_cycle_id');
     }
+
+    public function transactions() {
+        return $this->hasMany(PayrollTransaction::class);
+    }
 }
