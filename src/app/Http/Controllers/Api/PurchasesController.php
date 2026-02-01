@@ -137,6 +137,11 @@ class PurchasesController extends Controller
         PermissionService::requirePermission('purchases', 'edit');
 
         $purchaseId = $request->input('id');
+        $purchase = Purchase::findOrFail($purchaseId);
+        
+        // CRITICAL FIX: Resource-level authorization
+        $this->authorize('approve', $purchase);
+        
         $userId = auth()->id() ?? session('user_id');
 
         try {
@@ -159,6 +164,11 @@ class PurchasesController extends Controller
         PermissionService::requirePermission('purchases', 'delete');
 
         $id = $request->input('id');
+        $purchase = Purchase::findOrFail($id);
+        
+        // CRITICAL FIX: Resource-level authorization
+        $this->authorize('delete', $purchase);
+        
         $userId = auth()->id() ?? session('user_id');
 
         try {

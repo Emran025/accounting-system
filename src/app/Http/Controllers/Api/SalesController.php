@@ -110,6 +110,10 @@ class SalesController extends Controller
             ->withCount('items')
             ->findOrFail($id);
 
+        // CRITICAL FIX: Resource-level authorization
+        // Prevents users from accessing other users' invoices via ID enumeration
+        $this->authorize('view', $invoice);
+
         return $this->successResponse(new \App\Http\Resources\InvoiceResource($invoice));
     }
 
@@ -120,6 +124,10 @@ class SalesController extends Controller
         $id = $request->input('id');
         $invoice = Invoice::findOrFail($id);
         $oldValues = $invoice->toArray();
+
+        // CRITICAL FIX: Resource-level authorization
+        // Prevents deletion of invoices in closed fiscal periods and unauthorized access
+        $this->authorize('delete', $invoice);
 
         try {
             $this->salesService->deleteInvoice($id);

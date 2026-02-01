@@ -95,7 +95,7 @@ class LedgerService
         // Get current fiscal period
         $fiscalPeriodId = $this->getCurrentFiscalPeriod();
 
-        // Check if period is locked
+        // Check if period is locked and validate voucher date
         if ($fiscalPeriodId) {
             $period = FiscalPeriod::find($fiscalPeriodId);
             if ($period) {
@@ -104,6 +104,20 @@ class LedgerService
                 }
                 if ($period->is_closed) {
                     throw new \Exception("Cannot post transactions to a closed fiscal period");
+                }
+                
+                // CRITICAL FIX: Validate voucher_date falls within fiscal period bounds
+                // Prevents back-dating transactions into closed periods
+                $voucherDateObj = \Carbon\Carbon::parse($voucherDate);
+                $periodStart = \Carbon\Carbon::parse($period->start_date);
+                $periodEnd = \Carbon\Carbon::parse($period->end_date);
+                
+                if ($voucherDateObj->lt($periodStart) || $voucherDateObj->gt($periodEnd)) {
+                    throw new \Exception(
+                        "Voucher date ({$voucherDate}) is outside fiscal period " .
+                        "({$period->start_date} to {$period->end_date}). " .
+                        "Cannot back-date transactions into closed periods."
+                    );
                 }
             }
         }

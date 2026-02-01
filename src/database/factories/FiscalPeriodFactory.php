@@ -24,10 +24,10 @@ class FiscalPeriodFactory extends Factory
         $endDate = Carbon::now()->endOfMonth();
         
         return [
-            'name' => $startDate->format('F Y'),
+            'period_name' => $startDate->format('F Y'),
             'start_date' => $startDate,
             'end_date' => $endDate,
-            'status' => 'open',
+            'is_closed' => false,
             'is_locked' => false,
         ];
     }
@@ -38,7 +38,7 @@ class FiscalPeriodFactory extends Factory
     public function open(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'open',
+            'is_closed' => false,
             'is_locked' => false,
         ]);
     }
@@ -49,7 +49,7 @@ class FiscalPeriodFactory extends Factory
     public function closed(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'closed',
+            'is_closed' => true,
             'is_locked' => true,
         ]);
     }
@@ -63,7 +63,7 @@ class FiscalPeriodFactory extends Factory
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
         
         return $this->state(fn (array $attributes) => [
-            'name' => $startDate->format('F Y'),
+            'period_name' => $startDate->format('F Y'),
             'start_date' => $startDate,
             'end_date' => $endDate,
         ]);

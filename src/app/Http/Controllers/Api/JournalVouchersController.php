@@ -103,6 +103,10 @@ class JournalVouchersController extends Controller
             return $this->errorResponse('Voucher not found', 404);
         }
 
+        // CRITICAL FIX: Resource-level authorization
+        $voucher = $entries->first();
+        $this->authorize('view', $voucher);
+
         $first = $entries->first();
         $voucher = [
             'id' => $id,
@@ -223,6 +227,15 @@ class JournalVouchersController extends Controller
         PermissionService::requirePermission('journal_vouchers', 'delete');
 
         $voucherNumber = $id;
+
+        // Get voucher entry for authorization check
+        $voucher = JournalVoucher::where('voucher_number', $voucherNumber)->first();
+        if (!$voucher) {
+            return $this->errorResponse('Voucher not found', 404);
+        }
+
+        // CRITICAL FIX: Resource-level authorization
+        $this->authorize('delete', $voucher);
 
         // Check if already reversed
         $reversed = \App\Models\GeneralLedger::where('voucher_number', $voucherNumber)

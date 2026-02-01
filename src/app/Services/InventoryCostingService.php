@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Product;
+use App\Exceptions\BusinessLogicException;
 use Illuminate\Support\Facades\DB;
 
 class InventoryCostingService
@@ -61,54 +62,90 @@ class InventoryCostingService
         int $quantity,
         string $method = 'FIFO'
     ): float {
-        $cogs = $this->getCostOfGoodsSold($productId, $quantity, $method);
+        // CRITICAL FIX: Wrap entire operation in transaction with row-level locking
+        // Prevents race conditions when multiple concurrent sales consume same inventory layers
+        return DB::transaction(function () use ($productId, $saleId, $quantity, $method) {
+            // Calculate COGS first (read-only, no locking needed)
+            $cogs = $this->getCostOfGoodsSold($productId, $quantity, $method);
 
-        // Mark inventory as sold based on costing method
-        $remainingQtyToSell = $quantity;
+            // Mark inventory as sold based on costing method
+            $remainingQtyToSell = $quantity;
 
-        // Fix BUG-001: Query from immutable history (Inventory Consumptions)
-        $query = DB::table('inventory_costing as ic')
-            ->leftJoin('inventory_consumptions as cons', 'ic.id', '=', 'cons.inventory_costing_id')
-            ->select('ic.id', 'ic.quantity', 'ic.unit_cost', 'ic.transaction_date')
-            ->selectRaw('COALESCE(SUM(cons.quantity), 0) as total_consumed')
-            ->where('ic.product_id', $productId)
-            ->groupBy('ic.id', 'ic.quantity', 'ic.unit_cost', 'ic.transaction_date')
-            ->havingRaw('(ic.quantity - total_consumed) > 0');
+            // CRITICAL FIX: Use lockForUpdate() to prevent concurrent modifications
+            // This ensures atomic read-modify-write operations on inventory layers
+            $query = DB::table('inventory_costing as ic')
+                ->leftJoin('inventory_consumptions as cons', 'ic.id', '=', 'cons.inventory_costing_id')
+                ->select('ic.id', 'ic.quantity', 'ic.unit_cost', 'ic.transaction_date')
+                ->selectRaw('COALESCE(SUM(cons.quantity), 0) as total_consumed')
+                ->where('ic.product_id', $productId)
+                ->groupBy('ic.id', 'ic.quantity', 'ic.unit_cost', 'ic.transaction_date')
+                ->havingRaw('(ic.quantity - total_consumed) > 0')
+                ->lockForUpdate(); // CRITICAL: Lock rows to prevent concurrent access
 
-        if ($method === 'LIFO') {
-            $query->orderBy('ic.transaction_date', 'desc')->orderBy('ic.id', 'desc');
-        } else {
-            // FIFO and WAC (WAC uses FIFO for depletion in this simplified model)
-            $query->orderBy('ic.transaction_date', 'asc')->orderBy('ic.id', 'asc');
-        }
-
-        $inventory = $query->get();
-
-        foreach ($inventory as $item) {
-            if ($remainingQtyToSell <= 0) {
-                break;
+            if ($method === 'LIFO') {
+                $query->orderBy('ic.transaction_date', 'desc')->orderBy('ic.id', 'desc');
+            } else {
+                // FIFO and WAC (WAC uses FIFO for depletion in this simplified model)
+                $query->orderBy('ic.transaction_date', 'asc')->orderBy('ic.id', 'asc');
             }
 
-            $currentRemaining = $item->quantity - $item->total_consumed;
-            $qtyToTake = min($remainingQtyToSell, $currentRemaining);
+            $inventory = $query->get();
 
-            // Create Immutable Consumption Record
-            DB::table('inventory_consumptions')->insert([
-                'inventory_costing_id' => $item->id,
-                'consumption_type' => 'sale',
-                'reference_id' => $saleId,
-                'reference_type' => 'invoices',
-                'quantity' => $qtyToTake,
-                'unit_cost' => $item->unit_cost,
-                'total_cost' => $qtyToTake * $item->unit_cost,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            // Validate sufficient inventory after locking
+            $totalAvailable = 0;
+            foreach ($inventory as $item) {
+                $totalAvailable += ($item->quantity - $item->total_consumed);
+            }
 
-            $remainingQtyToSell -= $qtyToTake;
-        }
+            if ($totalAvailable < $quantity) {
+                throw new BusinessLogicException(
+                    "Insufficient inventory available. " .
+                    "Requested: {$quantity}, Available: {$totalAvailable} " .
+                    "(Product ID: {$productId})"
+                );
+            }
 
-        return $cogs;
+            foreach ($inventory as $item) {
+                if ($remainingQtyToSell <= 0) {
+                    break;
+                }
+
+                // Re-calculate remaining after lock (atomic operation)
+                $currentRemaining = $item->quantity - $item->total_consumed;
+                
+                if ($currentRemaining <= 0) {
+                    continue; // Skip if already consumed by another transaction
+                }
+
+                $qtyToTake = min($remainingQtyToSell, $currentRemaining);
+
+                // Create Immutable Consumption Record
+                DB::table('inventory_consumptions')->insert([
+                    'inventory_costing_id' => $item->id,
+                    'consumption_type' => 'sale',
+                    'reference_id' => $saleId,
+                    'reference_type' => 'invoices',
+                    'quantity' => $qtyToTake,
+                    'unit_cost' => $item->unit_cost,
+                    'total_cost' => $qtyToTake * $item->unit_cost,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $remainingQtyToSell -= $qtyToTake;
+            }
+
+            // Final validation: ensure we consumed exactly what we needed
+            if ($remainingQtyToSell > 0) {
+                throw new BusinessLogicException(
+                    "Failed to consume full quantity. " .
+                    "Remaining: {$remainingQtyToSell}, Requested: {$quantity} " .
+                    "(Product ID: {$productId})"
+                );
+            }
+
+            return $cogs;
+        });
     }
 
     /**
