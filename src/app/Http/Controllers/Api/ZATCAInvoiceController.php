@@ -4,16 +4,22 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
-use App\Models\Setting;
 use App\Models\ZatcaEinvoice;
+use App\Services\ZATCAService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Http;
 use Exception;
 
 class ZATCAInvoiceController extends Controller
 {
+    private ZATCAService $zatcaService;
+
+    public function __construct(ZATCAService $zatcaService)
+    {
+        $this->zatcaService = $zatcaService;
+    }
+
     /**
      * Submit an invoice to ZATCA.
      *
@@ -24,8 +30,8 @@ class ZATCAInvoiceController extends Controller
     public function submit(Request $request, $invoiceId)
     {
         try {
-            // 1. Check Feature Flag & Location
-            if (!$this->isZatcaEnabled()) {
+            // Check if ZATCA is enabled
+            if (!$this->zatcaService->isEnabled()) {
                 return response()->json([
                     'status' => 'skipped',
                     'message' => 'ZATCA integration is disabled or not applicable for this region.'
@@ -34,7 +40,7 @@ class ZATCAInvoiceController extends Controller
 
             $invoice = Invoice::findOrFail($invoiceId);
 
-            // 2. Check if already submitted
+            // Check if already submitted
             $existing = ZatcaEinvoice::where('invoice_id', $invoice->id)
                 ->where('status', 'submitted')
                 ->first();
@@ -46,38 +52,31 @@ class ZATCAInvoiceController extends Controller
                 ], 200);
             }
 
-            // 3. Process Invoice (Transaction for safety)
-            return DB::transaction(function () use ($invoice) {
-                // A. Generate XML (Placeholder for complex XML generation logic)
-                $xmlContent = $this->generateInvoiceXml($invoice);
-                $hash = hash('sha256', $xmlContent);
+            // Get submission type from request (default: reporting)
+            $submissionType = $request->input('submission_type', 'reporting');
 
-                // B. Sign XML (Placeholder for Certificate signing)
-                $signedXml = $this->signXml($xmlContent);
-                
-                // C. Submit to ZATCA SDK/API (Mocking the call)
-                // In production, this would use Http::withCert(...)
-                $apiResponse = $this->sendToZatcaApi($signedXml);
-
-                $status = $apiResponse['valid'] ? 'submitted' : 'rejected';
+            // Process Invoice (Transaction for safety)
+            return DB::transaction(function () use ($invoice, $submissionType) {
+                // Use ZATCA Service to handle submission
+                $result = $this->zatcaService->submitInvoice($invoice, $submissionType);
 
                 $zatcaInvoice = ZatcaEinvoice::updateOrCreate(
                     ['invoice_id' => $invoice->id],
                     [
-                        'xml_content' => $xmlContent,
-                        'hash' => $hash,
-                        'signed_xml' => $signedXml,
-                        'qr_code' => substr($apiResponse['qr_code'] ?? '', 0, 255),
-                        'zatca_qr_code' => $apiResponse['qr_code'] ?? null,
-                        'zatca_uuid' => $apiResponse['uuid'] ?? null,
-                        'status' => $status,
+                        'xml_content' => $result['xml_content'],
+                        'hash' => $result['xml_hash'],
+                        'signed_xml' => $result['signed_xml'],
+                        'qr_code' => substr($result['qr_code'], 0, 255),
+                        'zatca_qr_code' => $result['zatca_qr_code'],
+                        'zatca_uuid' => $result['zatca_uuid'],
+                        'status' => $result['status'],
                         'signed_at' => now(),
-                        'submitted_at' => $status === 'submitted' ? now() : null,
+                        'submitted_at' => $result['status'] === 'submitted' ? now() : null,
                     ]
                 );
 
-                if ($status === 'rejected') {
-                    throw new Exception('ZATCA Rejection: ' . ($apiResponse['error_message'] ?? 'Unknown error'));
+                if ($result['status'] === 'rejected') {
+                    throw new Exception('ZATCA Rejection: ' . ($result['error_message'] ?? 'Unknown error'));
                 }
 
                 return response()->json([
@@ -88,59 +87,16 @@ class ZATCAInvoiceController extends Controller
             });
 
         } catch (Exception $e) {
-            Log::error("ZATCA Submission Error: " . $e->getMessage());
+            Log::error("ZATCA Submission Error: " . $e->getMessage(), [
+                'invoice_id' => $invoiceId,
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to submit invoice to ZATCA',
                 'error' => $e->getMessage()
             ], 500);
         }
-    }
-
-    /**
-     * Check if ZATCA is enabled in settings.
-     */
-    private function isZatcaEnabled(): bool
-    {
-        $enabled = Setting::where('setting_key', 'zatca_enabled')->value('setting_value');
-        $country = Setting::where('setting_key', 'company_country')->value('setting_value');
-
-        // Check if explicitly enabled OR if country is SA (and not explicitly disabled)
-        // Adjust logic based on strict requirement. Here we assume manual toggle is primary.
-        return filter_var($enabled, FILTER_VALIDATE_BOOLEAN); 
-    }
-
-    /**
-     * Mock XML Generation
-     */
-    private function generateInvoiceXml(Invoice $invoice): string
-    {
-        // Construct UBL 2.1 Standard XML
-        return "<Invoice><ID>{$invoice->id}</ID><Total>{$invoice->total}</Total></Invoice>";
-    }
-
-    /**
-     * Mock Signing
-     */
-    private function signXml(string $xml): string
-    {
-        // Use OpenSSL or specialized library here
-        return $xml . "<!-- Signed -->";
-    }
-
-    /**
-     * Mock API Call
-     */
-    private function sendToZatcaApi(string $xml): array
-    {
-        // Simulate API call
-        // return Http::post('...')->json();
-        
-        return [
-            'valid' => true,
-            'uuid' => 'urn:uuid:' . \Illuminate\Support\Str::uuid(),
-            'qr_code' => 'base64_qr_code_string_here'
-        ];
     }
     
     public function getStatus($invoiceId)
