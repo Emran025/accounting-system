@@ -31,7 +31,7 @@ class ReportsController extends Controller
      */
     public function balanceSheet(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('reports', 'view');
+
 
         $asOfDate = $request->input('as_of_date', now()->format('Y-m-d'));
 
@@ -93,7 +93,7 @@ class ReportsController extends Controller
      */
     public function profitLoss(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('reports', 'view');
+
 
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', now()->format('Y-m-d'));
@@ -133,7 +133,7 @@ class ReportsController extends Controller
      */
     public function cashFlow(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('reports', 'view');
+
 
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', now()->format('Y-m-d'));
@@ -199,7 +199,7 @@ class ReportsController extends Controller
      */
     public function agingReceivables(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('reports', 'view');
+
 
         $asOfDate = $request->input('as_of_date', now()->format('Y-m-d'));
 
@@ -245,7 +245,7 @@ class ReportsController extends Controller
      */
     public function agingPayables(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('reports', 'view');
+
 
         $asOfDate = $request->input('as_of_date', now()->format('Y-m-d'));
 
@@ -291,7 +291,7 @@ class ReportsController extends Controller
      */
     public function comparative(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('reports', 'view');
+
 
         $currentStart = $request->input('current_start', now()->startOfMonth()->format('Y-m-d'));
         $currentEnd = $request->input('current_end', now()->format('Y-m-d'));

@@ -21,7 +21,7 @@ class DashboardController extends Controller
 
     public function index(\Illuminate\Http\Request $request): JsonResponse
     {
-        PermissionService::requirePermission('dashboard', 'view');
+
 
         $detail = $request->query('detail');
 

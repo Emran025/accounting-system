@@ -35,7 +35,7 @@ class PeriodicInventoryController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('products', 'view');
+
 
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
@@ -59,7 +59,7 @@ class PeriodicInventoryController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('products', 'create');
+
 
         $validated = $request->validate([
             'product_id' => 'required|integer|exists:products,id',
@@ -95,7 +95,7 @@ class PeriodicInventoryController extends Controller
 
     public function process(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('products', 'edit');
+
 
         $validated = $request->validate([
             'fiscal_period_id' => 'required|integer|exists:fiscal_periods,id',

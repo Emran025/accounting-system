@@ -17,7 +17,7 @@ class ProductsController extends Controller
     use BaseApiController;
     public function index(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('products', 'view');
+
 
         $search = $request->input('search', '');
         $page = max(1, (int)$request->input('page', 1));
@@ -52,7 +52,7 @@ class ProductsController extends Controller
 
     public function store(StoreProductRequest $request): JsonResponse
     {
-        PermissionService::requirePermission('products', 'create');
+
 
         $validated = $request->validated();
 
@@ -70,7 +70,7 @@ class ProductsController extends Controller
 
     public function update(UpdateProductRequest $request): JsonResponse
     {
-        PermissionService::requirePermission('products', 'edit');
+
 
         $validated = $request->validated();
 
@@ -85,7 +85,7 @@ class ProductsController extends Controller
 
     public function destroy(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('products', 'delete');
+
 
         $id = $request->input('id');
         $product = Product::findOrFail($id);

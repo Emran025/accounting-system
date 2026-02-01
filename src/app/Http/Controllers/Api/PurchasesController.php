@@ -25,7 +25,7 @@ class PurchasesController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('purchases', 'view');
+
 
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
@@ -55,7 +55,7 @@ class PurchasesController extends Controller
 
     public function store(StorePurchaseRequest $request): JsonResponse
     {
-        PermissionService::requirePermission('purchases', 'create');
+
 
         try {
             $userId = auth()->id() ?? session('user_id');
@@ -80,7 +80,7 @@ class PurchasesController extends Controller
 
     public function requests(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('purchases', 'view');
+
 
         $requests = PurchaseRequest::with(['product', 'user'])
             ->orderBy('created_at', 'desc')
@@ -91,7 +91,7 @@ class PurchasesController extends Controller
 
     public function storeRequest(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('purchases', 'create');
+
 
         $validated = $request->validate([
             'product_id' => 'nullable|exists:products,id',
@@ -119,7 +119,7 @@ class PurchasesController extends Controller
 
     public function updateRequest(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('purchases', 'edit');
+
 
         $validated = $request->validate([
             'id' => 'required|exists:purchase_requests,id',
@@ -134,7 +134,7 @@ class PurchasesController extends Controller
 
     public function approve(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('purchases', 'edit');
+
 
         $purchaseId = $request->input('id');
         $purchase = Purchase::findOrFail($purchaseId);
@@ -161,7 +161,7 @@ class PurchasesController extends Controller
 
     public function destroy(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('purchases', 'delete');
+
 
         $id = $request->input('id');
         $purchase = Purchase::findOrFail($id);

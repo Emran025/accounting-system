@@ -30,7 +30,7 @@ class RevenuesController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('revenues', 'view');
+
 
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
@@ -48,7 +48,7 @@ class RevenuesController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('revenues', 'create');
+
 
         $validated = $request->validate([
             'source' => 'required|string|max:255',
@@ -105,7 +105,7 @@ class RevenuesController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('revenues', 'edit');
+
 
         $validated = $request->validate([
             'id' => 'required|exists:revenues,id',
@@ -126,7 +126,7 @@ class RevenuesController extends Controller
 
     public function destroy(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('revenues', 'delete');
+
 
         $id = $request->input('id');
         $revenue = Revenue::findOrFail($id);

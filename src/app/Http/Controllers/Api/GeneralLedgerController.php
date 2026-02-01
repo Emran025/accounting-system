@@ -27,7 +27,7 @@ class GeneralLedgerController extends Controller
      */
     public function trialBalance(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('general_ledger', 'view');
+
 
         $asOfDate = $request->input('as_of_date');
 
@@ -61,7 +61,7 @@ class GeneralLedgerController extends Controller
      */
     public function accountDetails(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('general_ledger', 'view');
+
 
         $accountCode = $request->input('account_code');
         
@@ -140,7 +140,7 @@ class GeneralLedgerController extends Controller
      */
     public function entries(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('general_ledger', 'view');
+
 
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 50)));
@@ -210,7 +210,7 @@ class GeneralLedgerController extends Controller
      */
     public function accountActivity(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('general_ledger', 'view');
+
 
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', now()->format('Y-m-d'));
@@ -264,7 +264,7 @@ class GeneralLedgerController extends Controller
      */
     public function accountBalanceHistory(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('general_ledger', 'view');
+
 
         $accountCode = $request->input('account_code');
         

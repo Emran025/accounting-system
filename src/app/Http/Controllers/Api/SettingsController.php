@@ -15,7 +15,7 @@ class SettingsController extends Controller
 
     public function index(): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'view');
+
 
         $settings = Setting::all()
             ->pluck('setting_value', 'setting_key')
@@ -26,7 +26,7 @@ class SettingsController extends Controller
 
     public function getStoreSettings(): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'view');
+
         
         $keys = ['store_name', 'store_address', 'store_phone', 'store_email', 'tax_number', 'cr_number'];
         $settings = Setting::whereIn('setting_key', $keys)->pluck('setting_value', 'setting_key')->toArray();
@@ -41,7 +41,7 @@ class SettingsController extends Controller
 
     public function updateStoreSettings(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'edit');
+
         $settings = $request->all();
 
         foreach ($settings as $key => $value) {
@@ -53,7 +53,7 @@ class SettingsController extends Controller
 
     public function getInvoiceSettings(): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'view');
+
         
         $keys = ['show_logo', 'show_qr', 'zatca_enabled', 'footer_text', 'terms_text', 'invoice_size'];
         $settings = Setting::whereIn('setting_key', $keys)->pluck('setting_value', 'setting_key')->toArray();
@@ -72,7 +72,7 @@ class SettingsController extends Controller
 
     public function updateInvoiceSettings(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'edit');
+
         $settings = $request->all();
 
         foreach ($settings as $key => $value) {
@@ -84,7 +84,7 @@ class SettingsController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'edit');
+
 
         $settings = $request->all();
 

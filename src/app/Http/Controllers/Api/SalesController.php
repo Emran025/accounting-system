@@ -24,7 +24,7 @@ class SalesController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('sales', 'view');
+
 
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
@@ -57,7 +57,7 @@ class SalesController extends Controller
 
     public function store(StoreInvoiceRequest $request): JsonResponse
     {
-        PermissionService::requirePermission('sales', 'create');
+
 
         $validated = $request->validated();
         $validated['user_id'] = auth()->id() ?? session('user_id');
@@ -104,7 +104,7 @@ class SalesController extends Controller
         if (!$id) {
             return $this->errorResponse('Invoice ID is required', 400);
         }
-        PermissionService::requirePermission('sales', 'view');
+
 
         $invoice = Invoice::with(['items.product', 'user', 'customer', 'zatcaEinvoice'])
             ->withCount('items')
@@ -119,7 +119,7 @@ class SalesController extends Controller
 
     public function destroy(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('sales', 'delete');
+
 
         $id = $request->input('id');
         $invoice = Invoice::findOrFail($id);

@@ -24,7 +24,7 @@ class AccrualAccountingController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('accrual_accounting', 'view');
+
 
         $module = $request->query('module');
         $limit = $request->query('limit', 20);
@@ -48,7 +48,7 @@ class AccrualAccountingController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('accrual_accounting', 'create');
+
         $module = $request->query('module');
         
         $coaService = app(\App\Services\ChartOfAccountsMappingService::class);
@@ -146,7 +146,7 @@ class AccrualAccountingController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('accrual_accounting', 'edit');
+
         $module = $request->query('module');
         $id = $request->input('id');
 

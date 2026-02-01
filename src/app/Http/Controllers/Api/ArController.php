@@ -31,7 +31,7 @@ class ArController extends Controller
 
     public function customers(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ar_customers', 'view');
+
 
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
@@ -71,7 +71,7 @@ class ArController extends Controller
 
     public function storeCustomer(StoreArCustomerRequest $request): JsonResponse
     {
-        PermissionService::requirePermission('ar_customers', 'create');
+
 
         $validated = $request->validated();
 
@@ -99,7 +99,7 @@ class ArController extends Controller
 
     public function updateCustomer(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ar_customers', 'edit');
+
 
         $validated = $request->validate([
             'id' => 'required|exists:ar_customers,id',
@@ -136,7 +136,7 @@ class ArController extends Controller
 
     public function destroyCustomer(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ar_customers', 'delete');
+
 
         $id = $request->input('id');
         $customer = ArCustomer::findOrFail($id);
@@ -150,7 +150,7 @@ class ArController extends Controller
 
     public function ledger(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ar_customers', 'view');
+
 
         $customerId = $request->input('customer_id');
         if (!$customerId) {
@@ -202,7 +202,7 @@ class ArController extends Controller
 
     public function storeTransaction(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ar_customers', 'create');
+
 
         $validated = $request->validate([
             'customer_id' => 'required|exists:ar_customers,id',
@@ -281,7 +281,7 @@ class ArController extends Controller
 
     public function destroyTransaction(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ar_customers', 'delete');
+
 
         $id = $request->input('id');
         $transaction = ArTransaction::findOrFail($id);
@@ -321,7 +321,7 @@ class ArController extends Controller
 
     public function updateTransaction(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ar_customers', 'edit');
+
 
         $validated = $request->validate([
             'id' => 'required|exists:ar_transactions,id',

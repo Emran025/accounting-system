@@ -16,7 +16,7 @@ class RolesController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'view');
+
 
         $action = $request->query('action');
 
@@ -53,7 +53,7 @@ class RolesController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'create');
+
 
         $action = $request->query('action');
 
@@ -105,7 +105,7 @@ class RolesController extends Controller
 
     public function destroy($id): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'delete');
+
 
         $role = Role::findOrFail($id);
 

@@ -15,7 +15,7 @@ class AuditTrailController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('audit_trail', 'view');
+
 
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));

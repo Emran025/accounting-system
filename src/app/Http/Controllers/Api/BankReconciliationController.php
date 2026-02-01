@@ -22,7 +22,7 @@ class BankReconciliationController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('reconciliation', 'view');
+
 
         $action = $request->query('action');
         if ($action === 'calculate') {
@@ -44,7 +44,7 @@ class BankReconciliationController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('reconciliation', 'create');
+
 
         $validated = $request->validate([
             'reconciliation_date' => 'required|date',
@@ -63,7 +63,7 @@ class BankReconciliationController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('reconciliation', 'edit');
+
         $action = $request->query('action');
 
         if ($action === 'adjust') {

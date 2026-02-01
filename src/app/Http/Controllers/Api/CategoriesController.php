@@ -16,7 +16,7 @@ class CategoriesController extends Controller
 
     public function index(): JsonResponse
     {
-        PermissionService::requirePermission('products', 'view');
+
 
         $categories = Category::orderBy('name')->get();
 
@@ -25,7 +25,7 @@ class CategoriesController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('products', 'create');
+
 
         $validated = $request->validate([
             'name' => 'required|string|max:100|unique:categories',
@@ -43,7 +43,7 @@ class CategoriesController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('products', 'edit');
+
 
         $validated = $request->validate([
             'id' => 'required|exists:categories,id',
@@ -61,8 +61,6 @@ class CategoriesController extends Controller
 
     public function destroy(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('products', 'delete');
-
         $id = $request->input('id');
         $category = Category::findOrFail($id);
         $oldValues = $category->toArray();

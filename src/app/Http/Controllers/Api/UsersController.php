@@ -18,7 +18,7 @@ class UsersController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('users', 'view');
+
 
         $users = User::with(['roleRelation', 'manager', 'createdBy'])
             ->orderBy('id', 'desc')
@@ -44,7 +44,7 @@ class UsersController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('users', 'create');
+
 
         $validated = $request->validate([
             'username' => 'required|string|max:50|unique:users',
@@ -74,7 +74,7 @@ class UsersController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('users', 'edit');
+
 
         $validated = $request->validate([
             'id' => 'required|exists:users,id',
@@ -112,7 +112,7 @@ class UsersController extends Controller
 
     public function destroy(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('users', 'delete');
+
 
         $id = $request->input('id');
         $user = User::findOrFail($id);

@@ -33,7 +33,7 @@ class ApController extends Controller
      */
     public function suppliers(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ap_suppliers', 'view');
+
 
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
@@ -68,7 +68,7 @@ class ApController extends Controller
      */
     public function storeSupplier(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ap_suppliers', 'create');
+
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -107,7 +107,7 @@ class ApController extends Controller
      */
     public function updateSupplier(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ap_suppliers', 'edit');
+
 
         $validated = $request->validate([
             'id' => 'required|exists:ap_suppliers,id',
@@ -133,7 +133,7 @@ class ApController extends Controller
      */
     public function destroySupplier(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ap_suppliers', 'delete');
+
 
         $id = $request->input('id');
         $supplier = ApSupplier::findOrFail($id);
@@ -156,7 +156,7 @@ class ApController extends Controller
      */
     public function transactions(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ap_suppliers', 'view');
+
 
         $supplierId = $request->input('supplier_id');
         $page = max(1, (int)$request->input('page', 1));
@@ -188,7 +188,7 @@ class ApController extends Controller
      */
     public function storeTransaction(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ap_suppliers', 'create');
+
 
         $validated = $request->validate([
             'supplier_id' => 'required|exists:ap_suppliers,id',
@@ -285,7 +285,7 @@ class ApController extends Controller
      */
     public function recordPayment(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ap_suppliers', 'create');
+
 
         $validated = $request->validate([
             'supplier_id' => 'required|exists:ap_suppliers,id',
@@ -350,7 +350,7 @@ class ApController extends Controller
      */
     public function supplierLedger(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('ap_suppliers', 'view');
+
 
         $supplierId = $request->input('supplier_id');
         

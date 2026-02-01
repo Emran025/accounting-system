@@ -27,7 +27,7 @@ class SalesReturnController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('sales', 'view');
+
 
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
@@ -59,7 +59,7 @@ class SalesReturnController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('sales', 'create');
+
 
         $validated = $request->validate([
             'invoice_id' => 'required|exists:invoices,id',
@@ -99,7 +99,7 @@ class SalesReturnController extends Controller
      */
     public function show(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('sales', 'view');
+
 
         $id = $request->input('id');
         if (!$id) {

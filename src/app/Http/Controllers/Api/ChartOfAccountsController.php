@@ -26,7 +26,7 @@ class ChartOfAccountsController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('chart_of_accounts', 'view');
+
 
         $search = $request->input('search');
 
@@ -66,7 +66,7 @@ class ChartOfAccountsController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('chart_of_accounts', 'create');
+
 
         $validated = $request->validate([
             'code' => 'required|string|max:20|unique:chart_of_accounts,account_code',
@@ -96,7 +96,7 @@ class ChartOfAccountsController extends Controller
      */
     public function update(Request $request, $id): JsonResponse
     {
-        PermissionService::requirePermission('chart_of_accounts', 'edit');
+
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -127,7 +127,7 @@ class ChartOfAccountsController extends Controller
      */
     public function destroy(Request $request, $id): JsonResponse
     {
-        PermissionService::requirePermission('chart_of_accounts', 'delete');
+
 
         $account = ChartOfAccount::findOrFail($id);
 
@@ -153,7 +153,7 @@ class ChartOfAccountsController extends Controller
      */
     public function balances(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('chart_of_accounts', 'view');
+
 
         $asOfDate = $request->input('as_of_date');
         $accountType = $request->input('account_type');

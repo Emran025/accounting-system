@@ -14,7 +14,7 @@ class GovernmentFeesController extends Controller
 
     public function index(): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'view'); // Assuming this falls under settings permission
+
 
         $fees = GovernmentFee::with('account')
             ->orderBy('id', 'desc')
@@ -25,7 +25,7 @@ class GovernmentFeesController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'edit');
+
 
         $validated = $request->validate([
             'name' => 'required|string|max:100',
@@ -43,7 +43,7 @@ class GovernmentFeesController extends Controller
 
     public function show($id): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'view');
+
         
         $fee = GovernmentFee::with('account')->findOrFail($id);
         
@@ -52,7 +52,7 @@ class GovernmentFeesController extends Controller
 
     public function update(Request $request, $id): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'edit');
+
 
         $fee = GovernmentFee::findOrFail($id);
 
@@ -72,7 +72,7 @@ class GovernmentFeesController extends Controller
 
     public function destroy($id): JsonResponse
     {
-        PermissionService::requirePermission('settings', 'edit');
+
 
         $fee = GovernmentFee::findOrFail($id);
         

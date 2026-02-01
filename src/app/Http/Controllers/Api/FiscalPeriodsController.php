@@ -33,7 +33,7 @@ class FiscalPeriodsController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('fiscal_periods', 'view');
+
 
         $periods = FiscalPeriod::orderBy('start_date', 'desc')->get();
 
@@ -45,7 +45,7 @@ class FiscalPeriodsController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('fiscal_periods', 'create');
+
 
         $validated = $request->validate([
             'period_name' => 'required|string|max:100',
@@ -84,7 +84,7 @@ class FiscalPeriodsController extends Controller
      */
     public function close(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('fiscal_periods', 'edit');
+
 
         $validated = $request->validate([
             'id' => 'required|exists:fiscal_periods,id',
@@ -238,7 +238,7 @@ class FiscalPeriodsController extends Controller
      */
     public function lock(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('fiscal_periods', 'edit');
+
 
         $validated = $request->validate([
             'id' => 'required|exists:fiscal_periods,id',
@@ -264,7 +264,7 @@ class FiscalPeriodsController extends Controller
      */
     public function unlock(Request $request): JsonResponse
     {
-        PermissionService::requirePermission('fiscal_periods', 'edit');
+
 
         $validated = $request->validate([
             'id' => 'required|exists:fiscal_periods,id',
