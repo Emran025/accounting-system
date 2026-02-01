@@ -70,3 +70,5 @@ class PayrollComponentsController extends Controller
     }
 }
 
+
+

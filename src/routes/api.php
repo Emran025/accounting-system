@@ -46,13 +46,15 @@ use App\Http\Controllers\Api\DepartmentsController;
 |--------------------------------------------------------------------------
 */
 
-// Auth routes
-Route::post('/login', [AuthController::class, 'login'])->name('api.login');
+// Auth routes with stricter rate limiting
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:5,1') // 5 attempts per minute
+    ->name('api.login');
 Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
 Route::get('/check', [AuthController::class, 'check'])->name('api.check');
 
-// Protected routes
-Route::middleware(['api.auth'])->group(function () {
+// Protected routes with rate limiting
+Route::middleware(['api.auth', 'throttle:60,1'])->group(function () {
     // Products
     Route::get('/products', [ProductsController::class, 'index'])->name('api.products.index');
     Route::post('/products', [ProductsController::class, 'store'])->name('api.products.store');
@@ -70,8 +72,10 @@ Route::middleware(['api.auth'])->group(function () {
     Route::post('/sales/returns', [SalesReturnController::class, 'store'])->name('api.sales_returns.store');
     Route::get('/sales/returns/show', [SalesReturnController::class, 'show'])->name('api.sales_returns.show');
 
-    // ZATCA
-    Route::post('/invoices/{id}/zatca/submit', [ZATCAInvoiceController::class, 'submit'])->name('api.invoices.zatca.submit');
+    // ZATCA - Stricter rate limiting for external API calls
+    Route::post('/invoices/{id}/zatca/submit', [ZATCAInvoiceController::class, 'submit'])
+        ->middleware('throttle:10,1') // 10 submissions per minute
+        ->name('api.invoices.zatca.submit');
     Route::get('/invoices/{id}/zatca/status', [ZATCAInvoiceController::class, 'getStatus'])->name('api.invoices.zatca.status');
 
     // Purchases

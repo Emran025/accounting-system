@@ -17,3 +17,5 @@ interface SalaryCalculatorInterface
     public function calculate(Employee $employee, string $periodStart, string $periodEnd): array;
 }
 
+
+

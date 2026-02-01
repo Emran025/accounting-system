@@ -70,3 +70,5 @@ class AttendanceRecord extends Model
     }
 }
 
+
+
