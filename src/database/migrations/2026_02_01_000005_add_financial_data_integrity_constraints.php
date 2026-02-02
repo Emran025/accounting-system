@@ -20,9 +20,8 @@ return new class extends Migration
         // Add unique constraint on chart_of_accounts.account_code at database level
         // (Currently only enforced at application level)
         Schema::table('chart_of_accounts', function (Blueprint $table) {
-            // Check if unique index doesn't already exist
-            $indexes = DB::select("SHOW INDEXES FROM chart_of_accounts WHERE Key_name = 'chart_of_accounts_account_code_unique'");
-            if (empty($indexes)) {
+            // Check if unique index doesn't already exist using the helper
+            if (!$this->indexExists('chart_of_accounts', 'chart_of_accounts_account_code_unique')) {
                 $table->unique('account_code', 'chart_of_accounts_account_code_unique');
             }
         });
@@ -38,6 +37,11 @@ return new class extends Migration
         } elseif (DB::getDriverName() === 'pgsql') {
             // PostgreSQL supports CHECK constraints
             DB::statement('ALTER TABLE general_ledgers ADD CONSTRAINT chk_amount_positive CHECK (amount > 0)');
+        } elseif (DB::getDriverName() === 'sqlite') {
+            // SQLite supports CHECK constraints since 3.3.0
+            // Note: In SQLite, adding a CHECK constraint via ALTER TABLE is restricted.
+            // Usually requires table recreation or defined at table creation.
+            // We'll skip for now or use raw statement if it works on the specific fly.
         }
 
         // Add check constraint for non-negative quantities in inventory_costing
@@ -46,13 +50,6 @@ return new class extends Migration
         } elseif (DB::getDriverName() === 'pgsql') {
             DB::statement('ALTER TABLE inventory_costing ADD CONSTRAINT chk_quantity_positive CHECK (quantity >= 0)');
         }
-
-        // Add index on polymorphic reference columns for better query performance
-        Schema::table('general_ledgers', function (Blueprint $table) {
-            if (!$this->indexExists('general_ledgers', 'general_ledgers_reference_index')) {
-                $table->index(['reference_type', 'reference_id'], 'general_ledgers_reference_index');
-            }
-        });
     }
 
     /**
@@ -74,12 +71,16 @@ return new class extends Migration
 
         // Remove unique constraint
         Schema::table('chart_of_accounts', function (Blueprint $table) {
-            $table->dropUnique('chart_of_accounts_account_code_unique');
+            if ($this->indexExists('chart_of_accounts', 'chart_of_accounts_account_code_unique')) {
+                $table->dropUnique('chart_of_accounts_account_code_unique');
+            }
         });
 
         // Remove index
         Schema::table('general_ledgers', function (Blueprint $table) {
-            $table->dropIndex('general_ledgers_reference_index');
+            if ($this->indexExists('general_ledgers', 'general_ledgers_reference_index')) {
+                $table->dropIndex('general_ledgers_reference_index');
+            }
         });
     }
 
@@ -99,6 +100,14 @@ return new class extends Migration
                 [$table, $indexName]
             );
             return !empty($indexes);
+        } elseif ($driver === 'sqlite') {
+            $indexes = DB::select("PRAGMA index_list('{$table}')");
+            foreach ($indexes as $index) {
+                if ($index->name === $indexName) {
+                    return true;
+                }
+            }
+            return false;
         }
         
         return false;
