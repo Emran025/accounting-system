@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AccrualAccountingController;
 use App\Http\Controllers\Api\BankReconciliationController;
 use App\Http\Controllers\Api\RecurringTransactionsController;
 use App\Http\Controllers\Api\CurrencyController;
+use App\Http\Controllers\Api\CurrencyPolicyController;
 use App\Http\Controllers\Api\ExpensesController;
 use App\Http\Controllers\Api\AssetsController;
 use App\Http\Controllers\Api\RevenuesController;
@@ -64,6 +65,28 @@ Route::middleware('can:settings,edit')->post('/currencies', [CurrencyController:
 Route::middleware('can:settings,edit')->put('/currencies/{id}', [CurrencyController::class, 'update'])->name('api.currencies.update');
 Route::middleware('can:settings,delete')->delete('/currencies/{id}', [CurrencyController::class, 'destroy'])->name('api.currencies.destroy');
 Route::middleware('can:settings,edit')->post('/currencies/{id}/toggle', [CurrencyController::class, 'toggleActive'])->name('api.currencies.toggle');
+
+// Currency Policies (Multi-Currency Governance Framework)
+Route::prefix('currency-policies')->group(function () {
+    // Policy Management
+    Route::middleware('can:settings,view')->get('/', [CurrencyPolicyController::class, 'index'])->name('api.currency_policies.index');
+    Route::middleware('can:settings,view')->get('/active', [CurrencyPolicyController::class, 'getActivePolicy'])->name('api.currency_policies.active');
+    Route::middleware('can:settings,view')->get('/types', [CurrencyPolicyController::class, 'getPolicyTypes'])->name('api.currency_policies.types');
+    Route::middleware('can:settings,create')->post('/', [CurrencyPolicyController::class, 'store'])->name('api.currency_policies.store');
+    Route::middleware('can:settings,view')->get('/{id}', [CurrencyPolicyController::class, 'show'])->name('api.currency_policies.show');
+    Route::middleware('can:settings,edit')->put('/{id}', [CurrencyPolicyController::class, 'update'])->name('api.currency_policies.update');
+    Route::middleware('can:settings,edit')->post('/{id}/activate', [CurrencyPolicyController::class, 'activate'])->name('api.currency_policies.activate');
+    Route::middleware('can:settings,delete')->delete('/{id}', [CurrencyPolicyController::class, 'destroy'])->name('api.currency_policies.destroy');
+    
+    // Exchange Rates
+    Route::middleware('can:settings,view')->get('/exchange-rates/history', [CurrencyPolicyController::class, 'getExchangeRateHistory'])->name('api.currency_policies.rates.history');
+    Route::middleware('can:settings,view')->get('/exchange-rates/current', [CurrencyPolicyController::class, 'getExchangeRate'])->name('api.currency_policies.rates.current');
+    Route::middleware('can:settings,edit')->post('/exchange-rates', [CurrencyPolicyController::class, 'recordExchangeRate'])->name('api.currency_policies.rates.store');
+    
+    // Currency Operations
+    Route::middleware('can:settings,view')->post('/convert', [CurrencyPolicyController::class, 'convert'])->name('api.currency_policies.convert');
+    Route::middleware('can:settings,edit')->post('/revaluate', [CurrencyPolicyController::class, 'processRevaluation'])->name('api.currency_policies.revaluate');
+});
 
 // Expenses
 Route::middleware('can:expenses,view')->get('/expenses', [ExpensesController::class, 'index'])->name('api.expenses.index');
