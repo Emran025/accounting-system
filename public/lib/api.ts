@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 const getApiBase = () => {
   const envBase = process.env.NEXT_PUBLIC_API_BASE;
   if (!envBase || envBase === 'undefined' || envBase === 'null') {
-    return 'http://localhost:8000/api';
+    return 'http://127.0.0.1:8000/api';
   }
   return envBase;
 };
@@ -133,7 +133,7 @@ export function getSetting(key: string, defaultValue: any = null): any {
 export function formatCurrency(amount: number | string): string {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
   const symbol = getSetting('currency_symbol', 'ر.س');
-  
+
   return (
     new Intl.NumberFormat('ar-SA', {
       minimumFractionDigits: 2,
@@ -250,7 +250,7 @@ export function generateTLV(tags: Record<number, string>): string {
  */
 export function generateBarcode(text: string, padding = 20): string {
   if (typeof document === 'undefined') return '';
-  
+
   try {
     const input = String(text || '');
     const bytes = new TextEncoder().encode(input);
@@ -315,7 +315,7 @@ export function generateBarcode(text: string, padding = 20): string {
  */
 export async function generateQRCode(text: string): Promise<string> {
   if (typeof document === 'undefined') return '';
-  
+
   try {
     return await QRCode.toDataURL(text, {
       errorCorrectionLevel: 'M',

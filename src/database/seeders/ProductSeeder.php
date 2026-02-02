@@ -156,8 +156,25 @@ class ProductSeeder extends Seeder
             ],
         ];
 
-        foreach ($products as $product) {
-            Product::create($product);
+        $costingService = app(\App\Services\InventoryCostingService::class);
+
+        foreach ($products as $productData) {
+            $product = Product::create($productData);
+            
+            // Critical Fix: If seeded with stock, we must create a costing layer
+            // Otherwise SalesService will fail with 'Insufficient inventory'
+            if ($product->stock_quantity > 0) {
+                $costingService->recordPurchase(
+                    $product->id,
+                    0, // No Purchase ID for initial seed
+                    $product->stock_quantity,
+                    $product->weighted_average_cost ?? 0,
+                    $product->stock_quantity * ($product->weighted_average_cost ?? 0),
+                    'FIFO',
+                    'initial_seed',
+                    $product->id
+                );
+            }
         }
     }
 }

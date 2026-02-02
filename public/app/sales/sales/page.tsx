@@ -75,7 +75,7 @@ interface Invoice {
 export default function SalesPage() {
     const [user, setUser] = useState<User | null>(null);
     const [permissions, setPermissions] = useState<Permission[]>([]);
-    
+
     // Currency
     const [currencies, setCurrencies] = useState<Currency[]>([]);
     const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null);
@@ -88,7 +88,7 @@ export default function SalesPage() {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
     // Customer
-    const [selectedCustomer, setSelectedCustomer] = useState<{id: number, name: string} | null>(null);
+    const [selectedCustomer, setSelectedCustomer] = useState<{ id: number, name: string } | null>(null);
 
     // Invoice form
     const [quantity, setQuantity] = useState("1");
@@ -117,7 +117,7 @@ export default function SalesPage() {
     const [confirmDialog, setConfirmDialog] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
     const [deleteInvoiceId, setDeleteInvoiceId] = useState<number | null>(null);
-    
+
     // Returns
     const [returnDialog, setReturnDialog] = useState(false);
     const [selectedReturnItems, setSelectedReturnItems] = useState<SelectedItem[]>([]);
@@ -131,10 +131,10 @@ export default function SalesPage() {
         // basePrice is the Taxable amount (e.g. Price before fees/VAT)
         const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
         const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
-        
+
         // Fee amount based on base price
         const variableFeeAmount = basePrice * feesPercentage;
-        
+
         // VAT is calculated on base price (Taxable Base)
         const vatAmount = basePrice * vatRate;
 
@@ -146,10 +146,10 @@ export default function SalesPage() {
         // Reverse calculation to extract Base Price from Final Price
         const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
         const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
-        
+
         // Formula: Final = Base * (1 + fee% + vat%) + Fixed
         // Base = (Final - Fixed) / (1 + fee% + vat%)
-        
+
         const divisor = 1 + feesPercentage + vatRate;
         const base = (finalPrice - fixedFees) / divisor;
         return base > 0 ? base : 0;
@@ -161,7 +161,7 @@ export default function SalesPage() {
     }, 0);
 
     const totalVAT = baseItemsTotal * vatRate;
-    
+
     const totalFees = invoiceItems.reduce((sum, item) => {
         const base = calculateBasePrice(item.unit_price);
         const feesPercentage = governmentFees.reduce((s, f) => s + (Number(f.percentage) || 0), 0) / 100;
@@ -233,7 +233,7 @@ export default function SalesPage() {
     useEffect(() => {
         const init = async () => {
             const authenticated = await checkAuth();
-            if (!authenticated) return;
+            if (!authenticated || !authenticated.isAuthenticated) return;
 
             const storedUser = getStoredUser();
             const storedPermissions = getStoredPermissions();
@@ -257,10 +257,10 @@ export default function SalesPage() {
             try {
                 const settingsRes = await fetchAPI("/api/settings");
                 if (settingsRes.success && settingsRes.data) {
-                     const vatSetting = (settingsRes.data as any[]).find((s: any) => s.setting_key === 'vat_rate');
-                     if (vatSetting) {
-                         setVatRate(parseFloat(vatSetting.setting_value) / 100);
-                     }
+                    const vatSetting = (settingsRes.data as any[]).find((s: any) => s.setting_key === 'vat_rate');
+                    if (vatSetting) {
+                        setVatRate(parseFloat(vatSetting.setting_value) / 100);
+                    }
                 }
             } catch (e) { console.error("Failed to load VAT rate", e); }
 
@@ -307,7 +307,7 @@ export default function SalesPage() {
             // Price is set in handleProductSelect or maintained if editing
             // setUnitPrice(String(selectedProduct.unit_price)); // Removed to prevent overwriting calculation
             if (quantity === "1" && !unitPrice) {
-                 // Fallback if needed
+                // Fallback if needed
             }
 
             if (availableStock <= 0) {
@@ -336,16 +336,16 @@ export default function SalesPage() {
         }
         const product = option.original as Product;
         setSelectedProduct(product);
-        
+
         // Calculate initial display price: Base Price + Tax + Fees
-    // Base Price is the starting price for calculation (Cost + Margin)
-    const cost = Number(product.weighted_average_cost) || Number(product.unit_price) || 0;
-    const margin = Number(product.minimum_profit_margin) || 0;
-    const basePrice = cost + margin;
-        
+        // Base Price is the starting price for calculation (Cost + Margin)
+        const cost = Number(product.weighted_average_cost) || Number(product.unit_price) || 0;
+        const margin = Number(product.minimum_profit_margin) || 0;
+        const basePrice = cost + margin;
+
         // Set the display price (Final Price)
         const displayPrice = calculateSellingPrice(basePrice);
-        
+
         // Store display price in the input for user to see/edit
         setUnitPrice(displayPrice.toFixed(2));
     };
@@ -474,7 +474,7 @@ export default function SalesPage() {
                     subtotal: Number((basePrice * item.quantity).toFixed(2)) // Recalculate subtotal based on base logic if needed by backend, though backend usually ignores subtotal
                 };
             });
-            
+
             // Recalculate total discount if it's percentage based, applied to the new subtotal?
             // Actually, calculatedDiscount() depends on itemsTotal (sum of subtotals).
             // If we change items to Base Price, the itemsTotal decreases.
@@ -500,7 +500,7 @@ export default function SalesPage() {
                         if (zatcaRes.success) {
                             console.log("ZATCA Submitted", zatcaRes);
                         } else if (zatcaRes.status === 'skipped') {
-                             // ZATCA disabled or not applicable
+                            // ZATCA disabled or not applicable
                         } else {
                             console.warn("ZATCA Submission Failed", zatcaRes);
                             showToast("تحذير: لم يتم إرسال الفاتورة لهيئة الزكاة", "warning");
@@ -619,48 +619,48 @@ export default function SalesPage() {
             showToast("يرجى تحديد عناصر للإرجاع أولاً", "warning");
             return;
         }
-        
+
         // Fetch missing invoice details for calculation
         const uniqueInvoiceIds = Array.from(new Set(selectedReturnItems.map(i => i.invoiceId)));
         const missingIds = uniqueInvoiceIds.filter(id => !invoicesMap[id]);
-        
+
         if (missingIds.length > 0) {
-          setIsLoadingInvoices(true);
-          try {
-            const newMap = { ...invoicesMap };
-            await Promise.all(missingIds.map(async (id) => {
-              const res = await fetchAPI(`invoice_details?id=${id}`);
-              if (res.success && res.data) {
-                newMap[id] = res.data as SelectableInvoice;
-              }
-            }));
-            setInvoicesMap(newMap);
-          } catch (error) {
-            console.error("Failed to load invoice details", error);
-            showToast("فشل تحميل بيانات الفواتير", "error");
-          } finally {
-            setIsLoadingInvoices(false);
-          }
+            setIsLoadingInvoices(true);
+            try {
+                const newMap = { ...invoicesMap };
+                await Promise.all(missingIds.map(async (id) => {
+                    const res = await fetchAPI(`invoice_details?id=${id}`);
+                    if (res.success && res.data) {
+                        newMap[id] = res.data as SelectableInvoice;
+                    }
+                }));
+                setInvoicesMap(newMap);
+            } catch (error) {
+                console.error("Failed to load invoice details", error);
+                showToast("فشل تحميل بيانات الفواتير", "error");
+            } finally {
+                setIsLoadingInvoices(false);
+            }
         }
-        
+
         setReturnDialog(true);
     };
 
     const handleConfirmReturn = async (data: ReturnData | ReturnData[]) => {
         const dataArray = Array.isArray(data) ? data : [data];
-        
+
         try {
             for (const returnData of dataArray) {
                 const response = await fetchAPI("sales/returns", {
                     method: "POST",
                     body: JSON.stringify(returnData),
                 });
-                
+
                 if (!response.success) {
                     throw new Error(response.message || "فشل تسجيل المرتجع");
                 }
             }
-            
+
             showToast("تم تسجيل المرتجع بنجاح", "success");
         } catch (error: any) {
             showToast(error.message || "خطأ في تسجيل المرتجع", "error");
@@ -796,8 +796,8 @@ export default function SalesPage() {
                                     onChange={handleProductSelect}
                                     placeholder="ابحث عن منتج..."
                                     required
-                                    filterOption={(opt, term) => 
-                                        opt.label.toLowerCase().includes(term.toLowerCase()) || 
+                                    filterOption={(opt, term) =>
+                                        opt.label.toLowerCase().includes(term.toLowerCase()) ||
                                         (opt.original?.barcode && opt.original.barcode.includes(term))
                                     }
                                 />
@@ -897,7 +897,7 @@ export default function SalesPage() {
                                         placeholder="0.00"
                                     />
                                 </div>
-                                
+
                                 <SegmentedToggle
                                     label="نوع التخفيض"
                                     value={discountType}
@@ -943,10 +943,10 @@ export default function SalesPage() {
                                     </div>
                                 );
                             })}
-                            
+
                             {totalVAT > 0 && (
                                 <div className="summary-stat">
-                                    <span className="stat-label">ضريبة القيمة المضافة ({ (vatRate * 100).toFixed(0) }%)</span>
+                                    <span className="stat-label">ضريبة القيمة المضافة ({(vatRate * 100).toFixed(0)}%)</span>
                                     <span className="stat-value">{formatCurrency(totalVAT)}</span>
                                 </div>
                             )}
@@ -957,7 +957,7 @@ export default function SalesPage() {
                                     {formatCurrency(finalTotal)}
                                 </span>
                             </div>
-                            
+
                             <button
                                 type="button"
                                 className="btn btn-primary btn-add"
@@ -1004,7 +1004,7 @@ export default function SalesPage() {
             </div>
 
             {/* Sales Return Dialog */}
-            <SalesReturnDialog 
+            <SalesReturnDialog
                 isOpen={returnDialog}
                 onClose={() => setReturnDialog(false)}
                 selectedItems={selectedReturnItems}
@@ -1072,32 +1072,32 @@ export default function SalesPage() {
                             className="sales-summary-bar"
                             style={{ marginTop: "2rem", background: "var(--grad-primary)", color: "white" }}
                         >
+                            <div className="summary-stat">
+                                <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>عدد الأصناف</span>
+                                <span className="stat-value" style={{ color: "white", fontSize: "1.2rem" }}>
+                                    {selectedInvoice.item_count || 0}
+                                </span>
+                            </div>
+                            <div className="summary-stat">
+                                <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>المجموع الفرعي</span>
+                                <span className="stat-value" style={{ color: "white", fontSize: "1.2rem" }}>
+                                    {formatCurrency(selectedInvoice.subtotal || 0)}
+                                </span>
+                            </div>
+                            {selectedInvoice.discount_amount && selectedInvoice.discount_amount > 0 && (
                                 <div className="summary-stat">
-                                    <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>عدد الأصناف</span>
-                                    <span className="stat-value" style={{ color: "white", fontSize: "1.2rem" }}>
-                                        {selectedInvoice.item_count || 0}
+                                    <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>الخصم</span>
+                                    <span className="stat-value" style={{ color: "#ffccd5", fontSize: "1.2rem" }}>
+                                        -{formatCurrency(selectedInvoice.discount_amount)}
                                     </span>
                                 </div>
-                                <div className="summary-stat">
-                                    <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>المجموع الفرعي</span>
-                                    <span className="stat-value" style={{ color: "white", fontSize: "1.2rem" }}>
-                                        {formatCurrency(selectedInvoice.subtotal || 0)}
-                                    </span>
-                                </div>
-                                {selectedInvoice.discount_amount && selectedInvoice.discount_amount > 0 && (
-                                    <div className="summary-stat">
-                                        <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>الخصم</span>
-                                        <span className="stat-value" style={{ color: "#ffccd5", fontSize: "1.2rem" }}>
-                                            -{formatCurrency(selectedInvoice.discount_amount)}
-                                        </span>
-                                    </div>
-                                )}
-                                <div className="summary-stat">
-                                    <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>الإجمالي</span>
-                                    <span className="stat-value highlight" style={{ color: "white" }}>
-                                        {formatCurrency(selectedInvoice.total_amount)}
-                                    </span>
-                                </div>
+                            )}
+                            <div className="summary-stat">
+                                <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>الإجمالي</span>
+                                <span className="stat-value highlight" style={{ color: "white" }}>
+                                    {formatCurrency(selectedInvoice.total_amount)}
+                                </span>
+                            </div>
                             <button
                                 type="button"
                                 className="btn"

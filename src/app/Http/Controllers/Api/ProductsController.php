@@ -12,9 +12,19 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Api\BaseApiController;
 
+use App\Services\InventoryCostingService;
+use Illuminate\Support\Facades\DB;
+
 class ProductsController extends Controller
 {
     use BaseApiController;
+
+    private InventoryCostingService $costingService;
+
+    public function __construct(InventoryCostingService $costingService)
+    {
+        $this->costingService = $costingService;
+    }
     public function index(Request $request): JsonResponse
     {
 
@@ -52,20 +62,34 @@ class ProductsController extends Controller
 
     public function store(StoreProductRequest $request): JsonResponse
     {
-
-
         $validated = $request->validated();
-
         $validated['created_by'] = auth()->id() ?? session('user_id');
 
-        $product = Product::create($validated);
+        return DB::transaction(function () use ($validated) {
+            $product = Product::create($validated);
 
-        TelescopeService::logOperation('CREATE', 'products', $product->id, null, $validated);
+            // CRITICAL FIX: If product is created with initial stock, we MUST create a costing layer
+            // Otherwise, SalesService will fail due to missing inventory layers.
+            if ($product->stock_quantity > 0) {
+                $this->costingService->recordPurchase(
+                    $product->id,
+                    0, // Reference ID 0 for initialization
+                    $product->stock_quantity,
+                    0, // Cost is unknown at this point unless weighted_average_cost is provided
+                    0,
+                    'FIFO',
+                    'initial_stock',
+                    $product->id
+                );
+            }
 
-        return response()->json([
-            'success' => true,
-            'id' => $product->id,
-        ]);
+            TelescopeService::logOperation('CREATE', 'products', $product->id, null, $validated);
+
+            return response()->json([
+                'success' => true,
+                'id' => $product->id,
+            ]);
+        });
     }
 
     public function update(UpdateProductRequest $request): JsonResponse

@@ -43,7 +43,6 @@ class InventoryCostingService
             'costing_method' => $method,
             'transaction_date' => now(),
             'created_at' => now(),
-            'updated_at' => now(),
         ]);
     }
 

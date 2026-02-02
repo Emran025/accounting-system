@@ -11,6 +11,8 @@ use App\Http\Requests\StoreInvoiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Exceptions\BusinessLogicException ;
+use App\Http\Resources\InvoiceResource ;
 
 class SalesController extends Controller
 {
@@ -48,7 +50,7 @@ class SalesController extends Controller
             ->get();
 
         return $this->paginatedResponse(
-            \App\Http\Resources\InvoiceResource::collection($invoices), 
+            InvoiceResource::collection($invoices), 
             $total, 
             $page, 
             $perPage
@@ -67,6 +69,9 @@ class SalesController extends Controller
             TelescopeService::logOperation('CREATE', 'invoices', $invoiceId, null, $validated);
 
             return $this->successResponse(['id' => $invoiceId], 'Invoice created successfully');
+        } catch (BusinessLogicException $e) {
+            // Business logic errors should return their own message and code (usually 400)
+            return $this->errorResponse($e->getMessage(), $e->getCode());
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Let Laravel handle validation exceptions (422)
             throw $e;
@@ -80,7 +85,7 @@ class SalesController extends Controller
             ]);
             
             // If it's a known business rule violation (contains specific keywords), return 400
-            $businessRuleKeywords = ['price violation', 'insufficient stock', 'required', 'mismatch'];
+            $businessRuleKeywords = ['price violation', 'insufficient stock', 'inventory', 'required', 'mismatch'];
             $isBusinessRule = false;
             foreach ($businessRuleKeywords as $keyword) {
                 if (stripos($e->getMessage(), $keyword) !== false) {
@@ -114,7 +119,7 @@ class SalesController extends Controller
         // Prevents users from accessing other users' invoices via ID enumeration
         $this->authorize('view', $invoice);
 
-        return $this->successResponse(new \App\Http\Resources\InvoiceResource($invoice));
+        return $this->successResponse(new InvoiceResource($invoice));
     }
 
     public function destroy(Request $request): JsonResponse
