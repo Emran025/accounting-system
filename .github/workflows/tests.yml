@@ -10,10 +10,6 @@ jobs:
   laravel-tests:
     runs-on: ubuntu-latest
 
-    services:
-      # If you needed a real DB service, you'd define it here.
-      # Since we use SQLite in-memory, we don't need a separate service container.
-
     steps:
       - uses: actions/checkout@v3
 
