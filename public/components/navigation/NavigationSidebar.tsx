@@ -104,8 +104,7 @@ export function NavigationSidebar({
 
       {/* Sidebar */}
       <aside className={`sidebar ${isCollapsed ? "collapsed" : ""} ${isMobileOpen ? "mobile-visible" : ""}`}>
-        <FullLogo />
-
+        <FullLogo isCollapsed={isCollapsed} />
         <nav className="sidebar-nav">
           {groups.map((group) => (
             <button

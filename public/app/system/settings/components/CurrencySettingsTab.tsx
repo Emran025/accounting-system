@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
 import { showToast, Dialog, Table, Column } from "@/components/ui";
+import { ConfirmDialog } from "@/components/ui/Dialog";
+import { Alert } from "@/components/ui/Alert";
 import { Currency, CurrencyDenomination, CurrencyPolicy, PolicyStatus } from "../types";
 import { getIcon } from "@/lib/icons";
 import { Switch } from "@/components/ui/switch";
@@ -10,13 +12,220 @@ import { TextInput } from "@/components/ui/TextInput";
 import { Input } from "@/components/ui/Input";
 
 export function CurrencySettingsTab() {
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCurrency, setEditingCurrency] = useState<Currency | null>(null);
+
+  // Form states
+  const [formData, setFormData] = useState<Partial<Currency>>({
+    code: "",
+    name: "",
+    symbol: "",
+    exchange_rate: 1,
+    is_active: true,
+    denominations: []
+  });
+
+  const loadCurrencies = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetchAPI("/api/currencies");
+      if (res.success) {
+        setCurrencies(res.data as Currency[]);
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("خطأ في تحميل العملات", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCurrencies();
+  }, [loadCurrencies]);
+
+  const handleSave = async () => {
+    try {
+      const url = editingCurrency
+        ? `/api/currencies/${editingCurrency.id}`
+        : "/api/currencies";
+
+      const method = editingCurrency ? "PUT" : "POST";
+
+      const res = await fetchAPI(url, {
+        method,
+        body: JSON.stringify(formData),
+      });
+
+      if (res.success) {
+        showToast(editingCurrency ? "تم تحديث العملة" : "تم إضافة العملة", "success");
+        setIsModalOpen(false);
+        loadCurrencies();
+      } else {
+        showToast(res.message || "حدث خطأ", "error");
+      }
+    } catch (e) {
+      showToast("خطأ في الحفظ", "error");
+    }
+  };
+
+  const handleEdit = (curr: Currency) => {
+    setEditingCurrency(curr);
+    setFormData({
+      code: curr.code,
+      name: curr.name,
+      symbol: curr.symbol,
+      exchange_rate: curr.exchange_rate,
+      is_active: curr.is_active,
+      denominations: curr.denominations || []
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: number) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "تأكيد الحذف",
+      message: "هل أنت متأكد من حذف هذه العملة؟",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          const res = await fetchAPI(`/api/currencies/${id}`, { method: "DELETE" });
+          if (res.success) {
+            showToast("تم الحذف بنجاح", "success");
+            loadCurrencies();
+          } else {
+            showToast(res.message || "فشل الحذف", "error");
+          }
+        } catch {
+          showToast("خطأ في الحذف", "error");
+        }
+      }
+    });
+  };
+
+  const handleToggleActive = async (curr: Currency) => {
+    try {
+      const res = await fetchAPI(`/api/currencies/${curr.id}/toggle`, { method: "POST" });
+      if (res.success) {
+        loadCurrencies();
+        showToast("تم تحديث الحالة", "success");
+      } else {
+        showToast(res.message || "فشل التحديث", "error");
+      }
+    } catch {
+      showToast("خطأ في التحديث", "error");
+    }
+  }
+
+  // Banknotes helper in form
+  const addDenomination = () => {
+    const currentDenoms = formData.denominations || [];
+    setFormData({ ...formData, denominations: [...currentDenoms, { value: 0, label: "" }] });
+  };
+
+  const removeDenomination = (index: number) => {
+    const currentDenoms = [...(formData.denominations || [])];
+    currentDenoms.splice(index, 1);
+    setFormData({ ...formData, denominations: currentDenoms });
+  };
+
+  const updateDenomination = (index: number, field: keyof CurrencyDenomination, value: any) => {
+    const currentDenoms = [...(formData.denominations || [])];
+    currentDenoms[index] = { ...currentDenoms[index], [field]: value };
+    setFormData({ ...formData, denominations: currentDenoms });
+  };
+
+  const columns: Column<Currency>[] = [
+    {
+      key: "name",
+      header: "العملة",
+      render: (curr) => (
+        <>
+          {curr.name} <span className="text-muted">({curr.code})</span>
+          {curr.is_primary && <span className="badge badge-success-light mr-2">الرئيسية</span>}
+        </>
+      )
+    },
+    { key: "symbol", header: "الرمز" },
+    {
+      key: "exchange_rate",
+      header: "سعر الصرف",
+      render: (curr) => Number(curr.exchange_rate).toFixed(4)
+    },
+    {
+      key: "is_active",
+      header: "الحالة",
+      render: (curr) => (
+        <Switch
+          checked={curr.is_active}
+          onChange={() => handleToggleActive(curr)}
+          disabled={curr.is_primary}
+        />
+      )
+    },
+    {
+      key: "actions",
+      header: "إجراءات",
+      render: (curr) => (
+        <div className="action-buttons">
+          <button className="icon-btn edit" onClick={() => handleEdit(curr)} title="تعديل">
+            {getIcon("edit")}
+          </button>
+          {!curr.is_primary && (
+            <button className="icon-btn delete" onClick={() => handleDelete(curr.id)} title="حذف">
+              {getIcon("trash")}
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  const denominationColumns: Column<CurrencyDenomination>[] = [
+    {
+      key: "value",
+      header: "القيمة",
+      render: (denom, idx) => (
+        <Input
+          type="number"
+          className="form-control form-control-sm"
+          value={denom.value}
+          onChange={e => updateDenomination(idx, 'value', parseFloat(e.target.value))}
+        />
+      )
+    },
+    {
+      key: "label",
+      header: "المسمى (اختياري)",
+      render: (denom, idx) => (
+        <Input
+          type="text"
+          className="form-control form-control-sm"
+          value={denom.label}
+          onChange={e => updateDenomination(idx, 'label', e.target.value)}
+          placeholder={`${denom.value} ${formData.name || ''}`}
+        />
+      )
+    },
+    {
+      key: "actions",
+      header: "",
+      render: (_, idx) => (
+        <button className="btn-icon text-danger" onClick={() => removeDenomination(idx)}>
+          {getIcon("trash")}
+        </button>
+      )
+    }
+  ];
+
   const [activeSubTab, setActiveSubTab] = useState("list");
 
   // --- Currency List State ---
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [loadingCurrencies, setLoadingCurrencies] = useState(true);
   const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
-  const [editingCurrency, setEditingCurrency] = useState<Currency | null>(null);
   const [currencyForm, setCurrencyForm] = useState<Partial<Currency>>({
     code: "",
     name: "",
@@ -33,6 +242,21 @@ export function CurrencySettingsTab() {
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [selectedPolicyId, setSelectedPolicyId] = useState<number | null>(null);
 
+  // --- Confirmation Dialog State ---
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    variant?: "primary" | "danger";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => { },
+    variant: "primary"
+  });
+
   // --- Initial Load ---
   const loadData = useCallback(async () => {
     setLoadingCurrencies(true);
@@ -46,7 +270,12 @@ export function CurrencySettingsTab() {
 
       if (currRes.success) setCurrencies(currRes.data as Currency[]);
       if (statusRes.success) setPolicyStatus(statusRes.data as PolicyStatus);
-      if (policiesRes.success) setPolicies(policiesRes.data as CurrencyPolicy[]);
+      if (policiesRes.success) {
+        const pols = policiesRes.data as CurrencyPolicy[];
+        setPolicies(pols);
+        const active = pols.find(p => p.is_active);
+        if (active) setSelectedPolicyId(active.id);
+      }
 
     } catch (e) {
       console.error(e);
@@ -104,20 +333,27 @@ export function CurrencySettingsTab() {
     setIsCurrencyModalOpen(true);
   };
 
-  const handleDeleteCurrency = async (id: number) => {
-    if (!confirm("هل أنت متأكد من حذف هذه العملة؟")) return;
-    try {
-      const res = await fetchAPI(`/api/currencies/${id}`, { method: "DELETE" });
-      if (res.success) {
-        showToast("تم الحذف بنجاح", "success");
-        const currRes = await fetchAPI("/api/currencies");
-        if (currRes.success) setCurrencies(currRes.data as Currency[]);
-      } else {
-        showToast(res.message || "فشل الحذف", "error");
+  const handleDeleteCurrency = (id: number) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "تأكيد الحذف",
+      message: "هل أنت متأكد من حذف هذه العملة؟",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          const res = await fetchAPI(`/api/currencies/${id}`, { method: "DELETE" });
+          if (res.success) {
+            showToast("تم الحذف بنجاح", "success");
+            const currRes = await fetchAPI("/api/currencies");
+            if (currRes.success) setCurrencies(currRes.data as Currency[]);
+          } else {
+            showToast(res.message || "فشل الحذف", "error");
+          }
+        } catch {
+          showToast("خطأ في الحذف", "error");
+        }
       }
-    } catch {
-      showToast("خطأ في الحذف", "error");
-    }
+    });
   };
 
   const handleToggleActiveCurrency = async (curr: Currency) => {
@@ -135,303 +371,302 @@ export function CurrencySettingsTab() {
     }
   }
 
-  // Denominations Helpers
-  const addDenomination = () => {
-    const currentDenoms = currencyForm.denominations || [];
-    setCurrencyForm({ ...currencyForm, denominations: [...currentDenoms, { value: 0, label: "" }] });
-  };
-
-  const removeDenomination = (index: number) => {
-    const currentDenoms = [...(currencyForm.denominations || [])];
-    currentDenoms.splice(index, 1);
-    setCurrencyForm({ ...currencyForm, denominations: currentDenoms });
-  };
-
-  const updateDenomination = (index: number, field: keyof CurrencyDenomination, value: any) => {
-    const currentDenoms = [...(currencyForm.denominations || [])];
-    currentDenoms[index] = { ...currentDenoms[index], [field]: value };
-    setCurrencyForm({ ...currencyForm, denominations: currentDenoms });
-  };
-
-
   // --- Policy Handlers ---
 
   const handleActivatePolicy = async () => {
     if (!selectedPolicyId) return;
 
-    if (!confirm("هل أنت متأكد من تغيير سياسة العملات؟ قد يؤثر هذا على كيفية معالجة المعاملات الجديدة.")) return;
-
-    try {
-      const res = await fetchAPI(`/api/currency-policies/${selectedPolicyId}/activate`, { method: "POST" });
-      if (res.success) {
-        showToast("تم تفعيل السياسة بنجاح", "success");
-        setIsPolicyModalOpen(false);
-        loadData(); // Reload all to refresh status
-      } else {
-        showToast(res.message || "فشل تفعيل السياسة", "error");
+    setConfirmDialog({
+      isOpen: true,
+      title: "تأكيد تغيير السياسة",
+      message: "هل أنت متأكد من تغيير سياسة العملات؟ قد يؤثر هذا على كيفية معالجة المعاملات الجديدة.",
+      variant: "primary",
+      onConfirm: async () => {
+        try {
+          const res = await fetchAPI(`/api/currency-policies/${selectedPolicyId}/activate`, { method: "POST" });
+          if (res.success) {
+            showToast("تم تفعيل السياسة بنجاح", "success");
+            loadData(); // Reload all to refresh status
+          } else {
+            showToast(res.message || "فشل تفعيل السياسة", "error");
+          }
+        } catch (e) {
+          showToast("خطأ في الاتصال", "error");
+        }
       }
-    } catch (e) {
-      showToast("خطأ في الاتصال", "error");
-    }
+    });
   };
 
 
   // --- Columns Definitions ---
 
-  const currencyColumns: Column<Currency>[] = [
-    {
-      key: "name",
-      header: "العملة",
-      render: (curr) => (
-        <div className="flex items-center gap-2">
-          <span className="font-bold">{curr.name}</span>
-          <span className="text-gray-500 text-sm">({curr.code})</span>
-          {curr.is_primary && <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-bold">الرئيسية</span>}
-        </div>
-      )
-    },
-    { key: "symbol", header: "الرمز" },
-    {
-      key: "exchange_rate",
-      header: "سعر الصرف",
-      render: (curr) => (
-        <div className="font-mono text-sm" dir="ltr">
-          {Number(curr.exchange_rate).toFixed(4)}
-        </div>
-      )
-    },
-    {
-      key: "is_active",
-      header: "الحالة",
-      render: (curr) => (
-        <Switch
-          checked={curr.is_active}
-          onChange={() => handleToggleActiveCurrency(curr)}
-          disabled={curr.is_primary}
-        />
-      )
-    },
-    {
-      key: "actions",
-      header: "",
-      render: (curr) => (
-        <div className="action-buttons justify-end">
-          <button className="icon-btn edit" onClick={() => handleEditCurrency(curr)} title="تعديل">
-            {getIcon("edit")}
-          </button>
-          {!curr.is_primary && (
-            <button className="icon-btn delete text-red-500 hover:bg-red-50 hover:border-red-200" onClick={() => handleDeleteCurrency(curr.id)} title="حذف">
-              {getIcon("trash")}
-            </button>
-          )}
-        </div>
-      )
-    }
-  ];
-
-  const denominationColumns: Column<CurrencyDenomination>[] = [
-    {
-      key: "value",
-      header: "القيمة",
-      render: (denom, idx) => (
-        <Input
-          type="number"
-          className="form-control form-control-sm"
-          value={denom.value}
-          onChange={e => updateDenomination(idx, 'value', parseFloat(e.target.value))}
-        />
-      )
-    },
-    {
-      key: "label",
-      header: "المسمى (اختياري)",
-      render: (denom, idx) => (
-        <Input
-          type="text"
-          className="form-control form-control-sm"
-          value={denom.label}
-          onChange={e => updateDenomination(idx, 'label', e.target.value)}
-          placeholder={`${denom.value} ${currencyForm.name || ''}`}
-        />
-      )
-    },
-    {
-      key: "actions",
-      header: "",
-      render: (_, idx) => (
-        <button className="icon-btn text-red-500 hover:bg-red-50" onClick={() => removeDenomination(idx)}>
-          {getIcon("trash")}
-        </button>
-      )
-    }
-  ];
-
 
   // --- Render ---
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="settings-wrapper">
       {/* Inner Tab Navigation */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
-        <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-          <i className="fas fa-coins text-blue-500"></i>
-          إدارة العملات والسياسات المالية
-        </h2>
-        <div className="flex gap-2">
+      <div className="settings-tabs" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <i className="fas fa-coins" style={{ color: 'var(--primary-color)', fontSize: '1.25rem' }}></i>
+          <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)' }}>إدارة العملات والسياسات المالية</span>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             onClick={() => setActiveSubTab("list")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeSubTab === "list"
-              ? "bg-blue-50 text-blue-600 border border-blue-200"
-              : "text-gray-500 hover:bg-gray-50"
-              }`}
+            className={`tab-btn ${activeSubTab === "list" ? "active" : ""}`}
           >
+            <i className="fas fa-list"></i>
             قائمة العملات
           </button>
           <button
             onClick={() => setActiveSubTab("policy")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeSubTab === "policy"
-              ? "bg-blue-50 text-blue-600 border border-blue-200"
-              : "text-gray-500 hover:bg-gray-50"
-              }`}
+            className={`tab-btn ${activeSubTab === "policy" ? "active" : ""}`}
           >
+            <i className="fas fa-shield-alt"></i>
             سياسة الحوكمة
           </button>
         </div>
       </div>
 
       {activeSubTab === "list" && (
-        <div className="sales-card animate-fade">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="mb-1">قائمة العملات المعرفة</h3>
-              <p className="text-gray-500 text-sm">إدارة العملات الأجنبية المتاحة في النظام وأسعار الصرف.</p>
-            </div>
-
+        <div className="sales-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+            <h3>إعدادات العملات</h3>
             <button className="btn btn-primary" onClick={() => {
               setEditingCurrency(null);
-              setCurrencyForm({ code: "", name: "", symbol: "", exchange_rate: 1, is_active: true, denominations: [] });
-              setIsCurrencyModalOpen(true);
+              setFormData({ code: "", name: "", symbol: "", exchange_rate: 1, is_active: true, denominations: [] });
+              setIsModalOpen(true);
             }}>
-              <i className="fas fa-plus ml-2"></i> إضافة عملة
+              <i className="fas fa-plus"></i> إضافة عملة
             </button>
           </div>
 
           <Table
             data={currencies}
-            columns={currencyColumns}
+            columns={columns}
             keyExtractor={(item) => item.id}
-            isLoading={loadingCurrencies}
+            isLoading={loading}
           />
+
+          <Dialog
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            title={editingCurrency ? "تعديل العملة" : "إضافة عملة جديدة"}
+            maxWidth="800px"
+            footer={
+              <>
+                <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>إلغاء</button>
+                <button className="btn btn-primary" onClick={handleSave}>حفظ</button>
+              </>
+            }
+          >
+            <div className="settings-form-grid">
+              <div className="form-group">
+                <TextInput
+                  label="اسم العملة"
+                  value={formData.name || ""}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <TextInput
+                  label="الكود (ISO)"
+                  value={formData.code || ""}
+                  maxLength={3}
+                  onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                />
+              </div>
+              <div className="form-group">
+                <TextInput
+                  label="الرمز"
+                  value={formData.symbol || ""}
+                  onChange={e => setFormData({ ...formData, symbol: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <TextInput
+                  label="سعر الصرف (مقابل العملة الرئيسية)"
+                  type="number"
+                  step="0.0001"
+                  value={formData.exchange_rate}
+                  onChange={e => setFormData({ ...formData, exchange_rate: parseFloat(e.target.value) })}
+                  disabled={editingCurrency?.is_primary}
+                />
+              </div>
+            </div>
+
+            <hr />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+              <h4>الفئات النقدية (Banknotes)</h4>
+              <button className="btn btn-sm btn-secondary" onClick={addDenomination}>
+                <i className="fas fa-plus"></i> إضافة فئة
+              </button>
+            </div>
+
+            <div className="denominations-table">
+              <Table
+                columns={denominationColumns}
+                data={formData.denominations || []}
+                keyExtractor={(_, idx) => idx}
+                emptyMessage="لا توجد فئات نقدية مضافة"
+              />
+            </div>
+          </Dialog>
         </div>
       )}
 
       {activeSubTab === "policy" && (
-        <div className="animate-fade flex flex-col gap-6">
-
-          {/* Current Policy Status Card */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-2 h-full bg-blue-500"></div>
-
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">السياسة الحالية: {policyStatus?.policy_name}</h3>
-                <p className="text-gray-600 max-w-2xl leading-relaxed">
-                  تحدد هذه السياسة كيفية معالجة النظام للمعاملات متعددة العملات، وقت التحويل، وكيفية التعامل مع فروقات أسعار الصرف.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsPolicyModalOpen(true)}
-                className="px-4 py-2 bg-white border border-gray-300 shadow-sm rounded-lg text-gray-700 font-medium hover:bg-gray-50 hover:text-blue-600 transition-colors flex items-center gap-2"
-              >
-                <i className="fas fa-cog"></i>
-                تغيير السياسة
-              </button>
+        <div className="sales-card animate-fade">
+          {/* Header Section */}
+          <div className="card-header-flex">
+            <div className="title-with-icon">
+              <h3 style={{ margin: 0 }}>سياسة الحوكمة المالية</h3>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-6 border-t border-gray-100">
-              <div className="flex flex-col gap-2">
-                <span className="text-sm text-gray-500 font-medium">نوع السياسة</span>
-                <span className="text-base font-bold text-gray-800 bg-gray-50 px-3 py-1.5 rounded-lg w-fit border border-gray-100">
-                  {policyStatus?.policy_type_label}
-                </span>
-              </div>
-              <div className="flex flex-col gap-2">
-                <span className="text-sm text-gray-500 font-medium">العملة المرجعية (الأساس)</span>
-                <div className="flex items-center gap-2">
-                  <span className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xs">
-                    {policyStatus?.reference_currency?.code}
-                  </span>
-                  <span className="font-bold text-gray-800">{policyStatus?.reference_currency?.name}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-              <div className={`p-4 rounded-lg flex items-start gap-3 border ${policyStatus?.requires_posting_conversion ? 'bg-blue-50 border-blue-100' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
-                <div className={`mt-1 w-5 h-5 rounded-full flex items-center justify-center text-xs ${policyStatus?.requires_posting_conversion ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                  <i className={`fas ${policyStatus?.requires_posting_conversion ? 'fa-check' : 'fa-times'}`}></i>
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-gray-900 mb-1">التحويل الفوري (Normalization)</h4>
-                  <p className="text-xs text-gray-600">يتم تحويل جميع المعاملات الأجنبية إلى العملة المحلية فور إنشائها.</p>
-                </div>
-              </div>
-
-              <div className={`p-4 rounded-lg flex items-start gap-3 border ${policyStatus?.allows_multi_currency_balances ? 'bg-purple-50 border-purple-100' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
-                <div className={`mt-1 w-5 h-5 rounded-full flex items-center justify-center text-xs ${policyStatus?.allows_multi_currency_balances ? 'bg-purple-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                  <i className={`fas ${policyStatus?.allows_multi_currency_balances ? 'fa-check' : 'fa-times'}`}></i>
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-gray-900 mb-1">أرصدة متعددة العملات (Multi-Currency Ledgers)</h4>
-                  <p className="text-xs text-gray-600">يحتفظ النظام بأرصدة الحسابات بالعملات الأصلية بشكل مستقل.</p>
-                </div>
-              </div>
-
-              <div className={`p-4 rounded-lg flex items-start gap-3 border ${policyStatus?.revaluation_enabled ? 'bg-orange-50 border-orange-100' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
-                <div className={`mt-1 w-5 h-5 rounded-full flex items-center justify-center text-xs ${policyStatus?.revaluation_enabled ? 'bg-orange-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                  <i className={`fas ${policyStatus?.revaluation_enabled ? 'fa-check' : 'fa-times'}`}></i>
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-gray-900 mb-1">إعادة التقييم الدوري (Revaluation)</h4>
-                  <p className="text-xs text-gray-600">يتم احتساب فروقات أسعار الصرف دورياً للأصول والالتزامات الأجنبية.</p>
-                </div>
-              </div>
-
-              <div className={`p-4 rounded-lg flex items-start gap-3 border bg-gray-50 border-gray-200`}>
-                <div className="mt-1 w-5 h-5 rounded-full bg-gray-600 text-white flex items-center justify-center text-xs">
-                  <i className="fas fa-clock"></i>
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-gray-900 mb-1">توقيت التحويل</h4>
-                  <p className="text-xs text-gray-600">
-                    يتم التحويل: <span className="font-bold text-gray-800">{policyStatus?.conversion_timing}</span>
-                  </p>
-                </div>
-              </div>
-            </div>
+            <button
+              className="btn btn-primary"
+              onClick={handleActivatePolicy}
+              disabled={!selectedPolicyId || policies.find(p => p.id === selectedPolicyId)?.is_active}
+            >
+              <i className="fas fa-save"></i>
+              حفظ واعتماد السياسة
+            </button>
           </div>
 
-          {/* Available Policies List (Read Only View) */}
-          <div className="sales-card">
-            <h3 className="mb-4 text-lg font-bold">أنواع السياسات المتاحة في النظام</h3>
-            <div className="grid grid-cols-1 gap-4">
-              {policyStatus?.has_active_policy && policies.map(policy => (
-                <div key={policy.id} className={`p-4 rounded-lg border ${policy.is_active ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-gray-200 hover:border-gray-300'} transition-all`}>
-                  <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-bold text-gray-800 flex items-center gap-2">
-                      {policy.name}
-                      {policy.is_active && <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded">النشطة حالياً</span>}
-                    </h4>
-                    <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-500">{policy.policy_type}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">{policy.description}</p>
-                  <div className="flex gap-4 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><i className={`fas ${policy.allow_multi_currency_balances ? 'fa-check text-green-500' : 'fa-times text-red-500'}`}></i> أرصدة متعددة</span>
-                    <span className="flex items-center gap-1"><i className={`fas ${policy.revaluation_enabled ? 'fa-check text-green-500' : 'fa-times text-red-500'}`}></i> إعادة تقييم</span>
-                  </div>
-                </div>
-              ))}
+          <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+            حدد السياسة التي يتبعها النظام في معالجة العملات الأجنبية وقيود اليومية.
+          </p>
+
+          {/* Loading State */}
+          {loadingPolicy ? (
+            <div className="empty-state" style={{ minHeight: '200px' }}>
+              <div className="btn-spinner" style={{ width: '32px', height: '32px', borderWidth: '3px', borderColor: 'var(--border-color)', borderTopColor: 'var(--primary-color)' }}></div>
+              <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>جاري تحميل السياسات المالية...</p>
             </div>
+          ) : policies.length === 0 ? (
+            /* Empty State */
+            <div className="empty-state" style={{ minHeight: '250px', background: 'var(--bg-color)', borderRadius: 'var(--radius-lg)', border: '2px dashed var(--border-color)' }}>
+              <i className="fas fa-folder-open" style={{ fontSize: '2.5rem' }}></i>
+              <h3>لا توجد سياسات متاحة</h3>
+              <p>لم يتم العثور على أي سياسات مالية معرفة في النظام. يرجى التأكد من تشغيل البيانات الأولية (Seeders).</p>
+            </div>
+          ) : (
+            /* Policies List */
+            <div className="roles-list" style={{ padding: 0, maxHeight: 'none', overflow: 'visible' }}>
+              {policies.map(policy => {
+                const isSelected = selectedPolicyId === policy.id;
+                const isActive = policy.is_active;
+
+                return (
+                  <div
+                    key={policy.id}
+                    onClick={() => setSelectedPolicyId(policy.id)}
+                    className={`role-item ${isSelected ? 'active' : ''}`}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
+                      gap: '1rem',
+                      padding: '1.25rem',
+                      marginBottom: '0.75rem'
+                    }}
+                  >
+                    {/* Selection Indicator */}
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      border: `2px solid ${isSelected ? 'white' : 'var(--border-color)'}`,
+                      background: isSelected ? 'rgba(255,255,255,0.2)' : 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      marginTop: '2px',
+                      transition: 'all 0.2s ease'
+                    }}>
+                      {isSelected && <i className="fas fa-check" style={{ fontSize: '0.65rem' }}></i>}
+                    </div>
+
+                    {/* Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="role-info" style={{ marginBottom: '0.75rem' }}>
+                        <h4 style={{
+                          margin: '0 0 0.5rem 0',
+                          fontSize: '1.05rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          flexWrap: 'wrap'
+                        }}>
+                          {policy.name}
+                          <span className={isSelected ? '' : 'badge-system'} style={{
+                            fontSize: '0.7rem',
+                            fontFamily: 'monospace',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            background: isSelected ? 'rgba(255,255,255,0.2)' : undefined
+                          }}>
+                            {policy.policy_type}
+                          </span>
+                          {isActive && (
+                            <span className="badge badge-success" style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <i className="fas fa-check-circle"></i> السياسة المطبقة
+                            </span>
+                          )}
+                        </h4>
+                        <p style={{
+                          margin: 0,
+                          fontSize: '0.875rem',
+                          opacity: isSelected ? 0.9 : 0.75,
+                          lineHeight: 1.6
+                        }}>
+                          {policy.description}
+                        </p>
+                      </div>
+
+                      {/* Feature Tags */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <span className={`action-checkbox ${policy.allow_multi_currency_balances ? '' : 'disabled'}`} style={{
+                          padding: '0.4rem 0.75rem',
+                          fontSize: '0.75rem',
+                          background: isSelected
+                            ? (policy.allow_multi_currency_balances ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)')
+                            : (policy.allow_multi_currency_balances ? 'var(--primary-subtle)' : 'var(--bg-color)'),
+                          borderColor: isSelected ? 'rgba(255,255,255,0.3)' : undefined,
+                          color: isSelected ? 'white' : undefined
+                        }}>
+                          <i className={`fas ${policy.allow_multi_currency_balances ? 'fa-check' : 'fa-times'}`} style={{ fontSize: '0.7rem' }}></i>
+                          أرصدة متعددة العملات
+                        </span>
+
+                        <span className={`action-checkbox ${policy.revaluation_enabled ? '' : 'disabled'}`} style={{
+                          padding: '0.4rem 0.75rem',
+                          fontSize: '0.75rem',
+                          background: isSelected
+                            ? (policy.revaluation_enabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)')
+                            : (policy.revaluation_enabled ? 'var(--primary-subtle)' : 'var(--bg-color)'),
+                          borderColor: isSelected ? 'rgba(255,255,255,0.3)' : undefined,
+                          color: isSelected ? 'white' : undefined
+                        }}>
+                          <i className={`fas ${policy.revaluation_enabled ? 'fa-check' : 'fa-times'}`} style={{ fontSize: '0.7rem' }}></i>
+                          إعادة تقييم فروقات العملة
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Info Alert */}
+          <div style={{ marginTop: '1.5rem' }}>
+            <Alert
+              type="warning"
+              message="ملاحظة هامة: تغيير السياسة المالية لا يؤثر على القيود السابقة (تُحفظ بنفس السياسة التي أنشئت بها). السياسة الجديدة ستطبق فقط على العمليات التي تتم بعد لحظة التفعيل."
+            />
           </div>
         </div>
       )}
@@ -512,49 +747,17 @@ export function CurrencySettingsTab() {
         </div>
       </Dialog>
 
-      {/* Policy Selection Modal */}
-      <Dialog
-        isOpen={isPolicyModalOpen}
-        onClose={() => setIsPolicyModalOpen(false)}
-        title="تغيير سياسة حوكمة العملات"
-        maxWidth="600px"
-        footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setIsPolicyModalOpen(false)}>إلغاء</button>
-            <button className="btn btn-primary" onClick={handleActivatePolicy} disabled={!selectedPolicyId || policies.find(p => p.id === selectedPolicyId)?.is_active}>تفعيل السياسة المختارة</button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800">
-            <div className="flex items-center gap-2 mb-1 font-bold">
-              <i className="fas fa-exclamation-triangle"></i>
-              <span>تنبيه هام</span>
-            </div>
-            <p className="text-sm">تغيير سياسة العملات يعتبر إجراءً جوهرياً. لن تتأثر المعاملات التاريخية (بسبب خاصية الارتباط الزمني للسياسات)، ولكن جميع المعاملات الجديدة ستخضع للقواعد الجديدة فوراً.</p>
-          </div>
-
-          <div className="space-y-3 mt-4">
-            {policies.map(policy => (
-              <div
-                key={policy.id}
-                onClick={() => setSelectedPolicyId(policy.id)}
-                className={`cursor-pointer rounded-xl border-2 p-4 transition-all relative ${selectedPolicyId === policy.id
-                  ? "border-blue-500 bg-blue-50"
-                  : (policy.is_active ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-300")
-                  }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-gray-900">{policy.name}</span>
-                  {policy.is_active && <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded font-bold">الحالية</span>}
-                  {selectedPolicyId === policy.id && !policy.is_active && <i className="fas fa-check-circle text-blue-500 text-xl"></i>}
-                </div>
-                <p className="text-sm text-gray-600 leading-snug">{policy.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Dialog>
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmVariant={confirmDialog.variant}
+        confirmText="تأكيد"
+        cancelText="إلغاء"
+      />
 
     </div>
   );

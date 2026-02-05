@@ -108,8 +108,7 @@ export function ModuleSidebar({
 
       {/* Sidebar */}
       <aside className={`sidebar ${isCollapsed ? "collapsed" : ""} ${isMobileOpen ? "mobile-visible" : ""}`}>
-        <FullLogo />
-
+        <FullLogo isCollapsed={isCollapsed} />
         {/* Module Header with Back Button */}
         {!isCollapsed && group && (
           <div className="module-sidebar-header">

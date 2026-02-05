@@ -103,8 +103,7 @@ export function Sidebar({ permissions, onCollapsedChange }: SidebarProps) {
 
       {/* Sidebar */}
       <aside className={`sidebar ${isCollapsed ? "collapsed" : ""} ${isMobileOpen ? "mobile-visible" : ""}`}>
-        <FullLogo></FullLogo>
-
+        <FullLogo isCollapsed={isCollapsed} />
         <nav className="sidebar-nav">
           {links.map((link) => (
             <Link

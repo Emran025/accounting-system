@@ -20,11 +20,11 @@ class CurrencyPolicySeeder extends Seeder
         CurrencyPolicy::updateOrCreate(
             ['code' => 'POLICY_C'],
             [
-                'name' => 'Standard Normalization',
+                'name' => 'التوحيد القياسي',
                 'code' => 'POLICY_C',
-                'description' => 'Default policy for organizations primarily operating in a single currency. ' .
-                    'All foreign currency transactions are immediately converted to the reference currency at posting time. ' .
-                    'This is the traditional accounting model used by most domestic businesses.',
+                'description' => 'السياسة الافتراضية للمؤسسات التي تعمل بشكل أساسي بعملة واحدة. ' .
+                    'تُحوَّل جميع المعاملات بالعملات الأجنبية فورًا إلى العملة المرجعية عند التسجيل. ' .
+                    'هذا نموذج المحاسبة التقليدي المستخدم من قبل معظم الشركات المحلية.',
                 'policy_type' => 'NORMALIZATION',
                 'requires_reference_currency' => true,
                 'allow_multi_currency_balances' => false,
@@ -40,12 +40,12 @@ class CurrencyPolicySeeder extends Seeder
         CurrencyPolicy::updateOrCreate(
             ['code' => 'POLICY_A'],
             [
-                'name' => 'Multi-Currency Unit of Measure',
+                'name' => 'وحدة قياس متعددة العملات',
                 'code' => 'POLICY_A',
-                'description' => 'For organizations that actively hold and operate in multiple currencies. ' .
-                    'Each currency is treated as an independent unit of measure. No automatic conversion occurs. ' .
-                    'Ledger balances are maintained separately per currency. Ideal for import/export businesses, ' .
-                    'forex dealers, or environments with currency scarcity.',
+                'description' => 'مناسبة للمؤسسات التي تحتفظ وتعمل بنشاط بعدة عملات. ' .
+                    'تُعامل كل عملة كوحدة قياس مستقلة، ولا يحدث تحويل تلقائي. ' .
+                    'تُحفظ أرصدة دفاتر الأستاذ لكل عملة على حدة. مثالية لشركات الاستيراد/التصدير، ' .
+                    'وتجار الفوركس أو البيئات ذات ندرة العملة.',
                 'policy_type' => 'UNIT_OF_MEASURE',
                 'requires_reference_currency' => false,
                 'allow_multi_currency_balances' => true,
@@ -61,12 +61,12 @@ class CurrencyPolicySeeder extends Seeder
         CurrencyPolicy::updateOrCreate(
             ['code' => 'POLICY_B'],
             [
-                'name' => 'Valued Asset with Revaluation',
+                'name' => 'أصل مقوَّم مع إعادة تقييم',
                 'code' => 'POLICY_B',
-                'description' => 'For organizations with significant foreign currency exposure requiring periodic revaluation. ' .
-                    'Original currency amounts are preserved, with optional conversion. Foreign currency balances are ' .
-                    'periodically revalued to reflect exchange rate changes, recognizing gains/losses. ' .
-                    'Suitable for businesses with substantial foreign currency receivables or payables.',
+                'description' => 'مناسبة للمؤسسات ذات تعرض كبير للعملات الأجنبية وتحتاج إلى إعادة تقييم دورية. ' .
+                    'تُحفظ المبالغ بالعملة الأصلية مع تحويل اختياري. تُعاد تقييم الأرصدة بالعملات الأجنبية بشكل دوري ' .
+                    'لتعكس تغيّرات أسعار الصرف مع الاعتراف بالفروقات (أرباح/خسائر). مناسبة للأعمال التي لديها ' .
+                    'حسابات مستحقة أو مستحقة بالعملات الأجنبية بشكل كبير.',
                 'policy_type' => 'VALUED_ASSET',
                 'requires_reference_currency' => true,
                 'allow_multi_currency_balances' => true,
@@ -82,11 +82,11 @@ class CurrencyPolicySeeder extends Seeder
         CurrencyPolicy::updateOrCreate(
             ['code' => 'POLICY_HYBRID'],
             [
-                'name' => 'Hybrid International Operations',
+                'name' => 'هجين للعمليات الدولية',
                 'code' => 'POLICY_HYBRID',
-                'description' => 'For multinational operations requiring both normalized reporting and multi-currency tracking. ' .
-                    'Transactions are stored in original currency with immediate conversion for reporting. ' .
-                    'Supports both operational currency management and consolidated financial statements.',
+                'description' => 'مناسبة للعمليات متعددة الجنسيات التي تتطلب كلًا من التقارير الموحدة وتتبع متعدد العملات. ' .
+                    'تُخزن المعاملات بالعملة الأصلية مع تحويل فوري لأغراض التقارير. تدعم إدارة العملات التشغيلية ' .
+                    'والقوائم المالية المجمعة.',
                 'policy_type' => 'VALUED_ASSET',
                 'requires_reference_currency' => true,
                 'allow_multi_currency_balances' => true,
@@ -97,8 +97,5 @@ class CurrencyPolicySeeder extends Seeder
                 'is_active' => false,
             ]
         );
-
-        $this->command->info('Currency policies seeded successfully.');
-        $this->command->info('Active policy: Standard Normalization (POLICY_C)');
     }
 }
