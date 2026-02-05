@@ -1,8 +1,9 @@
-# Accounting System - Technical Documentation
+# ACCSYSTEM ERP System - Technical Documentation
 
-> **Last Updated:** January 31, 2026  
-> **Version:** 2.1  
-> **Architecture:** Monorepo (Laravel Backend + Next.js Frontend)
+> **Last Updated:** February 5, 2026  
+> **Version:** 2.2  
+> **Architecture:** Monorepo (Laravel Backend + Next.js Frontend)  
+> **System Type:** Enterprise Resource Planning (ERP)
 
 ---
 
@@ -24,9 +25,13 @@
 
 ## 1. System Overview
 
-### 1.1 High-Level Architecture
+### 1.1 What is ACCSYSTEM ERP?
 
-This is a **full-featured enterprise accounting system** built as a **monorepo** containing:
+**ACCSYSTEM ERP** is an enterprise-grade **Enterprise Resource Planning (ERP)** system designed for small to medium-sized businesses. It integrates all core business functions—Sales, Purchases, Inventory, Finance, HR, and Payroll—into a unified platform with real-time data synchronization and automatic ledger postings.
+
+### 1.2 High-Level Architecture
+
+This is a **full-featured ERP system** built as a **monorepo** containing:
 
 ```txt
 ┌────────────────────────────────────────────────────────────┐
@@ -50,9 +55,9 @@ This is a **full-featured enterprise accounting system** built as a **monorepo**
 └────────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 Core Business Modules
+### 1.3 Core ERP Modules
 
-The system implements a comprehensive accounting solution with the following modules:
+The system implements a comprehensive ERP solution with the following modules:
 
 | Module | Description | Key Features |
 | -------- | ------------- | -------------- |
@@ -69,7 +74,7 @@ The system implements a comprehensive accounting solution with the following mod
 | **Fiscal Periods** | Period management | Opening/closing periods, period locking |
 | **Batch Processing** | Bulk operations | Background job processing, progress tracking |
 
-### 1.3 Integration Points
+### 1.4 Integration Points
 
 - **Frontend ↔ Backend:** REST API over HTTP (`/api/*` endpoints)
 - **Authentication:** Session-based with token headers (`X-Session-Token`)

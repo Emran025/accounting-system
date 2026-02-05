@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ACCSYSTEM ERP System - Frontend
 
-## Getting Started
+> **Next.js 16 Frontend for ACCSYSTEM ERP System**
 
-First, run the development server:
+This is the frontend application for the ACCSYSTEM ERP System, built with Next.js 16, React 19, and TypeScript.
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+- npm 10+
+- Backend API running on `http://localhost:8000`
+
+### Installation
 
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to access the ERP system.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Default Credentials
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Username:** admin
+- **Password:** admin
 
-## Learn More
+## 📁 Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```txt
+public/
+├── app/                    # App Router pages
+│   ├── auth/login/         # Authentication
+│   ├── system/             # Dashboard, Settings, Reports
+│   ├── sales/              # Sales & Invoicing
+│   ├── purchases/          # Purchases & Expenses
+│   ├── finance/            # GL, Chart of Accounts, Fiscal Periods
+│   ├── hr/                 # HR & Payroll
+│   └── navigation/         # Navigation Landing Page
+├── components/             # Reusable React components
+│   ├── ui/                 # 34 UI components
+│   └── navigation/         # 4 Navigation components
+├── lib/                    # Utilities & types
+│   ├── api.ts              # API client
+│   ├── types.ts            # TypeScript interfaces
+│   └── auth.ts             # Auth utilities
+└── public/                 # Static assets
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🛠️ Available Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# Development
+npm run dev         # Start development server (port 3000)
 
-## Deploy on Vercel
+# Production
+npm run build       # Build for production
+npm start           # Start production server
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Linting
+npm run lint        # Run ESLint
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🔌 API Configuration
+
+The frontend connects to the Laravel backend API. Configure the API URL:
+
+**Option 1:** Environment file (`.env.local`):
+
+```env
+NEXT_PUBLIC_API_BASE=http://127.0.0.1:8000/api
+```
+
+**Option 2:** Default fallback is already configured in `lib/api.ts`.
+
+## 📖 Documentation
+
+- **Main Documentation:** [../README.md](../README.md)
+- **Technical Docs:** [../docs/TECHNICAL_DOCUMENTATION.md](../docs/TECHNICAL_DOCUMENTATION.md)
+- **API Reference:** [../docs/API_REFERENCE.md](../docs/API_REFERENCE.md)
+- **User Guide:** [../docs/USER_GUIDE.md](../docs/USER_GUIDE.md)
+
+## 🎨 Styling
+
+- **Framework:** Tailwind CSS 4
+- **Global Styles:** `app/globals.css`
+- **Design System:** Premium SaaS aesthetic with Arabic RTL support
+
+## 📦 Key Dependencies
+
+- **Next.js 16** - React framework with App Router
+- **React 19** - UI library
+- **TypeScript 5** - Type safety
+- **Tailwind CSS 4** - Utility-first styling
+- **qrcode** - QR code generation for ZATCA compliance
+
+---
+
+> Part of the **ACCSYSTEM ERP System**

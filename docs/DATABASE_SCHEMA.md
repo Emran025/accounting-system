@@ -1,13 +1,13 @@
-# Database Schema - Entity Relationship Diagram
+# ACCSYSTEM ERP System - Database Schema
 
-> **Accounting System Database Structure**  
+> **Entity Relationship Diagram (ERD)**  
 > 52 Tables | Full ACID Compliance | Normalized Design
 
 ---
 
 ## Overview
 
-This document provides a detailed Entity Relationship Diagram (ERD) for the accounting system database in text format, showing all tables, columns, relationships, and constraints.
+This document provides a detailed Entity Relationship Diagram (ERD) for the ACCSYSTEM ERP system database in text format, showing all tables, columns, relationships, and constraints.
 
 ---
 

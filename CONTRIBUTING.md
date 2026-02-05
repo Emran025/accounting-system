@@ -1,6 +1,6 @@
-# Contributing to Accounting System
+# Contributing to ACCSYSTEM ERP System
 
-Thank you for considering contributing to our Enterprise Accounting System! This document provides guidelines and instructions for contributing to the project.
+Thank you for considering contributing to our Enterprise Resource Planning (ERP) system! This document provides guidelines and instructions for contributing to the project.
 
 ---
 
@@ -59,6 +59,7 @@ Before contributing, ensure you have:
 - **Git** for version control
 - A code editor (VS Code recommended)
 - Basic understanding of Laravel and Next.js
+- Understanding of ERP concepts (accounting, inventory, HR)
 
 ### Initial Setup
 
@@ -71,14 +72,14 @@ Before contributing, ensure you have:
 2. **Clone your fork**
 
    ```bash
-   git clone https://github.com/YOUR_USERNAME/accounting-system.git
-   cd accounting-system
+   git clone https://github.com/YOUR_USERNAME/ACCSYSTEM-erp.git
+   cd ACCSYSTEM-erp
    ```
 
 3. **Add upstream remote**
 
    ```bash
-   git remote add upstream https://github.com/ORIGINAL_OWNER/accounting-system.git
+   git remote add upstream https://github.com/ACCSYSTEM/ACCSYSTEM-erp.git
    ```
 
 4. **Set up the development environment**
@@ -136,18 +137,21 @@ We welcome various types of contributions:
    - Add test coverage
    - Improve existing tests
 
-### Contribution Areas
+### Contribution Areas by ERP Module
 
-| Area | Skills Needed | Difficulty |
-| ------ | -------------- | ------------ |
-| Bug Fixes | PHP/TypeScript | Beginner-Intermediate |
-| UI/UX Improvements | React, CSS | Beginner-Intermediate |
-| API Development | Laravel, PHP | Intermediate-Advanced |
-| Database Optimization | SQL, Eloquent | Intermediate-Advanced |
-| Financial Reporting | Accounting, PHP | Advanced |
-| ZATCA Integration | API Integration | Advanced |
-| Testing | PHPUnit, Jest | Intermediate |
-| Documentation | Technical Writing | Beginner |
+| Module | Skills Needed | Difficulty |
+| ------ | ------------- | ---------- |
+| **Sales & POS** | PHP, TypeScript, Accounting | Intermediate |
+| **Purchases** | Laravel, Approval Workflows | Intermediate |
+| **Inventory** | FIFO/Average Costing, PHP | Intermediate-Advanced |
+| **General Ledger** | Double-Entry Accounting, Laravel | Advanced |
+| **Financial Reports** | SQL, Accounting Principles | Advanced |
+| **HR & Payroll** | Laravel, Payroll Processing | Intermediate-Advanced |
+| **ZATCA Integration** | API Integration, Saudi Regulations | Advanced |
+| **Multi-Currency** | Exchange Rates, Financial Logic | Intermediate |
+| **UI/UX** | React, TypeScript, Tailwind | Beginner-Intermediate |
+| **Testing** | PHPUnit, Jest | Intermediate |
+| **Documentation** | Technical Writing | Beginner |
 
 ---
 
@@ -159,11 +163,12 @@ We use **Git Flow** branching model:
 
 ```txt
 main (production-ready)
-  ├── develop (integration branch)
+  └── develop (integration branch)
        ├── feature/feature-name
        ├── bugfix/bug-description
        ├── hotfix/critical-fix
-       └── docs/documentation-update
+       ├── docs/documentation-update
+       └── module/module-name-enhancement
 ```
 
 ### Creating a Branch
@@ -186,6 +191,9 @@ main (production-ready)
    
    # For documentation
    git checkout -b docs/update-api-reference
+   
+   # For module enhancements
+   git checkout -b module/hr-leave-management
    ```
 
 ### Making Changes
@@ -194,6 +202,7 @@ main (production-ready)
    - Follow coding standards (see below)
    - Write clean, readable code
    - Add comments for complex logic
+   - Consider both Arabic and English users
 
 2. **Test your changes**
 
@@ -211,7 +220,7 @@ main (production-ready)
 
    ```bash
    git add .
-   git commit -m "feat: add inventory low stock alerts"
+   git commit -m "feat(sales): add inventory low stock alerts"
    ```
 
 ### Commit Message Convention
@@ -237,13 +246,19 @@ We follow **Conventional Commits** specification:
 - `test`: Adding or updating tests
 - `chore`: Maintenance tasks
 
+**Scopes (ERP Modules):**
+
+- `sales`, `purchases`, `inventory`, `ar`, `ap`
+- `gl`, `reports`, `hr`, `payroll`, `assets`
+- `auth`, `settings`, `api`, `ui`
+
 **Examples:**
 
 ```bash
 feat(sales): add multi-currency support to invoices
 fix(payroll): correct net salary calculation for deductions
 docs(api): update authentication endpoints documentation
-refactor(ledger): optimize trial balance query performance
+refactor(gl): optimize trial balance query performance
 test(purchases): add tests for approval workflow
 ```
 
@@ -266,16 +281,17 @@ use Illuminate\Support\Facades\DB;
 class InvoiceService
 {
     /**
-     * Create a new invoice
+     * Create a new invoice with automatic ledger posting
      *
-     * @param array $data Invoice data
+     * @param array $data Invoice data with items
      * @return int Invoice ID
+     * @throws \Exception When posting fails
      */
     public function createInvoice(array $data): int
     {
         return DB::transaction(function () use ($data) {
-            // Implementation
             $invoice = Invoice::create($data);
+            $this->postToLedger($invoice);
             
             return $invoice->id;
         });
@@ -289,8 +305,10 @@ class InvoiceService
 - Add PHPDoc comments for public methods
 - Keep methods focused (Single Responsibility)
 - Use dependency injection
+- Use Services for business logic (not in Controllers)
 - Name classes, methods, and variables clearly
 - Max line length: 120 characters
+- Use Eloquent relationships properly
 
 ### TypeScript (Frontend)
 
@@ -349,6 +367,7 @@ export default function InvoiceList({
 - Name functions in camelCase
 - Use arrow functions for callbacks
 - Max line length: 100 characters
+- Support RTL (Arabic) layout where applicable
 
 ### Database Migrations
 
@@ -394,6 +413,7 @@ return new class extends Migration
 - Use descriptive file names with timestamps
 - Add indexes for foreign keys and frequently queried columns
 - Document complex migrations
+- Consider data preservation in `down()` methods
 
 ---
 
@@ -441,6 +461,12 @@ class InvoiceTest extends TestCase
             'payment_type' => 'cash'
         ]);
     }
+    
+    /** @test */
+    public function it_posts_correct_gl_entries_for_cash_sale()
+    {
+        // Test that ledger entries are correct
+    }
 }
 ```
 
@@ -451,6 +477,7 @@ class InvoiceTest extends TestCase
 - Aim for 80%+ code coverage
 - Use factories for test data
 - Clean up after tests (use `RefreshDatabase`)
+- Test GL postings for financial transactions
 
 ### Frontend Testing (Jest - when implemented)
 
@@ -483,7 +510,7 @@ describe('InvoiceList', () => {
  * Calculate the total amount for an invoice including VAT
  *
  * This method calculates the subtotal from items, applies any discount,
- * then adds VAT based on the configured rate.
+ * then adds VAT based on the configured rate. Also posts to General Ledger.
  *
  * @param array $items Array of invoice items with quantity and unit_price
  * @param float $discount Discount amount to subtract
@@ -518,8 +545,9 @@ When adding features, update:
 1. **`docs/TECHNICAL_DOCUMENTATION.md`** - Technical details
 2. **`docs/API_REFERENCE.md`** - API endpoint documentation
 3. **`docs/DATABASE_SCHEMA.md`** - Database schema changes
-4. **`README.md`** - User-facing changes
-5. **Code comments** - Complex business logic
+4. **`docs/USER_GUIDE.md`** - User-facing features (Arabic & English)
+5. **`README.md`** - High-level changes
+6. **Code comments** - Complex business logic
 
 ---
 
@@ -533,6 +561,8 @@ When adding features, update:
 - [ ] Commit messages follow convention
 - [ ] No merge conflicts with `develop` branch
 - [ ] Self-review completed
+- [ ] GL postings verified (for financial features)
+- [ ] Arabic/English translations added (if UI changes)
 
 ### Creating a Pull Request
 
@@ -554,6 +584,17 @@ When adding features, update:
    ## Description
    Brief description of changes
    
+   ## ERP Module Affected
+   - [ ] Sales & POS
+   - [ ] Purchases
+   - [ ] Inventory
+   - [ ] AR/AP
+   - [ ] General Ledger
+   - [ ] Reports
+   - [ ] HR & Payroll
+   - [ ] System Settings
+   - [ ] Other: ___
+   
    ## Type of Change
    - [ ] Bug fix
    - [ ] New feature
@@ -564,12 +605,14 @@ When adding features, update:
    - [ ] Unit tests added/updated
    - [ ] Manual testing completed
    - [ ] All tests pass
+   - [ ] GL postings verified
    
    ## Checklist
    - [ ] Code follows style guidelines
    - [ ] Self-review completed
    - [ ] Documentation updated
    - [ ] No breaking changes (or documented)
+   - [ ] Arabic/English translations added
    
    ## Related Issues
    Fixes #123
@@ -602,6 +645,7 @@ Reviewers will check:
 - **Security:** No security vulnerabilities?
 - **Testing:** Adequate test coverage?
 - **Documentation:** Changes documented?
+- **Accounting Accuracy:** GL postings correct?
 
 ---
 
@@ -612,6 +656,9 @@ Reviewers will check:
 Use the bug report template:
 
 ```markdown
+**ERP Module**
+[e.g., Sales, Purchases, GL, HR, Payroll]
+
 **Describe the bug**
 A clear description of what the bug is.
 
@@ -640,12 +687,16 @@ Any other context about the problem.
 ```txt
 Paste relevant logs from storage/logs/laravel.log
 ```
+```
 
 ### Feature Requests
 
 Use the feature request template:
 
 ```markdown
+**ERP Module**
+[e.g., Sales, Purchases, GL, HR, Payroll]
+
 **Is your feature related to a problem?**
 A clear description of the problem.
 
@@ -671,7 +722,7 @@ Any other context or screenshots.
 
 ### Getting Help
 
-1. Check existing documentation
+1. Check existing documentation in `/docs`
 2. Search closed issues
 3. Ask in GitHub Discussions
 4. Create a new issue with details
@@ -687,6 +738,27 @@ Contributors will be:
 ---
 
 ## Development Tips
+
+### ERP-Specific Guidelines
+
+**Financial Transactions:**
+
+- Always post to General Ledger via `LedgerService`
+- Ensure debit = credit in all postings
+- Test fiscal period restrictions
+- Verify voucher numbering
+
+**Multi-Currency:**
+
+- Use `CurrencyHelper` for conversions
+- Store amounts in base currency + original
+- Handle exchange rate differences
+
+**Approval Workflows:**
+
+- Use status fields ('pending', 'approved', 'rejected')
+- Track approver and approval timestamp
+- Respect multi-level approval settings
 
 ### Performance Guidelines
 
@@ -711,6 +783,7 @@ Contributors will be:
 - Use parameterized queries (Eloquent does this)
 - Sanitize output to prevent XSS
 - Follow OWASP guidelines
+- Respect role-based permissions
 
 ### Debugging
 
@@ -772,14 +845,14 @@ By contributing, you agree that your contributions will be licensed under the sa
 If you have questions about contributing:
 
 1. Check the [Technical Documentation](./docs/TECHNICAL_DOCUMENTATION.md)
-2. Review [closed pull requests](https://github.com/owner/repo/pulls?q=is%3Apr+is%3Aclosed)
-3. Ask in [GitHub Discussions](https://github.com/owner/repo/discussions)
+2. Review [closed pull requests](https://github.com/ACCSYSTEM/ACCSYSTEM-erp/pulls?q=is%3Apr+is%3Aclosed)
+3. Ask in [GitHub Discussions](https://github.com/ACCSYSTEM/ACCSYSTEM-erp/discussions)
 4. Contact maintainers
 
 ---
 
 ## Thank You! 🎉
 
-Every contribution, no matter how small, makes a difference. We appreciate your time and effort in improving the Accounting System!
+Every contribution, no matter how small, makes a difference. We appreciate your time and effort in improving the ACCSYSTEM ERP System!
 
 **Happy Coding!** 💻

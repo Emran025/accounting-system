@@ -1,7 +1,8 @@
-# API Reference Guide
+# ACCSYSTEM ERP System - API Reference Guide
 
-> **RESTful API Documentation for Accounting System**  
-> Base URL: `http://localhost:8000/api`
+> **RESTful API Documentation for ACCSYSTEM ERP System**  
+> Base URL: `http://localhost:8000/api`  
+> Version: 2.2
 
 ---
 

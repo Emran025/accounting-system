@@ -1,15 +1,34 @@
-# Accounting System - Monorepo
+# ACCSYSTEM ERP System - Enterprise Resource Planning
 
-> **Enterprise-Grade Accounting System** | Laravel 12 + Next.js 16 | Full-Stack TypeScript/PHP
+> **Enterprise-Grade ERP Solution** | Laravel 12 + Next.js 16 | Full-Stack TypeScript/PHP
 
 [![Laravel](https://img.shields.io/badge/Laravel-12.x-red.svg)](https://laravel.com)
 [![Next.js](https://img.shields.io/badge/Next.js-16.x-black.svg)](https://nextjs.org)
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4.svg)](https://php.net)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
-## Quick Start
+## About ACCSYSTEM ERP
+
+**ACCSYSTEM ERP** is a comprehensive, enterprise-grade **Enterprise Resource Planning (ERP)** system designed for small to medium-sized businesses. Built with modern technologies, it integrates all core business functions into a unified platform.
+
+### Why Choose ACCSYSTEM ERP?
+
+| Feature | Benefit |
+| ------- | ------- |
+| **Unified Platform** | Seamlessly integrates Sales, Purchases, Inventory, Finance, HR, and Payroll |
+| **Real-Time Data** | Instant updates across all modules with automatic ledger postings |
+| **ZATCA Compliant** | Full Saudi Arabia e-invoicing compliance with QR code generation |
+| **Multi-Language** | Arabic (RTL) and English interface support |
+| **Role-Based Access** | Granular permissions with multi-level approval workflows |
+| **Audit Trail** | Complete transaction history and change tracking |
+| **Modern Stack** | Laravel 12 backend with Next.js 16 frontend |
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
@@ -22,8 +41,8 @@
 
 ```bash
 # 1. Clone the repository
-git clone <your-repo-url>
-cd accounting-system
+git clone <your-repo-url> ACCSYSTEM-erp
+cd ACCSYSTEM-erp
 
 # 2. Backend Setup
 cd src
@@ -34,7 +53,7 @@ touch database/database.sqlite
 php artisan migrate
 php artisan db:seed
 
-# or 
+# or reset and reseed
 php artisan migrate:fresh --seed
 
 # 3. Frontend Setup
@@ -48,52 +67,60 @@ cd src && php artisan serve
 # Terminal 2 - Frontend
 cd public && npm run dev
 
-# 5. Access the app
+# 5. Access the ERP
 # Open http://localhost:3000
 # Default login: admin / admin
 ```
 
 ---
 
-## Documentation
+## 📚 Documentation
 
-For **complete technical documentation**, see:
+For **complete documentation**, see the `/docs` folder:
 
-### **[TECHNICAL_DOCUMENTATION.md](./docs/TECHNICAL_DOCUMENTATION.md)**
-
-This comprehensive guide includes:
-
-- **Architecture & Design Patterns**
-- **Complete Database Schema** (52 tables, 50 models)
-- **API Reference** (All endpoints with examples)
-- **Business Logic** (Services, workflows)
-- **Security & Authentication**
-- **Developer Onboarding**
-- **Deployment Guide**
+| Document | Description |
+| -------- | ----------- |
+| **[USER_GUIDE.md](./docs/USER_GUIDE.md)** | 📖 Bilingual user manual (Arabic/English) for non-technical users |
+| **[TECHNICAL_DOCUMENTATION.md](./docs/TECHNICAL_DOCUMENTATION.md)** | 🔧 Complete technical architecture and developer guide |
+| **[API_REFERENCE.md](./docs/API_REFERENCE.md)** | 🔌 REST API documentation with examples |
+| **[DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md)** | 🗃️ Full database schema with ERD diagrams |
+| **[DOCUMENTATION_INDEX.md](./docs/DOCUMENTATION_INDEX.md)** | 🗺️ Documentation navigation guide |
 
 ---
 
-## What's Inside
+## 📦 ERP Modules
 
-### Core Features
+### Core Business Modules
 
-| Module | Description |
-| -------- | ------------- |
-| **Sales & POS** | Cash/credit sales, ZATCA e-invoicing, barcode/QR generation |
-| **Inventory** | Multi-level approval, FIFO/Average costing, expiry tracking |
-| **AR/AP** | Customer/supplier management, aging reports, payment tracking |
-| **General Ledger** | Double-entry bookkeeping, trial balance, journal vouchers |
-| **Financial Reports** | Balance Sheet, P&L, Cash Flow, Comparative Analysis |
-| **Accrual Accounting** | Prepayments, unearned revenue, payroll accruals |
-| 👥 **HR & Payroll** | Multi-level approval workflow, salary processing |
-| **Fixed Assets** | Depreciation (SL/DB), asset lifecycle management |
-| **Multi-Currency** | Exchange rates, currency conversion |
-| **Fiscal Periods** | Period locking, year-end closing |
-| **Batch Processing** | Background jobs, bulk operations |
+| Module | Description | Key Features |
+| ------ | ----------- | ------------ |
+| **Sales & POS** | Point of Sale and invoicing | Cash/credit sales, ZATCA e-invoicing, barcode/QR |
+| **Purchases** | Procurement management | Multi-level approval, supplier management |
+| **Inventory** | Stock management | FIFO/Average costing, expiry tracking, reorder alerts |
+| **AR (Receivables)** | Customer credit management | Aging reports, payment tracking, customer ledger |
+| **AP (Payables)** | Supplier payment management | Payment scheduling, supplier ledger |
+| **General Ledger** | Double-entry bookkeeping | Chart of accounts, journal vouchers, trial balance |
+| **Financial Reports** | Comprehensive reporting | Balance Sheet, P&L, Cash Flow, Comparative Analysis |
+| **HR & Payroll** | Employee management | Multi-level approval, salary processing, allowances |
+| **Fixed Assets** | Asset lifecycle | Depreciation (SL/DB), disposal tracking |
+| **Multi-Currency** | International transactions | Exchange rates, multi-currency invoicing |
+| **Fiscal Periods** | Period management | Opening/closing periods, period locking |
+| **Accrual Accounting** | Advanced accounting | Prepayments, unearned revenue, payroll accruals |
+
+### System Features
+
+| Feature | Description |
+| ------- | ----------- |
+| **Dashboard** | Real-time KPIs, sales trends, inventory alerts |
+| **Role Management** | Customizable roles with granular permissions |
+| **Audit Trail** | Complete transaction logging |
+| **Document Sequences** | Automatic numbering for invoices, vouchers |
+| **Batch Processing** | Background job processing |
+| **Government Fees** | Configurable fees (Kharaj, taxes) |
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ```txt
 ┌─────────────────────────────────────┐
@@ -108,7 +135,7 @@ This comprehensive guide includes:
                   │
 ┌─────────────────▼───────────────────┐
 │    DATABASE (SQLite/MySQL)          │
-│    49 Tables, Full ACID Compliance  │
+│    52 Tables, Full ACID Compliance  │
 └─────────────────────────────────────┘
 ```
 
@@ -122,7 +149,7 @@ This comprehensive guide includes:
 ## Project Structure
 
 ```txt
-accounting-system/
+ACCSYSTEM-erp/
 │
 ├── src/                      # Laravel Backend (API)
 │   ├── app/
@@ -131,21 +158,28 @@ accounting-system/
 │   │   ├── Services/              # 11 Business Services
 │   │   └── Helpers/               # Utility Functions
 │   ├── database/migrations/       # 52 Migration Files
-│   ├── routes/api.php            # API Routes
+│   ├── routes/api.php             # API Routes
 │   └── ...
 │
-└── public/                   # Next.js Frontend
-    ├── app/                  # App Router Pages
-    │   ├── auth/             # Authentication
-    │   ├── system/           # Dashboard, Settings, Reports
-    │   ├── sales/            # Sales & Invoicing
-    │   ├── purchases/        # Purchases & Expenses
-    │   ├── finance/          # GL, Accounts, Periods
-    │   ├── hr/               # HR & Payroll
-    │   └── navigation/       # Navigation Landing Page
-    ├── components/           # Reusable Components (34 UI + 4 Navigation)
-    ├── lib/                  # API, Types, Utilities
-    └── ...
+├── public/                   # Next.js Frontend
+│   ├── app/                  # App Router Pages
+│   │   ├── auth/             # Authentication
+│   │   ├── system/           # Dashboard, Settings, Reports
+│   │   ├── sales/            # Sales & Invoicing
+│   │   ├── purchases/        # Purchases & Expenses
+│   │   ├── finance/          # GL, Accounts, Periods
+│   │   ├── hr/               # HR & Payroll
+│   │   └── navigation/       # Navigation Landing Page
+│   ├── components/           # Reusable Components
+│   ├── lib/                  # API, Types, Utilities
+│   └── ...
+│
+└── docs/                     # Documentation
+    ├── USER_GUIDE.md
+    ├── TECHNICAL_DOCUMENTATION.md
+    ├── API_REFERENCE.md
+    ├── DATABASE_SCHEMA.md
+    └── DOCUMENTATION_INDEX.md
 ```
 
 ---
@@ -161,7 +195,7 @@ accounting-system/
 cd src
 php artisan serve
 
-# Terminal 2 - Queue Worker
+# Terminal 2 - Queue Worker (for background jobs)
 cd src
 php artisan queue:listen
 
@@ -175,7 +209,7 @@ npm run dev
 ```bash
 cd src
 composer dev
-# Runs: API, Queue, Logs, Vite concurrently
+# Runs: API, Queue, Logs concurrently
 ```
 
 ### Making Changes
@@ -216,8 +250,7 @@ php artisan test
 
 **Frontend:**
 
-- Testing framework not yet configured
-- Recommended: Jest + React Testing Library
+- Testing framework: Jest + React Testing Library (configurable)
 
 ---
 
@@ -234,7 +267,7 @@ php artisan test
 | **Finance** | chart_of_accounts, general_ledger, fiscal_periods, journal_vouchers |
 | **HR & Payroll** | employees, departments, payroll_cycles, payroll_items, payroll_transactions, employee_documents, employee_allowances, employee_deductions |
 | **Advanced** | assets, asset_depreciation, prepayments, unearned_revenue, reconciliations, currencies, currency_denominations |
-| **System** | settings, document_sequences, batch_processing, batch_items, recurring_transactions, telescope (audit), government_fees, invoice_fees |
+| **System** | settings, document_sequences, batch_processing, batch_items, recurring_transactions, telescope, government_fees, invoice_fees |
 
 ---
 
@@ -308,26 +341,16 @@ See [TECHNICAL_DOCUMENTATION.md](./docs/TECHNICAL_DOCUMENTATION.md#11-deployment
 | Endpoint | Method | Description |
 | ---------- | -------- | ------------- |
 | `/login` | POST | User authentication |
-| `/invoices` | GET | List invoices (paginated) |
-| `/invoices` | POST | Create invoice |
+| `/invoices` | GET, POST | Invoice management |
 | `/purchases` | GET, POST | Purchase management |
+| `/products` | GET, POST | Product management |
 | `/trial_balance` | GET | Trial balance report |
 | `/reports/balance_sheet` | GET | Balance sheet |
 | `/reports/profit_loss` | GET | P&L statement |
 | `/payroll/generate` | POST | Generate payroll cycle |
 | `/employees` | GET, POST | Employee management |
 
-**Response Format:**
-
-```json
-{
-  "success": true,
-  "data": { ... },
-  "pagination": { ... }
-}
-```
-
-See [TECHNICAL_DOCUMENTATION.md](./docs/TECHNICAL_DOCUMENTATION.md#6-api-surface--contracts) for complete API reference.
+See [API_REFERENCE.md](./docs/API_REFERENCE.md) for complete API documentation.
 
 ---
 
@@ -335,20 +358,24 @@ See [TECHNICAL_DOCUMENTATION.md](./docs/TECHNICAL_DOCUMENTATION.md#6-api-surface
 
 ### Backend (`/src`)
 
-- **Framework:** Laravel 12
-- **Language:** PHP 8.2+
-- **Database:** SQLite (dev), MySQL/PostgreSQL (prod)
-- **ORM:** Eloquent
-- **Queue:** Database driver
-- **Cache:** Database driver
+| Component | Technology |
+| --------- | ---------- |
+| **Framework** | Laravel 12 |
+| **Language** | PHP 8.2+ |
+| **Database** | SQLite (dev), MySQL/PostgreSQL (prod) |
+| **ORM** | Eloquent |
+| **Queue** | Database driver |
+| **Cache** | Database driver |
 
 ### Frontend (`/public`)
 
-- **Framework:** Next.js 16 (App Router)
-- **Language:** TypeScript 5
-- **UI Library:** React 19
-- **Styling:** Tailwind CSS 4
-- **HTTP Client:** Fetch API
+| Component | Technology |
+| --------- | ---------- |
+| **Framework** | Next.js 16 (App Router) |
+| **Language** | TypeScript 5 |
+| **UI Library** | React 19 |
+| **Styling** | Tailwind CSS 4 |
+| **HTTP Client** | Fetch API |
 
 ---
 
@@ -371,7 +398,7 @@ See [TECHNICAL_DOCUMENTATION.md](./docs/TECHNICAL_DOCUMENTATION.md#10-troublesho
 
 ## License
 
-MIT License - See LICENSE file for details
+MIT License - See [LICENSE](LICENSE) file for details.
 
 ---
 
@@ -383,15 +410,17 @@ MIT License - See LICENSE file for details
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open Pull Request
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
+
 ---
 
 ## Support
 
-- **Documentation:** [TECHNICAL_DOCUMENTATION.md](./docs/TECHNICAL_DOCUMENTATION.md)
+- **Documentation:** See `/docs` folder
 - **Issues:** Submit via GitHub Issues with detailed logs
 - **Logs:** Check `src/storage/logs/laravel.log`
 
 ---
 
-> Built with using Laravel & Next.js
-> **build by: Emran Nasser && AI Aigents**
+> Built with ❤️ using Laravel & Next.js  
+> **Developed by: Emran Nasser && AI Agents**

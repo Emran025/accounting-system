@@ -1,8 +1,8 @@
-# Documentation Index
+# Documentation Index - ACCSYSTEM ERP System
 
-> **Complete Documentation Suite for Accounting System**
+> **Complete Documentation Suite for Enterprise Resource Planning System**
 
-Welcome to the comprehensive documentation for the Enterprise Accounting System. This index provides quick access to all documentation resources.
+Welcome to the comprehensive documentation for the ACCSYSTEM ERP System. This index provides quick access to all documentation resources for our enterprise-grade ERP solution.
 
 ---
 
@@ -12,14 +12,15 @@ Welcome to the comprehensive documentation for the Enterprise Accounting System.
 
 1. **[README.md](./../README.md)**
    - Quick start guide
-   - Project overview
+   - ERP overview
    - Installation instructions
-   - Basic usage
+   - Module summary
 
-2. **[USER_GUIDE.md](./USER_GUIDE.md)** ⭐ **للمستخدمين | For Users**
+2. **[USER_GUIDE.md](./USER_GUIDE.md)** ⭐ **للمستخدمين | For End Users**
    - دليل مبسط بالعربية والإنجليزية
-   - شرح جميع أقسام النظام
-   - من يستخدم كل قسم
+   - شرح جميع وحدات النظام
+   - الدورات المستندية
+   - الأدوار والصلاحيات
    - لا يحتاج خبرة تقنية
 
 3. **[TECHNICAL_DOCUMENTATION.md](./TECHNICAL_DOCUMENTATION.md)** - **For Developers**
@@ -91,10 +92,29 @@ Deploy to production:
 
 ### For API Consumers
 
-Integrate with the system:
+Integrate with the ERP system:
 
 1. [API_REFERENCE.md](./API_REFERENCE.md) - Complete API docs
 2. [TECHNICAL_DOCUMENTATION.md - Section 6](./TECHNICAL_DOCUMENTATION.md#6-api-surface--contracts)
+
+---
+
+## 📦 ERP Module Documentation
+
+### Business Modules
+
+| Module | User Guide | Technical Docs | API Reference |
+| ------ | ---------- | -------------- | ------------- |
+| **Sales & POS** | [User Guide](./USER_GUIDE.md#1--وحدة-المبيعات-والفواتير--sales--invoicing-module) | [Tech Docs](./TECHNICAL_DOCUMENTATION.md#sales--invoicing) | [API](./API_REFERENCE.md#sales--invoicing) |
+| **Purchases** | [User Guide](./USER_GUIDE.md#2--وحدة-المشتريات-والمصروفات--purchases--expenses-module) | [Tech Docs](./TECHNICAL_DOCUMENTATION.md#purchases) | [API](./API_REFERENCE.md#purchases--expenses) |
+| **Inventory** | [User Guide](./USER_GUIDE.md#3--وحدة-المخزون-والمنتجات--inventory--products-module) | [Tech Docs](./TECHNICAL_DOCUMENTATION.md#inventory) | [API](./API_REFERENCE.md#inventory--products) |
+| **AR (Customers)** | [User Guide](./USER_GUIDE.md#4--وحدة-العملاء-والذمم-المدينة--customers--ar-module) | [Tech Docs](./TECHNICAL_DOCUMENTATION.md#accounts-receivable) | [API](./API_REFERENCE.md#accounts-receivable-ar) |
+| **AP (Suppliers)** | [User Guide](./USER_GUIDE.md#5--وحدة-الموردين-والذمم-الدائنة--suppliers--ap-module) | [Tech Docs](./TECHNICAL_DOCUMENTATION.md#accounts-payable) | [API](./API_REFERENCE.md#accounts-payable-ap) |
+| **General Ledger** | [User Guide](./USER_GUIDE.md#6--وحدة-الدفتر-العام--general-ledger-module) | [Tech Docs](./TECHNICAL_DOCUMENTATION.md#general-ledger) | [API](./API_REFERENCE.md#general-ledger) |
+| **Financial Reports** | [User Guide](./USER_GUIDE.md#7--وحدة-التقارير-المالية--financial-reports-module) | [Tech Docs](./TECHNICAL_DOCUMENTATION.md#reports) | [API](./API_REFERENCE.md#financial-reports) |
+| **HR & Payroll** | [User Guide](./USER_GUIDE.md#8--وحدة-الموارد-البشرية-والرواتب--hr--payroll-module) | [Tech Docs](./TECHNICAL_DOCUMENTATION.md#hr--payroll) | [API](./API_REFERENCE.md#hr--payroll) |
+| **Fixed Assets** | [User Guide](./USER_GUIDE.md#9-️-وحدة-الأصول-الثابتة--fixed-assets-module) | [Tech Docs](./TECHNICAL_DOCUMENTATION.md#fixed-assets) | [API](./API_REFERENCE.md#fixed-assets) |
+| **Multi-Currency** | [User Guide](./USER_GUIDE.md#10--وحدة-العملات-المتعددة--multi-currency-module) | [Tech Docs](./TECHNICAL_DOCUMENTATION.md#multi-currency) | [API](./API_REFERENCE.md#multi-currency) |
 
 ---
 
@@ -103,14 +123,14 @@ Integrate with the system:
 ### TECHNICAL_DOCUMENTATION.md Sections
 
 | Section | Content | Best For |
-| --------- | --------- | ---------- |
-| 1. System Overview | Architecture, business modules | Everyone |
+| ------- | ------- | -------- |
+| 1. System Overview | Architecture, ERP modules | Everyone |
 | 2. Architecture & Tech Stack | Technologies, design patterns | Architects, Developers |
 | 3. Backend Documentation | Laravel setup, controllers, services | Backend Devs |
 | 4. Frontend Documentation | Next.js setup, routing, components | Frontend Devs |
 | 5. Database Schema & Models | Table structures, relationships | Backend Devs, DBAs |
 | 6. API Surface & Contracts | Endpoint examples, contracts | Integration Devs |
-| 7. Business Logic & Services | Core services, workflows | Backend Devs |
+| 7. Business Logic & Services | Core services, ERP workflows | Backend Devs |
 | 8. Security & Authentication | Auth flow, permissions, security | Security, Backend Devs |
 | 9. Developer Onboarding | Setup, workflow, guidelines | New Developers |
 | 10. Troubleshooting | Common issues, solutions | All Developers |
@@ -119,7 +139,7 @@ Integrate with the system:
 ### DATABASE_SCHEMA.md Sections
 
 | Section | Content |
-| --------- | --------- |
+| ------- | ------- |
 | Overview | Table groups, categories |
 | Detailed ERD | Visual relationships (text format) |
 | Key Relationships | Foreign keys, cascades |
@@ -129,7 +149,7 @@ Integrate with the system:
 ### API_REFERENCE.md Sections
 
 | Section | Endpoints |
-| --------- | ----------- |
+| ------- | --------- |
 | Authentication | Login, logout, session check |
 | Sales & Invoicing | Invoice CRUD, ZATCA |
 | Purchases | Purchase CRUD, approvals |
@@ -162,7 +182,7 @@ Integrate with the system:
 - [API_REFERENCE.md](./API_REFERENCE.md)
 - [TECHNICAL_DOCUMENTATION.md - Section 6](./TECHNICAL_DOCUMENTATION.md#6-api-surface--contracts)
 
-**Business Logic:**
+**Business Logic & ERP Workflows:**
 
 - [TECHNICAL_DOCUMENTATION.md - Section 7](./TECHNICAL_DOCUMENTATION.md#7-business-logic--services)
 - Backend service files in `src/app/Services/`
@@ -221,7 +241,7 @@ Integrate with the system:
 
 ## 🎯 Use Cases
 
-### Scenario: "I need to add a new module"
+### Scenario: "I need to add a new ERP module"
 
 1. **Understand existing architecture:**
    - Read [TECHNICAL_DOCUMENTATION.md - Section 2](./TECHNICAL_DOCUMENTATION.md#2-architecture--technology-stack)
@@ -232,15 +252,20 @@ Integrate with the system:
 
 3. **Build backend:**
    - Create model, controller, service
+   - Implement GL posting if financial
    - Follow patterns in [TECHNICAL_DOCUMENTATION.md - Section 3](./TECHNICAL_DOCUMENTATION.md#3-backend-documentation-src)
 
 4. **Build frontend:**
    - Create page component
    - Add API integration
+   - Add to navigation
    - Follow [TECHNICAL_DOCUMENTATION.md - Section 4](./TECHNICAL_DOCUMENTATION.md#4-frontend-documentation-public)
 
 5. **Document API:**
    - Add to [API_REFERENCE.md](./API_REFERENCE.md)
+
+6. **Update User Guide:**
+   - Add to [USER_GUIDE.md](./USER_GUIDE.md) (Arabic & English)
 
 ### Scenario: "I'm getting an error"
 
@@ -256,6 +281,12 @@ Integrate with the system:
 4. Run migrations
 5. Set up queue workers
 
+### Scenario: "I need to understand a financial workflow"
+
+1. Check [USER_GUIDE.md](./USER_GUIDE.md) for business process
+2. Review [TECHNICAL_DOCUMENTATION.md - Section 7](./TECHNICAL_DOCUMENTATION.md#7-business-logic--services) for implementation
+3. Trace through relevant Service class
+
 ---
 
 ## 📝 Documentation Standards
@@ -266,14 +297,15 @@ All documentation follows these principles:
 - **Accurate:** Reflects actual codebase
 - **Practical:** Includes examples and use cases
 - **Searchable:** Clear headers and structure
+- **Bilingual:** User Guide in Arabic & English
 - **Versioned:** Dated and version-tracked
 
 ---
 
 ## 🔄 Documentation Updates
 
-**Last Updated:** January 31, 2026  
-**Version:** 2.1  
+**Last Updated:** February 5, 2026  
+**Version:** 2.2  
 **Codebase Version:** Laravel 12 + Next.js 16
 
 ### Update Policy
@@ -284,6 +316,7 @@ Documentation should be updated when:
 - Major refactoring occurs
 - API contracts change
 - Database schema changes
+- ERP workflows change
 - Deployment procedures change
 
 ---
@@ -315,11 +348,12 @@ Documentation should be updated when:
 When using this documentation:
 
 1. **Start with README.md** for quick orientation
-2. **Use TECHNICAL_DOCUMENTATION.md** as main reference
-3. **Consult DATABASE_SCHEMA.md** for data modeling
-4. **Reference API_REFERENCE.md** for API integration
-5. **Keep documentation open** while coding
-6. **Update documentation** when you change code
+2. **Use USER_GUIDE.md** to understand business processes
+3. **Use TECHNICAL_DOCUMENTATION.md** as main developer reference
+4. **Consult DATABASE_SCHEMA.md** for data modeling
+5. **Reference API_REFERENCE.md** for API integration
+6. **Keep documentation open** while coding
+7. **Update documentation** when you change code
 
 ---
 
@@ -327,13 +361,13 @@ When using this documentation:
 
 - [ ] Read README.md (5 minutes)
 - [ ] Complete local setup (10 minutes)
-- [ ] Review System Overview (15 minutes)
+- [ ] Review ERP System Overview (15 minutes)
+- [ ] Understand ERP modules in USER_GUIDE.md (30 minutes)
 - [ ] Explore database schema (20 minutes)
 - [ ] Run the application locally
 - [ ] Make a test API call
 - [ ] Review codebase structure
 - [ ] Read your role-specific documentation section
-- [ ] Join team communication channels
 - [ ] Set up development environment
 
 **Estimated Time:** 2-3 hours total
@@ -343,43 +377,56 @@ When using this documentation:
 ## 🗺️ Visual Documentation Map
 
 ```txt
-accounting-system/
+ACCSYSTEM-erp/
 │
 ├── 📄 README.md
 │   ├─► Quick Start
-│   ├─► Features Overview
+│   ├─► ERP Module Overview
 │   └─► Installation
 │
-├── 📘 TECHNICAL_DOCUMENTATION.md ⭐ MAIN
-│   ├─► Section 1: System Overview
-│   ├─► Section 2: Architecture
-│   ├─► Section 3: Backend (Laravel)
-│   ├─► Section 4: Frontend (Next.js)
-│   ├─► Section 5: Database Schema
-│   ├─► Section 6: API Contracts
-│   ├─► Section 7: Business Logic
-│   ├─► Section 8: Security
-│   ├─► Section 9: Developer Onboarding
-│   ├─► Section 10: Troubleshooting
-│   └─► Section 11: Deployment
+├── 🤝 CONTRIBUTING.md
+│   └─► Contribution Guidelines
 │
-├── 📊 DATABASE_SCHEMA.md
-│   ├─► 49 Tables
-│   ├─► ERD Diagrams
-│   ├─► Relationships
-│   └─► Constraints
-│
-├── 🔌 API_REFERENCE.md
-│   ├─► Authentication
-│   ├─► Sales
-│   ├─► Purchases
-│   ├─► GL
-│   ├─► Reports
-│   ├─► HR & Payroll
-│   └─► Admin
-│
-└── 📑 DOCUMENTATION_INDEX.md (this file)
-    └─► Navigation Guide
+└── docs/
+    │
+    ├── 📘 TECHNICAL_DOCUMENTATION.md ⭐ MAIN
+    │   ├─► Section 1: System Overview
+    │   ├─► Section 2: Architecture
+    │   ├─► Section 3: Backend (Laravel)
+    │   ├─► Section 4: Frontend (Next.js)
+    │   ├─► Section 5: Database Schema
+    │   ├─► Section 6: API Contracts
+    │   ├─► Section 7: Business Logic
+    │   ├─► Section 8: Security
+    │   ├─► Section 9: Developer Onboarding
+    │   ├─► Section 10: Troubleshooting
+    │   └─► Section 11: Deployment
+    │
+    ├── 📖 USER_GUIDE.md (العربية/English)
+    │   ├─► مقدمة عن النظام
+    │   ├─► الوحدات الأساسية (12 modules)
+    │   ├─► الدورات المستندية
+    │   ├─► الأدوار والصلاحيات
+    │   └─► أسئلة شائعة
+    │
+    ├── 📊 DATABASE_SCHEMA.md
+    │   ├─► 52 Tables
+    │   ├─► ERD Diagrams
+    │   ├─► Relationships
+    │   └─► Constraints
+    │
+    ├── 🔌 API_REFERENCE.md
+    │   ├─► Authentication
+    │   ├─► Sales
+    │   ├─► Purchases
+    │   ├─► Inventory
+    │   ├─► GL
+    │   ├─► Reports
+    │   ├─► HR & Payroll
+    │   └─► Admin
+    │
+    └── 📑 DOCUMENTATION_INDEX.md (this file)
+        └─► Navigation Guide
 ```
 
 ---
