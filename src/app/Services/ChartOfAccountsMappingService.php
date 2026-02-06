@@ -3,8 +3,20 @@
 namespace App\Services;
 
 use App\Models\ChartOfAccount;
+
+/**
+ * Service for dynamically mapping business operations to Chart of Accounts.
+ * Resolves account codes by type and name pattern, prioritizing leaf accounts.
+ * Used by SalesService, PurchaseService, PayrollService, and others.
+ */
 class ChartOfAccountsMappingService
 {
+    /**
+     * Get a mapping of standard account roles to their account codes.
+     * Attempts to find accounts by Arabic name first, then English fallback.
+     * 
+     * @return array<string, string> Map of account role => account code
+     */
     public function getStandardAccounts(): array
     {
         return [
@@ -28,6 +40,14 @@ class ChartOfAccountsMappingService
         ];  
     }
 
+    /**
+     * Find an account code by type and optional name pattern.
+     * Prioritizes leaf accounts (no children) to ensure proper posting.
+     * 
+     * @param string $accountType Account type (Asset, Liability, Equity, Revenue, Expense)
+     * @param string|null $namePattern Optional pattern to match account name or code
+     * @return string|null Account code or null if not found
+     */
     public function getAccountCode(string $accountType, ?string $namePattern = null): ?string
     {
         // Preference: Accounts that are NOT parents (no children)
@@ -64,6 +84,12 @@ class ChartOfAccountsMappingService
         return $account?->account_code;
     }
 
+    /**
+     * Validate that an account code exists and is active.
+     * 
+     * @param string $accountCode The account code to validate
+     * @return string|null The validated account code, or null if invalid
+     */
     public function validateAccountCode(string $accountCode): ?string
     {
         $account = \App\Models\ChartOfAccount::where('account_code', $accountCode)

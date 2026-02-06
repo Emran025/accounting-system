@@ -12,6 +12,9 @@ import { Select } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/RadioGroup";
 import { Checkbox } from "@/components/ui/checkbox";
 
+/**
+ * Extended PayrollItem interface with calculated fields for UI display.
+ */
 interface PayrollItemExtended extends PayrollItem {
   employee_name?: string;
   paid_amount?: number;
@@ -21,6 +24,9 @@ interface PayrollItemExtended extends PayrollItem {
   status: 'active' | 'on_hold';
 }
 
+/**
+ * Represents a payroll payment or advance transaction.
+ */
 interface PayrollTransaction {
   id: number;
   amount: number;
@@ -29,6 +35,9 @@ interface PayrollTransaction {
   notes: string;
 }
 
+/**
+ * Chart of Account for payment method selection.
+ */
 interface Account {
   id: number;
   code: string;
@@ -36,6 +45,16 @@ interface Account {
   type: string;
 }
 
+/**
+ * Payroll Management Component.
+ * Provides a comprehensive interface for:
+ * - Generating payroll cycles (salary, bonus, incentive)
+ * - Multi-level approval workflow
+ * - Individual and bulk payment processing
+ * - Payment history tracking
+ * 
+ * Integrates with PayrollController API for all operations.
+ */
 export function Payroll() {
   const [payrollCycles, setPayrollCycles] = useState<PayrollCycle[]>([]);
   const [selectedCycle, setSelectedCycle] = useState<PayrollCycle | null>(null);

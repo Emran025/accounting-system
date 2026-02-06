@@ -8,6 +8,18 @@ import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Role, Department } from "../../types";
 
+/**
+ * Add Employee Page Component.
+ * Comprehensive form for creating new employee records with:
+ * - Personal information (name, ID, contact details)
+ * - Employment details (role, department, contract type, manager)
+ * - Financial information (salary, GOSI, bank details, vacation balance)
+ * - Portal credentials for self-service access
+ * 
+ * Integrates with EmployeesController API for employee creation.
+ * 
+ * @returns The AddEmployeePage component
+ */
 export default function AddEmployeePage() {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);

@@ -14,6 +14,10 @@ use App\Services\LeaveService;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
+/**
+ * Service for managing the multi-step payroll lifecycle:
+ * Generation, Multi-Level Approval, Accrual Posting, and Payment Disbursement.
+ */
 class PayrollService
 {
     protected $accountService;
@@ -22,6 +26,15 @@ class PayrollService
     protected $salaryCalculator;
     protected $leaveService;
 
+    /**
+     * PayrollService constructor.
+     * 
+     * @param EmployeeAccountService $accountService
+     * @param ChartOfAccountsMappingService $mappingService
+     * @param LedgerService $ledgerService
+     * @param SalaryCalculatorInterface $salaryCalculator
+     * @param LeaveService $leaveService
+     */
     public function __construct(
         EmployeeAccountService $accountService, 
         ChartOfAccountsMappingService $mappingService,
@@ -37,7 +50,11 @@ class PayrollService
     }
 
     /**
-     * Get the next approver for a user
+     * Determine the next approver in the management hierarchy.
+     * Traverses the employee->manager_id relationship.
+     * 
+     * @param int $userId
+     * @return int|null User ID of the next approver, or null if no manager
      */
     public function getNextApprover($userId)
     {
@@ -50,7 +67,14 @@ class PayrollService
     }
 
     /**
-     * Generate a payroll cycle (Salary, Bonus, Incentive, etc.)
+     * Generate a new payroll cycle (Salary, Bonus, Incentive, etc.).
+     * Creates PayrollCycle and PayrollItem records for each targeted employee.
+     * Uses SalaryCalculatorService for dynamic salary computation.
+     * 
+     * @param array $data Cycle data including period_start, period_end, target_type, employee_ids
+     * @param User $user The user initiating the payroll generation
+     * @return PayrollCycle The created payroll cycle
+     * @throws \Exception If transaction fails
      */
     public function generatePayroll($data, $user)
     {
@@ -175,6 +199,16 @@ class PayrollService
         }
     }
 
+    /**
+     * Approve a payroll cycle.
+     * Advances the cycle through the multi-level approval workflow.
+     * If no further approvers exist, finalizes the cycle and posts accrual GL entries.
+     * 
+     * @param int $id PayrollCycle ID
+     * @param User $user The approving user
+     * @return PayrollCycle The updated payroll cycle
+     * @throws \Exception If the user is not the current authorized approver
+     */
     public function approvePayroll($id, $user)
     {
         $cycle = PayrollCycle::findOrFail($id);
@@ -239,6 +273,14 @@ class PayrollService
         }
     }
 
+    /**
+     * Create accrual General Ledger entries upon final approval.
+     * Debits Salary Expense and Credits Salary Payable/Deductions.
+     * 
+     * @param PayrollCycle $cycle
+     * @param User $user
+     * @return void
+     */
     protected function createAccrualEntries($cycle, $user)
     {
         $mappings = $this->mappingService->getStandardAccounts();
@@ -279,6 +321,16 @@ class PayrollService
         );
     }
 
+    /**
+     * Process payment for an approved payroll cycle.
+     * Creates PayrollTransaction records and posts payment GL entries.
+     * Debits Salary Payable and Credits Cash/Bank.
+     * 
+     * @param int $id PayrollCycle ID
+     * @param int|null $paymentAccountId Optional specific payment account ID (defaults to Cash)
+     * @return PayrollCycle The updated cycle
+     * @throws \Exception If the cycle is not in 'approved' status
+     */
     public function processPayment($id, $paymentAccountId = null)
     {
         $cycle = PayrollCycle::with('items')->findOrFail($id);

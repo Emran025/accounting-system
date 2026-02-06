@@ -6,8 +6,21 @@ use App\Models\Role;
 use App\Models\Module;
 use App\Models\RolePermission;
 
+/**
+ * Service for Role-Based Access Control (RBAC).
+ * Loads and checks permissions based on user roles and module-level grants.
+ * Supports wildcard permission ('*') for admin roles.
+ */
 class PermissionService
 {
+    /**
+     * Load all permissions for a given role ID.
+     * Joins role_permissions with modules to build a permission map.
+     * Admin roles receive wildcard access to all modules.
+     * 
+     * @param int|null $roleId The role ID to load permissions for
+     * @return array<string, array{view: bool, create: bool, edit: bool, delete: bool}>
+     */
     public static function loadPermissions(?int $roleId): array
     {
         if (!$roleId) {
@@ -51,6 +64,13 @@ class PermissionService
         return $permissions;
     }
 
+    /**
+     * Load permissions by role key (e.g., 'admin', 'manager').
+     * Resolves the role key to an ID and delegates to loadPermissions.
+     * 
+     * @param string $roleKey The unique role key
+     * @return array Permission map (same structure as loadPermissions)
+     */
     public static function loadPermissionsByKey(string $roleKey): array
     {
         $role = Role::where('role_key', $roleKey)
@@ -64,6 +84,14 @@ class PermissionService
         return self::loadPermissions($role->id);
     }
 
+    /**
+     * Check if the current session has permission for a specific action.
+     * Checks wildcard permission first, then module-specific permission.
+     * 
+     * @param string $module The module key (e.g., 'sales', 'inventory')
+     * @param string $action The action to check ('view', 'create', 'edit', 'delete')
+     * @return bool True if permission is granted
+     */
     public static function can(string $module, string $action = 'view'): bool
     {
         $permissions = session('permissions', []);
@@ -81,6 +109,14 @@ class PermissionService
         return false;
     }
 
+    /**
+     * Require permission for a module action or abort with 403.
+     * Use this as a guard at the beginning of controller methods.
+     * 
+     * @param string $module The module key
+     * @param string $action The action to require
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException 403 if denied
+     */
     public static function requirePermission(string $module, string $action = 'view'): void
     {
         if (!self::can($module, $action)) {

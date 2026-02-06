@@ -11,6 +11,18 @@ import { Icon } from "@/lib/icons";
 import { Product, Purchase, PurchaseRequest, Supplier } from "./types";
 import { usePurchases } from "./usePurchases";
 
+/**
+ * Purchases Management Page.
+ * Provides complete CRUD operations for purchase transactions including:
+ * - Product selection with auto-price population
+ * - Supplier management (cash or credit payments)
+ * - Purchase requests conversion to actual purchases
+ * - Inventory quantity updates on purchase save/delete
+ * 
+ * Integrates with PurchasesController API and enforces RBAC permissions.
+ * 
+ * @returns The PurchasesPage component
+ */
 export default function PurchasesPage() {
     const [user, setUser] = useState<User | null>(null);
     const [permissions, setPermissions] = useState<Permission[]>([]);

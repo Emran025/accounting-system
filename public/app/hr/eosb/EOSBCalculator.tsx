@@ -10,6 +10,10 @@ import { getIcon } from "@/lib/icons";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
 
+/**
+ * End of Service Benefit (EOSB) Calculation result.
+ * Based on Saudi Labor Law Article 84-85 for termination benefits.
+ */
 interface EOSBCalculation {
   years_of_service: number;
   months_of_service: number;
@@ -26,6 +30,17 @@ interface EOSBCalculation {
   };
 }
 
+/**
+ * End of Service Benefit (EOSB) Calculator Component.
+ * Calculates termination benefits according to Saudi Labor Law:
+ * - EOSB: Based on years of service (half month for first 5 years, full month after)
+ * - Unused vacation pay: Remaining vacation balance at daily rate
+ * - Notice period compensation: Based on termination reason
+ * 
+ * Formula varies by termination reason per Article 84-85.
+ * 
+ * @returns The EOSBCalculator component
+ */
 export function EOSBCalculator() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);

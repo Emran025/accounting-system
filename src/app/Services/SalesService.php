@@ -13,12 +13,23 @@ use App\Models\InvoiceFee;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Service for handling sales operations, including invoice creation, returns, and inventory integration.
+ * Implements "Server Sovereignty" principles for tax calculation and pricing floors.
+ */
 class SalesService
 {
     private LedgerService $ledgerService;
     private ChartOfAccountsMappingService $coaService;
     private InventoryCostingService $costingService;
 
+    /**
+     * SalesService constructor.
+     * 
+     * @param LedgerService $ledgerService
+     * @param ChartOfAccountsMappingService $coaService
+     * @param InventoryCostingService $costingService
+     */
     public function __construct(
         LedgerService $ledgerService,
         ChartOfAccountsMappingService $coaService,
@@ -29,6 +40,15 @@ class SalesService
         $this->costingService = $costingService;
     }
 
+    /**
+     * Create a new sales invoice.
+     * Enforces pricing floors, calculates taxes (VAT) on the server, and handles 
+     * both cash and credit payment workflows with appropriate GL entries.
+     * 
+     * @param array $data Invoice data including items, customer_id, payment_type, etc.
+     * @return int The ID of the newly created invoice
+     * @throws \Exception If validation fails or inventory is insufficient
+     */
     public function createInvoice(array $data): int
     {
         return DB::transaction(function () use ($data) {
@@ -445,6 +465,15 @@ class SalesService
         });
     }
 
+    /**
+     * Delete (void) an existing invoice.
+     * Instead of a hard delete, it flags the invoice as reversed and creates 
+     * reversing GL entries to maintain audit trail.
+     * 
+     * @param int $invoiceId The ID of the invoice to delete
+     * @return bool True on success
+     * @throws \Exception If the invoice already has payments collected
+     */
     public function deleteInvoice(int $invoiceId): bool
     {
         return DB::transaction(function () use ($invoiceId) {

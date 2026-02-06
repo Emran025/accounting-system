@@ -16,20 +16,39 @@ if (!process.env.NEXT_PUBLIC_API_BASE || process.env.NEXT_PUBLIC_API_BASE === 'u
   console.warn('NEXT_PUBLIC_API_BASE is not defined or is "undefined". Using fallback: ' + API_BASE);
 }
 
+/**
+ * Standard API response structure for the application.
+ */
 export interface APIResponse {
+  /** Indicates if the operation was successful */
   success?: boolean;
+  /** Human-readable message (often in Arabic) */
   message?: string;
+  /** Primary record ID if applicable */
+  id?: number | string;
+  /** Additional data fields returned by the server */
   [key: string]: unknown;
 }
 
+/**
+ * Options for the fetchAPI utility.
+ */
 interface FetchOptions {
+  /** HTTP method to use */
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  /** JSON string for the request body */
   body?: string;
+  /** Custom headers to include */
   headers?: Record<string, string>;
 }
 
 /**
- * Wrapper for fetch to handle repetitive tasks
+ * Core utility for making authenticated requests to the Laravel backend.
+ * Handles API base URL resolution, CSRF/Session token injection, and unified error handling.
+ * 
+ * @param action The API endpoint path (relative to the base API URL)
+ * @param options Configuration for the fetch request
+ * @returns A promise resolving to the standard APIResponse structure
  */
 export async function fetchAPI(
   action: string,
@@ -104,7 +123,10 @@ export async function fetchAPI(
 let systemSettings: any = null;
 
 /**
- * Initialize settings - should be called at app startup
+ * Fetches and caches system-wide settings from the server.
+ * This should be ideally called during the application's initialization phase.
+ * 
+ * @returns Promise resolving to the settings object or null if failed
  */
 export async function initSystemSettings() {
   if (systemSettings) return systemSettings;

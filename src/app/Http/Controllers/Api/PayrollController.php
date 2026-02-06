@@ -10,23 +10,45 @@ use App\Services\PayrollService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Controller for Payroll operations via API.
+ * Handles payroll cycle generation, approval workflow, individual payments,
+ * and employee payslip access.
+ */
 class PayrollController extends Controller
 {
     use BaseApiController;
 
     protected $payrollService;
 
+    /**
+     * PayrollController constructor.
+     * 
+     * @param PayrollService $payrollService
+     */
     public function __construct(PayrollService $payrollService)
     {
         $this->payrollService = $payrollService;
     }
 
+    /**
+     * List all payroll cycles with pagination.
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function index()
     {
         $cycles = PayrollCycle::with(['current_approver', 'creator'])->orderBy('created_at', 'desc')->paginate(15);
         return response()->json($cycles);
     }
 
+    /**
+     * Generate a new payroll cycle.
+     * Supports salary, bonus, incentive, and other payment types.
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function generatePayroll(Request $request)
     {
         // Validation for different types
@@ -55,6 +77,14 @@ class PayrollController extends Controller
         }
     }
 
+    /**
+     * Approve a payroll cycle.
+     * Advances the multi-level approval workflow.
+     * 
+     * @param Request $request
+     * @param int $id Payroll cycle ID
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function approve(Request $request, $id)
     {
         try {
@@ -65,6 +95,14 @@ class PayrollController extends Controller
         }
     }
 
+    /**
+     * Process payment for an entire approved payroll cycle.
+     * Posts GL entries and updates cycle status to 'paid'.
+     * 
+     * @param Request $request
+     * @param int $id Payroll cycle ID
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function processPayment(Request $request, $id)
     {
         try {
@@ -134,6 +172,14 @@ class PayrollController extends Controller
         }
     }
 
+    /**
+     * Pay an individual payroll item (partial or full).
+     * Creates PayrollTransaction records and posts journal entries.
+     * 
+     * @param Request $request
+     * @param int $itemId Payroll item ID
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function payIndividualItem(Request $request, $itemId)
     {
         $request->validate([

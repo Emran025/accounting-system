@@ -17,16 +17,31 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
+/**
+ * Controller for managing sales invoices via API.
+ * Handles pagination, authorization, and integrates with SalesService and TelescopeService.
+ */
 class SalesController extends Controller
 {
     use BaseApiController;
     private SalesService $salesService;
 
+    /**
+     * SalesController constructor.
+     * 
+     * @param SalesService $salesService
+     */
     public function __construct(SalesService $salesService)
     {
         $this->salesService = $salesService;
     }
 
+    /**
+     * List invoices with pagination and optional filtering.
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function index(Request $request): JsonResponse
     {
 
@@ -60,6 +75,14 @@ class SalesController extends Controller
         );
     }
 
+    /**
+     * Store a new invoice.
+     * Validates input using StoreInvoiceRequest and handles various exception types.
+     * 
+     * @param StoreInvoiceRequest $request
+     * @return JsonResponse
+     * @throws ValidationException
+     */
     public function store(StoreInvoiceRequest $request): JsonResponse
     {
 
@@ -106,6 +129,13 @@ class SalesController extends Controller
         }
     }
 
+    /**
+     * Get a single invoice by ID.
+     * Includes resource-level authorization checks.
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function show(Request $request): JsonResponse
     {
         $id = $request->input('id');
@@ -125,6 +155,13 @@ class SalesController extends Controller
         return $this->successResponse(new InvoiceResource($invoice));
     }
 
+    /**
+     * Delete (void) an invoice.
+     * Checks for closed fiscal periods and authorization before deletion.
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function destroy(Request $request): JsonResponse
     {
 

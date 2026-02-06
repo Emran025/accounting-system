@@ -7,6 +7,16 @@ import { StoreSettings } from "../types";
 import { TextInput } from "@/components/ui/TextInput";
 import { Textarea } from "@/components/ui/Textarea";
 
+/**
+ * Store Settings Configuration Tab.
+ * Manages core business information including store name, contact details,
+ * tax registration number (VAT), and commercial registration (CR) number.
+ * 
+ * Settings are persisted via the Settings API and used across invoices,
+ * reports, and ZATCA e-invoicing integration.
+ * 
+ * @returns The StoreSettingsTab component
+ */
 export function StoreSettingsTab() {
   const [storeSettings, setStoreSettings] = useState<StoreSettings>({
     store_name: "",

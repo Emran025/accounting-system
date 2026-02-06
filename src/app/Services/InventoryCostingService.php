@@ -6,10 +6,15 @@ use App\Models\Product;
 use App\Exceptions\BusinessLogicException;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Service for managing inventory costing using FIFO, LIFO, and WAC methods.
+ * Implements row-level locking for concurrency control and immutable transaction tracking.
+ */
 class InventoryCostingService
 {
     /**
-     * Record a purchase for inventory costing
+     * Record a purchase layer for inventory costing.
+     * Original quantity is immutable; consumption is tracked via separate records.
      * 
      * @param int $productId Product ID
      * @param int $purchaseId Purchase ID
@@ -17,8 +22,8 @@ class InventoryCostingService
      * @param float $unitCost Unit cost
      * @param float $totalCost Total cost
      * @param string $method Costing method (FIFO, LIFO, WAC)
-     * @param string $refType
-     * @param int $refId
+     * @param string $refType Reference type (defaults to 'purchases')
+     * @param int|null $refId Reference ID
      * @return void
      */
     public function recordPurchase(
@@ -47,13 +52,16 @@ class InventoryCostingService
     }
 
     /**
-     * Record a sale and calculate COGS
+     * Record a sale and calculate Cost of Goods Sold (COGS).
+     * Uses database-level locking (lockForUpdate) to ensure atomic consumption
+     * of inventory layers and prevent race conditions.
      * 
      * @param int $productId Product ID
      * @param int $saleId Sale/Invoice ID
      * @param int $quantity Quantity sold
      * @param string $method Costing method (FIFO, LIFO, WAC)
      * @return float Cost of Goods Sold
+     * @throws BusinessLogicException If insufficient inventory is available
      */
     public function recordSale(
         int $productId,
@@ -158,7 +166,14 @@ class InventoryCostingService
     }
 
     /**
-     * Handle Inventory Count Adjustments (BUG-006)
+     * Handle inventory count adjustments.
+     * Variance > 0 creates a new inventory layer at current average cost.
+     * Variance < 0 consumes existing layers as a 'sale'.
+     * 
+     * @param int $productId
+     * @param int $inventoryCountId
+     * @param int $variance
+     * @return void
      */
     public function recordAdjustment(int $productId, int $inventoryCountId, int $variance): void
     {

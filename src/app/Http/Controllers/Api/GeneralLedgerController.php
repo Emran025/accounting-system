@@ -11,19 +11,33 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Controller for General Ledger operations via API.
+ * Provides endpoints for trial balance, account details, GL entries,
+ * account activity analysis, and balance history reporting.
+ */
 class GeneralLedgerController extends Controller
 {
     use BaseApiController;
 
     private LedgerService $ledgerService;
 
+    /**
+     * GeneralLedgerController constructor.
+     * 
+     * @param LedgerService $ledgerService
+     */
     public function __construct(LedgerService $ledgerService)
     {
         $this->ledgerService = $ledgerService;
     }
 
     /**
-     * Get trial balance
+     * Get trial balance report.
+     * Returns all accounts with debit/credit balances as of a specific date.
+     * 
+     * @param Request $request Contains optional as_of_date
+     * @return JsonResponse Trial balance data with totals
      */
     public function trialBalance(Request $request): JsonResponse
     {
@@ -57,7 +71,11 @@ class GeneralLedgerController extends Controller
     }
 
     /**
-     * Get account details with transaction history
+     * Get account details with paginated transaction history.
+     * Also calculates and returns the current running balance.
+     * 
+     * @param Request $request Contains account_code, optional date filters and pagination
+     * @return JsonResponse Account info, transactions, and pagination
      */
     public function accountDetails(Request $request): JsonResponse
     {
@@ -136,7 +154,11 @@ class GeneralLedgerController extends Controller
     }
 
     /**
-     * Get GL entries with filtering
+     * Get GL entries with flexible filtering.
+     * Supports filtering by date range, voucher number, and account code.
+     * 
+     * @param Request $request Contains filter parameters and pagination
+     * @return JsonResponse Filtered GL entries
      */
     public function entries(Request $request): JsonResponse
     {
@@ -206,7 +228,11 @@ class GeneralLedgerController extends Controller
     }
 
     /**
-     * Get account activity summary
+     * Get account activity summary for a period.
+     * Aggregates debit/credit totals and transaction counts per account.
+     * 
+     * @param Request $request Contains start_date, end_date
+     * @return JsonResponse Accounts with activity during the period
      */
     public function accountActivity(Request $request): JsonResponse
     {
@@ -260,7 +286,12 @@ class GeneralLedgerController extends Controller
     }
 
     /**
-     * Get account balance history over time
+     * Get account balance history over time.
+     * Groups transactions by interval (day, week, month, year) and
+     * calculates running balance for trend analysis.
+     * 
+     * @param Request $request Contains account_code, date range, and interval
+     * @return JsonResponse Balance history data points
      */
     public function accountBalanceHistory(Request $request): JsonResponse
     {

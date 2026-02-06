@@ -15,19 +15,33 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Controller for generating Financial Reports via API.
+ * Provides Balance Sheet, Profit & Loss, Cash Flow Statement,
+ * Aging Reports for Receivables/Payables, and Comparative Analysis.
+ */
 class ReportsController extends Controller
 {
     use BaseApiController;
 
     private LedgerService $ledgerService;
 
+    /**
+     * ReportsController constructor.
+     * 
+     * @param LedgerService $ledgerService
+     */
     public function __construct(LedgerService $ledgerService)
     {
         $this->ledgerService = $ledgerService;
     }
 
     /**
-     * Get Balance Sheet
+     * Generate Balance Sheet report.
+     * Assets = Liabilities + Equity (includes current period Net Income).
+     * 
+     * @param Request $request Contains optional as_of_date
+     * @return JsonResponse Balance sheet data with totals
      */
     public function balanceSheet(Request $request): JsonResponse
     {
@@ -89,7 +103,11 @@ class ReportsController extends Controller
     }
 
     /**
-     * Get Profit & Loss Statement
+     * Generate Profit & Loss (Income Statement) report.
+     * Calculates Revenue - Expenses = Net Income for a period.
+     * 
+     * @param Request $request Contains start_date, end_date
+     * @return JsonResponse P&L data with totals
      */
     public function profitLoss(Request $request): JsonResponse
     {
@@ -129,7 +147,11 @@ class ReportsController extends Controller
     }
 
     /**
-     * Get Cash Flow Statement
+     * Generate Cash Flow Statement.
+     * Uses indirect method: Operating (Net Income) + Investing + Financing.
+     * 
+     * @param Request $request Contains start_date, end_date
+     * @return JsonResponse Cash flow data with beginning/ending balances
      */
     public function cashFlow(Request $request): JsonResponse
     {
@@ -195,7 +217,11 @@ class ReportsController extends Controller
     }
 
     /**
-     * Get Aging Receivables Report
+     * Generate Aging Receivables report.
+     * Buckets AR balances by days outstanding (Current, 1-30, 31-60, 61-90, 90+).
+     * 
+     * @param Request $request Contains optional as_of_date
+     * @return JsonResponse Aging data by customer with totals
      */
     public function agingReceivables(Request $request): JsonResponse
     {
@@ -242,7 +268,11 @@ class ReportsController extends Controller
     }
 
     /**
-     * Get Aging Payables Report
+     * Generate Aging Payables report.
+     * Buckets AP balances by days outstanding (Current, 1-30, 31-60, 61-90, 90+).
+     * 
+     * @param Request $request Contains optional as_of_date
+     * @return JsonResponse Aging data by supplier with totals
      */
     public function agingPayables(Request $request): JsonResponse
     {
@@ -289,7 +319,11 @@ class ReportsController extends Controller
     }
 
     /**
-     * Get Comparative Financial Report
+     * Generate Comparative Financial Report.
+     * Compares current period metrics to a previous period.
+     * 
+     * @param Request $request Contains current and previous period dates
+     * @return JsonResponse Comparative data with change amounts and percentages
      */
     public function comparative(Request $request): JsonResponse
     {
@@ -341,6 +375,13 @@ class ReportsController extends Controller
         ]);
     }
 
+    /**
+     * Calculate change amount and percentage between two values.
+     * 
+     * @param float $current Current period value
+     * @param float $previous Previous period value
+     * @return array{amount: float, percentage: float} Change details
+     */
     private function calculateChange($current, $previous): array
     {
         $amount = $current - $previous;

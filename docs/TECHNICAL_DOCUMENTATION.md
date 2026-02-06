@@ -1942,7 +1942,29 @@ php artisan test
 - No testing framework configured yet
 - Recommend: Jest + React Testing Library
 
+### 9.5 Internal Documentation Standards
+
+To maintain code clarity and facilitate onboarding, the project follows strict internal documentation standards.
+
+**Backend (PHPDoc):**
+
+- All **Services** and **Controllers** must have class-level DocBlocks.
+- All **public methods** must document:
+  - Purpose and high-level logic.
+  - `@param` with types and descriptions.
+  - `@return` type and description.
+  - `@throws` for any exceptions the method might raise.
+- Complex business rules (e.g., inventory costing layers, ZATCA hash calculation) must include inline comments explaining the rationale.
+
+**Frontend (TSDoc/JSDoc):**
+
+- **Utility libraries** (e.g., `lib/api.ts`, `lib/auth.ts`) must have comprehensive DocBlocks for all exported functions.
+- **Interfaces and Types** in `lib/types.ts` should include comments for each property.
+- **Components** should document their props and any complex internal state management logic.
+- Use `@param`, `@returns`, and `@interface` tags where appropriate.
+
 ---
+
 
 ## 10. Troubleshooting & Common Issues
 

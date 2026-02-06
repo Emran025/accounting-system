@@ -9,12 +9,23 @@ use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Service for managing Purchases, including creation, approval workflow,
+ * inventory impact, and General Ledger/Accounts Payable integration.
+ */
 class PurchaseService
 {
     private LedgerService $ledgerService;
     private ChartOfAccountsMappingService $coaService;
     private InventoryCostingService $costingService;
 
+    /**
+     * PurchaseService constructor.
+     * 
+     * @param LedgerService $ledgerService
+     * @param ChartOfAccountsMappingService $coaService
+     * @param InventoryCostingService $costingService
+     */
     public function __construct(
         LedgerService $ledgerService,
         ChartOfAccountsMappingService $coaService,
@@ -26,7 +37,14 @@ class PurchaseService
     }
 
     /**
-     * Create a new purchase record
+     * Create a new purchase record.
+     * Handles VAT validation (Server Sovereignty), supplier creation, and
+     * automatic approval for purchases below the threshold.
+     * 
+     * @param array $data Purchase data including product_id, quantity, invoice_price, unit_type
+     * @param int $userId The ID of the user creating the purchase
+     * @return Purchase The created purchase record
+     * @throws \Exception On VAT rate manipulation or missing supplier for credit purchases
      */
     public function createPurchase(array $data, int $userId): Purchase
     {
@@ -130,7 +148,14 @@ class PurchaseService
     }
 
     /**
-     * Process stock and financial impact of a purchase
+     * Process the stock and financial impact of an approved purchase.
+     * Updates product quantity, records inventory layer, and posts to GL.
+     * 
+     * @param Purchase $purchase The purchase record
+     * @param int $actualQuantity The quantity in base units
+     * @param float $unitCost The cost per unit (excluding VAT)
+     * @param float $subtotal The purchase amount excluding VAT
+     * @return void
      */
     public function processPurchaseImpact(Purchase $purchase, int $actualQuantity, float $unitCost, float $subtotal): void
     {
@@ -216,7 +241,13 @@ class PurchaseService
     }
 
     /**
-     * Approve a pending purchase
+     * Approve a pending purchase.
+     * Processes stock impact and creates AP transaction for credit purchases.
+     * 
+     * @param int $purchaseId
+     * @param int $userId The approving user's ID
+     * @return bool True if approved, false if already approved
+     * @throws \Exception On failure
      */
     public function approvePurchase(int $purchaseId, int $userId): bool
     {
@@ -272,7 +303,13 @@ class PurchaseService
     }
 
     /**
-     * Reverse a purchase (Soft delete/Reversal)
+     * Reverse a purchase (Soft delete/Reversal).
+     * Implements partial reversal logic if stock has been partially consumed.
+     * 
+     * @param int $purchaseId
+     * @param int $userId The user performing the reversal
+     * @return void
+     * @throws \Exception If already reversed or stock is fully depleted
      */
     public function reversePurchase(int $purchaseId, int $userId): void
     {

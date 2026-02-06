@@ -9,8 +9,19 @@ use App\Models\FiscalPeriod;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+/**
+ * Service for managing general ledger operations, voucher numbering, and fiscal periods.
+ * Handles double-entry accounting integrity and transaction posting.
+ */
 class LedgerService
 {
+    /**
+     * Generate the next available voucher number for a given document type.
+     * Uses database locking to ensure uniqueness in concurrent environments.
+     * 
+     * @param string $documentType The type of document (e.g., 'VOU', 'INV', 'RET')
+     * @return string The formatted voucher number
+     */
     public function getNextVoucherNumber(string $documentType): string
     {
         return DB::transaction(function () use ($documentType) {
@@ -42,6 +53,18 @@ class LedgerService
         });
     }
 
+    /**
+     * Post a multi-entry transaction to the General Ledger.
+     * Validates double-entry integrity (debits = credits) and fiscal period constraints.
+     * 
+     * @param array $entries Array of entries, each containing 'account_code', 'entry_type', and 'amount'
+     * @param string|null $referenceType Optional reference type for the transaction source
+     * @param int|null $referenceId Optional reference ID for the transaction source
+     * @param string|null $voucherNumber Optional manual voucher number
+     * @param string|null $voucherDate Optional voucher date (defaults to current date)
+     * @return string The voucher number assigned to the transaction
+     * @throws \Exception If validation fails or the fiscal period is locked/closed
+     */
     public function postTransaction(
         array $entries,
         ?string $referenceType = null,

@@ -13,16 +13,31 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Api\BaseApiController;
 
+/**
+ * Controller for managing Purchase operations via API.
+ * Handles creation, approval, reversal, and purchase requests.
+ */
 class PurchasesController extends Controller
 {
     use BaseApiController;
 
     private PurchaseService $purchaseService;
 
+    /**
+     * PurchasesController constructor.
+     * 
+     * @param PurchaseService $purchaseService
+     */
     public function __construct(PurchaseService $purchaseService) {
         $this->purchaseService = $purchaseService;
     }
 
+    /**
+     * List all purchases with pagination and search.
+     * 
+     * @param Request $request
+     * @return JsonResponse Paginated list of purchases
+     */
     public function index(Request $request): JsonResponse
     {
 
@@ -53,6 +68,13 @@ class PurchasesController extends Controller
         );
     }
 
+    /**
+     * Create a new purchase.
+     * Delegates to PurchaseService for VAT validation and approval workflow.
+     * 
+     * @param StorePurchaseRequest $request Validated purchase data
+     * @return JsonResponse Created purchase details with voucher number
+     */
     public function store(StorePurchaseRequest $request): JsonResponse
     {
 
@@ -132,6 +154,13 @@ class PurchasesController extends Controller
         return $this->successResponse();
     }
 
+    /**
+     * Approve a pending purchase.
+     * Enforces resource-level authorization before approval.
+     * 
+     * @param Request $request
+     * @return JsonResponse Success or error message
+     */
     public function approve(Request $request): JsonResponse
     {
 
@@ -159,6 +188,14 @@ class PurchasesController extends Controller
         }
     }
 
+    /**
+     * Reverse (soft-delete) a purchase.
+     * Enforces resource-level authorization and delegates to service for
+     * stock restoration and GL reversal.
+     * 
+     * @param Request $request
+     * @return JsonResponse Success or error message
+     */
     public function destroy(Request $request): JsonResponse
     {
 

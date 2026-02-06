@@ -1,9 +1,16 @@
-// Utility functions - migrated from common.js
+/**
+ * @fileoverview Utility functions for the ACCSYSTEM ERP frontend.
+ * Provides formatting, validation, and helper utilities used across all modules.
+ */
 
 import { getSetting } from "./api";
 
 /**
- * Format a number as currency
+ * Format a number as currency using the system's configured currency symbol.
+ * Uses Arabic (Saudi Arabia) locale for number formatting.
+ * 
+ * @param amount The numeric value to format (can be string, number, null, or undefined)
+ * @returns Formatted currency string (e.g., "1,234.56 ر.س")
  */
 export function formatCurrency(amount: number | string | null | undefined): string {
   const num = parseFloat(String(amount)) || 0;
@@ -16,7 +23,10 @@ export function formatCurrency(amount: number | string | null | undefined): stri
 }
 
 /**
- * Format a date string to Arabic locale
+ * Format a date string to Arabic (Saudi Arabia) locale.
+ * 
+ * @param dateStr ISO date string or any parseable date format
+ * @returns Formatted date string (e.g., "٢٠٢٦/٠٢/٠٦") or "-" if invalid
  */
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "-";
@@ -69,7 +79,11 @@ export function formatTime(timeStr: string | null | undefined): string {
 }
 
 /**
- * Escape HTML to prevent XSS
+ * Escape HTML special characters to prevent XSS attacks.
+ * Creates a temporary DOM element to leverage browser's built-in escaping.
+ * 
+ * @param text The raw text to escape
+ * @returns HTML-safe string
  */
 export function escapeHtml(text: string | null | undefined): string {
   if (!text) return "";
@@ -155,7 +169,12 @@ export function translateExpenseCategory(category: string): string {
 
 
 /**
- * Debounce function for search inputs
+ * Debounce function for rate-limiting frequent calls (e.g., search inputs).
+ * Delays execution until after `wait` milliseconds have elapsed since the last call.
+ * 
+ * @param func The function to debounce
+ * @param wait Delay in milliseconds
+ * @returns Debounced function
  */
 export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,

@@ -7,6 +7,15 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
 import { UnearnedRevenue } from "../types";
 
+/**
+ * Unearned Revenue (Deferred Income) Management Tab.
+ * Displays a list of unearned revenue entries and allows users to
+ * recognize revenue (transfer from liability to income) over time.
+ * 
+ * Part of the Accrual Accounting module for IFRS/GAAP compliance.
+ * 
+ * @returns The UnearnedRevenueTab component
+ */
 export function UnearnedRevenueTab() {
   const [unearned, setUnearned] = useState<UnearnedRevenue[]>([]);
   const [currentPage, setCurrentPage] = useState(1);

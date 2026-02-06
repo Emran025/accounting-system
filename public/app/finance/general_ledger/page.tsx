@@ -9,6 +9,9 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
 
+/**
+ * Represents a single journal entry in the General Ledger.
+ */
 interface JournalEntry {
   id: number;
   entry_number: string;
@@ -21,6 +24,9 @@ interface JournalEntry {
   created_at: string;
 }
 
+/**
+ * Represents a row in the Trial Balance report.
+ */
 interface TrialBalanceItem {
   account_code: string;
   account_name: string;
@@ -29,6 +35,9 @@ interface TrialBalanceItem {
   balance: number;
 }
 
+/**
+ * Represents a transaction in the account history view.
+ */
 interface AccountHistoryItem {
   id: number;
   entry_date: string;
@@ -38,12 +47,24 @@ interface AccountHistoryItem {
   running_balance: number;
 }
 
+/**
+ * Represents a Chart of Account for the account selector dropdown.
+ */
 interface Account {
   id: number;
   code: string;
   name: string;
 }
 
+/**
+ * General Ledger Page Component.
+ * Provides three views:
+ * - Journal Entries: Paginated list of GL entries with date filters
+ * - Trial Balance: Summary of all account debit/credit balances
+ * - Account History: Transaction history for a selected account
+ * 
+ * @returns The General Ledger page component
+ */
 export default function GeneralLedgerPage() {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState("journal");

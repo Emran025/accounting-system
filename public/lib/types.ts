@@ -1,5 +1,8 @@
 // Core Types for the Accounting System
 
+/**
+ * Represents a system user and their associated metadata.
+ */
 export interface User {
   id: number;
   username: string;
@@ -33,6 +36,9 @@ export interface Permission {
   can_delete: boolean;
 }
 
+/**
+ * Inventory product model representing stock items, services, or packages.
+ */
 export interface Product {
   id: number;
   name: string;
@@ -272,6 +278,10 @@ export interface Pagination {
 }
 
 // Generic API Response wrapper for type safety
+/**
+ * Generic API Response wrapper for type safety across the frontend.
+ * Mirrors the backend's standard response structure.
+ */
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;

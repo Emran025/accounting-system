@@ -3,21 +3,39 @@
 import { fetchAPI } from "./api";
 import { API_ENDPOINTS } from "./endpoints";
 
+/**
+ * Represents a user in the system.
+ */
 export interface User {
+  /** Unique user identifier */
   id: number;
+  /** Login username */
   username: string;
+  /** Full display name */
   full_name: string;
+  /** Primary role slug (e.g., 'admin', 'cashier') */
   role: string;
+  /** Reference to role ID in database */
   role_id: number;
+  /** Account status */
   is_active: boolean;
+  /** Optional reference to manager for approvals */
   manager_id?: number;
 }
 
+/**
+ * Represents a module-specific permission for the current user.
+ */
 export interface Permission {
+  /** The module name/slug (e.g., 'sales', 'hr') */
   module: string;
+  /** Permission to read module data */
   can_view: boolean;
+  /** Permission to create new records */
   can_create: boolean;
+  /** Permission to modify existing records */
   can_edit: boolean;
+  /** Permission to remove records */
   can_delete: boolean;
 }
 
@@ -138,7 +156,10 @@ export function clearAuth(): void {
 }
 
 /**
- * Check authentication status with server
+ * Validates the current session with the backend.
+ * Synchronizes local authentication state with the server's response.
+ * 
+ * @returns {Promise<AuthState>} Updated authentication state
  */
 export async function checkAuth(): Promise<AuthState> {
   try {
@@ -223,7 +244,11 @@ export async function logout(): Promise<void> {
 }
 
 /**
- * Get sidebar links based on user permissions
+ * Filters the main navigation links based on the user's view permissions.
+ * Implements RBAC (Role-Based Access Control) at the UI level.
+ * 
+ * @param {Permission[]} permissions List of permissions for the current user
+ * @returns {Array<{ href: string; icon: string; label: string; module: string }>} Filtered links
  */
 export function getSidebarLinks(permissions: Permission[]): Array<{
   href: string;

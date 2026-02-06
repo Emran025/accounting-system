@@ -7,11 +7,22 @@ use App\Services\LedgerService;
 use App\Services\ChartOfAccountsMappingService;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Service for managing Fixed Asset depreciation.
+ * Supports Straight-Line, Declining Balance, and Units of Production methods.
+ * Integrates with the General Ledger for posting depreciation entries.
+ */
 class DepreciationService
 {
     private LedgerService $ledgerService;
     private ChartOfAccountsMappingService $coaService;
 
+    /**
+     * DepreciationService constructor.
+     * 
+     * @param LedgerService $ledgerService
+     * @param ChartOfAccountsMappingService $coaService
+     */
     public function __construct(
         LedgerService $ledgerService,
         ChartOfAccountsMappingService $coaService
@@ -86,7 +97,14 @@ class DepreciationService
     }
 
     /**
-     * Straight-line depreciation
+     * Calculate straight-line depreciation.
+     * Distributes the depreciable amount evenly over the useful life.
+     * 
+     * @param float $depreciableAmount Cost - Salvage Value
+     * @param int $usefulLifeYears Useful life in years
+     * @param string $purchaseDate Asset purchase date
+     * @param string $asOfDate Calculation date
+     * @return float Depreciation amount
      */
     private function calculateStraightLine(
         float $depreciableAmount,
@@ -113,7 +131,15 @@ class DepreciationService
     }
 
     /**
-     * Declining balance depreciation
+     * Calculate declining balance depreciation.
+     * Applies a fixed rate to the remaining book value each period.
+     * 
+     * @param float $purchaseValue Original asset cost
+     * @param float $accumulatedDepreciation Previously recorded depreciation
+     * @param float $rate Annual depreciation rate (percentage)
+     * @param string $purchaseDate Asset purchase date
+     * @param string $asOfDate Calculation date
+     * @return float Depreciation amount
      */
     private function calculateDecliningBalance(
         float $purchaseValue,
@@ -137,7 +163,13 @@ class DepreciationService
     }
 
     /**
-     * Units of production depreciation
+     * Calculate units-of-production depreciation.
+     * Depreciation is proportional to usage (units produced).
+     * 
+     * @param float $depreciableAmount Cost - Salvage Value
+     * @param float $totalUnits Total expected production units
+     * @param float $unitsUsed Units produced to date
+     * @return float Depreciation amount
      */
     private function calculateUnitsOfProduction(
         float $depreciableAmount,

@@ -11,6 +11,18 @@ import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/Textarea";
 
+/**
+ * Leave Request Management Component.
+ * Allows employees to submit leave requests and managers to approve/reject them.
+ * Supports multiple leave types: vacation, sick, emergency, unpaid, and other.
+ * 
+ * Features:
+ * - Create new leave requests with date range and reason
+ * - Filter requests by employee and status
+ * - Approve or reject pending requests with mandatory rejection reason
+ * 
+ * @returns The LeaveRequests component
+ */
 export function LeaveRequests() {
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);

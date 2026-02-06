@@ -13,12 +13,27 @@ use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * Service for managing user authentication, session lifecycle, and login throttling.
+ * Implements brute-force protection via progressive lockouts.
+ */
 class AuthService
 {
-    private const SESSION_LIFETIME = 3600; // 1 hour
+    /** @var int Session lifetime in seconds (1 hour) */
+    private const SESSION_LIFETIME = 3600;
+    /** @var int Maximum failed login attempts before lockout */
     private const MAX_LOGIN_ATTEMPTS = 3;
-    private const THROTTLE_BASE_TIME = 60; // 1 minute
+    /** @var int Base lockout time in seconds (increases with subsequent failures) */
+    private const THROTTLE_BASE_TIME = 60;
 
+    /**
+     * Attempt to authenticate a user.
+     * Validates credentials, checks for account lockout, and creates a session on success.
+     * 
+     * @param string $username
+     * @param string $password
+     * @return array{success: bool, session_token?: string, user_id?: int, message?: string}
+     */
     public function login(string $username, string $password): array
     {
         // Check throttling
@@ -58,12 +73,25 @@ class AuthService
         }
     }
 
+    /**
+     * Terminate a user session.
+     * 
+     * @param string $sessionToken The session token to invalidate
+     * @return void
+     */
     public function logout(string $sessionToken): void
     {
         Session::where('session_token', $sessionToken)->delete();
         SessionFacade::flush();
     }
 
+    /**
+     * Validate an existing session and return the associated user.
+     * Reloads permissions from database on each check.
+     * 
+     * @param string|null $sessionToken Optional token (falls back to session store)
+     * @return User|null The authenticated user, or null if session is invalid/expired
+     */
     public function checkSession(?string $sessionToken = null): ?User
     {
         if (!$sessionToken) {

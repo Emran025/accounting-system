@@ -7,6 +7,29 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Model representing a sales invoice.
+ * Core entity for the Sales module with GL integration, ZATCA e-invoicing,
+ * and multi-currency support.
+ * 
+ * @property int $id
+ * @property string $invoice_number Unique invoice identifier
+ * @property string $voucher_number GL voucher reference
+ * @property float $total_amount Final invoice total (including VAT)
+ * @property float $subtotal Pre-VAT subtotal
+ * @property float $vat_rate VAT percentage applied
+ * @property float $vat_amount Calculated VAT amount
+ * @property float $discount_amount Applied discount
+ * @property string $payment_type ('cash', 'credit')
+ * @property int|null $customer_id AR Customer FK
+ * @property float $amount_paid For installment tracking
+ * @property int $user_id Cashier/Creator
+ * @property bool $is_reversed Whether invoice has been reversed
+ * @property \Carbon\Carbon|null $reversed_at Reversal timestamp
+ * @property int|null $reversed_by User who performed reversal
+ * @property int|null $currency_id Multi-currency FK
+ * @property float $exchange_rate Exchange rate at time of sale
+ */
 class Invoice extends Model
 {
     use HasFactory;
@@ -43,16 +66,31 @@ class Invoice extends Model
         ];
     }
 
+    /**
+     * Get the user (cashier) who created this invoice.
+     * 
+     * @return BelongsTo
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Get the customer associated with this invoice (for credit sales).
+     * 
+     * @return BelongsTo
+     */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(ArCustomer::class, 'customer_id');
     }
 
+    /**
+     * Get the line items for this invoice.
+     * 
+     * @return HasMany
+     */
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class);
