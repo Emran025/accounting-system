@@ -2,7 +2,7 @@
 
 import { fetchAPI } from "./api";
 import { API_ENDPOINTS } from "./endpoints";
-import { generateBarcode, generateTLV, generateQRCode } from "./api";
+import { generateBarcode, generateQRCode } from "./api";
 import { formatDate } from "./utils";
 
 export interface InvoiceData {
@@ -29,6 +29,8 @@ export interface InvoiceData {
     qr_code?: string;
     zatca_uuid?: string;
   };
+  zatca_qr_code?: string;
+  zatca_timestamp?: string;
 }
 
 export interface InvoiceSettings {
@@ -155,26 +157,14 @@ export async function generateInvoiceHTML(
     String(inv.total_amount || subtotalAmount - discountAmount + taxAmount)
   );
 
-  // Generate TLV
-  const tlvData = generateTLV({
-    1: settings.store_name || "سوبر ماركت",
-    2: settings.tax_number || "",
-    3: isoTimestamp,
-    4: finalTotal.toFixed(2),
-    5: (taxAmount || 0).toFixed(2),
-  });
-
-  // Generate QR: Use ZATCA if available AND enabled, else local
+  // Generate QR: Prefer backend-provided TLV data
   let qrUrl = qrDataUrl;
 
-  if (!qrUrl && settings.zatca_enabled && inv.zatca_einvoice?.zatca_qr_code) {
-    // If valid ZATCA QR (Base64 TLV) exists and feature is enabled
-    qrUrl = await generateQRCode(inv.zatca_einvoice.zatca_qr_code);
-  }
-
   if (!qrUrl) {
-    // Fallback
-    qrUrl = await generateQRCode(tlvData);
+    const qrData = inv.zatca_qr_code || inv.zatca_einvoice?.zatca_qr_code;
+    if (qrData) {
+      qrUrl = await generateQRCode(qrData);
+    }
   }
 
   const style = `

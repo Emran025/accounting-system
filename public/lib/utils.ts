@@ -8,7 +8,7 @@ import { getSetting } from "./api";
 export function formatCurrency(amount: number | string | null | undefined): string {
   const num = parseFloat(String(amount)) || 0;
   const symbol = getSetting('currency_symbol', 'ر.س');
-  
+
   return num.toLocaleString("ar-SA", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -153,34 +153,6 @@ export function translateExpenseCategory(category: string): string {
   return categoryMap[category?.toLowerCase()] || category || "أخرى";
 }
 
-/**
- * Generate TLV (Tag-Length-Value) for ZATCA e-invoicing
- */
-export function generateTLV(data: {
-  sellerName: string;
-  vatNumber: string;
-  timestamp: string;
-  total: string;
-  vatAmount: string;
-}): string {
-  const tlvData = [
-    { tag: 1, value: data.sellerName },
-    { tag: 2, value: data.vatNumber },
-    { tag: 3, value: data.timestamp },
-    { tag: 4, value: data.total },
-    { tag: 5, value: data.vatAmount },
-  ];
-
-  let tlvString = "";
-  for (const item of tlvData) {
-    const valueBytes = new TextEncoder().encode(item.value);
-    tlvString += String.fromCharCode(item.tag);
-    tlvString += String.fromCharCode(valueBytes.length);
-    tlvString += item.value;
-  }
-
-  return btoa(tlvString);
-}
 
 /**
  * Debounce function for search inputs

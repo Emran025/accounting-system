@@ -35,6 +35,10 @@ class InvoiceResource extends JsonResource
                 });
             }),
             'zatca_status' => $this->whenLoaded('zatcaEinvoice', fn() => $this->zatcaEinvoice->status),
+            'zatca_qr_code' => $this->when(app(\App\Services\ZATCAService::class)->isEnabled(), function() {
+                return $this->zatcaEinvoice?->zatca_qr_code ?? app(\App\Services\ZATCAService::class)->generateQRCodeData($this->resource);
+            }),
+            'zatca_timestamp' => $this->when(app(\App\Services\ZATCAService::class)->isEnabled(), fn() => $this->created_at->toIso8601String()),
         ];
     }
 }

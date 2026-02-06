@@ -215,35 +215,6 @@ export function getArabicDate(): string {
   return `${dayName}، ${day} ${monthName} , ${year} - ${hours}:${minutes}`;
 }
 
-/**
- * Generates a Base64 encoded TLV string for E-Invoicing compliance
- */
-export function generateTLV(tags: Record<number, string>): string {
-  const binaryParts: number[] = [];
-
-  for (const tagId in tags) {
-    const tag = parseInt(tagId);
-    const value = String(tags[parseInt(tagId)]);
-
-    binaryParts.push(tag);
-
-    const encoder = new TextEncoder();
-    const encodedValue = encoder.encode(value);
-    binaryParts.push(encodedValue.length);
-
-    for (const byte of encodedValue) {
-      binaryParts.push(byte);
-    }
-  }
-
-  const uint8Array = new Uint8Array(binaryParts);
-  let binaryString = '';
-  for (let i = 0; i < uint8Array.length; i++) {
-    binaryString += String.fromCharCode(uint8Array[i]);
-  }
-
-  return btoa(binaryString);
-}
 
 
 /**

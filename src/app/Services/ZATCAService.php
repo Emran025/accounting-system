@@ -31,6 +31,7 @@ class ZATCAService
     private string $zatcaEnvironment; // 'sandbox' or 'production'
     private ?string $certificatePath = null;
     private ?string $certificatePassword = null;
+    private ?array $cachedSettings = null;
 
     public function __construct(
         UBLGeneratorService $ublGenerator,
@@ -156,7 +157,7 @@ class ZATCAService
      * @param Invoice $invoice
      * @return string Base64 encoded TLV data
      */
-    private function generateQRCodeData(Invoice $invoice): string
+    public function generateQRCodeData(Invoice $invoice): string
     {
         $settings = $this->getCompanySettings();
         
@@ -241,16 +242,22 @@ class ZATCAService
      */
     private function getCompanySettings(): array
     {
+        if ($this->cachedSettings !== null) {
+            return $this->cachedSettings;
+        }
+
         $settings = Setting::whereIn('setting_key', [
             'company_name',
             'tax_number',
             'store_name',
         ])->pluck('setting_value', 'setting_key')->toArray();
 
-        return [
+        $this->cachedSettings = [
             'seller_name' => $settings['store_name'] ?? $settings['company_name'] ?? 'Unknown',
             'tax_number' => $settings['tax_number'] ?? '',
         ];
+
+        return $this->cachedSettings;
     }
 
     /**
