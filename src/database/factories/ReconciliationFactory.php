@@ -12,8 +12,9 @@ class ReconciliationFactory extends Factory
     public function definition()
     {
         return [
+            'account_code' => '1110',
             'reconciliation_date' => now()->toDateString(),
-            'bank_balance' => 1000.00,
+            'physical_balance' => 1000.00,
             'ledger_balance' => 900.00,
             'difference' => 100.00,
             'status' => 'pending', // Assuming column exists

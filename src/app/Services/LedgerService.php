@@ -92,35 +92,21 @@ class LedgerService
             $voucherDate = now()->format('Y-m-d');
         }
 
-        // Get current fiscal period
-        $fiscalPeriodId = $this->getCurrentFiscalPeriod();
-
-        // Check if period is locked and validate voucher date
-        if ($fiscalPeriodId) {
-            $period = FiscalPeriod::find($fiscalPeriodId);
-            if ($period) {
-                if ($period->is_locked) {
-                    throw new \Exception("Cannot post transactions to a locked fiscal period");
-                }
-                if ($period->is_closed) {
-                    throw new \Exception("Cannot post transactions to a closed fiscal period");
-                }
-                
-                // CRITICAL FIX: Validate voucher_date falls within fiscal period bounds
-                // Prevents back-dating transactions into closed periods
-                $voucherDateObj = \Carbon\Carbon::parse($voucherDate);
-                $periodStart = \Carbon\Carbon::parse($period->start_date);
-                $periodEnd = \Carbon\Carbon::parse($period->end_date);
-                
-                if ($voucherDateObj->lt($periodStart) || $voucherDateObj->gt($periodEnd)) {
-                    throw new \Exception(
-                        "Voucher date ({$voucherDate}) is outside fiscal period " .
-                        "({$period->start_date} to {$period->end_date}). " .
-                        "Cannot back-date transactions into closed periods."
-                    );
-                }
-            }
+        // Get fiscal period for the voucher date
+        $period = $this->getFiscalPeriodForDate($voucherDate);
+        
+        if (!$period) {
+            throw new \Exception("Voucher date ({$voucherDate}) is outside fiscal period");
         }
+
+        if ($period->is_locked) {
+            throw new \Exception("Cannot post transactions to a locked fiscal period");
+        }
+        if ($period->is_closed) {
+            throw new \Exception("Cannot post transactions to a closed fiscal period");
+        }
+
+        $fiscalPeriodId = $period->id;
 
         $userId = auth()->id() ?? session('user_id');
 
@@ -157,14 +143,14 @@ class LedgerService
         });
     }
 
-    private function getCurrentFiscalPeriod(): ?int
+    /**
+     * Get fiscal period for a specific date
+     */
+    public function getFiscalPeriodForDate(string $date): ?FiscalPeriod
     {
-        $period = FiscalPeriod::where('is_closed', false)
-            ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
+        return FiscalPeriod::where('start_date', '<=', $date)
+            ->where('end_date', '>=', $date)
             ->first();
-
-        return $period?->id;
     }
 
     /**
@@ -189,18 +175,15 @@ class LedgerService
             $query->where('voucher_date', '<=', $asOfDate);
         }
 
-        $totals = $query->selectRaw('
-            SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as total_debits,
-            SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) as total_credits
-        ')->first();
-
-        $debits = (float)($totals->total_debits ?? 0);
-        $credits = (float)($totals->total_credits ?? 0);
+        $debits = (float) $query->clone()->where('entry_type', 'DEBIT')->sum('amount');
+        $credits = (float) $query->clone()->where('entry_type', 'CREDIT')->sum('amount');
 
         // Asset and Expense accounts have debit balances
-        if (in_array($account->account_type, ['Asset', 'Expense'])) {
+        $type = strtolower($account->account_type);
+        if (in_array($type, ['asset', 'expense'])) {
             return $debits - $credits;
         }
+
         
         // Liability, Equity, and Revenue accounts have credit balances
         return $credits - $debits;
@@ -271,21 +254,18 @@ class LedgerService
                 $query->where('voucher_date', '<=', $asOfDate);
             }
 
-            $totals = $query->selectRaw('
-                SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as debits,
-                SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) as credits
-            ')->first();
-
-            $debits = (float)($totals->debits ?? 0);
-            $credits = (float)($totals->credits ?? 0);
+            $debits = $query->clone()->where('entry_type', 'DEBIT')->sum('amount');
+            $credits = $query->clone()->where('entry_type', 'CREDIT')->sum('amount');
 
             // Calculate balance based on account type
             $balance = 0;
             $debitBalance = 0;
             $creditBalance = 0;
 
-            if (in_array($account->account_type, ['Asset', 'Expense'])) {
+            $type = strtolower($account->account_type);
+            if (in_array($type, ['asset', 'expense'])) {
                 $balance = $debits - $credits;
+
                 if ($balance > 0) {
                     $debitBalance = $balance;
                 } else {

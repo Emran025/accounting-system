@@ -93,12 +93,12 @@ class LedgerServiceFiscalPeriodTest extends TestCase
      */
     public function test_cannot_post_to_locked_period(): void
     {
-        $period = FiscalPeriod::factory()->create([
-            'start_date' => '2025-01-01',
-            'end_date' => '2025-12-31',
-            'is_closed' => false,
-            'is_locked' => true, // Period is locked
-        ]);
+        // Get the existing period seeded by TestCase and lock it
+        $period = FiscalPeriod::where('start_date', '<=', now()->format('Y-m-d'))
+            ->where('end_date', '>=', now()->format('Y-m-d'))
+            ->first();
+            
+        $period->update(['is_locked' => true]);
 
         $entries = [
             [
@@ -126,6 +126,7 @@ class LedgerServiceFiscalPeriodTest extends TestCase
      */
     public function test_cannot_post_to_closed_period(): void
     {
+        // Create a past closed period
         $period = FiscalPeriod::factory()->create([
             'start_date' => '2024-01-01',
             'end_date' => '2024-12-31',
@@ -165,13 +166,13 @@ class LedgerServiceFiscalPeriodTest extends TestCase
      */
     public function test_current_period_transactions_succeed(): void
     {
-        // Create current period
-        $period = FiscalPeriod::factory()->create([
-            'start_date' => Carbon::now()->startOfYear()->format('Y-m-d'),
-            'end_date' => Carbon::now()->endOfYear()->format('Y-m-d'),
-            'is_closed' => false,
-            'is_locked' => false,
-        ]);
+        // Get existing period
+        $period = FiscalPeriod::where('start_date', '<=', now()->format('Y-m-d'))
+            ->where('end_date', '>=', now()->format('Y-m-d'))
+            ->first();
+
+        // Ensure it's open
+        $period->update(['is_closed' => false, 'is_locked' => false]);
 
         $entries = [
             [

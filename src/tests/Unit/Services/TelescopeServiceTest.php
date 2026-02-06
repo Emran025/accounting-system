@@ -25,7 +25,7 @@ class TelescopeServiceTest extends TestCase
             ['status' => 'paid']
         );
 
-        $this->assertDatabaseHas('telescope_entries', [
+        $this->assertDatabaseHas('telescope', [
             'user_id' => $user->id,
             'operation' => 'UPDATE',
             'table_name' => 'invoices',
@@ -41,7 +41,7 @@ class TelescopeServiceTest extends TestCase
     {
         TelescopeService::logOperation('CREATE', 'logs');
 
-        $this->assertDatabaseHas('telescope_entries', [
+        $this->assertDatabaseHas('telescope', [
             'operation' => 'CREATE',
             'user_id' => null
         ]);

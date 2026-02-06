@@ -69,7 +69,7 @@ class PurchasesController extends Controller
                 'voucher_number' => $purchase->voucher_number,
                 'approval_status' => $purchase->approval_status,
                 'message' => $purchase->approval_status === 'pending' ? 'Purchase created and pending approval' : 'Purchase created successfully',
-            ]);
+            ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {

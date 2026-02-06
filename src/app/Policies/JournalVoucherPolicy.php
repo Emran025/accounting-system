@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\User;
 use App\Models\JournalVoucher;
 use App\Models\FiscalPeriod;
+use App\Models\GeneralLedger;
 
 class JournalVoucherPolicy
 {
@@ -35,13 +36,13 @@ class JournalVoucherPolicy
     public function update(User $user, JournalVoucher $voucher): bool
     {
         // Check if voucher has been posted to GL (check if GL entries exist)
-        $hasGlEntries = \App\Models\GeneralLedger::where('voucher_number', $voucher->voucher_number)->exists();
+        $hasGlEntries = GeneralLedger::where('voucher_number', $voucher->voucher_number)->exists();
         if ($hasGlEntries) {
             return false; // Cannot update posted vouchers
         }
 
         // Check fiscal period based on voucher date
-        $period = \App\Models\FiscalPeriod::where('start_date', '<=', $voucher->voucher_date)
+        $period = FiscalPeriod::where('start_date', '<=', $voucher->voucher_date)
             ->where('end_date', '>=', $voucher->voucher_date)
             ->first();
         
@@ -62,13 +63,13 @@ class JournalVoucherPolicy
     public function delete(User $user, JournalVoucher $voucher): bool
     {
         // Check if voucher has been posted to GL
-        $hasGlEntries = \App\Models\GeneralLedger::where('voucher_number', $voucher->voucher_number)->exists();
+        $hasGlEntries = GeneralLedger::where('voucher_number', $voucher->voucher_number)->exists();
         if ($hasGlEntries) {
             return false; // Cannot delete posted vouchers
         }
 
         // Check fiscal period based on voucher date
-        $period = \App\Models\FiscalPeriod::where('start_date', '<=', $voucher->voucher_date)
+        $period = FiscalPeriod::where('start_date', '<=', $voucher->voucher_date)
             ->where('end_date', '>=', $voucher->voucher_date)
             ->first();
         
@@ -93,13 +94,13 @@ class JournalVoucherPolicy
         }
 
         // Check if already posted
-        $hasGlEntries = \App\Models\GeneralLedger::where('voucher_number', $voucher->voucher_number)->exists();
+        $hasGlEntries = GeneralLedger::where('voucher_number', $voucher->voucher_number)->exists();
         if ($hasGlEntries) {
             return false;
         }
 
         // Check fiscal period
-        $period = \App\Models\FiscalPeriod::where('start_date', '<=', $voucher->voucher_date)
+        $period = FiscalPeriod::where('start_date', '<=', $voucher->voucher_date)
             ->where('end_date', '>=', $voucher->voucher_date)
             ->first();
         

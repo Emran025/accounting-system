@@ -34,10 +34,25 @@ class EmployeeAccountServiceTest extends TestCase
         $employee = Employee::factory()->create(['account_id' => $account->id]);
 
         // Create random ledger entries
-        GeneralLedger::factory()->create(['account_id' => $account->id, 'debit' => 1000, 'credit' => 0]);
-        GeneralLedger::factory()->create(['account_id' => $account->id, 'debit' => 0, 'credit' => 200]);
+        GeneralLedger::factory()->create([
+            'account_id' => $account->id,
+            'amount' => 1000,
+            'entry_type' => 'DEBIT'
+        ]);
+        GeneralLedger::factory()->create([
+            'account_id' => $account->id,
+            'amount' => 200,
+            'entry_type' => 'CREDIT'
+        ]);
 
-        // Expected: 1000 - 200 = 800
+        // Expected: 1000 - 200 = 800 (or vice versa depending on logic, but we fixed logic to calculate net)
+        // If account type is Generic (random), logic:
+        // if Asset/Expense: Debit - Credit.
+        // if Liability/Revenue: Credit - Debit.
+        // Factory creates generic account. Type is random.
+        // Let's force account type to ensure test determinism.
+        $account->update(['account_type' => 'Asset']); // Debit normal
+        
         $this->assertEquals(800, $this->service->getBalance($employee));
     }
 
@@ -48,14 +63,14 @@ class EmployeeAccountServiceTest extends TestCase
         $transaction = $this->service->recordTransaction(
             $employee,
             5000,
-            'salary',
+            'payment',
             now(),
             'Monthly Salary'
         );
 
         $this->assertInstanceOf(PayrollTransaction::class, $transaction);
         $this->assertEquals(5000, $transaction->amount);
-        $this->assertEquals('salary', $transaction->transaction_type);
+        $this->assertEquals('payment', $transaction->transaction_type);
         $this->assertEquals($employee->id, $transaction->employee_id);
     }
 }

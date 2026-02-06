@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class PayrollController extends Controller
 {
+    use BaseApiController;
+
     protected $payrollService;
 
     public function __construct(PayrollService $payrollService)
@@ -47,9 +49,9 @@ class PayrollController extends Controller
                 $request->all(),
                 auth()->user()
             );
-            return response()->json($cycle, 201);
+            return $this->successResponse($cycle->toArray(), 'Payroll generated successfully', 201);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
+            return $this->errorResponse($e->getMessage(), 400);
         }
     }
 
@@ -57,9 +59,9 @@ class PayrollController extends Controller
     {
         try {
             $cycle = $this->payrollService->approvePayroll($id, auth()->user());
-            return response()->json($cycle);
+            return $this->successResponse($cycle->toArray(), 'Payroll approved successfully');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
+            return $this->errorResponse($e->getMessage(), 400);
         }
     }
 
@@ -67,9 +69,9 @@ class PayrollController extends Controller
     {
         try {
             $cycle = $this->payrollService->processPayment($id, $request->account_id);
-            return response()->json($cycle);
+            return $this->successResponse($cycle->toArray(), 'Payroll payment processed successfully');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
+            return $this->errorResponse($e->getMessage(), 400);
         }
     }
 
@@ -77,9 +79,9 @@ class PayrollController extends Controller
     {
         try {
             $item = $this->payrollService->toggleItemStatus($itemId);
-            return response()->json($item);
+            return $this->successResponse($item->toArray(), 'Item status toggled successfully');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
+            return $this->errorResponse($e->getMessage(), 400);
         }
     }
 
@@ -123,12 +125,12 @@ class PayrollController extends Controller
 
             $cycle = PayrollCycle::with(['current_approver', 'creator'])->findOrFail($cycleId);
 
-            return response()->json([
+            return $this->successResponse([
                 'data' => $items,
                 'cycle' => $cycle
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
+            return $this->errorResponse($e->getMessage(), 400);
         }
     }
 
@@ -236,9 +238,9 @@ class PayrollController extends Controller
 
         try {
             $item = $this->payrollService->updatePayrollItem($itemId, $request->all());
-            return response()->json($item);
+            return $this->successResponse($item->toArray(), 'Payroll item updated successfully');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
+            return $this->errorResponse($e->getMessage(), 400);
         }
     }
 

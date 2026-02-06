@@ -22,7 +22,7 @@ class InventoryCostingServiceTest extends TestCase
 
     public function test_record_purchase_fifo()
     {
-        $product = Product::factory()->create();
+        $product = Product::factory()->create(['stock_quantity' => 0]);
         
         $this->costingService->recordPurchase(
             $product->id,
@@ -36,7 +36,6 @@ class InventoryCostingServiceTest extends TestCase
         $this->assertDatabaseHas('inventory_costing', [
             'product_id' => $product->id,
             'quantity' => 10,
-            'remaining_quantity' => 10, // Assuming db trigger or logic holds, but wait, schema says consumed_quantity defaults 0
             'consumed_quantity' => 0,
             'unit_cost' => 100.00
         ]);
@@ -44,7 +43,7 @@ class InventoryCostingServiceTest extends TestCase
 
     public function test_record_sale_fifo_consumption()
     {
-        $product = Product::factory()->create();
+        $product = Product::factory()->create(['stock_quantity' => 0]);
 
         // Layer 1: 10 @ 100
         $this->costingService->recordPurchase($product->id, 1, 10, 100.00, 1000.00, 'FIFO');
@@ -55,9 +54,10 @@ class InventoryCostingServiceTest extends TestCase
         // Should take 10 from Layer 1 (@100) and 5 from Layer 2 (@120)
         // COGS = (10*100) + (5*120) = 1000 + 600 = 1600
         
-        $cogs = $this->costingService->recordSale($product->id, 100, 15, 'FIFO');
+        $cogs = $this->costingService->recordSale($product->id, 1, 15, 'FIFO');
 
         $this->assertEquals(1600.00, $cogs);
+
 
         // Verify consumption records
         $this->assertDatabaseHas('inventory_consumptions', [
@@ -72,7 +72,7 @@ class InventoryCostingServiceTest extends TestCase
 
     public function test_valuation_fifo()
     {
-        $product = Product::factory()->create();
+        $product = Product::factory()->create(['stock_quantity' => 0]);
 
         // Layer 1: 10 @ 100 (Sold 5 later)
         $this->costingService->recordPurchase($product->id, 1, 10, 100.00, 1000.00, 'FIFO');
@@ -90,7 +90,7 @@ class InventoryCostingServiceTest extends TestCase
 
     public function test_update_weighted_average_cost()
     {
-        $product = Product::factory()->create(['weighted_average_cost' => 0]);
+        $product = Product::factory()->create(['weighted_average_cost' => 0, 'stock_quantity' => 0]);
 
         // 10 @ 100 = 1000
         $this->costingService->recordPurchase($product->id, 1, 10, 100.00, 1000.00);

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ChartOfAccount;
 class ChartOfAccountsMappingService
 {
     public function getStandardAccounts(): array
@@ -29,16 +30,14 @@ class ChartOfAccountsMappingService
 
     public function getAccountCode(string $accountType, ?string $namePattern = null): ?string
     {
-        $query = \App\Models\ChartOfAccount::where('account_type', $accountType)
-            ->where('is_active', true);
-
         // Preference: Accounts that are NOT parents (no children)
-        // We check for absence of children by looking for accounts whose ID is not a parent_id
-        $query->whereNotExists(function ($q) {
-            $q->select(\DB::raw(1))
-              ->from('chart_of_accounts as children')
-              ->whereColumn('children.parent_id', 'chart_of_accounts.id');
-        });
+        // We check for absence of children by using the relationship
+        $query = ChartOfAccount::where(function($q) use ($accountType) {
+                $q->where('account_type', $accountType)
+                  ->orWhere('account_type', strtolower($accountType));
+            })
+            ->where('is_active', true)
+            ->doesntHave('children');
 
         if ($namePattern) {
             $query->where(function ($q) use ($namePattern) {
@@ -51,17 +50,13 @@ class ChartOfAccountsMappingService
 
         // If no leaf account found, try searching with name pattern but still strictly leaf only
         if (!$account && $namePattern) {
-            $account = \App\Models\ChartOfAccount::where('account_type', $accountType)
+            $account = ChartOfAccount::where('account_type', $accountType)
                 ->where('is_active', true)
                 ->where(function ($q) use ($namePattern) {
                     $q->where('account_name', 'like', "%$namePattern%")
                       ->orWhere('account_code', 'like', "%$namePattern%");
                 })
-                ->whereNotExists(function ($q) {
-                    $q->select(\DB::raw(1))
-                      ->from('chart_of_accounts as children')
-                      ->whereColumn('children.parent_id', 'chart_of_accounts.id');
-                })
+                ->doesntHave('children')
                 ->orderBy('account_code')
                 ->first();
         }

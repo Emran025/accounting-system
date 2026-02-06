@@ -22,14 +22,25 @@ class EmployeeAccountService
         }
 
         // Logic to sum debits and credits from General Ledger for this account
-        $balance = GeneralLedger::where('account_id', $employee->account_id)
-            ->sum(DB::raw('debit - credit'));
-            
-        // Depending on account type (Liability/Expense), balance might be Credit - Debit
-        // For Payroll Payable (Liability), it should be Credit - Debit usually.
-        // But let's assume standard Asset behavior or handle based on account type.
-        // For simplicity, returning net movement for now.
-        return $balance;
+        // Account for DEBIT and CREDIT entry types as explicitly separate values
+        $result = GeneralLedger::where('account_id', $employee->account_id)
+            ->selectRaw("SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) as total_debit")
+            ->selectRaw("SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) as total_credit")
+            ->first();
+
+        $totalDebit = $result->total_debit ?? 0;
+        $totalCredit = $result->total_credit ?? 0;
+
+        // Typically, employee accounts are Liabilities (Payables) -> Credit Balance is positive
+        // So Credit - Debit
+        // If it's an Expense/Asset, it would be Debit - Credit.
+        // Let's check account type if possible, or default to Credit-Debit for payables.
+        $account = ChartOfAccount::find($employee->account_id);
+        if ($account && in_array($account->account_type, ['Asset', 'Expense'])) {
+             return $totalDebit - $totalCredit;
+        }
+
+        return $totalCredit - $totalDebit;
     }
 
     /**

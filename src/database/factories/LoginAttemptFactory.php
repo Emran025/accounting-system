@@ -24,8 +24,6 @@ class LoginAttemptFactory extends Factory
             'attempts' => 1,
             'last_attempt' => now(),
             'locked_until' => null,
-            'ip_address' => fake()->ipv4(),
-            'user_agent' => fake()->userAgent(),
         ];
     }
 }

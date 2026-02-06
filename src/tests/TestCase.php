@@ -7,7 +7,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\Session;
+use App\Models\ChartOfAccount;
+use App\Models\FiscalPeriod;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -22,7 +26,7 @@ abstract class TestCase extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Seed essential data for tests
         $this->seedEssentialData();
     }
@@ -35,7 +39,30 @@ abstract class TestCase extends BaseTestCase
         // Create default admin role if not exists
         Role::firstOrCreate(
             ['role_key' => 'admin'],
-            ['role_name' => 'Administrator', 'is_active' => true]
+            [
+                'role_name_en' => 'Administrator',
+                'role_name_ar' => 'مسؤول النظام',
+                'is_active' => true
+            ]
+        );
+
+        $this->seedFiscalPeriod();
+    }
+
+    /**
+     * Seed a valid fiscal period for tests
+     */
+    protected function seedFiscalPeriod(): void
+    {
+        FiscalPeriod::firstOrCreate(
+            ['fiscal_year' => Carbon::now()->year],
+            [
+                'start_date' => Carbon::now()->startOfYear()->format('Y-m-d'),
+                'end_date' => Carbon::now()->endOfYear()->format('Y-m-d'),
+                'is_closed' => false,
+                'is_locked' => false,
+                'period_name' => 'FY' . Carbon::now()->year
+            ]
         );
     }
 
@@ -64,7 +91,7 @@ abstract class TestCase extends BaseTestCase
     protected function createSessionToken(User $user): string
     {
         $token = bin2hex(random_bytes(32));
-        
+
         Session::create([
             'user_id' => $user->id,
             'session_token' => $token,
@@ -128,9 +155,13 @@ abstract class TestCase extends BaseTestCase
      */
     protected function assertSuccessResponse($response, int $status = 200)
     {
-        $response->assertStatus($status)
-            ->assertJson(['success' => true]);
-        
+        if ($response->status() !== $status) {
+            $content = $response->getContent();
+            $this->fail("Expected status {$status} but got {$response->status()}. Response: {$content}");
+        }
+
+        $response->assertJson(['success' => true]);
+
         return $response;
     }
 
@@ -141,7 +172,7 @@ abstract class TestCase extends BaseTestCase
     {
         $response->assertStatus($status)
             ->assertJson(['success' => false]);
-        
+
         return $response;
     }
     /**
@@ -150,39 +181,51 @@ abstract class TestCase extends BaseTestCase
     protected function seedChartOfAccounts(): void
     {
         // Assets
-        \App\Models\ChartOfAccount::factory()->asset()->create([
+        ChartOfAccount::factory()->asset()->create([
             'account_code' => '1110',
             'account_name' => 'Cash',
         ]);
-        \App\Models\ChartOfAccount::factory()->asset()->create([
+        ChartOfAccount::factory()->asset()->create([
             'account_code' => '1120',
             'account_name' => 'Accounts Receivable',
         ]);
-        \App\Models\ChartOfAccount::factory()->asset()->create([
+        ChartOfAccount::factory()->asset()->create([
             'account_code' => '1130',
             'account_name' => 'Inventory',
         ]);
-        
+
         // Liability
-        \App\Models\ChartOfAccount::factory()->liability()->create([
+        ChartOfAccount::factory()->liability()->create([
+            'account_code' => '2110',
+            'account_name' => 'Accounts Payable',
+        ]);
+        ChartOfAccount::factory()->liability()->create([
+            'account_code' => '2120',
+            'account_name' => 'Salaries Payable',
+        ]);
+        ChartOfAccount::factory()->liability()->create([
             'account_code' => '2210',
             'account_name' => 'Output VAT',
         ]);
-        \App\Models\ChartOfAccount::factory()->liability()->create([
+        ChartOfAccount::factory()->liability()->create([
             'account_code' => '2220',
             'account_name' => 'Input VAT',
         ]);
 
         // Revenue
-        \App\Models\ChartOfAccount::factory()->revenue()->create([
+        ChartOfAccount::factory()->revenue()->create([
             'account_code' => '4100',
             'account_name' => 'Sales Revenue',
         ]);
 
         // Expenses
-        \App\Models\ChartOfAccount::factory()->expense()->create([
+        ChartOfAccount::factory()->expense()->create([
             'account_code' => '5100',
             'account_name' => 'Cost of Goods Sold',
+        ]);
+        ChartOfAccount::factory()->expense()->create([
+            'account_code' => '5220',
+            'account_name' => 'Salaries Expense',
         ]);
     }
 }

@@ -17,6 +17,19 @@ class DepreciationServiceTest extends TestCase
     {
         parent::setUp();
         $this->seedChartOfAccounts();
+        
+        // Seed Depreciation specific accounts
+        \App\Models\ChartOfAccount::factory()->create([
+            'account_code' => '5300',
+            'account_name' => 'Depreciation Expense',
+            'account_type' => 'Expense'
+        ]);
+        \App\Models\ChartOfAccount::factory()->create([
+            'account_code' => '1290',
+            'account_name' => 'Accumulated Depreciation',
+            'account_type' => 'Asset' // Contra-asset usually, but Asset type in system
+        ]);
+
         $this->depreciationService = app(DepreciationService::class);
     }
 
@@ -70,7 +83,7 @@ class DepreciationServiceTest extends TestCase
     public function test_post_depreciation_entry()
     {
         $asset = Asset::factory()->create([
-            'asset_name' => 'Laptop',
+            'name' => 'Laptop',
             'accumulated_depreciation' => 0
         ]);
         
@@ -79,7 +92,7 @@ class DepreciationServiceTest extends TestCase
         $this->assertNotEmpty($voucher);
         $this->assertEquals(500.00, $asset->fresh()->accumulated_depreciation);
         
-        $this->assertDatabaseHas('general_ledgers', [
+        $this->assertDatabaseHas('general_ledger', [
             'reference_type' => 'assets',
             'reference_id' => $asset->id,
             'amount' => 500.00

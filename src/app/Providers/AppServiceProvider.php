@@ -33,5 +33,41 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Invoice::class, InvoicePolicy::class);
         Gate::policy(JournalVoucher::class, JournalVoucherPolicy::class);
         Gate::policy(Purchase::class, PurchasePolicy::class);
+
+        // Grant all permissions to admin users, and check specific permissions for others
+        Gate::before(function ($user, $ability) {
+            // Admin always has access
+            if ($user->roleRelation?->role_key === 'admin') {
+                return true;
+            }
+
+            // Check dynamic permissions
+            if (str_contains($ability, '.')) {
+                $parts = explode('.', $ability, 2);
+                if (count($parts) !== 2) return null;
+                
+                [$module, $action] = $parts;
+
+                // Map policy actions to permission columns
+                $actionMap = [
+                    'view' => 'view',
+                    'create' => 'create',
+                    'update' => 'edit',
+                    'edit' => 'edit',
+                    'delete' => 'delete',
+                ];
+
+                if (isset($actionMap[$action])) {
+                    $mappedAction = $actionMap[$action];
+                    $permissions = \App\Services\PermissionService::loadPermissions($user->role_id);
+                    
+                    if (isset($permissions[$module][$mappedAction])) {
+                        return $permissions[$module][$mappedAction];
+                    }
+                }
+            }
+            
+            return null;
+        });
     }
 }

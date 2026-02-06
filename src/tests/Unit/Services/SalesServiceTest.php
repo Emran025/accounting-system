@@ -14,6 +14,9 @@ use App\Services\LedgerService;
 use App\Services\ChartOfAccountsMappingService;
 use App\Services\InventoryCostingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Carbon\Carbon;
+use App\Models\FiscalPeriod;
+use App\Models\GeneralLedger;
 use Mockery;
 
 class SalesServiceTest extends TestCase
@@ -36,6 +39,14 @@ class SalesServiceTest extends TestCase
         // Mock method calls expected during invoice creation
         $this->costingServiceMock->shouldReceive('recordSale')
             ->andReturn(50.00); // Dummy COGS value based on logic
+
+        // Create fiscal period for current date
+        FiscalPeriod::factory()->create([
+            'start_date' => Carbon::now()->startOfYear()->format('Y-m-d'),
+            'end_date' => Carbon::now()->endOfYear()->format('Y-m-d'),
+            'is_closed' => false,
+            'is_locked' => false,
+        ]);
 
         $this->salesService = new SalesService(
             $ledgerService,
@@ -94,7 +105,15 @@ class SalesServiceTest extends TestCase
     {
         $user = User::factory()->create();
         $customer = ArCustomer::factory()->create();
-        $product = Product::factory()->create(['unit_price' => 100, 'stock_quantity' => 10]);
+        $product = Product::factory()->create([
+            'unit_price' => 100,
+            'stock_quantity' => 10,
+            'weighted_average_cost' => 50,
+            'minimum_profit_margin' => 0
+        ]);
+
+        // Seed costing layer
+        app(\App\Services\InventoryCostingService::class)->recordPurchase($product->id, 1, 10, 50.00, 500.00);
 
         $data = [
             'customer_id' => $customer->id,
@@ -113,11 +132,12 @@ class SalesServiceTest extends TestCase
             ]
         ];
 
-        $invoice = $this->salesService->createInvoice($data);
+        $invoiceId = $this->salesService->createInvoice($data);
+        $invoice = Invoice::find($invoiceId);
 
         // Verify Invoice creation
         $this->assertDatabaseHas('invoices', [
-            'id' => $invoice->id,
+            'id' => $invoiceId,
             'customer_id' => $customer->id,
             'subtotal' => 200.00,
             'vat_amount' => 30.00,
@@ -136,22 +156,23 @@ class SalesServiceTest extends TestCase
         $this->assertEquals(8, $product->fresh()->stock_quantity);
 
         // Verify GL Entries
-        $this->assertDatabaseHas('general_ledgers', [
+        // Verify GL Entries
+        $this->assertDatabaseHas('general_ledger', [
             'voucher_number' => $invoice->voucher_number,
-            'debit' => 230.00, // Debit Cash
-            'credit' => 0
+            'amount' => 230.00,
+            'entry_type' => 'DEBIT'
         ]);
 
-        $this->assertDatabaseHas('general_ledgers', [
+        $this->assertDatabaseHas('general_ledger', [
             'voucher_number' => $invoice->voucher_number,
-            'debit' => 0,
-            'credit' => 200.00 // Credit Revenue
+            'amount' => 200.00,
+            'entry_type' => 'CREDIT'
         ]);
 
-        $this->assertDatabaseHas('general_ledgers', [
+        $this->assertDatabaseHas('general_ledger', [
             'voucher_number' => $invoice->voucher_number,
-            'debit' => 0,
-            'credit' => 30.00 // Credit VAT
+            'amount' => 30.00,
+            'entry_type' => 'CREDIT'
         ]);
     }
 
@@ -161,6 +182,7 @@ class SalesServiceTest extends TestCase
         $invoice = Invoice::factory()->create([
             'is_reversed' => false,
             'total_amount' => 115,
+            'amount_paid' => 0,
             'payment_type' => 'cash'
         ]);
         
@@ -170,6 +192,30 @@ class SalesServiceTest extends TestCase
             'invoice_id' => $invoice->id,
             'product_id' => $product->id,
             'quantity' => 1
+        ]);
+
+        // Manually create GL entries for this invoice so deletion can reverse them
+        $voucherNumber = 'VCH-TEST-001';
+        $invoice->update(['voucher_number' => $voucherNumber]);
+        
+        GeneralLedger::factory()->create([
+            'voucher_number' => $voucherNumber,
+            'account_id' => $this->debitAccount->id ?? ChartOfAccount::factory()->asset()->create()->id,
+            'entry_type' => 'DEBIT',
+            'amount' => 115,
+            'reference_type' => 'invoices',
+            'reference_id' => $invoice->id,
+            'description' => 'Original Invoice Entry'
+        ]);
+
+        GeneralLedger::factory()->create([
+            'voucher_number' => $voucherNumber,
+            'account_id' => $this->creditAccount->id ?? ChartOfAccount::factory()->revenue()->create()->id,
+            'entry_type' => 'CREDIT',
+            'amount' => 115,
+            'reference_type' => 'invoices',
+            'reference_id' => $invoice->id,
+            'description' => 'Original Invoice Entry'
         ]);
 
         // Mock COGS reversal (return negative or ignore, depending on impl)
@@ -185,9 +231,9 @@ class SalesServiceTest extends TestCase
         $this->assertEquals(11, $product->fresh()->stock_quantity);
         
         // Reversal entries exist
-        $this->assertDatabaseHas('general_ledgers', [
-            'is_reversed' => true,
-            'description' => 'Reversal of Invoice #' . $invoice->invoice_number
+        $this->assertDatabaseHas('general_ledger', [
+            'is_closed' => false,
+            'description' => "Reversal for deleted Invoice #{$invoice->invoice_number}"
         ]);
     }
 

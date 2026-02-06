@@ -43,6 +43,7 @@ class ApiAuth
 
         // Set authenticated user
         auth()->setUser($user);
+        $request->setUserResolver(fn () => $user);
 
         return $next($request);
     }

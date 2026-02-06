@@ -38,7 +38,8 @@ class AssetsController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'value' => 'required|numeric|min:0.01',
+            'purchase_value' => 'required|numeric|min:0.01',
+
             'purchase_date' => 'required|date',
             'depreciation_rate' => 'nullable|numeric|min:0|max:100',
             'description' => 'nullable|string',
@@ -63,7 +64,7 @@ class AssetsController extends Controller
         $validated = $request->validate([
             'id' => 'required|exists:assets,id',
             'name' => 'required|string|max:255',
-            'value' => 'required|numeric|min:0.01',
+            'purchase_value' => 'required|numeric|min:0.01',
             'purchase_date' => 'required|date',
             'depreciation_rate' => 'nullable|numeric|min:0|max:100',
             'description' => 'nullable|string',

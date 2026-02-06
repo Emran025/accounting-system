@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ApSupplier;
 use App\Models\User;
 use App\Models\GeneralLedger;
+use App\Models\Setting;
 use App\Models\ApTransaction;
 use App\Services\PurchaseService;
 use App\Services\LedgerService;
@@ -37,7 +38,7 @@ class PurchaseServiceTest extends TestCase
     {
         $user = User::factory()->create();
         $supplier = ApSupplier::factory()->create();
-        $product = Product::factory()->create(['stock_quantity' => 0]);
+        $product = Product::factory()->create(['stock_quantity' => 0, 'items_per_unit' => 1]);
 
         $data = [
             'product_id' => $product->id,
@@ -46,7 +47,7 @@ class PurchaseServiceTest extends TestCase
             'unit_type' => 'main',
             'supplier_id' => $supplier->id,
             'payment_type' => 'credit',
-            'vat_rate' => 15,
+            'vat_rate' => 0.15,
             'notes' => 'Test Purchase'
         ];
 
@@ -63,7 +64,7 @@ class PurchaseServiceTest extends TestCase
     public function test_create_purchase_fails_vat_mismatch()
     {
         $user = User::factory()->create();
-        $product = Product::factory()->create();
+        $product = Product::factory()->create(['items_per_unit' => 1]);
         $supplier = ApSupplier::factory()->create();
 
         $data = [
@@ -87,11 +88,11 @@ class PurchaseServiceTest extends TestCase
     public function test_create_purchase_auto_approves_below_threshold()
     {
         $user = User::factory()->create();
-        $product = Product::factory()->create(['stock_quantity' => 0]);
+        $product = Product::factory()->create(['stock_quantity' => 0, 'items_per_unit' => 1]);
         $supplier = ApSupplier::factory()->create();
 
         // Set high threshold
-        \App\Models\Setting::create([
+        Setting::create([
             'setting_key' => 'purchase_approval_threshold',
             'setting_value' => '5000'
         ]);
@@ -103,7 +104,7 @@ class PurchaseServiceTest extends TestCase
             'unit_type' => 'main',
             'supplier_id' => $supplier->id,
             'payment_type' => 'credit',
-            'vat_rate' => 15,
+            'vat_rate' => 0.15,
         ];
 
         $purchase = $this->purchaseService->createPurchase($data, $user->id);
@@ -114,7 +115,8 @@ class PurchaseServiceTest extends TestCase
         $this->assertEquals(1, $product->fresh()->stock_quantity);
         
         // Assert GL Entries
-        $this->assertDatabaseHas('general_ledgers', [
+        // Assert GL Entries
+        $this->assertDatabaseHas('general_ledger', [
             'reference_id' => $purchase->id,
             'reference_type' => 'purchases'
         ]);
@@ -129,15 +131,23 @@ class PurchaseServiceTest extends TestCase
     public function test_approve_purchase()
     {
         $user = User::factory()->create();
-        $product = Product::factory()->create(['stock_quantity' => 0]);
-        $purchase = Purchase::factory()->create([
+        $supplier = ApSupplier::factory()->create();
+        $product = Product::factory()->create(['stock_quantity' => 0, 'items_per_unit' => 1]);
+        
+        $data = [
             'product_id' => $product->id,
             'quantity' => 10,
-            'approval_status' => 'pending',
             'invoice_price' => 1150.00,
-            'payment_type' => 'credit'
-        ]);
+            'unit_type' => 'main',
+            'supplier_id' => $supplier->id,
+            'payment_type' => 'credit',
+            'vat_rate' => 0.15,
+        ];
 
+        // Create pending purchase via service
+        $purchase = $this->purchaseService->createPurchase($data, $user->id);
+        
+        // Approve it
         $result = $this->purchaseService->approvePurchase($purchase->id, $user->id);
 
         $this->assertTrue($result);
@@ -147,31 +157,31 @@ class PurchaseServiceTest extends TestCase
         // AP Transaction created on approval
         $this->assertDatabaseHas('ap_transactions', [
             'reference_id' => $purchase->id,
-            'supplier_id' => $purchase->supplier_id
+            'supplier_id' => $supplier->id
         ]);
     }
 
     public function test_reverse_purchase_full()
     {
         $user = User::factory()->create();
-        $product = Product::factory()->create(['stock_quantity' => 10]);
-        $purchase = Purchase::factory()->create([
+        $supplier = ApSupplier::factory()->create();
+        $product = Product::factory()->create(['stock_quantity' => 0, 'items_per_unit' => 1]); // Start with 0
+ 
+        $data = [
             'product_id' => $product->id,
-            'quantity' => 10,
-            'approval_status' => 'approved',
+            'quantity' => 10, // Buy 10
             'invoice_price' => 1150.00,
-            'payment_type' => 'credit'
-        ]);
-
-        // Simulate initial GL posting
-        $voucher = $purchase->voucher_number;
-        // We need real GL entries for reversal to work if logic depends on them
-        // Post manually or call processPurchaseImpact? 
-        // Better call createPurchase -> approve -> reverse to simulate full lifecycle
+            'unit_type' => 'main',
+            'supplier_id' => $supplier->id,
+            'payment_type' => 'credit',
+            'vat_rate' => 0.15,
+        ];
         
-        // Let's rely on standard logic: reversal decrements stock
+        // Create steps to ensure GL entries exist
+        $purchase = $this->purchaseService->createPurchase($data, $user->id);
+        $this->purchaseService->approvePurchase($purchase->id, $user->id);
         
-        // But reversal checks 'is_reversed'
+        // Now reverse
         $this->purchaseService->reversePurchase($purchase->id, $user->id);
 
         $this->assertTrue($purchase->fresh()->is_reversed);
@@ -181,19 +191,34 @@ class PurchaseServiceTest extends TestCase
     public function test_reverse_purchase_partial_depletion_logic()
     {
         $user = User::factory()->create();
-        $product = Product::factory()->create(['stock_quantity' => 5]); // Only 5 left
-        $purchase = Purchase::factory()->create([
+        $supplier = ApSupplier::factory()->create();
+        $product = Product::factory()->create(['stock_quantity' => 0, 'items_per_unit' => 1]); // Start 0
+
+        $data = [
             'product_id' => $product->id,
-            'quantity' => 10, // Bought 10
-            'approval_status' => 'approved',
+            'quantity' => 10,
             'invoice_price' => 1150.00,
-            'payment_type' => 'credit'
-        ]);
+            'unit_type' => 'main',
+            'supplier_id' => $supplier->id,
+            'payment_type' => 'credit',
+            'vat_rate' => 15,
+        ];
+
+        $purchase = $this->purchaseService->createPurchase($data, $user->id);
+        $this->purchaseService->approvePurchase($purchase->id, $user->id);
+
+        // Manually consume 5 items (simulate sales) or just set stock to 5?
+        // Service logic checks 'checkStockForReversal'.
+        // If we set stock to 5 manually, it implies 5 were sold/consumed.
+        $product->update(['stock_quantity' => 5]);
 
         $this->purchaseService->reversePurchase($purchase->id, $user->id);
 
         $this->assertTrue($purchase->fresh()->is_reversed);
-        $this->assertEquals(0, $product->fresh()->stock_quantity); // 5 reversed
-        $this->assertStringContainsString('Partially Reversed', $purchase->fresh()->notes);
+        $this->assertEquals(0, $product->fresh()->stock_quantity); // 5 reversed, 0 left (should have been 0 if 5 sold, but we forced 5)
+        // Check partial reversal logic if implemented in notes
+        // Note: The original test checked for "Partially Reversed" in notes.
+        // If implementation supports it.
+         $this->assertStringContainsString('Partially Reversed', $purchase->fresh()->notes);
     }
 }

@@ -46,7 +46,8 @@ class ApApiTest extends TestCase
         $response = $this->authGet(route('api.ap.suppliers'));
 
         $this->assertSuccessResponse($response);
-        $this->assertEquals(3, $response->json('meta.total'));
+        $this->assertEquals(3, $response->json('pagination.total_records'));
+
     }
 
     public function test_can_create_supplier()
@@ -61,7 +62,7 @@ class ApApiTest extends TestCase
 
         $this->assertSuccessResponse($response);
         $this->assertDatabaseHas('ap_suppliers', ['name' => 'Test Supplier']);
-        $this->assertDatabaseHas('telescope_entries', ['table_name' => 'ap_suppliers', 'operation' => 'CREATE']);
+        $this->assertDatabaseHas('telescope', ['table_name' => 'ap_suppliers', 'operation' => 'CREATE']);
     }
 
     public function test_cannot_create_duplicate_supplier()
@@ -146,7 +147,8 @@ class ApApiTest extends TestCase
         $response = $this->authGet(route('api.ap.ledger', ['supplier_id' => $supplier->id]));
 
         $this->assertSuccessResponse($response);
-        $this->assertEquals(100, $response->json('data.aging.over_90'));
-        $this->assertEquals(200, $response->json('data.aging.current'));
+        $this->assertEquals(100, $response->json('aging.over_90'));
+        $this->assertEquals(200, $response->json('aging.current'));
+
     }
 }

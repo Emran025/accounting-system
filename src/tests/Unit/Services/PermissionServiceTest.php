@@ -36,7 +36,7 @@ class PermissionServiceTest extends TestCase
 
     public function test_admin_role_has_wildcard_permissions()
     {
-        $adminRole = Role::factory()->create(['role_key' => 'admin']);
+        $adminRole = Role::where('role_key', 'admin')->first();
         
         $permissions = PermissionService::loadPermissions($adminRole->id);
 

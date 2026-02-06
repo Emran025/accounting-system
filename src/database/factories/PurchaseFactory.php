@@ -38,7 +38,6 @@ class PurchaseFactory extends Factory
             'voucher_number' => 'PUR-' . $this->faker->unique()->numberBetween(1000, 9999),
             'notes' => $this->faker->sentence,
             'created_at' => now(),
-            'updated_at' => now(),
         ];
     }
 }

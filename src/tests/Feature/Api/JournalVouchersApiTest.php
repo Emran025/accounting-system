@@ -71,10 +71,10 @@ class JournalVouchersApiTest extends TestCase
 
         $this->assertSuccessResponse($response);
         
-        $voucherNumber = $response->json('data.voucher_number');
+        $voucherNumber = $response->json('voucher_number');
         $this->assertDatabaseHas('journal_vouchers', ['voucher_number' => $voucherNumber, 'amount' => 1000]);
         // Verify GL posting happened
-        $this->assertDatabaseHas('general_ledgers', ['reference_type' => 'journal_vouchers']);
+        $this->assertDatabaseHas('general_ledger', ['reference_type' => 'journal_vouchers']);
     }
 
     public function test_validate_unbalanced_voucher_fails()

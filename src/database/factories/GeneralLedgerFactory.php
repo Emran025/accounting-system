@@ -16,7 +16,7 @@ class GeneralLedgerFactory extends Factory
         return [
             'account_id' => ChartOfAccount::factory(),
             'voucher_number' => 'V-' . $this->faker->unique()->numberBetween(1000, 9999),
-            'voucher_date' => now(),
+            'voucher_date' => now()->toDateString(),
             'entry_type' => $this->faker->randomElement(['DEBIT', 'CREDIT']),
             'amount' => $this->faker->randomFloat(2, 10, 1000),
             'description' => $this->faker->sentence,
@@ -30,7 +30,6 @@ class GeneralLedgerFactory extends Factory
         return $this->create(array_merge($attributes, [
             'voucher_date' => $date,
             'created_at' => $date,
-            'updated_at' => $date,
         ]));
     }
 }

@@ -131,6 +131,16 @@ class InventoryCostingService
                     'updated_at' => now(),
                 ]);
 
+                // Update original layer tracking (redundancy for simplified queries)
+                $newConsumed = $item->total_consumed + $qtyToTake;
+                DB::table('inventory_costing')
+                    ->where('id', $item->id)
+                    ->update([
+                        'consumed_quantity' => $newConsumed,
+                        'is_sold' => $newConsumed >= $item->quantity,
+                        'sold_at' => $newConsumed >= $item->quantity ? now() : null
+                    ]);
+
                 $remainingQtyToSell -= $qtyToTake;
             }
 

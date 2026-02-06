@@ -21,13 +21,13 @@ class ApSupplierFactory extends Factory
     {
         return [
             'name' => fake()->company(),
-            'contact_person' => fake()->name(),
+            //'contact_person' => fake()->name(),
             'email' => fake()->unique()->companyEmail(),
             'phone' => fake()->phoneNumber(),
             'address' => fake()->address(),
             'tax_number' => fake()->optional()->numerify('###-####-####'),
             'payment_terms' => fake()->numberBetween(15, 60),
-            'is_active' => true,
+            //'is_active' => true,
         ];
     }
 

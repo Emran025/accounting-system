@@ -13,4 +13,4 @@ Route::middleware('can:reports,view')->get('/reports/aging_payables', [ReportsCo
 Route::middleware('can:reports,view')->get('/reports/comparative', [ReportsController::class, 'comparative'])->name('api.reports.comparative');
 
 // Dashboard
-Route::middleware('can:reports,view')->get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard');
+Route::middleware('can:reports,view')->get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard.index');

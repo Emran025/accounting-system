@@ -22,7 +22,8 @@ class AuthorizationTest extends TestCase
         // Create a role with NO permissions
         $role = Role::create([
             'role_key' => 'restricted_user',
-            'role_name' => 'Restricted User',
+            'role_name_en' => 'Restricted User',
+            'role_name_ar' => 'مستخدم مقيد',
             'is_active' => true
         ]);
 
@@ -46,7 +47,8 @@ class AuthorizationTest extends TestCase
         // Create a role with NO permissions
         $role = Role::create([
             'role_key' => 'restricted_user',
-            'role_name' => 'Restricted User',
+            'role_name_en' => 'Restricted User',
+            'role_name_ar' => 'مستخدم مقيد',
             'is_active' => true
         ]);
 

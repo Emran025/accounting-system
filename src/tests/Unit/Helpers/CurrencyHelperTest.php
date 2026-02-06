@@ -12,6 +12,16 @@ class CurrencyHelperTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function tearDown(): void
+    {
+        $reflection = new \ReflectionClass(CurrencyHelper::class);
+        $property = $reflection->getProperty('primaryCurrency');
+        $property->setAccessible(true);
+        $property->setValue(null);
+        
+        parent::tearDown();
+    }
+
     public function test_get_primary_currency_returns_primary_currency()
     {
         $primary = Currency::factory()->create(['is_primary' => true, 'code' => 'SAR', 'symbol' => 'ر.س']);
@@ -34,26 +44,19 @@ class CurrencyHelperTest extends TestCase
 
     public function test_get_primary_currency_returns_default_object_on_exception()
     {
-        // Simulate no database table by dropping it mostly, but here we just ensure no currencies exist
-        // However, the helper has a try-catch block for generic exceptions. 
-        // We can simulated empty DB which returns default object if first() returns null? 
-        // No, the code says: `first() ?? \App\Models\Currency::first();`
-        // If DB is empty, both are null, so it might error on accessing property or return null.
-        // Actually the code doesn't handle null return from both fallback, it catches Exception.
-        // Let's rely on standard behavior first.
-        
-        // Ensure DB is empty
-        // Calling getPrimaryCurrency when DB is empty might throw standard error if not careful, 
-        // but the code block is inside try-catch.
-        
-        // Actually, let's force the try-catch by mocking the model if possible, 
-        // or just accept the fallback logic if DB is empty?
-        // The code: self::$primaryCurrency = ... first() ?? ... first();
-        // If both return null, it assigns null to static var.
-        // Then returns null. 
-        // Wait, line 20 catches exception.
-        
-        // Let's test basic functionality first.
+        // Drop the table to force a QueryException
+        \Illuminate\Support\Facades\Schema::drop('currencies');
+
+        // Reset the static property to force a new fetch
+        $reflection = new \ReflectionClass(CurrencyHelper::class);
+        $property = $reflection->getProperty('primaryCurrency');
+        $property->setAccessible(true);
+        $property->setValue(null);
+
+        $result = CurrencyHelper::getPrimaryCurrency();
+
+        $this->assertEquals('SAR', $result->code);
+        $this->assertEquals('ر.س', $result->symbol);
     }
 
     public function test_format_currency_with_symbol()

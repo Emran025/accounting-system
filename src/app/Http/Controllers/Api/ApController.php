@@ -12,6 +12,7 @@ use App\Services\ChartOfAccountsMappingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use App\Http\Resources\ApTransactionResource;
 
 class ApController extends Controller
 {
@@ -382,16 +383,22 @@ class ApController extends Controller
             ')->first();
 
         // Calculate aging using a targeted query for efficiency
+        $today = now();
+        $todayStr = $today->format('Y-m-d');
+        $date30 = $today->copy()->subDays(30)->format('Y-m-d');
+        $date60 = $today->copy()->subDays(60)->format('Y-m-d');
+        $date90 = $today->copy()->subDays(90)->format('Y-m-d');
+
         $agingData = ApTransaction::where('supplier_id', $supplierId)
             ->where('is_deleted', false)
             ->where('type', 'invoice')
             ->selectRaw('
-                SUM(CASE WHEN DATEDIFF(?, transaction_date) <= 0 THEN amount ELSE 0 END) as current,
-                SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 1 AND 30 THEN amount ELSE 0 END) as `1_30`,
-                SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 31 AND 60 THEN amount ELSE 0 END) as `31_60`,
-                SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 61 AND 90 THEN amount ELSE 0 END) as `61_90`,
-                SUM(CASE WHEN DATEDIFF(?, transaction_date) > 90 THEN amount ELSE 0 END) as `over_90`
-            ', [now()->format('Y-m-d'), now()->format('Y-m-d'), now()->format('Y-m-d'), now()->format('Y-m-d'), now()->format('Y-m-d')])
+                SUM(CASE WHEN transaction_date >= ? THEN amount ELSE 0 END) as current,
+                SUM(CASE WHEN transaction_date < ? AND transaction_date >= ? THEN amount ELSE 0 END) as `1_30`,
+                SUM(CASE WHEN transaction_date < ? AND transaction_date >= ? THEN amount ELSE 0 END) as `31_60`,
+                SUM(CASE WHEN transaction_date < ? AND transaction_date >= ? THEN amount ELSE 0 END) as `61_90`,
+                SUM(CASE WHEN transaction_date < ? THEN amount ELSE 0 END) as `over_90`
+            ', [$todayStr, $todayStr, $date30, $date30, $date60, $date60, $date90, $date90])
             ->first();
 
         $aging = [

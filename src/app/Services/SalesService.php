@@ -311,13 +311,15 @@ class SalesService
                 }
 
                 // Post Invoice GL
-                $this->ledgerService->postTransaction(
+                $voucherNumber = $this->ledgerService->postTransaction(
                     $invoiceEntries,
                     'invoices',
                     $invoice->id,
                     null,
                     now()->format('Y-m-d')
                 );
+
+                $invoice->update(['voucher_number' => $voucherNumber]);
 
                 // --- Transaction 2: The Payment (Prepayment) ---
                 if ($amountPaid > 0) {
@@ -428,22 +430,24 @@ class SalesService
                 }
 
                 // Post GL
-                $this->ledgerService->postTransaction(
+                $voucherNumber = $this->ledgerService->postTransaction(
                     $glEntries,
                     'invoices',
                     $invoice->id,
                     null,
                     now()->format('Y-m-d')
                 );
+
+                $invoice->update(['voucher_number' => $voucherNumber]);
             }
 
             return $invoice->id;
         });
     }
 
-    public function deleteInvoice(int $invoiceId): void
+    public function deleteInvoice(int $invoiceId): bool
     {
-        DB::transaction(function () use ($invoiceId) {
+        return DB::transaction(function () use ($invoiceId) {
             $invoice = Invoice::with('items')->findOrFail($invoiceId);
 
             // Fix BUG-002: Prevent deletion of paid invoices
@@ -490,9 +494,14 @@ class SalesService
                 }
             }
 
-            // Delete invoice items and invoice
-            $invoice->items()->delete();
-            $invoice->delete();
+            // Flag as reversed instead of deleting
+            $invoice->update([
+                'is_reversed' => true,
+                'reversed_at' => now(),
+                'reversed_by' => auth()->id() ?? $invoice->user_id
+            ]);
+
+            return true;
         });
     }
 

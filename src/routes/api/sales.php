@@ -18,10 +18,10 @@ Route::middleware('can:sales,create')->post('/sales/returns', [SalesReturnContro
 Route::middleware('can:sales,view')->get('/sales/returns/show', [SalesReturnController::class, 'show'])->name('api.sales_returns.show');
 
 // ZATCA - Stricter rate limiting for external API calls
-Route::post('/invoices/{id}/zatca/submit', [ZATCAInvoiceController::class, 'submit'])
+Route::post('/invoices/{invoice_id}/zatca/submit', [ZATCAInvoiceController::class, 'submit'])
     ->middleware('throttle:10,1') // 10 submissions per minute
-    ->name('api.invoices.zatca.submit');
-Route::get('/invoices/{id}/zatca/status', [ZATCAInvoiceController::class, 'getStatus'])->name('api.invoices.zatca.status');
+    ->name('api.zatca.submit');
+Route::get('/invoices/{invoice_id}/zatca/status', [ZATCAInvoiceController::class, 'getStatus'])->name('api.zatca.status');
 
 // AR (Customers)
 Route::middleware('can:ar_customers,view')->get('/ar/customers', [ArController::class, 'customers'])->name('api.ar.customers');

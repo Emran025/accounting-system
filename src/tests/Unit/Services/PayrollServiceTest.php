@@ -60,6 +60,7 @@ class PayrollServiceTest extends TestCase
             'cycle_type' => 'salary',
             'period_start' => now()->startOfMonth(),
             'period_end' => now()->endOfMonth(),
+            'payment_date' => now()->endOfMonth(),
             'status' => 'draft',
             'created_by' => $admin->id,
             'total_gross' => 5000,
@@ -74,7 +75,7 @@ class PayrollServiceTest extends TestCase
         $this->assertEquals('approved', $cycle->fresh()->status);
         
         // Check GL Accrual
-        $this->assertDatabaseHas('general_ledgers', [
+        $this->assertDatabaseHas('general_ledger', [
             'reference_type' => 'payroll_cycle',
             'reference_id' => $cycle->id,
             'entry_type' => 'DEBIT' // Salary Expense
@@ -87,6 +88,9 @@ class PayrollServiceTest extends TestCase
         $cycle = PayrollCycle::create([
             'cycle_name' => 'Payment Cycle',
             'cycle_type' => 'salary',
+            'period_start' => now()->startOfMonth(),
+            'period_end' => now()->endOfMonth(),
+            'payment_date' => now()->endOfMonth(),
             'status' => 'approved',
             'total_net' => 1000,
             'created_by' => $user->id
@@ -96,6 +100,9 @@ class PayrollServiceTest extends TestCase
         $item = PayrollItem::create([
             'payroll_cycle_id' => $cycle->id,
             'employee_id' => $employee->id,
+            'base_salary' => 1000,
+            'total_allowances' => 0,
+            'total_deductions' => 0,
             'gross_salary' => 1000,
             'net_salary' => 1000,
             'status' => 'active'
@@ -115,10 +122,10 @@ class PayrollServiceTest extends TestCase
         ]);
 
         // Check GL Payment
-        $this->assertDatabaseHas('general_ledgers', [
+        $this->assertDatabaseHas('general_ledger', [
             'reference_type' => 'payroll_cycle',
             'reference_id' => $cycle->id,
-            'account_code' => $account->account_code,
+            'account_id' => $account->id,
             'entry_type' => 'CREDIT'
         ]);
     }

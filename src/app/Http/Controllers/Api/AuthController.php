@@ -60,10 +60,14 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $sessionToken = session('session_token');
+        // Check header first (for API), then fallback to session (for Web)
+        $sessionToken = $request->header('X-Session-Token') ?? session('session_token');
+
         if ($sessionToken) {
             $this->authService->logout($sessionToken);
         }
+        
+        // Clean up local PHP session if any exists
         session()->flush();
 
         return response()->json(['success' => true]);

@@ -21,7 +21,7 @@ class AssetsApiTest extends TestCase
         // Create
         $response = $this->authPost(route('api.assets.store'), [
             'name' => 'Laptop',
-            'value' => 1500,
+            'purchase_value' => 1500,
             'purchase_date' => now()->toDateString(),
             'status' => 'active'
         ]);
@@ -35,7 +35,7 @@ class AssetsApiTest extends TestCase
         $this->authPut(route('api.assets.update'), [
             'id' => $assetId,
             'name' => 'Laptop Pro',
-            'value' => 1500,
+            'purchase_value' => 1500,
             'purchase_date' => now()->toDateString(),
         ])->assertStatus(200);
 

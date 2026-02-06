@@ -22,7 +22,13 @@ Route::middleware('can:employees,edit')->post('/employees/{id}/documents', [Empl
 Route::middleware('can:employees,view')->get('/employees/{id}/documents', [EmployeesController::class, 'getDocuments'])->name('api.employees.documents.index');
 
 
-Route::middleware('can:employees,edit')->apiResource('departments', DepartmentsController::class);
+Route::middleware('can:employees,edit')->apiResource('departments', DepartmentsController::class)->names([
+    'index' => 'api.departments.index',
+    'store' => 'api.departments.store',
+    'show' => 'api.departments.show',
+    'update' => 'api.departments.update',
+    'destroy' => 'api.departments.destroy',
+]);
 
 // Payroll
 Route::middleware('can:payroll,view')->get('/payroll/cycles', [PayrollController::class, 'index'])->name('api.payroll.index');

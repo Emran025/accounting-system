@@ -12,7 +12,7 @@ class AssetFactory extends Factory
     public function definition()
     {
         return [
-            'asset_name' => $this->faker->word . ' Asset',
+            'name' => $this->faker->word . ' Asset',
             'purchase_date' => now()->subYears(1),
             'purchase_value' => $this->faker->randomFloat(2, 5000, 50000),
             'salvage_value' => $this->faker->randomFloat(2, 500, 5000),

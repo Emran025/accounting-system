@@ -48,13 +48,14 @@ class BankReconciliationController extends Controller
 
         $validated = $request->validate([
             'reconciliation_date' => 'required|date',
-            'bank_balance' => 'required|numeric',
+            'physical_balance' => 'required|numeric',
             'notes' => 'nullable|string',
         ]);
 
         $ledger_balance = $this->ledgerService->getAccountBalance('1110', $validated['reconciliation_date']);
         $validated['ledger_balance'] = $ledger_balance;
-        $validated['difference'] = $validated['bank_balance'] - $ledger_balance;
+        $validated['difference'] = $validated['physical_balance'] - $ledger_balance;
+        $validated['account_code'] = '1110';
 
         $reconciliation = Reconciliation::create($validated);
 
@@ -77,11 +78,11 @@ class BankReconciliationController extends Controller
             $reconciliation = Reconciliation::findOrFail($validated['reconciliation_id']);
             
             // Post adjustment to GL
-            // This is a simplified adjustment against a suspense/difference account
-            $targetAccount = $validated['entry_type'] === 'DEBIT' ? '1110' : '5290'; // Adjusted from 5200 to 5290 (leaf)
-            $offsetAccount = $validated['entry_type'] === 'DEBIT' ? '5101' : '1110'; // Adjusted from 5100 to 5101 (leaf)
+            // The provided entry_type applies to the cash/bank account (1110)
+            $offsetAccount = $validated['entry_type'] === 'DEBIT' ? '5290' : '5101';
+            
             $this->ledgerService->postTransaction([
-                ['account_code' => $targetAccount, 'entry_type' => $validated['entry_type'], 'amount' => $validated['amount'], 'description' => $validated['description']],
+                ['account_code' => '1110', 'entry_type' => $validated['entry_type'], 'amount' => $validated['amount'], 'description' => $validated['description']],
                 ['account_code' => $offsetAccount, 'entry_type' => $validated['entry_type'] === 'DEBIT' ? 'CREDIT' : 'DEBIT', 'amount' => $validated['amount'], 'description' => $validated['description']],
             ], 'reconciliations', $reconciliation->id, null, $reconciliation->reconciliation_date);
 
@@ -89,7 +90,7 @@ class BankReconciliationController extends Controller
             $new_ledger_balance = $this->ledgerService->getAccountBalance('1110', $reconciliation->reconciliation_date);
             $reconciliation->update([
                 'ledger_balance' => $new_ledger_balance,
-                'difference' => $reconciliation->bank_balance - $new_ledger_balance
+                'difference' => $reconciliation->physical_balance - $new_ledger_balance
             ]);
 
             return $this->successResponse();

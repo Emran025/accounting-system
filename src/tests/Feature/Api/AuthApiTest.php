@@ -50,7 +50,7 @@ class AuthApiTest extends TestCase
             'password' => 'wrong',
         ]);
 
-        $this->assertErrorResponse($response, 200); // Controller returns 200 with success:false typically, or 401 if configured. Let's assume 200 based on Service return.
+        $this->assertErrorResponse($response, 401);
         // Wait, AuthService returns array, Controller probably returns JSON.
         // Let's check AuthController to be sure about status code.
     }

@@ -11,8 +11,11 @@ use App\Http\Requests\StoreInvoiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Api\BaseApiController;
-use App\Exceptions\BusinessLogicException ;
-use App\Http\Resources\InvoiceResource ;
+use App\Exceptions\BusinessLogicException;
+use App\Http\Resources\InvoiceResource;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class SalesController extends Controller
 {
@@ -50,9 +53,9 @@ class SalesController extends Controller
             ->get();
 
         return $this->paginatedResponse(
-            InvoiceResource::collection($invoices), 
-            $total, 
-            $page, 
+            InvoiceResource::collection($invoices),
+            $total,
+            $page,
             $perPage
         );
     }
@@ -72,18 +75,18 @@ class SalesController extends Controller
         } catch (BusinessLogicException $e) {
             // Business logic errors should return their own message and code (usually 400)
             return $this->errorResponse($e->getMessage(), $e->getCode());
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             // Let Laravel handle validation exceptions (422)
             throw $e;
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             // Product not found or similar - return 404
             return $this->errorResponse('Resource not found: ' . $e->getMessage(), 404);
         } catch (\Exception $e) {
             // Fix BUG-006: Differentiate between business logic errors and system failures
-            \Illuminate\Support\Facades\Log::error('Invoice Creation Error: ' . $e->getMessage(), [
+            Log::error('Invoice Creation Error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             // If it's a known business rule violation (contains specific keywords), return 400
             $businessRuleKeywords = ['price violation', 'insufficient stock', 'inventory', 'required', 'mismatch'];
             $isBusinessRule = false;
@@ -93,11 +96,11 @@ class SalesController extends Controller
                     break;
                 }
             }
-            
+
             if ($isBusinessRule) {
                 return $this->errorResponse($e->getMessage(), 400);
             }
-            
+
             // Otherwise it's a system error
             return $this->errorResponse('System error: ' . $e->getMessage(), 500);
         }
@@ -142,7 +145,7 @@ class SalesController extends Controller
                 'success' => true,
                 'message' => 'Invoice deleted successfully'
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             throw $e;
         } catch (\Exception $e) {
             return response()->json([

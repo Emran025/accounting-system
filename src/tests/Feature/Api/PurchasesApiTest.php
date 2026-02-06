@@ -14,6 +14,12 @@ class PurchasesApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seedChartOfAccounts();
+    }
+
     public function test_get_purchases_returns_list()
     {
         $this->authenticateUser();
@@ -25,13 +31,14 @@ class PurchasesApiTest extends TestCase
         $response = $this->authGet(route('api.purchases.index'));
         
         $this->assertSuccessResponse($response);
-        $response->assertJsonCount(3, 'purchases.data');
+        $response->assertJsonCount(3, 'data');
     }
 
     public function test_create_purchase_api()
     {
         $this->authenticateUser();
-        $product = Product::factory()->create();
+        // Create product with 0 stock to avoid stock validation issues if existing stock is assumed
+        $product = Product::factory()->create(['stock_quantity' => 0]); 
         $supplier = ApSupplier::factory()->create();
 
         $data = [
@@ -64,23 +71,33 @@ class PurchasesApiTest extends TestCase
         ]);
 
         $response = $this->authPost(route('api.purchases.approve'), [
-             'purchase_id' => $purchase->id
+             'id' => $purchase->id
         ]);
 
         $this->assertSuccessResponse($response);
         $this->assertEquals('approved', $purchase->fresh()->approval_status);
     }
 
-    public function test_reverse_purchase_api() // Mapped to destroy in routes?
+    public function test_reverse_purchase_api() 
     {
-        // Route::delete('/purchases', [PurchasesController::class, 'destroy']) 
-        // Note: Controller probably expects an ID in the body or query? 
-        // Valid REST would be DELETE /purchases/{id}, but route is /purchases.
-        // Let's assume it takes 'id' in body based on standard practice in this repo (inferred).
-        // Let's check route definition again: Route::delete('/purchases', ... -> destroy)
-        
         $this->authenticateUser();
-        $purchase = Purchase::factory()->create(['approval_status' => 'approved']);
+        $purchase = Purchase::factory()->create([
+            'approval_status' => 'approved',
+            'user_id' => $this->authenticatedUser->id,
+            'voucher_number' => 'PUR-TEST-REV'
+        ]);
+
+        // Create associated GL entries that the service looks for
+        \App\Models\GeneralLedger::factory()->create([
+            'voucher_number' => 'PUR-TEST-REV',
+            'amount' => 100,
+            'entry_type' => 'DEBIT' 
+        ]);
+        \App\Models\GeneralLedger::factory()->create([
+            'voucher_number' => 'PUR-TEST-REV',
+            'amount' => 100,
+            'entry_type' => 'CREDIT' 
+        ]);
 
         $response = $this->authDelete(route('api.purchases.destroy'), [
             'id' => $purchase->id

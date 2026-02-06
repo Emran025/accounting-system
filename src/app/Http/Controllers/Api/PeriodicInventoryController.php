@@ -143,7 +143,7 @@ class PeriodicInventoryController extends Controller
                         'amount' => $adjustmentAmount,
                         'description' => "Inventory Count Adjustment - Product: {$product->name}",
                     ];
-                    
+
                     // Fix BUG-006: Add Layer
                     $this->costingService->recordAdjustment($product->id, $count->id, $count->variance);
                 } else {
@@ -183,5 +183,15 @@ class PeriodicInventoryController extends Controller
 
             return $this->successResponse(['message' => 'Inventory counts processed successfully']);
         });
+    }
+
+    public function valuation(Request $request): JsonResponse
+    {
+        $totalValue = Product::selectRaw('SUM(stock_quantity * weighted_average_cost) as total')
+            ->value('total') ?? 0;
+
+        return $this->successResponse([
+            'total_value' => (float)$totalValue
+        ]);
     }
 }

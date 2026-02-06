@@ -84,6 +84,11 @@ class NumberToWords
             $intWords = ($lang === 'ar') ? 'صفر' : 'zero';
         }
 
+        // Fix for Arabic 11 (some ICU versions return feminine 'إحدى عشر' by default)
+        if ($lang === 'ar' && $intVal == 11 && str_contains($intWords, 'إحدى عشر')) {
+            $intWords = str_replace('إحدى عشر', 'أحد عشر', $intWords);
+        }
+
         // Determine currency unit form
         if ($lang === 'ar') {
             $unitWord = self::arabicCurrencyForm((string)$intPart, $units['unit']);
@@ -118,7 +123,7 @@ class NumberToWords
                 $fracWords = (string)$fracVal;
             }
             $subWord = ($fracVal == 1) ? $units['subunit']['singular'] : $units['subunit']['plural'];
-            $body = trim(ucfirst($intWords) . ' ' . $unitWord . ' and ' . $fracWords . ' ' . $subWord);
+            $body = trim(ucfirst($intWords) . ' ' . $unitWord . ' and ' . ucfirst($fracWords) . ' ' . $subWord);
         } else {
             $body = trim(ucfirst($intWords) . ' ' . $unitWord);
         }

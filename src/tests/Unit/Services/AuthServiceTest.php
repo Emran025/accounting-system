@@ -48,7 +48,7 @@ class AuthServiceTest extends TestCase
     {
         User::factory()->create([
             'username' => 'testuser',
-            'password' => Hash::make('correct_password'),
+            'password' => Hash::make('password123'),
         ]);
 
         $result = $this->authService->login('testuser', 'wrong_password');
@@ -74,10 +74,10 @@ class AuthServiceTest extends TestCase
     {
         User::factory()->inactive()->create([
             'username' => 'inactive',
-            'password' => Hash::make('password'),
+            'password' => Hash::make('password123'),
         ]);
 
-        $result = $this->authService->login('inactive', 'password');
+        $result = $this->authService->login('inactive', 'password123');
 
         $this->assertFalse($result['success']);
         $this->assertEquals('Account is inactive', $result['message']);

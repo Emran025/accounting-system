@@ -7,9 +7,12 @@ use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use App\Http\Controllers\Api\BaseApiController;
 
 class EmployeesController extends Controller
 {
+    use BaseApiController;
+
     public function index(Request $request)
     {
         $query = Employee::with(['role', 'department']);
@@ -27,7 +30,8 @@ class EmployeesController extends Controller
             $query->where('department_id', $request->department_id);
         }
         
-        return response()->json($query->paginate(15));
+        return $this->successResponse($query->paginate(15)->toArray());
+
     }
 
     public function store(Request $request)
@@ -78,9 +82,10 @@ class EmployeesController extends Controller
             $validated['user_id'] = $user->id;
 
             $employee = Employee::create($validated);
-            return response()->json($employee, 201);
+            return response()->json(array_merge(['success' => true], $employee->toArray()), 201);
         });
     }
+
 
     public function show($id)
     {
@@ -139,7 +144,7 @@ class EmployeesController extends Controller
                 }
             }
 
-            return response()->json($employee);
+            return $this->successResponse($employee->toArray(), 'Employee updated successfully');
         });
     }
 
@@ -151,7 +156,7 @@ class EmployeesController extends Controller
                 \App\Models\User::where('id', $employee->user_id)->delete();
             }
             $employee->delete();
-            return response()->json(null, 204);
+            return response()->json(['success' => true]);
         });
     }
 

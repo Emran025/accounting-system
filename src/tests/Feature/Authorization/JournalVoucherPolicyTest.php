@@ -4,6 +4,7 @@ namespace Tests\Feature\Authorization;
 
 use Tests\TestCase;
 use App\Models\User;
+use App\Models\Role;
 use App\Models\JournalVoucher;
 use App\Models\FiscalPeriod;
 use App\Models\GeneralLedger;
@@ -27,7 +28,9 @@ class JournalVoucherPolicyTest extends TestCase
         parent::setUp();
         $this->policy = new JournalVoucherPolicy();
 
-        $this->owner = User::factory()->create();
+        $adminRole = Role::firstOrCreate(['role_key' => 'admin'], ['role_name_en' => 'Admin', 'is_active' => true]);
+        
+        $this->owner = User::factory()->create(['role_id' => $adminRole->id]);
         $this->otherUser = User::factory()->create();
 
         $this->voucher = JournalVoucher::factory()->create([

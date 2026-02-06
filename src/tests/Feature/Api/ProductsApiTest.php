@@ -36,14 +36,15 @@ class ProductsApiTest extends TestCase
                     'stock_quantity'
                 ]
             ],
-            'meta' => [
+            'pagination' => [
                 'current_page',
-                'last_page',
-                'total'
+                'per_page',
+                'total_records',
+                'total_pages',
             ]
         ]);
         
-        $this->assertEquals(5, $response->json('meta.total'));
+        $this->assertEquals(5, $response->json('pagination.total_records'));
     }
 
     public function test_can_create_product()

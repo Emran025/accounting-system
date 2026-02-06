@@ -51,6 +51,6 @@ class DashboardApiTest extends TestCase
         $response = $this->authGet(route('api.dashboard.index', ['detail' => 'low_stock']));
 
         $this->assertSuccessResponse($response);
-        $this->assertEquals('Low Item', $response->json('0.name'));
+        $this->assertEquals('Low Item', $response->json('data.0.name'));
     }
 }

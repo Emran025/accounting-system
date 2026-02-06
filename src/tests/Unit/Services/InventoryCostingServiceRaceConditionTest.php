@@ -31,7 +31,7 @@ class InventoryCostingServiceRaceConditionTest extends TestCase
         
         // Create a product with initial inventory
         $this->product = Product::factory()->create([
-            'stock_quantity' => 100,
+            'stock_quantity' => 0,
             'weighted_average_cost' => 10.00,
         ]);
 

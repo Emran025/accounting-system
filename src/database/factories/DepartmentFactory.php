@@ -19,13 +19,17 @@ class DepartmentFactory extends Factory
      */
     public function definition(): array
     {
+        $name = fake()->unique()->randomElement([
+            'Sales', 'Marketing', 'IT', 'HR', 'Finance', 
+            'Operations', 'Logistics', 'Customer Service',
+            'Research', 'Development', 'Administration'
+        ]) . ' ' . fake()->numberBetween(1, 99);
+
         return [
-            'name' => fake()->unique()->randomElement([
-                'Sales', 'Marketing', 'IT', 'HR', 'Finance', 
-                'Operations', 'Logistics', 'Customer Service',
-                'Research', 'Development', 'Administration'
-            ]) . ' ' . fake()->numberBetween(1, 99),
+            'name_en' => $name,
+            'name_ar' => 'قسم ' . $name,
             'description' => fake()->optional()->sentence(),
+            'is_active' => true,
         ];
     }
 }

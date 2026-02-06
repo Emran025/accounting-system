@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 trait BaseApiController
 {
     protected function successResponse($data = [], string $message = ''): JsonResponse
     {
         $response = ['success' => true];
-        
+
         if (!empty($data)) {
             if (is_array($data) && !isset($data[0])) {
                 $response = array_merge($response, $data);
@@ -17,11 +18,11 @@ trait BaseApiController
                 $response['data'] = $data;
             }
         }
-        
+
         if (!empty($message)) {
             $response['message'] = $message;
         }
-        
+
         return response()->json($response);
     }
 
@@ -47,4 +48,3 @@ trait BaseApiController
         ]);
     }
 }
-

@@ -31,7 +31,7 @@ class InvoiceItemFactory extends Factory
             'quantity' => $quantity,
             'unit_price' => $unitPrice,
             'subtotal' => $subtotal,
-            'unit' => fake()->randomElement(['piece', 'box']),
+            'unit_type' => fake()->randomElement(['piece', 'box']),
         ];
     }
 }

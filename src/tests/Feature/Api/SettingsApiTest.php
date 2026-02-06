@@ -18,6 +18,7 @@ class SettingsApiTest extends TestCase
     }
 
     // Role Tests
+    // Role Tests
     public function test_can_list_roles()
     {
         Role::factory()->count(2)->create();
@@ -26,15 +27,14 @@ class SettingsApiTest extends TestCase
 
         $this->assertSuccessResponse($response);
         // Admin role + 2 created = 3 at least
-        $this->assertGreaterThanOrEqual(3, $response->json('meta.total'));
+        $this->assertGreaterThanOrEqual(3, count($response->json('roles')));
     }
 
     public function test_can_create_role()
     {
         $response = $this->authPost(route('api.roles.store'), [
-            'role_name' => 'Manager',
-            'role_key' => 'manager',
-            'description' => 'Store Manager'
+            'name' => 'Manager', // Changed from role_name
+            'description' => 'Store Manager' // role_key is generated
         ]);
 
         $this->assertSuccessResponse($response);
@@ -50,7 +50,7 @@ class SettingsApiTest extends TestCase
 
         $this->assertSuccessResponse($response);
         // Auth user + 2 created = 3
-        $this->assertGreaterThanOrEqual(3, $response->json('meta.total'));
+        $this->assertGreaterThanOrEqual(3, count($response->json('data')));
     }
 
     public function test_can_create_user()
@@ -59,7 +59,7 @@ class SettingsApiTest extends TestCase
 
         $data = [
             'username' => 'newuser',
-            'email' => 'newuser@example.com',
+            // 'email' => 'newuser@example.com', // Removed as email column does not exist
             'password' => 'password123',
             'role_id' => $role->id,
             'is_active' => true
@@ -68,7 +68,7 @@ class SettingsApiTest extends TestCase
         $response = $this->authPost(route('api.users.store'), $data);
 
         $this->assertSuccessResponse($response);
-        $this->assertDatabaseHas('users', ['email' => 'newuser@example.com']);
+        $this->assertDatabaseHas('users', ['username' => 'newuser']);
     }
 
     // Session/Auth Tests covered partly in AuthApiTest, but let's test listing active sessions if endpoint exists

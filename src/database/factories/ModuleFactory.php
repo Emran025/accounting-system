@@ -12,8 +12,10 @@ class ModuleFactory extends Factory
     public function definition()
     {
         return [
-            'name' => $this->faker->word,
             'module_key' => $this->faker->unique()->slug,
+            'module_name_en' => $this->faker->words(2, true),
+            'module_name_ar' => 'وحدة ' . $this->faker->word,
+            'category' => $this->faker->randomElement(['core', 'sales', 'hr', 'finance']),
             'is_active' => true,
         ];
     }

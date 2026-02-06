@@ -7,8 +7,11 @@ use App\Models\Session;
 use App\Models\LoginAttempt;
 use App\Services\PermissionService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Session as SessionFacade;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class AuthService
 {
@@ -27,10 +30,11 @@ class AuthService
             ];
         }
 
-        $user = User::where('username', $username)->first();
 
-        if ($user && password_verify($password, $user->password)) {
+        if (Auth::attempt([ 'username' => $username , 'password' => $password])) {
+            $user = Auth::user();
             if (!$user->is_active) {
+                Auth::logout();
                 return [
                     'success' => false,
                     'message' => 'Account is inactive'
@@ -57,12 +61,13 @@ class AuthService
     public function logout(string $sessionToken): void
     {
         Session::where('session_token', $sessionToken)->delete();
+        SessionFacade::flush();
     }
 
     public function checkSession(?string $sessionToken = null): ?User
     {
         if (!$sessionToken) {
-            $sessionToken = session('session_token');
+            $sessionToken = SessionFacade::get('session_token');
         }
 
         if (!$sessionToken) {
@@ -77,7 +82,7 @@ class AuthService
         if ($session && $session->user) {
             // Reload permissions
             $permissions = PermissionService::loadPermissions($session->user->role_id);
-            session(['permissions' => $permissions]);
+            SessionFacade::put('permissions', $permissions);
         }
 
         return $session?->user;
@@ -100,7 +105,7 @@ class AuthService
         $permissions = PermissionService::loadPermissions($user->role_id);
 
         // Store in session
-        session([
+        SessionFacade::put([
             'user_id' => $user->id,
             'session_token' => $sessionToken,
             'role_id' => $user->role_id,

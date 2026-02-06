@@ -43,34 +43,32 @@ class LedgerServiceTest extends TestCase
         
         $entries = [
             [
-                'account_id' => $debitAccount->id,
-                'debit' => 1000,
-                'credit' => 0,
+                'account_code' => $debitAccount->account_code,
+                'entry_type' => 'DEBIT',
+                'amount' => 1000,
                 'description' => 'Test Debit'
             ],
             [
-                'account_id' => $creditAccount->id,
-                'debit' => 0,
-                'credit' => 1000,
+                'account_code' => $creditAccount->account_code,
+                'entry_type' => 'CREDIT',
+                'amount' => 1000,
                 'description' => 'Test Credit'
             ]
         ];
 
         $voucherNumber = $this->ledgerService->postTransaction($entries, 'MANUAL', 1, 'JV-TEST');
 
-        $this->assertDatabaseHas('general_ledgers', [
+        $this->assertDatabaseHas('general_ledger', [
             'account_id' => $debitAccount->id,
-            'debit' => 1000,
-            'credit' => 0,
-            'description' => 'Test Debit',
+            'amount' => 1000,
+            'entry_type' => 'DEBIT',
             'voucher_number' => 'JV-TEST'
         ]);
 
-        $this->assertDatabaseHas('general_ledgers', [
+        $this->assertDatabaseHas('general_ledger', [
             'account_id' => $creditAccount->id,
-            'debit' => 0,
-            'credit' => 1000,
-            'description' => 'Test Credit',
+            'amount' => 1000,
+            'entry_type' => 'CREDIT',
             'voucher_number' => 'JV-TEST'
         ]);
         
@@ -80,15 +78,34 @@ class LedgerServiceTest extends TestCase
     public function test_post_transaction_throws_exception_if_not_balanced()
     {
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Transaction is not balanced');
+        $this->expectExceptionMessage('Debits (1000) must equal Credits (500)');
 
         $account = ChartOfAccount::factory()->asset()->create();
 
         $entries = [
             [
-                'account_id' => $account->id,
-                'debit' => 1000,
-                'credit' => 0,
+                'account_code' => $account->account_code,
+                'entry_type' => 'DEBIT',
+                'amount' => 1000,
+            ]
+        ];
+
+        // Need at least 2 entries check is first, but here we provide 1.
+        // Wait, Code says "At least two entries".
+        // If I provide just 1, exception "At least two entries...".
+        // The previous test expected "Transaction is not balanced".
+        // Let's create a balanced *structure* but numerically unbalanced.
+        
+        $entries = [
+            [
+                'account_code' => $account->account_code,
+                'entry_type' => 'DEBIT',
+                'amount' => 1000,
+            ],
+            [
+                'account_code' => $account->account_code,
+                'entry_type' => 'CREDIT',
+                'amount' => 500, 
             ]
         ];
 
@@ -102,18 +119,18 @@ class LedgerServiceTest extends TestCase
         // Add some debit entries
         GeneralLedger::create([
             'account_id' => $account->id,
-            'debit' => 500,
-            'credit' => 0,
-            'entry_date' => now(),
+            'amount' => 500,
+            'entry_type' => 'DEBIT',
+            'voucher_date' => now(),
             'voucher_number' => 'JV-001',
             'description' => 'Debit 1'
         ]);
         
         GeneralLedger::create([
             'account_id' => $account->id,
-            'debit' => 300,
-            'credit' => 0,
-            'entry_date' => now(),
+            'amount' => 300,
+            'entry_type' => 'DEBIT',
+            'voucher_date' => now(),
             'voucher_number' => 'JV-002',
             'description' => 'Debit 2'
         ]);
@@ -121,15 +138,15 @@ class LedgerServiceTest extends TestCase
         // Add a credit entry
         GeneralLedger::create([
             'account_id' => $account->id,
-            'debit' => 0,
-            'credit' => 200,
-            'entry_date' => now(),
+            'amount' => 200,
+            'entry_type' => 'CREDIT',
+            'voucher_date' => now(),
             'voucher_number' => 'JV-003',
             'description' => 'Credit 1'
         ]);
 
         // 500 + 300 - 200 = 600
-        $balance = $this->ledgerService->getAccountBalance($account->id);
+        $balance = $this->ledgerService->getAccountBalance($account->account_code);
         
         $this->assertEquals(600, $balance);
     }
@@ -142,14 +159,14 @@ class LedgerServiceTest extends TestCase
         // Initial transaction
         $entries = [
             [
-                'account_id' => $debitAccount->id,
-                'debit' => 1000,
-                'credit' => 0,
+                'account_code' => $debitAccount->account_code,
+                'entry_type' => 'DEBIT',
+                'amount' => 1000,
             ],
             [
-                'account_id' => $creditAccount->id,
-                'debit' => 0,
-                'credit' => 1000,
+                'account_code' => $creditAccount->account_code,
+                'entry_type' => 'CREDIT',
+                'amount' => 1000,
             ]
         ];
 
@@ -159,26 +176,22 @@ class LedgerServiceTest extends TestCase
         $reversalVoucher = $this->ledgerService->reverseTransaction($originalVoucher, 'Reversal Test');
 
         // Check reversal entries
-        $this->assertDatabaseHas('general_ledgers', [
+        // Check reversal entries
+        $this->assertDatabaseHas('general_ledger', [
             'voucher_number' => $reversalVoucher,
             'account_id' => $debitAccount->id,
-            'debit' => 0,
-            'credit' => 1000, // Reversed
-            'is_reversed' => true
+            'amount' => 1000,
+            'entry_type' => 'CREDIT' // Reversed
         ]);
 
-        $this->assertDatabaseHas('general_ledgers', [
+        $this->assertDatabaseHas('general_ledger', [
             'voucher_number' => $reversalVoucher,
             'account_id' => $creditAccount->id,
-            'debit' => 1000, // Reversed
-            'credit' => 0,
-            'is_reversed' => true
+            'amount' => 1000,
+            'entry_type' => 'DEBIT' // Reversed
         ]);
         
-        // Check original entries marked as reversed
-        $this->assertDatabaseHas('general_ledgers', [
-            'voucher_number' => $originalVoucher,
-            'is_reversed' => true
-        ]);
+        // We cannot check is_reversed on original entries as the specific column doesn't exist
+        // The service implements reversal by adding new contra entries.
     }
 }

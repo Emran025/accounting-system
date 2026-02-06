@@ -15,6 +15,30 @@ class ProductFactory extends Factory
     protected $model = Product::class;
 
     /**
+     * Configure the model factory.
+     */
+    public function configure()
+    {
+        return $this->afterCreating(function (Product $product) {
+            if ($product->stock_quantity > 0) {
+                \Illuminate\Support\Facades\DB::table('inventory_costing')->insert([
+                    'product_id' => $product->id,
+                    'reference_type' => 'initial_stock',
+                    'reference_id' => $product->id,
+                    'quantity' => $product->stock_quantity,
+                    'consumed_quantity' => 0,
+                    'unit_cost' => $product->weighted_average_cost ?? 0,
+                    'total_cost' => $product->stock_quantity * ($product->weighted_average_cost ?? 0),
+                    'is_sold' => false,
+                    'costing_method' => 'FIFO',
+                    'transaction_date' => now(),
+                    'created_at' => now(),
+                ]);
+            }
+        });
+    }
+
+    /**
      * Define the model's default state.
      *
      * @return array<string, mixed>

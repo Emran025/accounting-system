@@ -17,15 +17,17 @@ use App\Http\Controllers\Api\RevenuesController;
 // General Ledger
 Route::middleware('can:general_ledger,view')->get('/trial-balance', [GeneralLedgerController::class, 'trialBalance'])->name('api.gl.trial_balance');
 Route::middleware('can:general_ledger,view')->get('/ledger/entries', [GeneralLedgerController::class, 'entries'])->name('api.gl.entries');
-Route::middleware('can:general_ledger,view')->get('/ledger/account-activity', [GeneralLedgerController::class, 'accountActivity'])->name('api.gl.account.activity');
+Route::middleware('can:general_ledger,view')->get('/ledger/account-activity', [GeneralLedgerController::class, 'accountActivity'])->name('api.gl.account_activity');
 Route::middleware('can:general_ledger,view')->get('/ledger/account-details', [GeneralLedgerController::class, 'accountDetails'])->name('api.gl.account_details');
-Route::middleware('can:general_ledger,view')->get('/ledger/balance-history', [GeneralLedgerController::class, 'accountBalanceHistory'])->name('api.gl.balance.history');
+Route::middleware('can:general_ledger,view')->get('/ledger/balance-history', [GeneralLedgerController::class, 'accountBalanceHistory'])->name('api.gl.balance_history');
+
 
 // Journal Vouchers
-Route::middleware('can:journal_vouchers,view')->get('/journal-vouchers', [JournalVouchersController::class, 'index'])->name('api.jv.index');
-Route::middleware('can:journal_vouchers,create')->post('/journal-vouchers', [JournalVouchersController::class, 'store'])->name('api.jv.store');
-Route::middleware('can:journal_vouchers,view')->get('/journal-vouchers/{id}', [JournalVouchersController::class, 'show'])->name('api.jv.show');
-Route::middleware('can:journal_vouchers,delete')->delete('/journal-vouchers/{id}', [JournalVouchersController::class, 'destroy'])->name('api.jv.destroy');
+Route::middleware('can:journal_vouchers,view')->get('/journal-vouchers', [JournalVouchersController::class, 'index'])->name('api.journal_vouchers.index');
+Route::middleware('can:journal_vouchers,create')->post('/journal-vouchers', [JournalVouchersController::class, 'store'])->name('api.journal_vouchers.store');
+Route::middleware('can:journal_vouchers,view')->get('/journal-vouchers/{id}', [JournalVouchersController::class, 'show'])->name('api.journal_vouchers.show');
+Route::middleware('can:journal_vouchers,delete')->delete('/journal-vouchers/{id}', [JournalVouchersController::class, 'destroy'])->name('api.journal_vouchers.destroy');
+
 Route::post('/vouchers/{id}/post', [JournalVouchersController::class, 'post'])->name('api.vouchers.post');
 
 // Fiscal Periods

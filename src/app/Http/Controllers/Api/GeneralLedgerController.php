@@ -312,7 +312,7 @@ class GeneralLedgerController extends Controller
             $debits = $periodEntries->where('entry_type', 'DEBIT')->sum('amount');
             $credits = $periodEntries->where('entry_type', 'CREDIT')->sum('amount');
 
-            if (in_array($account->account_type, ['Asset', 'Expense'])) {
+            if (in_array(strtolower($account->account_type), ['asset', 'expense'])) {
                 $runningBalance += ($debits - $credits);
             } else {
                 $runningBalance += ($credits - $debits);

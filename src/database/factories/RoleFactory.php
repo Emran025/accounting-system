@@ -20,7 +20,8 @@ class RoleFactory extends Factory
     public function definition(): array
     {
         return [
-            'role_name' => fake()->jobTitle(),
+            'role_name_en' => fake()->jobTitle(),
+            'role_name_ar' => 'دور ' . fake()->word(),
             'role_key' => fake()->unique()->slug(2),
             'is_active' => true,
         ];
@@ -32,7 +33,8 @@ class RoleFactory extends Factory
     public function admin(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role_name' => 'Administrator',
+            'role_name_en' => 'Administrator',
+            'role_name_ar' => 'مسؤول النظام',
             'role_key' => 'admin',
         ]);
     }
@@ -43,7 +45,8 @@ class RoleFactory extends Factory
     public function cashier(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role_name' => 'Cashier',
+            'role_name_en' => 'Cashier',
+            'role_name_ar' => 'كاشير',
             'role_key' => 'cashier',
         ]);
     }
@@ -54,7 +57,8 @@ class RoleFactory extends Factory
     public function accountant(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role_name' => 'Accountant',
+            'role_name_en' => 'Accountant',
+            'role_name_ar' => 'محاسب',
             'role_key' => 'accountant',
         ]);
     }

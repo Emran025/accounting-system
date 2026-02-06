@@ -24,7 +24,8 @@ class InventoryApiTest extends TestCase
         $response = $this->authGet(route('api.categories.index'));
 
         $this->assertSuccessResponse($response);
-        $this->assertEquals(3, $response->json('meta.total'));
+
+        $this->assertEquals(3, count($response->json('data')));
     }
 
     public function test_can_create_category()

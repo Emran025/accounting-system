@@ -11,7 +11,7 @@ use App\Http\Requests\UpdateProductRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Api\BaseApiController;
-
+use App\Http\Resources\ProductResource;
 use App\Services\InventoryCostingService;
 use Illuminate\Support\Facades\DB;
 
@@ -53,7 +53,7 @@ class ProductsController extends Controller
             ->get();
 
         return $this->paginatedResponse(
-            \App\Http\Resources\ProductResource::collection($products),
+            ProductResource::collection($products),
             $total,
             $page,
             $perPage

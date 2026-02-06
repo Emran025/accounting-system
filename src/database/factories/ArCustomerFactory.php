@@ -21,14 +21,14 @@ class ArCustomerFactory extends Factory
     {
         return [
             'name' => fake()->company(),
-            'contact_person' => fake()->name(),
+            //'contact_person' => fake()->name(),
             'email' => fake()->unique()->companyEmail(),
             'phone' => fake()->phoneNumber(),
             'address' => fake()->address(),
             'tax_number' => fake()->optional()->numerify('###-####-####'),
-            'credit_limit' => fake()->randomFloat(2, 1000, 50000),
-            'payment_terms' => fake()->numberBetween(15, 60),
-            'is_active' => true,
+            //'credit_limit' => fake()->randomFloat(2, 1000, 50000),
+            //'payment_terms' => fake()->numberBetween(15, 60),
+            //'is_active' => true,
         ];
     }
 
@@ -38,7 +38,7 @@ class ArCustomerFactory extends Factory
     public function inactive(): static
     {
         return $this->state(fn (array $attributes) => [
-            'is_active' => false,
+            //'is_active' => false,
         ]);
     }
 
@@ -48,7 +48,7 @@ class ArCustomerFactory extends Factory
     public function noCreditLimit(): static
     {
         return $this->state(fn (array $attributes) => [
-            'credit_limit' => 0,
+            //'credit_limit' => 0,
         ]);
     }
 
@@ -58,8 +58,8 @@ class ArCustomerFactory extends Factory
     public function vip(): static
     {
         return $this->state(fn (array $attributes) => [
-            'credit_limit' => fake()->randomFloat(2, 100000, 500000),
-            'payment_terms' => 90,
+            //'credit_limit' => fake()->randomFloat(2, 100000, 500000),
+            //'payment_terms' => 90,
         ]);
     }
 }

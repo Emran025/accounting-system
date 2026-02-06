@@ -34,7 +34,7 @@ class CurrencyFactory extends Factory
             'symbol' => $currency['symbol'],
             'exchange_rate' => fake()->randomFloat(4, 0.1, 5),
             'is_active' => true,
-            'is_default' => false,
+            'is_primary' => false,
         ];
     }
 
@@ -44,11 +44,11 @@ class CurrencyFactory extends Factory
     public function sar(): static
     {
         return $this->state(fn (array $attributes) => [
-            'code' => 'SAR',
+            'code' => 'SAR'. fake()->unique()->randomNumber(3),
             'name' => 'Saudi Riyal',
             'symbol' => 'ر.س',
             'exchange_rate' => 1.0000,
-            'is_default' => true,
+            'is_primary' => true,
         ]);
     }
 
@@ -58,7 +58,7 @@ class CurrencyFactory extends Factory
     public function usd(): static
     {
         return $this->state(fn (array $attributes) => [
-            'code' => 'USD',
+            'code' => 'USD'. fake()->unique()->randomNumber(3),
             'name' => 'US Dollar',
             'symbol' => '$',
             'exchange_rate' => 3.75,
@@ -66,12 +66,12 @@ class CurrencyFactory extends Factory
     }
 
     /**
-     * Create as default currency
+     * Create as default (primary) currency
      */
     public function default(): static
     {
         return $this->state(fn (array $attributes) => [
-            'is_default' => true,
+            'is_primary' => true,
         ]);
     }
 

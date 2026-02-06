@@ -12,6 +12,7 @@ use App\Models\Role;
  */
 class UserFactory extends Factory
 {
+    protected static ?string $password;
     /**
      * Define the model's default state.
      *
@@ -22,12 +23,11 @@ class UserFactory extends Factory
         return [
             'username' => fake()->unique()->userName(),
             'full_name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'password' => static::$password ??= Hash::make('password'),
+            'password' => static::$password ??= Hash::make('password123'),
             'role_id' => Role::factory(),
             'role' => 'cashier', // Fallback for legacy
             'is_active' => true,
-            'remember_token' => Str::random(10),
+            //'remember_token' => Str::random(10),
         ];
     }
 

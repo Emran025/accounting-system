@@ -65,6 +65,7 @@ class ZATCAServiceTest extends TestCase
      */
     public function test_validate_invoice_requires_items(): void
     {
+        Setting::create(['setting_key' => 'zatca_enabled', 'setting_value' => '1']);
         $invoice = Invoice::factory()->create();
         
         $this->expectException(\Exception::class);
@@ -78,12 +79,20 @@ class ZATCAServiceTest extends TestCase
      */
     public function test_validate_invoice_requires_invoice_number(): void
     {
+        Setting::create(['setting_key' => 'zatca_enabled', 'setting_value' => '1']);
+        Setting::create(['setting_key' => 'tax_number', 'setting_value' => '123456789']);
         $product = Product::factory()->create();
-        $invoice = Invoice::factory()->create(['invoice_number' => null]);
+        
+        // Create with valid number first to pass DB constraints
+        $invoice = Invoice::factory()->create();
+        
         InvoiceItem::factory()->create([
             'invoice_id' => $invoice->id,
             'product_id' => $product->id,
         ]);
+        
+        // Set to null in memory to test validation
+        $invoice->invoice_number = null;
         
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Invoice number is required');
@@ -96,6 +105,7 @@ class ZATCAServiceTest extends TestCase
      */
     public function test_validate_invoice_requires_tax_number(): void
     {
+        Setting::create(['setting_key' => 'zatca_enabled', 'setting_value' => '1']);
         $product = Product::factory()->create();
         $invoice = Invoice::factory()->create();
         InvoiceItem::factory()->create([

@@ -6,8 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Department;
 use Illuminate\Http\Request;
 
+use App\Http\Controllers\Api\BaseApiController;
+
 class DepartmentsController extends Controller
 {
+    use BaseApiController;
+
     public function index(Request $request)
     {
         $query = Department::with('manager');
@@ -15,7 +19,8 @@ class DepartmentsController extends Controller
             $query->where('name_ar', 'like', '%' . $request->search . '%')
                   ->orWhere('name_en', 'like', '%' . $request->search . '%');
         }
-        return response()->json($query->paginate(15));
+        return $this->successResponse($query->paginate(15)->toArray());
+
     }
 
     public function store(Request $request)
@@ -27,8 +32,9 @@ class DepartmentsController extends Controller
         ]);
 
         $department = Department::create($validated);
-        return response()->json($department, 201);
+        return response()->json(array_merge(['success' => true], $department->toArray()), 201);
     }
+
 
     public function show($id)
     {
@@ -39,12 +45,14 @@ class DepartmentsController extends Controller
     {
         $department = Department::findOrFail($id);
         $department->update($request->all());
-        return response()->json($department);
+        return $this->successResponse($department->toArray());
+
     }
 
     public function destroy($id)
     {
         Department::destroy($id);
-        return response()->json(null, 204);
+        return response()->json(['success' => true]);
     }
 }
+

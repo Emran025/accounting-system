@@ -22,19 +22,20 @@ class EmployeeFactory extends Factory
     public function definition(): array
     {
         return [
-            'employee_number' => 'EMP-' . fake()->unique()->numerify('####'),
-            'first_name' => fake()->firstName(),
-            'last_name' => fake()->lastName(),
+            'employee_code' => 'EMP-' . fake()->unique()->numerify('####'),
+            'full_name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'password' => 'password123',
             'phone' => fake()->phoneNumber(),
             'hire_date' => fake()->dateTimeBetween('-5 years', 'now'),
             'department_id' => Department::factory(),
-            'position' => fake()->jobTitle(),
-            'basic_salary' => fake()->randomFloat(2, 3000, 25000),
-            'status' => 'active',
+            'employment_status' => 'active',
+            'contract_type' => 'full_time',
+            'base_salary' => fake()->randomFloat(2, 3000, 25000),
+            'is_active' => true,
             'national_id' => fake()->numerify('##########'),
             'bank_name' => fake()->randomElement(['Al Rajhi Bank', 'Saudi National Bank', 'Riyad Bank']),
-            'bank_account' => fake()->bankAccountNumber(),
+            'iban' => fake()->iban('SA'),
             'address' => fake()->address(),
         ];
     }
@@ -45,7 +46,8 @@ class EmployeeFactory extends Factory
     public function active(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'active',
+            'employment_status' => 'active',
+            'is_active' => true,
         ]);
     }
 
@@ -55,7 +57,8 @@ class EmployeeFactory extends Factory
     public function suspended(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'suspended',
+            'employment_status' => 'suspended',
+            'is_active' => false,
         ]);
     }
 
@@ -65,7 +68,8 @@ class EmployeeFactory extends Factory
     public function terminated(): static
     {
         return $this->state(fn (array $attributes) => [
-            'status' => 'terminated',
+            'employment_status' => 'terminated',
+            'is_active' => false,
             'termination_date' => fake()->dateTimeBetween('-1 year', 'now'),
         ]);
     }

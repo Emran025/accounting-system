@@ -37,7 +37,7 @@ class ChartOfAccountFactory extends Factory
     public function asset(): static
     {
         return $this->state(fn (array $attributes) => [
-            'account_type' => 'asset',
+            'account_type' => 'Asset',
             'account_code' => '1' . str_pad(self::$accountCodeCounter++, 3, '0', STR_PAD_LEFT),
         ]);
     }
@@ -48,7 +48,7 @@ class ChartOfAccountFactory extends Factory
     public function liability(): static
     {
         return $this->state(fn (array $attributes) => [
-            'account_type' => 'liability',
+            'account_type' => 'Liability',
             'account_code' => '2' . str_pad(self::$accountCodeCounter++, 3, '0', STR_PAD_LEFT),
         ]);
     }
@@ -59,7 +59,7 @@ class ChartOfAccountFactory extends Factory
     public function equity(): static
     {
         return $this->state(fn (array $attributes) => [
-            'account_type' => 'equity',
+            'account_type' => 'Equity',
             'account_code' => '3' . str_pad(self::$accountCodeCounter++, 3, '0', STR_PAD_LEFT),
         ]);
     }
@@ -70,7 +70,7 @@ class ChartOfAccountFactory extends Factory
     public function revenue(): static
     {
         return $this->state(fn (array $attributes) => [
-            'account_type' => 'revenue',
+            'account_type' => 'Revenue',
             'account_code' => '4' . str_pad(self::$accountCodeCounter++, 3, '0', STR_PAD_LEFT),
         ]);
     }
@@ -81,7 +81,7 @@ class ChartOfAccountFactory extends Factory
     public function expense(): static
     {
         return $this->state(fn (array $attributes) => [
-            'account_type' => 'expense',
+            'account_type' => 'Expense',
             'account_code' => '5' . str_pad(self::$accountCodeCounter++, 3, '0', STR_PAD_LEFT),
         ]);
     }

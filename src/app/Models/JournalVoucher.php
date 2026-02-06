@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class JournalVoucher extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'voucher_number', 'voucher_date', 'account_id', 'entry_type',
         'amount', 'description', 'created_by'

@@ -27,3 +27,4 @@ Route::middleware('can:batch_processing,delete')->delete('/batch', [BatchControl
 Route::middleware('can:products,view')->get('/inventory/periodic', [PeriodicInventoryController::class, 'index'])->name('api.inventory.periodic.index');
 Route::middleware('can:products,create')->post('/inventory/periodic', [PeriodicInventoryController::class, 'store'])->name('api.inventory.periodic.store');
 Route::middleware('can:products,edit')->post('/inventory/periodic/process', [PeriodicInventoryController::class, 'process'])->name('api.inventory.periodic.process');
+Route::middleware('can:products,view')->get('/inventory/periodic/valuation', [PeriodicInventoryController::class, 'valuation'])->name('api.inventory.periodic.valuation');

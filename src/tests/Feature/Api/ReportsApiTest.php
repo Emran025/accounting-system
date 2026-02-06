@@ -27,7 +27,7 @@ class ReportsApiTest extends TestCase
             'account_id' => $cash->id,
             'entry_type' => 'DEBIT',
             'amount' => 10000,
-        ], now()->startOfMonth());
+        ], now()->startOfMonth()->format('Y-m-d'));
 
         // Seed Revenue
         $sales = ChartOfAccount::where('account_code', '4100')->first();
@@ -35,15 +35,16 @@ class ReportsApiTest extends TestCase
             'account_id' => $sales->id,
             'entry_type' => 'CREDIT',
             'amount' => 5000,
-        ], now());
+        ], now()->format('Y-m-d'));
 
         // Seed Expense
-        $cogs = ChartOfAccount::factory()->expense()->create(['account_code' => '5100', 'account_name' => 'COGS']);
+        $cogs = ChartOfAccount::where('account_code', '5100')->first();
         GeneralLedger::factory()->createWithDates([
             'account_id' => $cogs->id,
             'entry_type' => 'DEBIT',
             'amount' => 2000,
-        ], now());
+        ], now()->format('Y-m-d'));
+
     }
 
     public function test_balance_sheet()
@@ -67,10 +68,12 @@ class ReportsApiTest extends TestCase
     {
         $response = $this->authGet(route('api.reports.profit_loss'));
 
+
         $this->assertSuccessResponse($response);
         $data = $response->json('data');
         
         $this->assertEquals(5000, $data['revenue']['total']);
+
         $this->assertEquals(2000, $data['expenses']['total']);
         $this->assertEquals(3000, $data['net_income']);
     }

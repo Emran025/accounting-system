@@ -146,7 +146,7 @@ class ReportsController extends Controller
 
         if (!$cashAccount) {
             // Fallback to finding any asset account that looks like cash if specific codes fail
-            $cashAccount = ChartOfAccount::where('account_type', 'Asset')
+            $cashAccount = ChartOfAccount::whereIn('account_type', ['Asset', 'asset'])
                 ->where('account_name', 'like', '%cash%')
                 ->first();
                 
@@ -207,12 +207,13 @@ class ReportsController extends Controller
         $agingData = ArTransaction::select(
                 'customers.id as customer_id',
                 'customers.name as customer_name',
-                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) <= 0 THEN amount ELSE 0 END) as current"),
-                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 1 AND 30 THEN amount ELSE 0 END) as `1_30`"),
-                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 31 AND 60 THEN amount ELSE 0 END) as `31_60`"),
-                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 61 AND 90 THEN amount ELSE 0 END) as `61_90`"),
-                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) > 90 THEN amount ELSE 0 END) as `over_90`"),
+                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) <= 0 THEN amount ELSE 0 END) as current"),
+                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) BETWEEN 1 AND 30 THEN amount ELSE 0 END) as `1_30`"),
+                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) BETWEEN 31 AND 60 THEN amount ELSE 0 END) as `31_60`"),
+                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) BETWEEN 61 AND 90 THEN amount ELSE 0 END) as `61_90`"),
+                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) > 90 THEN amount ELSE 0 END) as `over_90`"),
                 DB::raw("SUM(amount) as total")
+
             )
             ->join('ar_customers as customers', 'customers.id', '=', 'ar_transactions.customer_id')
             ->where('ar_transactions.is_deleted', false)
@@ -253,12 +254,13 @@ class ReportsController extends Controller
         $agingData = ApTransaction::select(
                 'suppliers.id as supplier_id',
                 'suppliers.name as supplier_name',
-                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) <= 0 THEN amount ELSE 0 END) as current"),
-                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 1 AND 30 THEN amount ELSE 0 END) as `1_30`"),
-                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 31 AND 60 THEN amount ELSE 0 END) as `31_60`"),
-                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 61 AND 90 THEN amount ELSE 0 END) as `61_90`"),
-                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) > 90 THEN amount ELSE 0 END) as `over_90`"),
+                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) <= 0 THEN amount ELSE 0 END) as current"),
+                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) BETWEEN 1 AND 30 THEN amount ELSE 0 END) as `1_30`"),
+                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) BETWEEN 31 AND 60 THEN amount ELSE 0 END) as `31_60`"),
+                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) BETWEEN 61 AND 90 THEN amount ELSE 0 END) as `61_90`"),
+                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) > 90 THEN amount ELSE 0 END) as `over_90`"),
                 DB::raw("SUM(amount) as total")
+
             )
             ->join('ap_suppliers as suppliers', 'suppliers.id', '=', 'ap_transactions.supplier_id')
             ->where('ap_transactions.is_deleted', false)
@@ -359,17 +361,20 @@ class ReportsController extends Controller
         $balances = GeneralLedger::select(
                 'chart_of_accounts.account_code',
                 'chart_of_accounts.account_name',
-                DB::raw('SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as debits'),
-                DB::raw('SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) as credits')
+                DB::raw("SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) as debits"),
+                DB::raw("SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) as credits")
+
             )
             ->join('chart_of_accounts', 'chart_of_accounts.id', '=', 'general_ledger.account_id')
-            ->where('chart_of_accounts.account_type', $accountType)
+            ->whereIn('chart_of_accounts.account_type', [$accountType, strtolower($accountType)])
+
             ->where('chart_of_accounts.is_active', true)
-            ->where('general_ledger.is_closed', false)
-            ->where('general_ledger.voucher_date', '<=', $asOfDate);
+            ->where('general_ledger.is_closed', 0)
+
+            ->whereDate('general_ledger.voucher_date', '<=', $asOfDate);
 
         if ($startDate) {
-            $balances->where('general_ledger.voucher_date', '>=', $startDate);
+            $balances->whereDate('general_ledger.voucher_date', '>=', $startDate);
         }
 
         $results = $balances->groupBy('chart_of_accounts.account_code', 'chart_of_accounts.account_name')
@@ -382,11 +387,13 @@ class ReportsController extends Controller
             $credits = (float)$row->credits;
 
             $balance = 0;
-            if (in_array($accountType, ['Asset', 'Expense'])) {
+            $type = strtolower($accountType);
+            if (in_array($type, ['asset', 'expense'])) {
                 $balance = $debits - $credits;
             } else {
                 $balance = $credits - $debits;
             }
+
 
             if ($balance != 0 || !$startDate) {
                 $details[] = [
@@ -426,9 +433,10 @@ class ReportsController extends Controller
         // We will assume "Fixed Assets" typically have codes starting with '15', '16', '17', or we check names.
         // BETTER: Use "Asset" type but exclude the Cash accounts calculated in Net Change.
         
-        $accounts = ChartOfAccount::where('account_type', 'Asset')
+        $accounts = ChartOfAccount::whereIn('account_type', ['Asset', 'asset'])
             ->where('is_active', true)
             ->get();
+
             
         // Exclude Cash/Bank accounts (usually 1110, 1111 etc or 'Likid')
         // And exclude Accounts Receivable (Current Asset)
@@ -444,11 +452,12 @@ class ReportsController extends Controller
             }
         
             $change = GeneralLedger::where('account_id', $account->id)
-                ->whereBetween('voucher_date', [$startDate, $endDate])
-                ->selectRaw('
-                    SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) -
-                    SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as net_change
-                ')
+                ->whereDate('voucher_date', '>=', $startDate)
+                ->whereDate('voucher_date', '<=', $endDate)
+                ->selectRaw("
+                    SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) -
+                    SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) as net_change
+                ")
                 ->value('net_change') ?? 0;
 
             // Asset Increase (Debit) => Outflow (Negative)
@@ -465,9 +474,10 @@ class ReportsController extends Controller
     private function getFinancingActivities(string $startDate, string $endDate): float
     {
         // Long Term Liabilities and Equity
-        $accounts = ChartOfAccount::whereIn('account_type', ['Liability', 'Equity'])
+        $accounts = ChartOfAccount::whereIn('account_type', ['Liability', 'Equity', 'liability', 'equity'])
             ->where('is_active', true)
             ->get();
+
 
         $total = 0;
 
@@ -489,11 +499,12 @@ class ReportsController extends Controller
             }
 
             $change = GeneralLedger::where('account_id', $account->id)
-                ->whereBetween('voucher_date', [$startDate, $endDate])
-                ->selectRaw('
-                    SUM(CASE WHEN entry_type = "CREDIT" THEN amount ELSE 0 END) -
-                    SUM(CASE WHEN entry_type = "DEBIT" THEN amount ELSE 0 END) as net_change
-                ')
+                ->whereDate('voucher_date', '>=', $startDate)
+                ->whereDate('voucher_date', '<=', $endDate)
+                ->selectRaw("
+                    SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) -
+                    SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) as net_change
+                ")
                 ->value('net_change') ?? 0;
 
             // Liability Increase (Credit) => Inflow (Positive)

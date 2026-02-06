@@ -173,13 +173,15 @@ class DepreciationService
                 'account_code' => $accounts['depreciation_expense'] ?? '6200',
                 'entry_type' => 'DEBIT',
                 'amount' => $amount,
-                'description' => "Depreciation - {$asset->asset_name}"
+                'description' => "Depreciation - {$asset->name}"
+
             ],
             [
                 'account_code' => $accounts['accumulated_depreciation'] ?? '1290',
                 'entry_type' => 'CREDIT',
                 'amount' => $amount,
-                'description' => "Accumulated Depreciation - {$asset->asset_name}"
+                'description' => "Accumulated Depreciation - {$asset->name}"
+
             ],
         ];
 
@@ -281,7 +283,8 @@ class DepreciationService
 
                     $results[] = [
                         'asset_id' => $asset->id,
-                        'asset_name' => $asset->asset_name,
+                        'asset_name' => $asset->name,
+
                         'amount' => $amount,
                         'voucher_number' => $voucherNumber,
                         'status' => 'success',
@@ -290,7 +293,8 @@ class DepreciationService
             } catch (\Exception $e) {
                 $results[] = [
                     'asset_id' => $asset->id,
-                    'asset_name' => $asset->asset_name,
+                    'asset_name' => $asset->name,
+
                     'status' => 'error',
                     'error' => $e->getMessage(),
                 ];
