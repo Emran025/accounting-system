@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate } from "@/lib/utils";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
@@ -43,7 +44,7 @@ export default function FiscalPeriodsPage() {
   const loadPeriods = useCallback(async (page: number = 1) => {
     try {
       setIsLoading(true);
-      const response = await fetchAPI(`fiscal_periods?page=${page}&limit=${itemsPerPage}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.FISCAL_PERIODS.BASE}?page=${page}&limit=${itemsPerPage}`);
       if (response.success && response.data) {
         setPeriods(response.data as FiscalPeriod[]);
         const total = Number(response.total) || 0;
@@ -63,7 +64,7 @@ export default function FiscalPeriodsPage() {
     const init = async () => {
       const authenticated = await checkAuth();
       if (!authenticated) return;
-      
+
       const storedUser = getStoredUser();
       setUser(storedUser);
       await loadPeriods();
@@ -81,7 +82,7 @@ export default function FiscalPeriodsPage() {
 
   const viewPeriod = async (id: number) => {
     try {
-      const response = await fetchAPI(`fiscal_periods?id=${id}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.FISCAL_PERIODS.BASE}?id=${id}`);
       if (response.success && response.data) {
         const period = Array.isArray(response.data) ? response.data[0] : response.data;
         if (period) {
@@ -97,7 +98,7 @@ export default function FiscalPeriodsPage() {
 
   const editPeriod = async (id: number) => {
     try {
-      const response = await fetchAPI(`fiscal_periods?id=${id}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.FISCAL_PERIODS.BASE}?id=${id}`);
       if (response.success && response.data) {
         const period = Array.isArray(response.data) ? response.data[0] : response.data;
         if (!period) {
@@ -130,7 +131,7 @@ export default function FiscalPeriodsPage() {
       };
       if (currentPeriodId) body.id = currentPeriodId;
 
-      const response = await fetchAPI("fiscal_periods", {
+      const response = await fetchAPI(API_ENDPOINTS.FINANCE.FISCAL_PERIODS.BASE, {
         method: currentPeriodId ? "PUT" : "POST",
         body: JSON.stringify(body),
       });
@@ -172,10 +173,15 @@ export default function FiscalPeriodsPage() {
     };
 
     try {
+      let endpoint = "";
+      if (confirmAction.type === 'lock') endpoint = API_ENDPOINTS.FINANCE.FISCAL_PERIODS.LOCK;
+      else if (confirmAction.type === 'unlock') endpoint = API_ENDPOINTS.FINANCE.FISCAL_PERIODS.UNLOCK;
+      else if (confirmAction.type === 'close') endpoint = API_ENDPOINTS.FINANCE.FISCAL_PERIODS.CLOSE;
+
       const response = await fetchAPI(
-        `fiscal_periods?action=${confirmAction.type}`,
+        endpoint,
         {
-          method: "PUT",
+          method: "POST",
           body: JSON.stringify({ id: confirmAction.periodId }),
         }
       );
@@ -383,8 +389,8 @@ export default function FiscalPeriodsPage() {
           confirmAction?.type === "lock"
             ? "هل أنت متأكد من قفل هذه الفترة؟ لن يمكن إضافة قيود جديدة."
             : confirmAction?.type === "unlock"
-            ? "هل أنت متأكد من فتح هذه الفترة؟ سيتم السماح بإضافة قيود جديدة."
-            : "هل أنت متأكد من إغلاق هذه الفترة؟ سيتم إنشاء قيود الإغلاق ولن يمكن تعديل الفترة."
+              ? "هل أنت متأكد من فتح هذه الفترة؟ سيتم السماح بإضافة قيود جديدة."
+              : "هل أنت متأكد من إغلاق هذه الفترة؟ سيتم إنشاء قيود الإغلاق ولن يمكن تعديل الفترة."
         }
         confirmText="تأكيد"
         confirmVariant={confirmAction?.type === "close" ? "danger" : "primary"}

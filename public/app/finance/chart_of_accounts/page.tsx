@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column , SearchableSelect} from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, SearchableSelect } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency } from "@/lib/utils";
 import { Permission, User, canAccess, getStoredPermissions, getStoredUser } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
@@ -58,7 +59,7 @@ export default function ChartOfAccountsPage() {
   const loadAccounts = useCallback(async (search: string = "") => {
     try {
       setIsLoading(true);
-      const response = await fetchAPI(`/api/accounts?search=${encodeURIComponent(search)}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.ACCOUNTS.BASE}?search=${encodeURIComponent(search)}`);
       setAccounts(response.accounts as Account[] || []);
     } catch {
       showToast("خطأ في تحميل الحسابات", "error");
@@ -124,13 +125,13 @@ export default function ChartOfAccountsPage() {
 
     try {
       if (selectedAccount) {
-        await fetchAPI(`/api/accounts/${selectedAccount.id}`, {
+        await fetchAPI(`${API_ENDPOINTS.FINANCE.ACCOUNTS.BASE}/${selectedAccount.id}`, {
           method: "PUT",
           body: JSON.stringify(payload),
         });
         showToast("تم تحديث الحساب بنجاح", "success");
       } else {
-        await fetchAPI("/api/accounts", {
+        await fetchAPI(API_ENDPOINTS.FINANCE.ACCOUNTS.BASE, {
           method: "POST",
           body: JSON.stringify(payload),
         });
@@ -152,7 +153,7 @@ export default function ChartOfAccountsPage() {
     if (!deleteId) return;
 
     try {
-      await fetchAPI(`/api/accounts/${deleteId}`, { method: "DELETE" });
+      await fetchAPI(`${API_ENDPOINTS.FINANCE.ACCOUNTS.BASE}/${deleteId}`, { method: "DELETE" });
       showToast("تم حذف الحساب", "success");
       loadAccounts(searchTerm);
     } catch {
@@ -251,8 +252,8 @@ export default function ChartOfAccountsPage() {
           <SearchableSelect
             placeholder="بحث بالرقم أو الاسم..."
             value={searchTerm}
-            onSearch={() => {handleSearch}}
-            onChange={() => {handleSearch}}
+            onSearch={() => { handleSearch }}
+            onChange={() => { handleSearch }}
             options={[]}
             className="header-search-bar"
           />
@@ -266,7 +267,7 @@ export default function ChartOfAccountsPage() {
           )
         }
       />
-{/* 
+      {/* 
       <div className="filter-section animate-fade" style={{ marginBottom: "1.5rem" }}>
         <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
           <input
@@ -364,12 +365,12 @@ export default function ChartOfAccountsPage() {
         </div>
 
         <div className="form-group">
-            <Checkbox
-              label="نشط"
-              id="is_active"
-              checked={formData.is_active}
-              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-            />
+          <Checkbox
+            label="نشط"
+            id="is_active"
+            checked={formData.is_active}
+            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+          />
         </div>
       </Dialog>
 

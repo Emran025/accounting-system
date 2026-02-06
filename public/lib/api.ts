@@ -1,4 +1,5 @@
 // API Utilities - Mirrors the original common.js fetchAPI
+import { API_ENDPOINTS } from "./endpoints";
 import QRCode from "qrcode";
 
 const getApiBase = () => {
@@ -108,7 +109,7 @@ let systemSettings: any = null;
 export async function initSystemSettings() {
   if (systemSettings) return systemSettings;
   try {
-    const result = await fetchAPI("/api/settings");
+    const result = await fetchAPI(API_ENDPOINTS.SYSTEM.SETTINGS.INDEX);
     if (result.success && result.settings) {
       systemSettings = result.settings;
       return systemSettings;

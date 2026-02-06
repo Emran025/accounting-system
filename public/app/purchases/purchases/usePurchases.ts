@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showToast } from "@/components/ui";
 import { Purchase, PurchaseRequest } from "./types";
 
@@ -14,7 +15,7 @@ export function usePurchases() {
         try {
             setIsLoading(true);
             const response = await fetchAPI(
-                `purchases?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
+                `${API_ENDPOINTS.PURCHASES.BASE}?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
             );
             if (response.success) {
                 setPurchases((response.data as Purchase[]) || []);
@@ -30,7 +31,7 @@ export function usePurchases() {
 
     const savePurchase = useCallback(async (payload: any, id?: number) => {
         try {
-            const endpoint = "purchases";
+            const endpoint = API_ENDPOINTS.PURCHASES.BASE;
             const method = id ? "PUT" : "POST";
             const body = id ? { ...payload, id } : payload;
 
@@ -54,7 +55,7 @@ export function usePurchases() {
 
     const deletePurchase = useCallback(async (id: number) => {
         try {
-            const response = await fetchAPI(`purchases?id=${id}`, { method: "DELETE" });
+            const response = await fetchAPI(`${API_ENDPOINTS.PURCHASES.BASE}?id=${id}`, { method: "DELETE" });
             if (response.success) {
                 showToast("تم حذف المشترى", "success");
                 return true;

@@ -1,6 +1,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showAlert, Table, Column, ConfirmDialog } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
@@ -13,13 +14,13 @@ export function PrepaymentsTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [confirmDialog, setConfirmDialog] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  
+
   const itemsPerPage = 20;
 
   const loadPrepayments = useCallback(async (page: number = 1) => {
     try {
       setIsLoading(true);
-      const response = await fetchAPI(`accrual?module=prepayments&page=${page}&limit=${itemsPerPage}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.ACCRUAL}?module=prepayments&page=${page}&limit=${itemsPerPage}`);
       if (response.success && response.data) {
         setPrepayments(response.data as Prepayment[]);
         const total = Number(response.total) || 0;
@@ -48,7 +49,7 @@ export function PrepaymentsTab() {
     if (!selectedId) return;
 
     try {
-      const response = await fetchAPI(`accrual?module=prepayments`, {
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.ACCRUAL}?module=prepayments`, {
         method: "PUT",
         body: JSON.stringify({
           id: selectedId,

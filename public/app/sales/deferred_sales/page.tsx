@@ -4,17 +4,18 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, SegmentedToggle, SelectableInvoiceTable, SalesReturnDialog, SelectedItem, SelectableInvoiceItem as UiInvoiceItem, showToast, InvoiceTableColumn, SelectableInvoice, ReturnData } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDateTime, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, canAccess, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
 import { printInvoice } from "@/lib/invoice-utils";
 
 interface GovernmentFee {
-    id: number;
-    name: string;
-    percentage: number;
-    fixed_amount: number;
-    is_active: boolean;
+  id: number;
+  name: string;
+  percentage: number;
+  fixed_amount: number;
+  is_active: boolean;
 }
 
 interface Product {
@@ -114,7 +115,7 @@ export default function DeferredSalesPage() {
   const [confirmDialog, setConfirmDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [deleteInvoiceId, setDeleteInvoiceId] = useState<number | null>(null);
-  
+
   // Margin Confirmation
   const [marginConfirm, setMarginConfirm] = useState(false);
   const [pendingItem, setPendingItem] = useState<InvoiceItem | null>(null);
@@ -132,10 +133,10 @@ export default function DeferredSalesPage() {
     // basePrice is the amount subject to fees and VAT
     const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
     const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
-    
+
     // Fee amount based on base price
     const variableFeeAmount = basePrice * feesPercentage;
-    
+
     // VAT is calculated on base price (Taxable Base)
     const vatAmount = basePrice * vatRate;
 
@@ -147,10 +148,10 @@ export default function DeferredSalesPage() {
     // Reverse calculation to extract Base Price from Final Price
     const feesPercentage = governmentFees.reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0) / 100;
     const fixedFees = governmentFees.reduce((sum, fee) => sum + (Number(fee.fixed_amount) || 0), 0);
-    
+
     // Formula: Final = Base * (1 + fee% + vat%) + Fixed
     // Base = (Final - Fixed) / (1 + fee% + vat%)
-    
+
     const divisor = 1 + feesPercentage + vatRate;
     const base = (finalPrice - fixedFees) / divisor;
     return base > 0 ? base : 0;
@@ -190,18 +191,18 @@ export default function DeferredSalesPage() {
 
   const loadFees = useCallback(async () => {
     try {
-        const response: any = await fetchAPI("government_fees");
-        if (response.success && response.data && response.data.fees) {
-            setGovernmentFees(response.data.fees.filter((f: GovernmentFee) => f.is_active));
-        }
+      const response: any = await fetchAPI(API_ENDPOINTS.SYSTEM.GOVERNMENT_FEES.BASE);
+      if (response.success && response.data && response.data.fees) {
+        setGovernmentFees(response.data.fees.filter((f: GovernmentFee) => f.is_active));
+      }
     } catch (e) {
-        console.error("Failed to load fees", e);
+      console.error("Failed to load fees", e);
     }
   }, []);
 
   const loadProducts = useCallback(async () => {
     try {
-      const response = await fetchAPI(`products?include_purchase_price=1`);
+      const response = await fetchAPI(`${API_ENDPOINTS.INVENTORY.PRODUCTS}?include_purchase_price=1`);
       if (response.success && response.data) {
         const filtered = (response.data as Product[]).filter((p) => p.stock_quantity > 0);
         setProducts(filtered);
@@ -217,7 +218,7 @@ export default function DeferredSalesPage() {
       return;
     }
     try {
-      const response = await fetchAPI(`ar_customers?limit=10&search=${encodeURIComponent(search)}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.AR.CUSTOMERS}?limit=10&search=${encodeURIComponent(search)}`);
       if (response.success && response.data) {
         setCustomers(response.data as Customer[]);
       }
@@ -229,7 +230,7 @@ export default function DeferredSalesPage() {
   const loadInvoices = useCallback(async (page: number = 1) => {
     try {
       setIsLoading(true);
-      const response = await fetchAPI(`invoices?page=${page}&limit=${itemsPerPage}&payment_type=credit`);
+      const response = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICES}?page=${page}&limit=${itemsPerPage}&payment_type=credit`);
       if (response.success && response.data) {
         setInvoices(response.data as Invoice[]);
 
@@ -255,12 +256,12 @@ export default function DeferredSalesPage() {
 
       // Load Settings (VAT Rate)
       try {
-        const settingsRes = await fetchAPI("/api/settings");
+        const settingsRes = await fetchAPI(API_ENDPOINTS.SYSTEM.SETTINGS.INDEX);
         if (settingsRes.success && settingsRes.data) {
-             const vatSetting = (settingsRes.data as any[]).find((s: any) => s.setting_key === 'vat_rate');
-             if (vatSetting) {
-                 setVatRate(parseFloat(vatSetting.setting_value) / 100);
-             }
+          const vatSetting = (settingsRes.data as any[]).find((s: any) => s.setting_key === 'vat_rate');
+          if (vatSetting) {
+            setVatRate(parseFloat(vatSetting.setting_value) / 100);
+          }
         }
       } catch (e) { console.error("Failed to load VAT rate", e); }
 
@@ -346,16 +347,16 @@ export default function DeferredSalesPage() {
     }
     const product = option.original as Product;
     setSelectedProduct(product);
-    
+
     // Calculate initial display price: (Cost + Margin) + Tax + Fees
     // Use weighted_average_cost if available as it is the system's true cost, otherwise fallback to unit_price or purchase_price
     const cost = Number(product.weighted_average_cost) || Number(product.unit_price) || 0;
     const margin = Number(product.minimum_profit_margin) || 0;
     const basePrice = cost + margin;
-    
+
     // Set the display price (Final Price)
     const displayPrice = calculateSellingPrice(basePrice);
-    
+
     // Store display price in the input for user to see/edit
     setUnitPrice(displayPrice.toFixed(2));
   };
@@ -432,7 +433,7 @@ export default function DeferredSalesPage() {
     // Check minimum profit margin
     const costBasis = Number(selectedProduct.weighted_average_cost) || 0;
     const minProfitMargin = Number(selectedProduct.minimum_profit_margin) || 0;
-    
+
     // We need to compare the "Base Price" (what we send to server) vs the "Minimum Price"
     const currentBasePrice = calculateBasePrice(price);
     const minAllowedBasePrice = costBasis + minProfitMargin;
@@ -454,15 +455,15 @@ export default function DeferredSalesPage() {
 
   const confirmAddItem = () => {
     if (pendingItem) {
-        setInvoiceItems([...invoiceItems, pendingItem]);
-        setPendingItem(null);
-        setMarginConfirm(false);
-        
-        // Reset form
-        setSelectedProduct(null);
-        setQuantity("1");
-        setUnitPrice("");
-        setItemStock("");
+      setInvoiceItems([...invoiceItems, pendingItem]);
+      setPendingItem(null);
+      setMarginConfirm(false);
+
+      // Reset form
+      setSelectedProduct(null);
+      setQuantity("1");
+      setUnitPrice("");
+      setItemStock("");
     }
   };
 
@@ -504,16 +505,16 @@ export default function DeferredSalesPage() {
         // item.unit_price is the Display Price (Final)
         const basePrice = calculateBasePrice(item.unit_price);
         return {
-            ...item,
-            unit_price: Number(basePrice.toFixed(2)),
-            subtotal: Number((basePrice * item.quantity).toFixed(2))
+          ...item,
+          unit_price: Number(basePrice.toFixed(2)),
+          subtotal: Number((basePrice * item.quantity).toFixed(2))
         };
       });
 
       // Ensure subtotal matches the items
       invoiceData.subtotal = invoiceData.items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
 
-      const response = await fetchAPI("invoices", {
+      const response = await fetchAPI(API_ENDPOINTS.SALES.INVOICES, {
         method: "POST",
         body: JSON.stringify(invoiceData),
       });
@@ -557,7 +558,7 @@ export default function DeferredSalesPage() {
 
   const viewInvoice = async (id: number) => {
     try {
-      const response = await fetchAPI(`invoice_details?id=${id}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICE_DETAILS}?id=${id}`);
       if (response.success && response.data) {
         setSelectedInvoice(response.data as Invoice);
         setViewDialog(true);
@@ -576,7 +577,7 @@ export default function DeferredSalesPage() {
     if (!deleteInvoiceId) return;
 
     try {
-      const response = await fetchAPI(`invoices?id=${deleteInvoiceId}`, {
+      const response = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICES}?id=${deleteInvoiceId}`, {
         method: "DELETE",
       });
       if (response.success) {
@@ -594,87 +595,87 @@ export default function DeferredSalesPage() {
     }
   };
 
-    // Helper to fetch invoice items for the selectable table
-    const getInvoiceItemsForTable = useCallback(async (invoice: Invoice): Promise<UiInvoiceItem[]> => {
-        try {
-            const response = await fetchAPI(`invoice_details?id=${invoice.id}`);
-            if (response.success && response.data) {
-                const detailedInvoice = response.data as any;
-                // Map API items to UI items
-                return detailedInvoice.items.map((item: any) => ({
-                    id: item.id,
-                    product_id: item.product_id,
-                    product: { name: item.product?.name || item.product_name },
-                    quantity: item.quantity,
-                    unit_price: item.unit_price,
-                    subtotal: item.subtotal,
-                    unit_type: item.unit_type || 'main'
-                }));
-            }
-            return [];
-        } catch (error) {
-            console.error("Error fetching items:", error);
-            return [];
-        }
-    }, []);
+  // Helper to fetch invoice items for the selectable table
+  const getInvoiceItemsForTable = useCallback(async (invoice: Invoice): Promise<UiInvoiceItem[]> => {
+    try {
+      const response = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICE_DETAILS}?id=${invoice.id}`);
+      if (response.success && response.data) {
+        const detailedInvoice = response.data as any;
+        // Map API items to UI items
+        return detailedInvoice.items.map((item: any) => ({
+          id: item.id,
+          product_id: item.product_id,
+          product: { name: item.product?.name || item.product_name },
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          subtotal: item.subtotal,
+          unit_type: item.unit_type || 'main'
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching items:", error);
+      return [];
+    }
+  }, []);
 
-    const handleReturnSelection = useCallback((items: SelectedItem[]) => {
-        setSelectedReturnItems(items);
-    }, []);
+  const handleReturnSelection = useCallback((items: SelectedItem[]) => {
+    setSelectedReturnItems(items);
+  }, []);
 
-    const openReturnDialog = async () => {
-        if (selectedReturnItems.length === 0) {
-            showToast("يرجى تحديد عناصر للإرجاع أولاً", "warning");
-            return;
-        }
-        
-        // Fetch missing invoice details for calculation
-        const uniqueInvoiceIds = Array.from(new Set(selectedReturnItems.map(i => i.invoiceId)));
-        const missingIds = uniqueInvoiceIds.filter(id => !invoicesMap[id]);
-        
-        if (missingIds.length > 0) {
-          setIsLoadingInvoices(true);
-          try {
-            const newMap = { ...invoicesMap };
-            await Promise.all(missingIds.map(async (id) => {
-              const res = await fetchAPI(`invoice_details?id=${id}`);
-              if (res.success && res.data) {
-                newMap[id] = res.data as SelectableInvoice;
-              }
-            }));
-            setInvoicesMap(newMap);
-          } catch (error) {
-            console.error("Failed to load invoice details", error);
-            showToast("فشل تحميل بيانات الفواتير", "error");
-          } finally {
-            setIsLoadingInvoices(false);
+  const openReturnDialog = async () => {
+    if (selectedReturnItems.length === 0) {
+      showToast("يرجى تحديد عناصر للإرجاع أولاً", "warning");
+      return;
+    }
+
+    // Fetch missing invoice details for calculation
+    const uniqueInvoiceIds = Array.from(new Set(selectedReturnItems.map(i => i.invoiceId)));
+    const missingIds = uniqueInvoiceIds.filter(id => !invoicesMap[id]);
+
+    if (missingIds.length > 0) {
+      setIsLoadingInvoices(true);
+      try {
+        const newMap = { ...invoicesMap };
+        await Promise.all(missingIds.map(async (id) => {
+          const res = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICE_DETAILS}?id=${id}`);
+          if (res.success && res.data) {
+            newMap[id] = res.data as SelectableInvoice;
           }
-        }
-        
-        setReturnDialog(true);
-    };
+        }));
+        setInvoicesMap(newMap);
+      } catch (error) {
+        console.error("Failed to load invoice details", error);
+        showToast("فشل تحميل بيانات الفواتير", "error");
+      } finally {
+        setIsLoadingInvoices(false);
+      }
+    }
 
-    const handleConfirmReturn = async (data: ReturnData | ReturnData[]) => {
-        const dataArray = Array.isArray(data) ? data : [data];
-        
-        try {
-            for (const returnData of dataArray) {
-                const response = await fetchAPI("sales/returns", {
-                    method: "POST",
-                    body: JSON.stringify(returnData),
-                });
-                
-                if (!response.success) {
-                    throw new Error(response.message || "فشل تسجيل المرتجع");
-                }
-            }
-            
-            showToast("تم تسجيل المرتجع بنجاح", "success");
-        } catch (error: any) {
-            showToast(error.message || "خطأ في تسجيل المرتجع", "error");
-            throw error;
+    setReturnDialog(true);
+  };
+
+  const handleConfirmReturn = async (data: ReturnData | ReturnData[]) => {
+    const dataArray = Array.isArray(data) ? data : [data];
+
+    try {
+      for (const returnData of dataArray) {
+        const response = await fetchAPI(API_ENDPOINTS.SALES.RETURNS.BASE, {
+          method: "POST",
+          body: JSON.stringify(returnData),
+        });
+
+        if (!response.success) {
+          throw new Error(response.message || "فشل تسجيل المرتجع");
         }
-    };
+      }
+
+      showToast("تم تسجيل المرتجع بنجاح", "success");
+    } catch (error: any) {
+      showToast(error.message || "خطأ في تسجيل المرتجع", "error");
+      throw error;
+    }
+  };
 
   const invoiceColumns: InvoiceTableColumn<Invoice>[] = [
     {
@@ -806,8 +807,8 @@ export default function DeferredSalesPage() {
                     onChange={handleProductSelect}
                     placeholder="ابحث عن منتج..."
                     required
-                    filterOption={(opt, term) => 
-                      opt.label.toLowerCase().includes(term.toLowerCase()) || 
+                    filterOption={(opt, term) =>
+                      opt.label.toLowerCase().includes(term.toLowerCase()) ||
                       (opt.original?.barcode && opt.original.barcode.includes(term))
                     }
                   />
@@ -906,15 +907,15 @@ export default function DeferredSalesPage() {
                 </div>
 
                 <div className="form-group">
-                    <NumberInput
-                      id="item-unit-price"
-                      label="المبلغ المدفوع (نقدًا)"
-                      min={0}
-                      step={0.01}
-                      value={amountPaid}
-                      onChange={(val) => setAmountPaid(val)}
-                      required
-                    />
+                  <NumberInput
+                    id="item-unit-price"
+                    label="المبلغ المدفوع (نقدًا)"
+                    min={0}
+                    step={0.01}
+                    value={amountPaid}
+                    onChange={(val) => setAmountPaid(val)}
+                    required
+                  />
                 </div>
               </div>
               <small style={{ color: "var(--text-light)", display: "block" }}>
@@ -934,39 +935,39 @@ export default function DeferredSalesPage() {
                 />
               </div>
 
-                <div className="invoice-adjustments">
-                  <div className="discount-section">
-                    <div className="form-group" style={{ marginBottom: 0, width: '200px' }}>
-                        <NumberInput
-                            id="invoice-discount"
-                            label="قيمة الخصم"
-                            value={discountValue}
-                            onChange={(val) => setDiscountValue(val)}
-                            min={0}
-                            placeholder="0.00"
-                        />
-                    </div>
-                    
-                    <SegmentedToggle
-                        label="نوع التخفيض"
-                        value={discountType}
-                        onChange={(val) => setDiscountType(val as "fixed" | "percent")}
-                        options={[
-                            { value: "fixed", label: "مبلغ" },
-                            { value: "percent", label: "نسبة" }
-                        ]}
+              <div className="invoice-adjustments">
+                <div className="discount-section">
+                  <div className="form-group" style={{ marginBottom: 0, width: '200px' }}>
+                    <NumberInput
+                      id="invoice-discount"
+                      label="قيمة الخصم"
+                      value={discountValue}
+                      onChange={(val) => setDiscountValue(val)}
+                      min={0}
+                      placeholder="0.00"
                     />
                   </div>
 
-                  {calculatedDiscount() > 0 && (
-                    <div className="summary-stat animate-fade" style={{ marginRight: 'auto', borderRight: '1px solid var(--border-color)', paddingRight: '1.5rem' }}>
-                        <span className="stat-label">إجمالي الخصم</span>
-                        <span className="stat-value text-danger" style={{ fontSize: '1.1rem' }}>
-                            -{formatCurrency(calculatedDiscount())}
-                        </span>
-                    </div>
-                  )}
+                  <SegmentedToggle
+                    label="نوع التخفيض"
+                    value={discountType}
+                    onChange={(val) => setDiscountType(val as "fixed" | "percent")}
+                    options={[
+                      { value: "fixed", label: "مبلغ" },
+                      { value: "percent", label: "نسبة" }
+                    ]}
+                  />
                 </div>
+
+                {calculatedDiscount() > 0 && (
+                  <div className="summary-stat animate-fade" style={{ marginRight: 'auto', borderRight: '1px solid var(--border-color)', paddingRight: '1.5rem' }}>
+                    <span className="stat-label">إجمالي الخصم</span>
+                    <span className="stat-value text-danger" style={{ fontSize: '1.1rem' }}>
+                      -{formatCurrency(calculatedDiscount())}
+                    </span>
+                  </div>
+                )}
+              </div>
 
               <div className="sales-summary-bar">
                 <div className="summary-stat">
@@ -976,28 +977,28 @@ export default function DeferredSalesPage() {
 
                 {/* Show EACH government fee specifically */}
                 {governmentFees.map((fee) => {
-                    const feeAmount = invoiceItems.reduce((sum, item) => {
-                        const base = calculateBasePrice(item.unit_price);
-                        const variable = (base * (Number(fee.percentage) || 0) / 100);
-                        const fixed = (Number(fee.fixed_amount) || 0);
-                        return sum + (variable + fixed) * item.quantity;
-                    }, 0);
+                  const feeAmount = invoiceItems.reduce((sum, item) => {
+                    const base = calculateBasePrice(item.unit_price);
+                    const variable = (base * (Number(fee.percentage) || 0) / 100);
+                    const fixed = (Number(fee.fixed_amount) || 0);
+                    return sum + (variable + fixed) * item.quantity;
+                  }, 0);
 
-                    if (feeAmount <= 0) return null;
+                  if (feeAmount <= 0) return null;
 
-                    return (
-                        <div className="summary-stat" key={fee.id}>
-                            <span className="stat-label">{fee.name} (التزام)</span>
-                            <span className="stat-value">{formatCurrency(feeAmount)}</span>
-                        </div>
-                    );
-                })}
-                
-                {totalVAT > 0 && (
-                    <div className="summary-stat">
-                        <span className="stat-label">ضريبة القيمة المضافة ({ (vatRate * 100).toFixed(0) }%)</span>
-                        <span className="stat-value">{formatCurrency(totalVAT)}</span>
+                  return (
+                    <div className="summary-stat" key={fee.id}>
+                      <span className="stat-label">{fee.name} (التزام)</span>
+                      <span className="stat-value">{formatCurrency(feeAmount)}</span>
                     </div>
+                  );
+                })}
+
+                {totalVAT > 0 && (
+                  <div className="summary-stat">
+                    <span className="stat-label">ضريبة القيمة المضافة ({(vatRate * 100).toFixed(0)}%)</span>
+                    <span className="stat-value">{formatCurrency(totalVAT)}</span>
+                  </div>
                 )}
 
                 <div className="summary-stat">
@@ -1038,7 +1039,7 @@ export default function DeferredSalesPage() {
                 }}
                 getInvoiceItems={getInvoiceItemsForTable}
                 onSelectionChange={handleReturnSelection}
-                onSearch={() => {}}
+                onSearch={() => { }}
                 openReturnDialog={openReturnDialog}
               />
             </div>
@@ -1047,17 +1048,17 @@ export default function DeferredSalesPage() {
       </div>
 
       {/* Sales Return Dialog */}
-      <SalesReturnDialog 
+      <SalesReturnDialog
         isOpen={returnDialog}
         onClose={() => setReturnDialog(false)}
         selectedItems={selectedReturnItems}
         invoicesMap={invoicesMap}
         onConfirmReturn={handleConfirmReturn}
         onSuccess={() => {
-            setReturnDialog(false);
-            setSelectedReturnItems([]);
-            loadInvoices(currentPage);
-            loadProducts();
+          setReturnDialog(false);
+          setSelectedReturnItems([]);
+          loadInvoices(currentPage);
+          loadProducts();
         }}
       />
 
@@ -1141,14 +1142,14 @@ export default function DeferredSalesPage() {
               <h4 style={{ marginBottom: "1rem" }}>المنتجات المباعة:</h4>
               {selectedInvoice.items?.map((item, index) => (
                 <div key={index} className="item-row-minimal" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem", borderBottom: "1px solid var(--border-color)" }}>
-                    <div className="item-info-pkg">
-                        <span className="item-name-pkg" style={{ display: "block", fontWeight: "600" }}>{item.product_name}</span>
-                        <span className="item-meta-pkg" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>سعر الوحدة: {formatCurrency(item.unit_price)}</span>
-                    </div>
-                    <div className="item-info-pkg" style={{ textAlign: "left" }}>
-                        <span className="item-name-pkg" style={{ display: "block", fontWeight: "600" }}>{formatCurrency(item.subtotal)}</span>
-                        <span className="item-meta-pkg" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>الكمية: {item.quantity}</span>
-                    </div>
+                  <div className="item-info-pkg">
+                    <span className="item-name-pkg" style={{ display: "block", fontWeight: "600" }}>{item.product_name}</span>
+                    <span className="item-meta-pkg" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>سعر الوحدة: {formatCurrency(item.unit_price)}</span>
+                  </div>
+                  <div className="item-info-pkg" style={{ textAlign: "left" }}>
+                    <span className="item-name-pkg" style={{ display: "block", fontWeight: "600" }}>{formatCurrency(item.subtotal)}</span>
+                    <span className="item-meta-pkg" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>الكمية: {item.quantity}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1160,27 +1161,27 @@ export default function DeferredSalesPage() {
               <div className="summary-stat">
                 <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>عدد الأصناف</span>
                 <span className="stat-value" style={{ color: "white", fontSize: "1.2rem" }}>
-                    {selectedInvoice.item_count || 0}
+                  {selectedInvoice.item_count || 0}
                 </span>
               </div>
               <div className="summary-stat">
                 <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>المجموع الفرعي</span>
                 <span className="stat-value" style={{ color: "white", fontSize: "1.2rem" }}>
-                    {formatCurrency(selectedInvoice.subtotal || 0)}
+                  {formatCurrency(selectedInvoice.subtotal || 0)}
                 </span>
               </div>
               {selectedInvoice.discount_amount && selectedInvoice.discount_amount > 0 && (
                 <div className="summary-stat">
-                    <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>الخصم</span>
-                    <span className="stat-value" style={{ color: "#ffccd5", fontSize: "1.2rem" }}>
-                        -{formatCurrency(selectedInvoice.discount_amount)}
-                    </span>
+                  <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>الخصم</span>
+                  <span className="stat-value" style={{ color: "#ffccd5", fontSize: "1.2rem" }}>
+                    -{formatCurrency(selectedInvoice.discount_amount)}
+                  </span>
                 </div>
               )}
               <div className="summary-stat">
                 <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>الإجمالي</span>
                 <span className="stat-value highlight" style={{ color: "white" }}>
-                    {formatCurrency(selectedInvoice.total_amount)}
+                  {formatCurrency(selectedInvoice.total_amount)}
                 </span>
               </div>
               <button
@@ -1221,8 +1222,8 @@ export default function DeferredSalesPage() {
       <ConfirmDialog
         isOpen={marginConfirm}
         onClose={() => {
-            setMarginConfirm(false);
-            setPendingItem(null);
+          setMarginConfirm(false);
+          setPendingItem(null);
         }}
         onConfirm={confirmAddItem}
         title="تنبيه: هامش الربح منخفض"

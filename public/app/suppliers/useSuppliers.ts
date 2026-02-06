@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showToast } from "@/components/ui";
 import { Supplier } from "./types";
 
@@ -14,7 +15,7 @@ export function useSuppliers() {
         try {
             setIsLoading(true);
             const response = await fetchAPI(
-                `ap_suppliers?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
+                `${API_ENDPOINTS.PURCHASES.SUPPLIERS.BASE}?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
             );
             if (response.success) {
                 setSuppliers((response.data as Supplier[]) || []);
@@ -31,7 +32,7 @@ export function useSuppliers() {
     const saveSupplier = useCallback(async (formData: any, id?: number) => {
         try {
             const method = id ? "PUT" : "POST";
-            const response = await fetchAPI("ap_suppliers", {
+            const response = await fetchAPI(API_ENDPOINTS.PURCHASES.SUPPLIERS.BASE, {
                 method,
                 body: JSON.stringify(id ? { ...formData, id } : formData),
             });
@@ -51,7 +52,7 @@ export function useSuppliers() {
 
     const deleteSupplier = useCallback(async (id: number) => {
         try {
-            const response = await fetchAPI(`ap_suppliers&id=${id}`, { method: "DELETE" });
+            const response = await fetchAPI(`${API_ENDPOINTS.PURCHASES.SUPPLIERS.BASE}?id=${id}`, { method: "DELETE" });
             if (response.success) {
                 showToast("تم حذف المورد", "success");
                 return true;

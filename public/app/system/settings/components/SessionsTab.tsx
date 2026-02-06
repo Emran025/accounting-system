@@ -1,6 +1,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showToast, Table, Column } from "@/components/ui";
 import { formatDateTime } from "@/lib/utils";
 import { Session } from "../types";
@@ -14,7 +15,7 @@ export function SessionsTab() {
   const loadSessions = useCallback(async (page: number = 1) => {
     setIsLoading(true);
     try {
-      const response = await fetchAPI(`/api/sessions?page=${page}&limit=10`);
+      const response = await fetchAPI(`${API_ENDPOINTS.SYSTEM.USERS.SESSIONS}?page=${page}&limit=10`);
       if (response.sessions && Array.isArray(response.sessions)) {
         setSessions(response.sessions as Session[]);
       }
@@ -24,7 +25,7 @@ export function SessionsTab() {
     } catch {
       console.error("Error loading sessions");
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   }, []);
 
@@ -34,7 +35,7 @@ export function SessionsTab() {
 
   const terminateSession = async (sessionId: number) => {
     try {
-      await fetchAPI(`/api/sessions/${sessionId}`, { method: "DELETE" });
+      await fetchAPI(API_ENDPOINTS.SYSTEM.USERS.SESSIONS_WITH_ID(sessionId), { method: "DELETE" });
       showToast("تم إنهاء الجلسة", "success");
       loadSessions(sessionsPage);
     } catch {

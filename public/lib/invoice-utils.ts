@@ -1,6 +1,7 @@
 // Invoice Printing Utilities - Migrated from common.js
 
 import { fetchAPI } from "./api";
+import { API_ENDPOINTS } from "./endpoints";
 import { generateBarcode, generateTLV, generateQRCode } from "./api";
 import { formatDate } from "./utils";
 
@@ -52,7 +53,7 @@ let systemSettings: InvoiceSettings | null = null;
 export async function getSettings(): Promise<InvoiceSettings> {
   if (systemSettings) return systemSettings;
   try {
-    const result = await fetchAPI("/api/settings");
+    const result = await fetchAPI(API_ENDPOINTS.SYSTEM.SETTINGS.INDEX);
     const data = (result.settings || result.data || {}) as any;
     if (result.success || data.store_name) {
       systemSettings = {
@@ -124,7 +125,7 @@ export async function generateInvoiceHTML(
     inv.subtotal !== undefined
       ? parseFloat(String(inv.subtotal))
       : inv.items
-      ? inv.items.reduce(
+        ? inv.items.reduce(
           (s, it) =>
             s +
             parseFloat(
@@ -134,21 +135,21 @@ export async function generateInvoiceHTML(
             ),
           0
         )
-      : parseFloat(String(inv.total_amount || 0));
+        : parseFloat(String(inv.total_amount || 0));
 
   const taxAmount =
     inv.vat_amount !== undefined
       ? parseFloat(String(inv.vat_amount))
       : inv.tax_amount !== undefined
-      ? parseFloat(String(inv.tax_amount))
-      : 0;
+        ? parseFloat(String(inv.tax_amount))
+        : 0;
 
   const discountAmount =
     inv.discount_amount !== undefined
       ? parseFloat(String(inv.discount_amount))
       : inv.discount !== undefined
-      ? parseFloat(String(inv.discount))
-      : 0;
+        ? parseFloat(String(inv.discount))
+        : 0;
 
   const finalTotal = parseFloat(
     String(inv.total_amount || subtotalAmount - discountAmount + taxAmount)
@@ -165,15 +166,15 @@ export async function generateInvoiceHTML(
 
   // Generate QR: Use ZATCA if available AND enabled, else local
   let qrUrl = qrDataUrl;
-  
+
   if (!qrUrl && settings.zatca_enabled && inv.zatca_einvoice?.zatca_qr_code) {
-      // If valid ZATCA QR (Base64 TLV) exists and feature is enabled
-      qrUrl = await generateQRCode(inv.zatca_einvoice.zatca_qr_code);
+    // If valid ZATCA QR (Base64 TLV) exists and feature is enabled
+    qrUrl = await generateQRCode(inv.zatca_einvoice.zatca_qr_code);
   }
 
   if (!qrUrl) {
-      // Fallback
-      qrUrl = await generateQRCode(tlvData);
+    // Fallback
+    qrUrl = await generateQRCode(tlvData);
   }
 
   const style = `
@@ -338,11 +339,10 @@ export async function generateInvoiceHTML(
                     <h1>${settings.store_name || "سوبر ماركت"}</h1>
                     <p>${settings.store_address || ""}</p>
                     <p>هاتف: ${settings.store_phone || ""}</p>
-                    ${
-                      settings.tax_number
-                        ? `<p>الرقم الضريبي: <strong>${settings.tax_number}</strong></p>`
-                        : ""
-                    }
+                    ${settings.tax_number
+      ? `<p>الرقم الضريبي: <strong>${settings.tax_number}</strong></p>`
+      : ""
+    }
                 </div>
 
                 <div class="invoice-meta">
@@ -365,8 +365,8 @@ export async function generateInvoiceHTML(
                     </thead>
                     <tbody>
                         ${inv.items
-                          .map(
-                            (i) => `
+      .map(
+        (i) => `
                             <tr>
                                 <td>${i.product_name}</td>
                                 <td style="text-align:center">${i.quantity}</td>
@@ -374,8 +374,8 @@ export async function generateInvoiceHTML(
                                 <td style="text-align:left">${localFormatCurrency(i.subtotal)}</td>
                             </tr>
                         `
-                          )
-                          .join("")}
+      )
+      .join("")}
                     </tbody>
                 </table>
 
@@ -389,9 +389,8 @@ export async function generateInvoiceHTML(
                 <div class="footer">
                     ${settings.show_qr !== false ? `<img src="${qrUrl}" class="barcode" alt="QR Code">` : ""}
 
-                    <p><strong>${
-                      settings.footer_message || "شكراً لزيارتكم!"
-                    }</strong></p>
+                    <p><strong>${settings.footer_message || "شكراً لزيارتكم!"
+    }</strong></p>
                     <p>الموظف: ${inv.salesperson_name || "المسؤول"}</p>
                     <p style="font-size: 0.7rem;
               color: #777;">نظام إدارة نُمو الذكي</p>
@@ -417,7 +416,7 @@ export async function printInvoice(invoiceId: number): Promise<void> {
   const settings = await getSettings();
 
   // Fetch invoice details
-  const response = await fetchAPI(`/api/invoices/${invoiceId}`);
+  const response = await fetchAPI(API_ENDPOINTS.SALES.INVOICE_BY_ID(invoiceId));
   if (!response.success && !response.invoice) {
     throw new Error("فشل تحميل تفاصيل الفاتورة");
   }

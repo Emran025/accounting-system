@@ -2,6 +2,7 @@
 import { formatCurrency } from "@/lib/utils";
 import { BalanceSheetView, APIBalanceSheet, APIAccountSummary } from "../types";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showToast } from "@/components/ui";
 import { useState, useCallback } from "react";
 
@@ -12,21 +13,21 @@ export function BalanceSheetTab({ onLoad }: { onLoad?: () => void }) {
     const loadFinancialData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const response = await fetchAPI("reports/balance_sheet");
-            
+            const response = await fetchAPI(API_ENDPOINTS.REPORTS.BALANCE_SHEET);
+
             if (response.success && response.data) {
                 const apiData = response.data as APIBalanceSheet;
-                
+
                 const assetsAccounts = apiData.assets.accounts || [];
                 const liabilitiesAccounts = apiData.liabilities.accounts || [];
                 const equityAccounts = apiData.equity.accounts || [];
-                
+
                 // Helper to sum accounts based on criteria without double counting within a category
                 const getSum = (accounts: APIAccountSummary[], criteria: { start?: string, has?: string }[]) => {
                     const uniqueAccounts = new Set<string>();
                     return accounts.filter(a => {
-                        const match = criteria.some(c => 
-                            (c.start && a.account_code.startsWith(c.start)) || 
+                        const match = criteria.some(c =>
+                            (c.start && a.account_code.startsWith(c.start)) ||
                             (c.has && a.account_name.toLowerCase().includes(c.has))
                         );
                         if (match && !uniqueAccounts.has(a.account_code)) {
@@ -50,7 +51,7 @@ export function BalanceSheetTab({ onLoad }: { onLoad?: () => void }) {
                 const ar = getSum(assetsAccounts, [
                     { start: '112' }, { has: 'receivable' }, { has: 'عملاء' }, { has: 'ذمم مدينة' }
                 ]);
-                
+
                 const totalAssets = Number(apiData.assets.total || 0);
 
                 // Liabilities Mapping
@@ -63,7 +64,7 @@ export function BalanceSheetTab({ onLoad }: { onLoad?: () => void }) {
                 const loans = getSum(liabilitiesAccounts, [
                     { start: '23' }, { has: 'loan' }, { has: 'bank' }, { has: 'قروض' }, { has: 'تمويل' }
                 ]);
-                
+
                 const totalLiabilities = Number(apiData.liabilities.total || 0);
 
                 // Equity Mapping
@@ -73,7 +74,7 @@ export function BalanceSheetTab({ onLoad }: { onLoad?: () => void }) {
                 const retained = getSum(equityAccounts, [
                     { start: '32' }, { has: 'retained' }, { has: 'أرباح مبقاة' }, { has: 'أرباح محتجزة' }
                 ]);
-                
+
                 const totalEquity = Number(apiData.equity.total || 0);
 
                 const mappedData: BalanceSheetView = {
@@ -82,7 +83,7 @@ export function BalanceSheetTab({ onLoad }: { onLoad?: () => void }) {
                         stock_value: stock,
                         fixed_assets: fixed,
                         accounts_receivable: ar,
-                        other_assets: Math.max(0, totalAssets - (cash + stock + fixed + ar)), 
+                        other_assets: Math.max(0, totalAssets - (cash + stock + fixed + ar)),
                         total_assets: totalAssets,
                     },
                     liabilities: {
@@ -118,7 +119,7 @@ export function BalanceSheetTab({ onLoad }: { onLoad?: () => void }) {
     // For now we expose the load function via a button and maybe useEffect in parent if needed, 
     // but the tab structure usually implies loading on mount or demand.
     // The previous implementation loaded on mount of the page.
-    
+
     // We can use useEffect to load on mount
     useState(() => {
         loadFinancialData();
@@ -195,7 +196,7 @@ export function BalanceSheetTab({ onLoad }: { onLoad?: () => void }) {
                                     <i className="fas fa-cubes text-success"></i> الأصول (الممتلكات)
                                 </h2>
                             </div>
-                            
+
                             <div className="financial-section">
                                 <div className="financial-row">
                                     <span className="report-label">النقدية وما في حكمها</span>

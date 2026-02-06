@@ -1,6 +1,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showAlert, Table, Column } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
@@ -16,7 +17,7 @@ export function PayrollTab() {
   const loadPayroll = useCallback(async (page: number = 1) => {
     try {
       setIsLoading(true);
-      const response = await fetchAPI(`accrual?module=payroll&page=${page}&limit=${itemsPerPage}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.ACCRUAL}?module=payroll&page=${page}&limit=${itemsPerPage}`);
       if (response.success && response.data) {
         setPayrolls(response.data as Payroll[]);
         const total = Number(response.total) || 0;

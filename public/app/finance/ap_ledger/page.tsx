@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
@@ -85,11 +86,11 @@ function APLedgerPageContent() {
       setIsLoading(true);
       const limit = itemsPerPage;
       const offset = (page - 1) * limit;
-      
+
       const response = await fetchAPI(
-        `ap_ledger?supplier_id=${supplierId}&limit=${limit}&offset=${offset}`
+        `${API_ENDPOINTS.PURCHASES.SUPPLIERS.LEDGER}?supplier_id=${supplierId}&limit=${limit}&offset=${offset}`
       );
-      
+
       if (response.success && response.data) {
         const data = response.data as APLedgerResponse;
         setSupplier(data.supplier as Supplier);
@@ -122,7 +123,7 @@ function APLedgerPageContent() {
     }
 
     try {
-      const response = await fetchAPI("ap_payments", {
+      const response = await fetchAPI(API_ENDPOINTS.PURCHASES.SUPPLIERS.PAYMENT, {
         method: "POST",
         body: JSON.stringify({
           supplier_id: supplierId,
@@ -189,9 +190,9 @@ function APLedgerPageContent() {
         title={`دفتر المورد: ${supplier?.name || "..."}`}
         user={user}
         actions={
-          <Button 
-            variant="primary" 
-            icon="plus" 
+          <Button
+            variant="primary"
+            icon="plus"
             onClick={() => setPaymentDialog(true)}
           >
             صرف دفعة للمورد

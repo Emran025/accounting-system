@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
@@ -65,7 +66,7 @@ export default function JournalVouchersPage() {
   const loadVouchers = useCallback(async (page: number = 1) => {
     try {
       setIsLoading(true);
-      const response = await fetchAPI(`/api/vouchers?page=${page}&limit=${itemsPerPage}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERS.BASE}?page=${page}&limit=${itemsPerPage}`);
       setVouchers(response.vouchers as Voucher[] || []);
       setTotalPages(Math.ceil((response.total as number || 0) / itemsPerPage));
       setCurrentPage(page);
@@ -78,7 +79,7 @@ export default function JournalVouchersPage() {
 
   const loadAccounts = useCallback(async () => {
     try {
-      const response = await fetchAPI("/api/accounts?is_active=true");
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.ACCOUNTS.BASE}?is_active=true`);
       setAccounts(response.accounts as Account[] || []);
     } catch {
       console.error("Error loading accounts");
@@ -109,7 +110,7 @@ export default function JournalVouchersPage() {
 
   const openViewDialog = async (voucher: Voucher) => {
     try {
-      const response = await fetchAPI(`/api/vouchers/${voucher.id}`);
+      const response = await fetchAPI(API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERS.withId(voucher.id));
       setSelectedVoucher(response.voucher as Voucher || voucher);
       setViewDialog(true);
     } catch {
@@ -185,7 +186,7 @@ export default function JournalVouchersPage() {
     };
 
     try {
-      await fetchAPI("/api/vouchers", {
+      await fetchAPI(API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERS.BASE, {
         method: "POST",
         body: JSON.stringify(payload),
       });
@@ -199,7 +200,7 @@ export default function JournalVouchersPage() {
 
   const postVoucher = async (id: number) => {
     try {
-      await fetchAPI(`/api/vouchers/${id}/post`, { method: "POST" });
+      await fetchAPI(API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERS.POST(id), { method: "POST" });
       showToast("تم ترحيل السند", "success");
       loadVouchers(currentPage);
     } catch {
@@ -216,7 +217,7 @@ export default function JournalVouchersPage() {
     if (!deleteId) return;
 
     try {
-      await fetchAPI(`/api/vouchers/${deleteId}`, { method: "DELETE" });
+      await fetchAPI(API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERS.withId(deleteId), { method: "DELETE" });
       showToast("تم حذف السند", "success");
       loadVouchers(currentPage);
     } catch {
@@ -449,7 +450,7 @@ export default function JournalVouchersPage() {
         </div>
 
         <h4 style={{ marginTop: "1.5rem", marginBottom: "1rem" }}>بنود السند</h4>
-        
+
         <Table
           columns={voucherLineColumns}
           data={formData.lines}
@@ -457,9 +458,9 @@ export default function JournalVouchersPage() {
           emptyMessage="لا توجد بنود"
         />
 
-        <Button 
-          variant="secondary" 
-          onClick={addLine} 
+        <Button
+          variant="secondary"
+          onClick={addLine}
           icon="plus"
           style={{ marginTop: "1rem" }}
         >

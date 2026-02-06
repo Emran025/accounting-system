@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, SearchableSelect, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate, translateExpenseCategory } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
@@ -67,7 +68,7 @@ export default function ExpensesPage() {
     try {
       setIsLoading(true);
       const response = await fetchAPI(
-        `expenses?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
+        `${API_ENDPOINTS.FINANCE.EXPENSES}?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
       );
       setExpenses(response.data as Expense[] || []);
       setTotalPages((response.pagination as any)?.total_pages || 1);
@@ -81,7 +82,7 @@ export default function ExpensesPage() {
 
   const loadSuppliers = useCallback(async () => {
     try {
-      const response = await fetchAPI("ap_suppliers?limit=100");
+      const response = await fetchAPI(`${API_ENDPOINTS.PURCHASES.SUPPLIERS.BASE}?limit=100`);
       setSuppliers(response.data as Supplier[] || []);
     } catch (error) {
       console.error("Error loading suppliers:", error);
@@ -146,13 +147,13 @@ export default function ExpensesPage() {
 
     try {
       if (selectedExpense) {
-        await fetchAPI(`expenses`, {
+        await fetchAPI(API_ENDPOINTS.FINANCE.EXPENSES, {
           method: "PUT",
           body: JSON.stringify({ ...payload, id: selectedExpense.id }),
         });
         showToast("تم تحديث المصروف بنجاح", "success");
       } else {
-        await fetchAPI("expenses", {
+        await fetchAPI(API_ENDPOINTS.FINANCE.EXPENSES, {
           method: "POST",
           body: JSON.stringify(payload),
         });
@@ -174,7 +175,7 @@ export default function ExpensesPage() {
     if (!deleteId) return;
 
     try {
-      await fetchAPI(`expenses?id=${deleteId}`, { method: "DELETE" });
+      await fetchAPI(`${API_ENDPOINTS.FINANCE.EXPENSES}?id=${deleteId}`, { method: "DELETE" });
       showToast("تم حذف المصروف", "success");
       loadExpenses(currentPage, searchTerm);
     } catch {
@@ -191,7 +192,7 @@ export default function ExpensesPage() {
         <div className="flex flex-col gap-1">
           <span className="badge badge-secondary">{translateExpenseCategory(item.category)}</span>
           <span className={`text-xs ${item.payment_type === 'credit' ? 'text-warning' : 'text-success'}`}>
-             {item.payment_type === 'credit' ? 'آجل' : 'نقدي'}
+            {item.payment_type === 'credit' ? 'آجل' : 'نقدي'}
           </span>
         </div>
       ),
@@ -242,18 +243,18 @@ export default function ExpensesPage() {
         user={user}
         searchInput={
           <SearchableSelect
-              options={[]}
-              value={null}
-              onChange={() => {}}
-              onSearch={(val) => {
-                  setSearchTerm(val);
-                  loadExpenses(1, val);
-              }}
-              placeholder="بحث سريع..."
-              className="header-search-bar"
+            options={[]}
+            value={null}
+            onChange={() => { }}
+            onSearch={(val) => {
+              setSearchTerm(val);
+              loadExpenses(1, val);
+            }}
+            placeholder="بحث سريع..."
+            className="header-search-bar"
           />
         }
-        
+
         actions={
           canAccess(permissions, "expenses", "create") && (
             <button className="btn btn-primary" onClick={openAddDialog}>
@@ -348,22 +349,22 @@ export default function ExpensesPage() {
             <label>طريقة الدفع</label>
             <div className="flex gap-4 items-center h-10">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input 
-                  type="radio" 
-                  name="payment_type" 
+                <input
+                  type="radio"
+                  name="payment_type"
                   value="cash"
                   checked={formData.payment_type === "cash"}
-                  onChange={() => setFormData({...formData, payment_type: "cash", supplier_id: ""})}
+                  onChange={() => setFormData({ ...formData, payment_type: "cash", supplier_id: "" })}
                 />
                 نقدي
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input 
-                  type="radio" 
-                  name="payment_type" 
+                <input
+                  type="radio"
+                  name="payment_type"
                   value="credit"
                   checked={formData.payment_type === "credit"}
-                  onChange={() => setFormData({...formData, payment_type: "credit"})}
+                  onChange={() => setFormData({ ...formData, payment_type: "credit" })}
                 />
                 آجل (ذمم)
               </label>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, SearchableSelect, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
@@ -55,7 +56,7 @@ export default function RevenuesPage() {
         try {
             setIsLoading(true);
             const response = await fetchAPI(
-                `/api/revenues?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
+                `${API_ENDPOINTS.FINANCE.REVENUES}?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
             );
             setRevenues((response.revenues as Revenue[]) || []);
             setTotalPages(Math.ceil((Number(response.total) || 0) / itemsPerPage));
@@ -113,7 +114,7 @@ export default function RevenuesPage() {
 
         try {
             if (selectedRevenue) {
-                await fetchAPI(`/api/revenues/${selectedRevenue.id}`, {
+                await fetchAPI(`${API_ENDPOINTS.FINANCE.REVENUES}/${selectedRevenue.id}`, {
                     method: "PUT",
                     body: JSON.stringify({
                         id: selectedRevenue.id,
@@ -125,7 +126,7 @@ export default function RevenuesPage() {
                 });
                 showToast("تم تحديث الإيراد بنجاح", "success");
             } else {
-                await fetchAPI("/api/revenues", {
+                await fetchAPI(API_ENDPOINTS.FINANCE.REVENUES, {
                     method: "POST",
                     body: JSON.stringify({
                         source: formData.category,
@@ -152,7 +153,7 @@ export default function RevenuesPage() {
         if (!deleteId) return;
 
         try {
-            await fetchAPI(`/api/revenues/${deleteId}`, { method: "DELETE" });
+            await fetchAPI(`${API_ENDPOINTS.FINANCE.REVENUES}/${deleteId}`, { method: "DELETE" });
             showToast("تم حذف الإيراد", "success");
             loadRevenues(currentPage, searchTerm);
         } catch {
@@ -217,7 +218,7 @@ export default function RevenuesPage() {
                     <SearchableSelect
                         options={[]}
                         value={null}
-                        onChange={() => {}}
+                        onChange={() => { }}
                         onSearch={(val) => {
                             setSearchTerm(val);
                             loadRevenues(1, val);

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showToast, Dialog, ConfirmDialog } from "@/components/ui";
 import { getIcon } from "@/lib/icons";
 import { Role, RolePermission, ModuleData } from "../types";
@@ -21,7 +22,7 @@ export function RolesTab() {
 
   const loadRoles = useCallback(async () => {
     try {
-      const response = await fetchAPI("/api/roles?action=roles");
+      const response = await fetchAPI(`${API_ENDPOINTS.SYSTEM.USERS.ROLES}?action=roles`);
       if (response.data && Array.isArray(response.data)) {
         // Map backend fields to frontend Role interface
         const mappedRoles = response.data.map((r: any) => ({
@@ -39,11 +40,11 @@ export function RolesTab() {
 
   const loadModules = useCallback(async () => {
     try {
-      const response = await fetchAPI("/api/roles?action=modules");
+      const response = await fetchAPI(`${API_ENDPOINTS.SYSTEM.USERS.ROLES}?action=modules`);
       if (response.data) {
         // response.data is grouped by category: { "sales": [...], "inventory": [...] }
         setModulesByCategory(response.data as Record<string, ModuleData[]>);
-        
+
         const flat: ModuleData[] = [];
         Object.values(response.data).forEach((categoryModules: any) => {
           flat.push(...categoryModules);
@@ -57,9 +58,9 @@ export function RolesTab() {
 
   useEffect(() => {
     const init = async () => {
-        setIsLoading(true);
-        await Promise.all([loadRoles(), loadModules()]);
-        setIsLoading(false);
+      setIsLoading(true);
+      await Promise.all([loadRoles(), loadModules()]);
+      setIsLoading(false);
     };
     init();
   }, [loadRoles, loadModules]);
@@ -67,7 +68,7 @@ export function RolesTab() {
   const selectRole = async (role: Role) => {
     setSelectedRole(role);
     try {
-      const response = await fetchAPI(`/api/roles?action=role_permissions&role_id=${role.id}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.SYSTEM.USERS.ROLES}?action=role_permissions&role_id=${role.id}`);
       if (response.data && Array.isArray(response.data)) {
         const mappedPermissions: RolePermission[] = response.data.map((p: any) => ({
           module: p.module_key,
@@ -109,9 +110,9 @@ export function RolesTab() {
     if (!selectedRole || !Array.isArray(selectedRole.permissions)) return;
 
     try {
-      await fetchAPI(`/api/roles?action=update_permissions`, {
+      await fetchAPI(`${API_ENDPOINTS.SYSTEM.USERS.ROLES}?action=update_permissions`, {
         method: "POST",
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           role_id: selectedRole.id,
           permissions: (selectedRole.permissions || []).map(p => {
             const moduleInfo = flatModules.find((m) => m.module_key === p.module);
@@ -145,7 +146,7 @@ export function RolesTab() {
     }
 
     try {
-      await fetchAPI("/api/roles", {
+      await fetchAPI(API_ENDPOINTS.SYSTEM.USERS.ROLES, {
         method: "POST",
         body: JSON.stringify({ name: newRoleName, description: newRoleDescription }),
       });
@@ -166,7 +167,7 @@ export function RolesTab() {
     if (!deleteRoleId) return;
 
     try {
-      await fetchAPI(`/api/roles/${deleteRoleId}`, { method: "DELETE" });
+      await fetchAPI(API_ENDPOINTS.SYSTEM.USERS.ROLES_WITH_ID(deleteRoleId), { method: "DELETE" });
       showToast("تم حذف الدور", "success");
       if (selectedRole?.id === deleteRoleId) {
         setSelectedRole(null);
@@ -215,12 +216,12 @@ export function RolesTab() {
           <div className="roles-list" id="rolesList">
             {isLoading ? (
               <div className="empty-state">
-                  <i className="fas fa-spinner fa-spin"></i>
-                  <p>جاري تحميل الأدوار...</p>
+                <i className="fas fa-spinner fa-spin"></i>
+                <p>جاري تحميل الأدوار...</p>
               </div>
             ) : roles.length === 0 ? (
               <div className="empty-state">
-                  <p>لا توجد أدوار مضافة</p>
+                <p>لا توجد أدوار مضافة</p>
               </div>
             ) : (
               roles.map((role) => (
@@ -231,9 +232,9 @@ export function RolesTab() {
                 >
                   <div className="role-info">
                     <h4>
-                        {role.name}
-                        {/* Add system badge if needed, though interface doesn't strictly have is_system yet */}
-                        {role.name === 'admin' && <span className="badge-system">نظام</span>}
+                      {role.name}
+                      {/* Add system badge if needed, though interface doesn't strictly have is_system yet */}
+                      {role.name === 'admin' && <span className="badge-system">نظام</span>}
                     </h4>
                     <p>{role.description || "لا يوجد وصف"}</p>
                   </div>
@@ -261,14 +262,14 @@ export function RolesTab() {
 
         {/* Permissions Grid */}
         <div className="permissions-card">
-            {!selectedRole ? (
-              <div className="empty-state" style={{ height: "100%", justifyContent: "center" , alignItems: "center"  }}>
-                <i className="fas fa-shield-halved" style={{ fontSize: "4rem", marginBottom: "1.5rem", color: "var(--primary-light)", opacity: 0.3 }}></i>
-                <h3>لوحة التحكم بالصلاحيات</h3>
-                <p>يرجى اختيار دور وظيفي لعرض وتعديل الصلاحيات الممنوحة له.</p>
-              </div>
-            ) : (
-              <>
+          {!selectedRole ? (
+            <div className="empty-state" style={{ height: "100%", justifyContent: "center", alignItems: "center" }}>
+              <i className="fas fa-shield-halved" style={{ fontSize: "4rem", marginBottom: "1.5rem", color: "var(--primary-light)", opacity: 0.3 }}></i>
+              <h3>لوحة التحكم بالصلاحيات</h3>
+              <p>يرجى اختيار دور وظيفي لعرض وتعديل الصلاحيات الممنوحة له.</p>
+            </div>
+          ) : (
+            <>
               <div className="section-header" style={{ padding: "1.25rem", borderBottom: "1px solid var(--border-color)" }}>
                 <div className="title-with-icon">
                   <i className="fas fa-user-tag text-primary" style={{ fontSize: "1.5rem" }}></i>
@@ -280,9 +281,9 @@ export function RolesTab() {
                   </div>
                 </div>
                 <div className="header-actions">
-                    <button className="btn btn-primary btn-sm" onClick={saveRolePermissions}>
-                      <i className="fas fa-save"></i> حفظ التغييرات
-                    </button>
+                  <button className="btn btn-primary btn-sm" onClick={saveRolePermissions}>
+                    <i className="fas fa-save"></i> حفظ التغييرات
+                  </button>
                 </div>
               </div>
 
@@ -322,13 +323,13 @@ export function RolesTab() {
                   </div>
                 ))}
               </div>
-              </>
-            )}
+            </>
+          )}
         </div>
       </div>
 
-       {/* Create Role Dialog */}
-       <Dialog
+      {/* Create Role Dialog */}
+      <Dialog
         isOpen={roleDialog}
         onClose={() => setRoleDialog(false)}
         title="إنشاء دور جديد"
@@ -362,7 +363,7 @@ export function RolesTab() {
           />
         </div>
       </Dialog>
-      
+
       {/* Confirm Delete Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog}

@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showToast } from "@/components/ui";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
@@ -28,7 +29,7 @@ export function SecurityTab() {
     }
 
     try {
-      await fetchAPI("/api/users/change-password", {
+      await fetchAPI(API_ENDPOINTS.SYSTEM.USERS.CHANGE_PASSWORD, {
         method: "POST",
         body: JSON.stringify({
           current_password: passwordData.current_password,

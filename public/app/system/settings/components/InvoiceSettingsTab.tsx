@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchAPI, getSetting } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showToast, Dialog } from "@/components/ui";
 import { getIcon } from "@/lib/icons";
 import { InvoiceSettings, StoreSettings } from "../types";
@@ -17,7 +18,7 @@ export function InvoiceSettingsTab() {
     footer_text: "",
     terms_text: "",
   });
-  
+
   // Need store settings for preview
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
 
@@ -27,7 +28,7 @@ export function InvoiceSettingsTab() {
 
   const loadInvoiceSettings = useCallback(async () => {
     try {
-      const response = await fetchAPI("/api/settings/invoice");
+      const response = await fetchAPI(API_ENDPOINTS.SYSTEM.SETTINGS.INVOICE);
       if (response.settings) {
         setInvoiceSettings(response.settings as InvoiceSettings);
       }
@@ -38,10 +39,10 @@ export function InvoiceSettingsTab() {
 
   const loadStoreSettings = useCallback(async () => {
     try {
-       const response = await fetchAPI("/api/settings/store");
-       if (response.settings) {
-         setStoreSettings(response.settings as StoreSettings);
-       }
+      const response = await fetchAPI(API_ENDPOINTS.SYSTEM.SETTINGS.STORE);
+      if (response.settings) {
+        setStoreSettings(response.settings as StoreSettings);
+      }
     } catch {
       console.error("Error loading store settings for preview");
     }
@@ -54,7 +55,7 @@ export function InvoiceSettingsTab() {
 
   const saveInvoiceSettings = async () => {
     try {
-      await fetchAPI("/api/settings/invoice", {
+      await fetchAPI(API_ENDPOINTS.SYSTEM.SETTINGS.INVOICE, {
         method: "PUT",
         body: JSON.stringify(invoiceSettings),
       });
@@ -68,15 +69,15 @@ export function InvoiceSettingsTab() {
     setIsGeneratingPreview(true);
     try {
       if (!storeSettings) {
-         await loadStoreSettings(); // Ensure we have them
-         if (!storeSettings) {
-             showToast("فشل تحميل معلومات المتجر للمعاينة", "error");
-             return;
-         }
+        await loadStoreSettings(); // Ensure we have them
+        if (!storeSettings) {
+          showToast("فشل تحميل معلومات المتجر للمعاينة", "error");
+          return;
+        }
       }
 
       // Get latest invoice for preview
-      const invoicesResponse = await fetchAPI("/api/invoices?page=1&limit=1");
+      const invoicesResponse = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICES}?page=1&limit=1`);
       const invoices = invoicesResponse.invoices as InvoiceData[] | undefined;
       if (!invoicesResponse.success || !invoices || invoices.length === 0) {
         showToast("لا توجد فواتير سابقة لإجراء المعاينة", "error");
@@ -84,7 +85,7 @@ export function InvoiceSettingsTab() {
       }
 
       const sampleInvoice = invoices[0];
-      const detailResponse = await fetchAPI(`/api/invoices/${sampleInvoice.id}`);
+      const detailResponse = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICE_DETAILS}?id=${sampleInvoice.id}`);
       if (!detailResponse.success && !detailResponse.invoice) {
         showToast("فشل تحميل تفاصيل الفاتورة", "error");
         return;
@@ -134,51 +135,51 @@ export function InvoiceSettingsTab() {
         <div className="settings-form-grid">
           <div className="form-group">
             <Checkbox
-                id="show_logo"
-                label="عرض الشعار"
-                checked={invoiceSettings.show_logo}
-                onChange={(e) => setInvoiceSettings({ ...invoiceSettings, show_logo: e.target.checked })}
+              id="show_logo"
+              label="عرض الشعار"
+              checked={invoiceSettings.show_logo}
+              onChange={(e) => setInvoiceSettings({ ...invoiceSettings, show_logo: e.target.checked })}
             />
           </div>
           <div className="form-group">
             <Checkbox
-                id="show_qr"
-                label="عرض رمز QR"
-                checked={invoiceSettings.show_qr}
-                onChange={(e) => setInvoiceSettings({ ...invoiceSettings, show_qr: e.target.checked })}
+              id="show_qr"
+              label="عرض رمز QR"
+              checked={invoiceSettings.show_qr}
+              onChange={(e) => setInvoiceSettings({ ...invoiceSettings, show_qr: e.target.checked })}
             />
           </div>
-          
+
           <div style={{ marginTop: "2rem", paddingTop: "1rem", borderTop: "1px dashed var(--border-color)" }}>
-             <h4 style={{ marginBottom: "1rem", color: "var(--text-primary)" }}>الامتثال الضريبي والتكامل الحكومي</h4>
-             <div className="form-group">
-                <div className="checkbox-group" style={{ 
-                    borderRight: "4px solid #10b981", 
-                    transform: "none",
-                    background: invoiceSettings.zatca_enabled ? "var(--bg-secondary)" : "transparent",
-                    padding: "1rem",
-                    borderRadius: "8px",
-                    transition: "all 0.3s ease",
-                    display: "flex", // Checkbox component is inline-flex, wrap it 
-                    alignItems: "flex-start",
-                    gap: "10px"
-                }}>
-                  <Checkbox
-                    id="zatca_enabled"
-                    checked={invoiceSettings.zatca_enabled}
-                    onChange={(e) => setInvoiceSettings({ ...invoiceSettings, zatca_enabled: e.target.checked })}
-                    style={{ marginTop: "4px" }} 
-                  />
-                  <div>
-                    <label htmlFor="zatca_enabled" style={{ fontWeight: 600, display: "block", cursor: "pointer" }}>تفعيل الربط الحكومي (مثل هيئة الزكاة / ZATCA)</label>
-                    <p style={{ marginTop: "0.25rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                        تفعيل هذا الخيار سيقوم بتشغيل خصائص الفوترة الإلكترونية وإرسال الفواتير للمنصات الحكومية المعتمدة تلقائياً.
-                        <br/>
-                        <span style={{ fontSize: "0.8rem", opacity: 0.8 }}>(مخصص للمنشآت الملزمة بالربط الضريبي والزكوي)</span>
-                    </p>
-                  </div>
+            <h4 style={{ marginBottom: "1rem", color: "var(--text-primary)" }}>الامتثال الضريبي والتكامل الحكومي</h4>
+            <div className="form-group">
+              <div className="checkbox-group" style={{
+                borderRight: "4px solid #10b981",
+                transform: "none",
+                background: invoiceSettings.zatca_enabled ? "var(--bg-secondary)" : "transparent",
+                padding: "1rem",
+                borderRadius: "8px",
+                transition: "all 0.3s ease",
+                display: "flex", // Checkbox component is inline-flex, wrap it 
+                alignItems: "flex-start",
+                gap: "10px"
+              }}>
+                <Checkbox
+                  id="zatca_enabled"
+                  checked={invoiceSettings.zatca_enabled}
+                  onChange={(e) => setInvoiceSettings({ ...invoiceSettings, zatca_enabled: e.target.checked })}
+                  style={{ marginTop: "4px" }}
+                />
+                <div>
+                  <label htmlFor="zatca_enabled" style={{ fontWeight: 600, display: "block", cursor: "pointer" }}>تفعيل الربط الحكومي (مثل هيئة الزكاة / ZATCA)</label>
+                  <p style={{ marginTop: "0.25rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                    تفعيل هذا الخيار سيقوم بتشغيل خصائص الفوترة الإلكترونية وإرسال الفواتير للمنصات الحكومية المعتمدة تلقائياً.
+                    <br />
+                    <span style={{ fontSize: "0.8rem", opacity: 0.8 }}>(مخصص للمنشآت الملزمة بالربط الضريبي والزكوي)</span>
+                  </p>
                 </div>
-             </div>
+              </div>
+            </div>
           </div>
           <div className="form-group full-width">
             <Textarea
@@ -209,8 +210,8 @@ export function InvoiceSettingsTab() {
         </div>
       </div>
 
-       {/* Invoice Preview Dialog */}
-       <Dialog
+      {/* Invoice Preview Dialog */}
+      <Dialog
         isOpen={previewDialog}
         onClose={() => setPreviewDialog(false)}
         title="معاينة الفاتورة"

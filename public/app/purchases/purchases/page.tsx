@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, SearchableSelect, SelectOption, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
@@ -54,21 +55,21 @@ export default function PurchasesPage() {
 
     const loadProducts = useCallback(async () => {
         try {
-            const response = await fetchAPI("products?limit=1000");
+            const response = await fetchAPI(`${API_ENDPOINTS.INVENTORY.PRODUCTS}?limit=1000`);
             setProducts((response.data as Product[]) || []);
         } catch (e) { console.error(e); }
     }, []);
 
     const loadSuppliers = useCallback(async () => {
         try {
-            const response = await fetchAPI("suppliers?limit=1000");
-             setSuppliers((response.data as Supplier[]) || []);
+            const response = await fetchAPI(`${API_ENDPOINTS.PURCHASES.SUPPLIERS.BASE}?limit=1000`);
+            setSuppliers((response.data as Supplier[]) || []);
         } catch (e) { console.error(e); }
     }, []);
 
     const loadRequests = useCallback(async () => {
         try {
-            const response = await fetchAPI("requests?status=pending");
+            const response = await fetchAPI(`${API_ENDPOINTS.PURCHASES.REQUESTS}?status=pending`);
             setRequests((response.data as PurchaseRequest[]) || []);
         } catch (e) { console.error(e); }
     }, []);
@@ -157,12 +158,12 @@ export default function PurchasesPage() {
 
         // Fix BUG-001 & BUG-007: Enforce Supplier for Credit
         if (formData.payment_type === "credit" && !formData.supplier.trim() && !('supplier_id' in formData)) {
-             // If we have a name but no ID, it might be a new supplier logic, but we prefer ID.
-             // We'll validate name exists at least.
+            // If we have a name but no ID, it might be a new supplier logic, but we prefer ID.
+            // We'll validate name exists at least.
         }
         if (formData.payment_type === "credit" && !formData.supplier) {
-             showToast("يرجى تحديد المورد عند اختيار الدفع الآجل", "error");
-             return;
+            showToast("يرجى تحديد المورد عند اختيار الدفع الآجل", "error");
+            return;
         }
 
         const payload = {
@@ -171,7 +172,7 @@ export default function PurchasesPage() {
             unit_type: formData.unit_type,
             unit_price: parseFloat(formData.unit_price),
             invoice_price: parseFloat(formData.quantity) * parseFloat(formData.unit_price),
-            supplier_id: (formData as any).supplier_id || null, 
+            supplier_id: (formData as any).supplier_id || null,
             supplier_name: formData.supplier,
             purchase_date: formData.purchase_date,
             expiry_date: formData.expiry_date || null,
@@ -220,7 +221,7 @@ export default function PurchasesPage() {
 
     const markRequestDone = async (requestId: number) => {
         try {
-            await fetchAPI(`requests?id=${requestId}`, {
+            await fetchAPI(`${API_ENDPOINTS.PURCHASES.REQUESTS}?id=${requestId}`, {
                 method: "PUT",
                 body: JSON.stringify({ status: "done" }),
             });
@@ -318,7 +319,7 @@ export default function PurchasesPage() {
                     <SearchableSelect
                         options={[]}
                         value={null}
-                        onChange={() => {}}
+                        onChange={() => { }}
                         onSearch={(val) => {
                             setSearchTerm(val);
                             loadPurchases(1, val);
@@ -394,7 +395,7 @@ export default function PurchasesPage() {
                         <label>نوع الوحدة</label>
                         <select value={formData.unit_type} onChange={(e) => setFormData({ ...formData, unit_type: e.target.value })}>
                             <option value="piece">قطعة</option>
-                            <option value="main">صندوق (كرتون)</option> 
+                            <option value="main">صندوق (كرتون)</option>
                         </select>
                     </div>
                 </div>

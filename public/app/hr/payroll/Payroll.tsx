@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, showToast, Button} from "@/components/ui";
+import { Table, Column, Dialog, showToast, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { PayrollCycle, PayrollItem, Employee } from "../types";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
@@ -29,10 +30,10 @@ interface PayrollTransaction {
 }
 
 interface Account {
-    id: number;
-    code: string;
-    name: string;
-    type: string;
+  id: number;
+  code: string;
+  name: string;
+  type: string;
 }
 
 export function Payroll() {
@@ -43,7 +44,7 @@ export function Payroll() {
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Dialog States
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -51,11 +52,11 @@ export function Payroll() {
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [showCreateCycleDialog, setShowCreateCycleDialog] = useState(false);
   const [showEditItemDialog, setShowEditItemDialog] = useState(false);
-  
+
   // Selection States
   const [selectedItem, setSelectedItem] = useState<PayrollItemExtended | null>(null);
   const [transactions, setTransactions] = useState<PayrollTransaction[]>([]);
-  
+
   // Create Cycle Form State
   const [newCycle, setNewCycle] = useState({
     payment_nature: 'salary' as 'salary' | 'bonus' | 'incentive' | 'other',
@@ -82,7 +83,7 @@ export function Payroll() {
   const [paymentNotes, setPaymentNotes] = useState("");
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Filter States
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -97,7 +98,7 @@ export function Payroll() {
 
   const loadUser = async () => {
     try {
-      const res: any = await fetchAPI('/api/check');
+      const res: any = await fetchAPI(API_ENDPOINTS.AUTH.CHECK);
       setCurrentUser(res.user || res);
     } catch (e) {
       console.error(e);
@@ -106,7 +107,7 @@ export function Payroll() {
 
   const loadAllEmployees = async () => {
     try {
-      const res: any = await fetchAPI('/api/employees');
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
       const data = res.data || (Array.isArray(res) ? res : []);
       setAllEmployees(data);
     } catch (e) {
@@ -115,33 +116,33 @@ export function Payroll() {
   };
 
   const loadAccounts = async () => {
-      try {
-          const res: any = await fetchAPI('/api/accounts');
-          const data = res.accounts || (Array.isArray(res) ? res : []);
-          
-          // Filter for Asset accounts (banks, cash, etc.)
-          // Note: account_type from controller is lowercase 'asset'
-          const assetAccounts = data.filter((acc: Account) => 
-            acc.type === 'asset' || 
-            acc.code.startsWith('1')
-          );
-          
-          setAccounts(assetAccounts);
-          
-          const cashAcc = assetAccounts.find((a: Account) => a.code === '1110') 
-                || assetAccounts.find((a: Account) => a.name.toLowerCase().includes('cash'))
-                || assetAccounts[0]; // Fallback to first asset
-          
-          if (cashAcc) setSelectedAccountId(cashAcc.id.toString());
-      } catch (e) {
-          console.error("Failed to load accounts", e);
-      }
+    try {
+      const res: any = await fetchAPI(API_ENDPOINTS.FINANCE.ACCOUNTS.BASE);
+      const data = res.accounts || (Array.isArray(res) ? res : []);
+
+      // Filter for Asset accounts (banks, cash, etc.)
+      // Note: account_type from controller is lowercase 'asset'
+      const assetAccounts = data.filter((acc: Account) =>
+        acc.type === 'asset' ||
+        acc.code.startsWith('1')
+      );
+
+      setAccounts(assetAccounts);
+
+      const cashAcc = assetAccounts.find((a: Account) => a.code === '1110')
+        || assetAccounts.find((a: Account) => a.name.toLowerCase().includes('cash'))
+        || assetAccounts[0]; // Fallback to first asset
+
+      if (cashAcc) setSelectedAccountId(cashAcc.id.toString());
+    } catch (e) {
+      console.error("Failed to load accounts", e);
+    }
   };
 
   const loadPayrollCycles = async () => {
     setIsLoading(true);
     try {
-      const res: any = await fetchAPI('/api/payroll/cycles');
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.CYCLES);
       const data = res.data?.data || res.data || res || [];
       setPayrollCycles(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -154,14 +155,14 @@ export function Payroll() {
 
   const loadCycleDetails = async (cycleId: number) => {
     try {
-      const res: any = await fetchAPI(`/api/payroll/cycles/${cycleId}/items`);
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.CYCLE_ITEMS(cycleId));
       const items = res.data || (Array.isArray(res) ? res : []);
       setPayrollItems(items as PayrollItemExtended[]);
-      
+
       if (res.cycle) {
         setSelectedCycle(res.cycle as PayrollCycle);
       }
-      
+
       setShowDetailsDialog(true);
     } catch (error) {
       console.error(error);
@@ -172,7 +173,7 @@ export function Payroll() {
   const loadItemHistory = async (item: PayrollItemExtended) => {
     try {
       setSelectedItem(item);
-      const res: any = await fetchAPI(`/api/payroll/items/${item.id}/transactions`);
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.ITEM_TRANSACTIONS(item.id));
       setTransactions(res.data as PayrollTransaction[] || []);
       setShowHistoryDialog(true);
     } catch (error) {
@@ -189,7 +190,7 @@ export function Payroll() {
 
     setIsSubmitting(true);
     try {
-      const res: any = await fetchAPI('/api/payroll/generate', {
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.GENERATE, {
         method: 'POST',
         body: JSON.stringify({
           ...newCycle,
@@ -214,7 +215,7 @@ export function Payroll() {
   const handleApprove = async (id: number) => {
     if (!confirm("هل أنت متأكد من الموافقة على مسير الرواتب ونقله للمرحلة التالية؟")) return;
     try {
-      const res: any = await fetchAPI(`/api/payroll/${id}/approve`, { method: 'POST' });
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.APPROVE(id), { method: 'POST' });
       if (res.success !== false) {
         showToast("تمت الموافقة بنجاح", "success");
         loadPayrollCycles();
@@ -230,17 +231,17 @@ export function Payroll() {
 
   const handleBulkPayment = async () => {
     if (!selectedCycle || !selectedAccountId) {
-        showToast("يرجى اختيار حساب الصرف", "error");
-        return;
+      showToast("يرجى اختيار حساب الصرف", "error");
+      return;
     }
 
     if (!confirm("هل أنت متأكد من صرف جميع الرواتب لهذا المسير؟ سيتم إنشاء قيود الصرف المحاسبية.")) return;
 
     setIsSubmitting(true);
     try {
-      const res: any = await fetchAPI(`/api/payroll/${selectedCycle.id}/process-payment`, { 
-          method: 'POST',
-          body: JSON.stringify({ account_id: selectedAccountId })
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.PROCESS_PAYMENT(selectedCycle.id), {
+        method: 'POST',
+        body: JSON.stringify({ account_id: selectedAccountId })
       });
       if (res.success !== false) {
         showToast("تم ترحيل وصرف الرواتب بنجاح", "success");
@@ -254,13 +255,13 @@ export function Payroll() {
       console.error(e);
       showToast("حدث خطأ", "error");
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
   const toggleStopSalary = async (item: PayrollItemExtended) => {
     try {
-      const res: any = await fetchAPI(`/api/payroll/items/${item.id}/toggle-status`, { method: 'POST' });
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.TOGGLE_ITEM(item.id), { method: 'POST' });
       if (res) {
         showToast(res.status === 'on_hold' ? "تم إيقاف صرف الراتب مؤقتاً" : "تم تفعيل صرف الراتب", "info");
         loadCycleDetails(item.payroll_cycle_id);
@@ -275,7 +276,7 @@ export function Payroll() {
     if (!selectedItem) return;
     setIsSubmitting(true);
     try {
-      const res: any = await fetchAPI(`/api/payroll/items/${selectedItem.id}`, {
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.UPDATE_ITEM(selectedItem.id), {
         method: 'PUT',
         body: JSON.stringify(editItemData)
       });
@@ -312,7 +313,7 @@ export function Payroll() {
 
     setIsSubmitting(true);
     try {
-      const res: any = await fetchAPI(`/api/payroll/items/${selectedItem.id}/pay`, {
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.PAY_ITEM(selectedItem.id), {
         method: 'POST',
         body: JSON.stringify({
           amount: parseFloat(paymentAmount),
@@ -340,10 +341,10 @@ export function Payroll() {
 
   const cycleColumns: Column<PayrollCycle>[] = [
     { key: "cycle_name", header: "الدورة/المناسبة", dataLabel: "الدورة" },
-    { 
-      key: "status", 
-      header: "الحالة والموافقة", 
-      dataLabel: "الحالة", 
+    {
+      key: "status",
+      header: "الحالة والموافقة",
+      dataLabel: "الحالة",
       render: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span className={`badge ${item.status === 'paid' ? 'badge-success' : item.status === 'approved' ? 'badge-info' : item.status === 'pending_approval' ? 'badge-warning' : 'badge-secondary'}`}>
@@ -355,10 +356,10 @@ export function Payroll() {
         </div>
       )
     },
-    { 
-      key: "cycle_type", 
-      header: "النوع", 
-      dataLabel: "النوع", 
+    {
+      key: "cycle_type",
+      header: "النوع",
+      dataLabel: "النوع",
       render: (item: any) => {
         const typeMap: any = { salary: 'راتب شهري', bonus: 'مكافأة', incentive: 'حافز', other: 'أخرى' };
         return <span className={`badge ${item.cycle_type === 'salary' ? 'badge-primary' : 'badge-info'}`}>{typeMap[item.cycle_type] || item.cycle_type}</span>;
@@ -372,13 +373,13 @@ export function Payroll() {
           <button className="icon-btn view" title="التفاصيل والمراجعة" onClick={() => { setSelectedCycle(item); loadCycleDetails(item.id); }}>
             {getIcon("eye")}
           </button>
-          
+
           {(item.status === 'draft' && item.created_by == currentUser?.id) && (
             <button className="icon-btn success" title="بدأ مسار الاعتماد" onClick={() => handleApprove(item.id)}>
               {getIcon("rocket")}
             </button>
           )}
-          
+
           {(item.status === 'pending_approval' && item.current_approver_id == currentUser?.id) && (
             <button className="icon-btn success" title="موافقة وتمرير" onClick={() => handleApprove(item.id)}>
               {getIcon("check")}
@@ -399,7 +400,7 @@ export function Payroll() {
     const name = item.employee_name || item.employee?.full_name || "";
     const matchesSearch = !searchTerm || name.toLowerCase().includes(searchTerm.toLowerCase());
     const remaining = (item.remaining_balance !== undefined) ? item.remaining_balance : item.net_salary;
-    const matchesStatus = filterStatus === "all" || 
+    const matchesStatus = filterStatus === "all" ||
       (filterStatus === "paid" && remaining <= 0) ||
       (filterStatus === "unpaid" && remaining > 0);
     return matchesSearch && matchesStatus;
@@ -409,57 +410,61 @@ export function Payroll() {
   const isDraftCreator = selectedCycle?.status === 'draft' && selectedCycle?.created_by == currentUser?.id;
 
   const itemColumns: Column<PayrollItemExtended>[] = [
-    { key: "employee_name", header: "الموظف", dataLabel: "الموظف", render: (item) => (
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontWeight: 600 }}>{item.employee_name || item.employee?.full_name || "-"}</span>
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{item.employee?.employee_code || ""}</span>
-      </div>
-    )},
-    { key: "net_salary", header: "صافي المستحق", dataLabel: "المستحق", render: (item) => formatCurrency(item.net_salary) },
-    { 
-        key: "status", 
-        header: "حالة الصرف", 
-        dataLabel: "الحالة", 
-        render: (item) => (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className={`badge ${item.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
-                    {item.status === 'active' ? 'نشط' : 'موقوف'}
-                </span>
-                {(isUserApprover || isDraftCreator) && (
-                    <button 
-                        onClick={() => toggleStopSalary(item)} 
-                        className={`btn btn-xs ${item.status === 'active' ? 'btn-outline-danger' : 'btn-outline-success'}`}
-                        style={{ fontSize: '0.7rem', padding: '2px 5px' }}
-                    >
-                        {item.status === 'active' ? 'إيقاف' : 'تفعيل'}
-                    </button>
-                )}
-            </div>
-        )
+    {
+      key: "employee_name", header: "الموظف", dataLabel: "الموظف", render: (item) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontWeight: 600 }}>{item.employee_name || item.employee?.full_name || "-"}</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{item.employee?.employee_code || ""}</span>
+        </div>
+      )
     },
-    { key: "paid_amount", header: "المحول", dataLabel: "المحول", render: (item) => (
-      <button className="text-link" onClick={() => loadItemHistory(item)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary-color)', cursor: 'pointer', textDecoration: 'underline' }}>
-        {formatCurrency(item.paid_amount || 0)}
-      </button>
-    )},
+    { key: "net_salary", header: "صافي المستحق", dataLabel: "المستحق", render: (item) => formatCurrency(item.net_salary) },
+    {
+      key: "status",
+      header: "حالة الصرف",
+      dataLabel: "الحالة",
+      render: (item) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className={`badge ${item.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
+            {item.status === 'active' ? 'نشط' : 'موقوف'}
+          </span>
+          {(isUserApprover || isDraftCreator) && (
+            <button
+              onClick={() => toggleStopSalary(item)}
+              className={`btn btn-xs ${item.status === 'active' ? 'btn-outline-danger' : 'btn-outline-success'}`}
+              style={{ fontSize: '0.7rem', padding: '2px 5px' }}
+            >
+              {item.status === 'active' ? 'إيقاف' : 'تفعيل'}
+            </button>
+          )}
+        </div>
+      )
+    },
+    {
+      key: "paid_amount", header: "المحول", dataLabel: "المحول", render: (item) => (
+        <button className="text-link" onClick={() => loadItemHistory(item)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary-color)', cursor: 'pointer', textDecoration: 'underline' }}>
+          {formatCurrency(item.paid_amount || 0)}
+        </button>
+      )
+    },
     {
       key: "actions", header: "الإجراءات", dataLabel: "الإجراءات", render: (item) => {
         const remaining = (item.remaining_balance !== undefined) ? item.remaining_balance : item.net_salary;
         return (
           <div className="action-buttons">
             {(isUserApprover || isDraftCreator) && (
-               <button className="icon-btn edit" title="تعديل المبالغ" onClick={() => {
-                   setSelectedItem(item);
-                   setEditItemData({
-                       base_salary: item.base_salary,
-                       total_allowances: item.total_allowances,
-                       total_deductions: item.total_deductions,
-                       notes: item.notes || ""
-                   });
-                   setShowEditItemDialog(true);
-               }}>
-                 {getIcon("edit")}
-               </button>
+              <button className="icon-btn edit" title="تعديل المبالغ" onClick={() => {
+                setSelectedItem(item);
+                setEditItemData({
+                  base_salary: item.base_salary,
+                  total_allowances: item.total_allowances,
+                  total_deductions: item.total_deductions,
+                  notes: item.notes || ""
+                });
+                setShowEditItemDialog(true);
+              }}>
+                {getIcon("edit")}
+              </button>
             )}
 
             {remaining > 0 && selectedCycle?.status === 'approved' && item.status === 'active' && (
@@ -479,7 +484,7 @@ export function Payroll() {
   const toggleEmployeeSelection = (id: number) => {
     setNewCycle(prev => ({
       ...prev,
-      employee_ids: prev.employee_ids.includes(id) 
+      employee_ids: prev.employee_ids.includes(id)
         ? prev.employee_ids.filter(eid => eid !== id)
         : [...prev.employee_ids, id]
     }));
@@ -504,7 +509,7 @@ export function Payroll() {
               variant="primary"
               onClick={() => setShowCreateCycleDialog(true)}
               icon="plus">
-               صرف جديد (مكافأة/حافز/راتب)
+              صرف جديد (مكافأة/حافز/راتب)
             </Button>
           </div>
         </div>
@@ -525,96 +530,96 @@ export function Payroll() {
         title="إعداد أمر صرف جديد"
         maxWidth="900px"
         footer={
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-              <button className="btn btn-secondary" onClick={() => setShowCreateCycleDialog(false)}>إلغاء</button>
-              <button className="btn btn-primary" onClick={handleCreateCycle} disabled={isSubmitting}>
-                {isSubmitting ? "جاري الإنشاء..." : "إنشاء المسودة"}
-              </button>
-            </div>
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <button className="btn btn-secondary" onClick={() => setShowCreateCycleDialog(false)}>إلغاء</button>
+            <button className="btn btn-primary" onClick={handleCreateCycle} disabled={isSubmitting}>
+              {isSubmitting ? "جاري الإنشاء..." : "إنشاء المسودة"}
+            </button>
+          </div>
         }
       >
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-            <div style={{ display: 'grid', gap: '1rem' }}>
-                <div className="form-group pb-0">
-                    <Select
-                        label="طبيعة الصرف" 
-                        value={newCycle.payment_nature} 
-                        onChange={(e) => setNewCycle({...newCycle, payment_nature: e.target.value as any, cycle_name: e.target.value === 'salary' ? '' : newCycle.cycle_name})}
-                    >
-                        <option value="salary">راتب شهري أساسي</option>
-                        <option value="incentive">حافز أداء</option>
-                        <option value="bonus">مكافأة استثنائية</option>
-                        <option value="other">أخرى</option>
-                    </Select>
-                </div>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <div className="form-group pb-0">
+              <Select
+                label="طبيعة الصرف"
+                value={newCycle.payment_nature}
+                onChange={(e) => setNewCycle({ ...newCycle, payment_nature: e.target.value as any, cycle_name: e.target.value === 'salary' ? '' : newCycle.cycle_name })}
+              >
+                <option value="salary">راتب شهري أساسي</option>
+                <option value="incentive">حافز أداء</option>
+                <option value="bonus">مكافأة استثنائية</option>
+                <option value="other">أخرى</option>
+              </Select>
+            </div>
 
-                {newCycle.payment_nature !== 'salary' && (
-                    <div className="form-group pb-0">
-                        <TextInput
-                            label="عنوان المسير / المناسبة" 
-                            type="text" 
-                            placeholder="مثال: حوافز مبيعات شهر يناير"
-                            value={newCycle.cycle_name}
-                            onChange={(e) => setNewCycle({...newCycle, cycle_name: e.target.value})}
-                        />
-                    </div>
-                )}
+            {newCycle.payment_nature !== 'salary' && (
+              <div className="form-group pb-0">
+                <TextInput
+                  label="عنوان المسير / المناسبة"
+                  type="text"
+                  placeholder="مثال: حوافز مبيعات شهر يناير"
+                  value={newCycle.cycle_name}
+                  onChange={(e) => setNewCycle({ ...newCycle, cycle_name: e.target.value })}
+                />
+              </div>
+            )}
 
-                <div className="form-group pb-0">
-                    <TextInput
-                        label="تاريخ الاستحقاق/الصرف" 
-                        type="date" 
-                        value={newCycle.payment_date}
-                        onChange={(e) => setNewCycle({...newCycle, payment_date: e.target.value})}
-                    />
-                </div>
+            <div className="form-group pb-0">
+              <TextInput
+                label="تاريخ الاستحقاق/الصرف"
+                type="date"
+                value={newCycle.payment_date}
+                onChange={(e) => setNewCycle({ ...newCycle, payment_date: e.target.value })}
+              />
+            </div>
 
-                {newCycle.payment_nature !== 'salary' && (
-                    <div className="form-group pb-0">
-                         {/* Note: TextInput doesn't strictly support icon-right span natively via props yet, so using classic input or adapting TextInput logic. 
+            {newCycle.payment_nature !== 'salary' && (
+              <div className="form-group pb-0">
+                {/* Note: TextInput doesn't strictly support icon-right span natively via props yet, so using classic input or adapting TextInput logic. 
                              Using TextInput for consistency, assuming label support is sufficient. The "SAR" suffix is visual sugar. 
                              I'll wrap it or use `TextInput` normally.
                           */}
-                        <TextInput
-                            label="المبلغ الموحد (اختياري)" 
-                            type="number" 
-                            placeholder="0.00"
-                            value={newCycle.base_amount}
-                            onChange={(e) => setNewCycle({...newCycle, base_amount: e.target.value})}
-                        />
+                <TextInput
+                  label="المبلغ الموحد (اختياري)"
+                  type="number"
+                  placeholder="0.00"
+                  value={newCycle.base_amount}
+                  onChange={(e) => setNewCycle({ ...newCycle, base_amount: e.target.value })}
+                />
+              </div>
+            )}
+          </div>
+
+          <div style={{ border: '1px solid #eee', borderRadius: '8px', padding: '1rem', background: '#fcfcfc' }}>
+            <label className="form-label" style={{ fontWeight: 600, marginBottom: '1rem', display: 'block' }}>تخصيص الموظفين المشمولين</label>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <RadioGroup
+                className="flex gap-4 mb-4"
+                value={newCycle.target_type}
+                onValueChange={(val) => setNewCycle({ ...newCycle, target_type: val as any, employee_ids: val === 'all' ? [] : newCycle.employee_ids })}
+              >
+                <RadioGroupItem value="all" label="الكل" />
+                <RadioGroupItem value="selected" label="محددين" />
+                <RadioGroupItem value="excluded" label="استثناء" />
+              </RadioGroup>
+
+              {(newCycle.target_type === 'selected' || newCycle.target_type === 'excluded') && (
+                <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #eee', padding: '10px', borderRadius: '4px' }}>
+                  {allEmployees.map(emp => (
+                    <div key={emp.id} style={{ marginBottom: '8px' }}>
+                      <Checkbox
+                        label={emp.full_name}
+                        checked={newCycle.employee_ids.includes(emp.id)}
+                        onChange={() => toggleEmployeeSelection(emp.id)}
+                      />
                     </div>
-                )}
-            </div>
-
-            <div style={{ border: '1px solid #eee', borderRadius: '8px', padding: '1rem', background: '#fcfcfc' }}>
-                <label className="form-label" style={{ fontWeight: 600, marginBottom: '1rem', display: 'block' }}>تخصيص الموظفين المشمولين</label>
-                
-                <div style={{ marginBottom: '1rem' }}>
-                    <RadioGroup 
-                        className="flex gap-4 mb-4" 
-                        value={newCycle.target_type}
-                        onValueChange={(val) => setNewCycle({...newCycle, target_type: val as any, employee_ids: val === 'all' ? [] : newCycle.employee_ids})}
-                    >
-                        <RadioGroupItem value="all" label="الكل" />
-                        <RadioGroupItem value="selected" label="محددين" />
-                        <RadioGroupItem value="excluded" label="استثناء" />
-                    </RadioGroup>
-
-                    {(newCycle.target_type === 'selected' || newCycle.target_type === 'excluded') && (
-                        <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #eee', padding: '10px', borderRadius: '4px' }}>
-                            {allEmployees.map(emp => (
-                                <div key={emp.id} style={{ marginBottom: '8px' }}>
-                                    <Checkbox 
-                                        label={emp.full_name}
-                                        checked={newCycle.employee_ids.includes(emp.id)}
-                                        onChange={() => toggleEmployeeSelection(emp.id)}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                  ))}
                 </div>
+              )}
             </div>
+          </div>
         </div>
       </Dialog>
 
@@ -625,100 +630,100 @@ export function Payroll() {
         title={`تفاصيل واعتماد المسير: ${selectedCycle?.cycle_name || ""}`}
         maxWidth="1200px"
         footer={
-           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', width: '100%' }}>
-              <div style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>الحالة:</span>
-                 <span className={`badge ${selectedCycle?.status === 'approved' ? 'badge-success' : 'badge-warning'}`}>
-                    {selectedCycle?.status === 'draft' ? 'مسودة' : selectedCycle?.status === 'pending_approval' ? 'بانتظار الموافقة' : 'معتمد'}
-                 </span>
-              </div>
-              <button className="btn btn-secondary" onClick={() => setShowDetailsDialog(false)}>إغلاق</button>
-              
-              {isUserApprover && (
-                <button className="btn btn-primary" onClick={() => handleApprove(selectedCycle!.id)}>
-                   {getIcon("check")} اعتماد وتمرير
-                </button>
-              )}
-              
-              {isDraftCreator && (
-                <button className="btn btn-primary" onClick={() => handleApprove(selectedCycle!.id)}>
-                   {getIcon("rocket")} تقديم للاعتماد
-                </button>
-              )}
-           </div>
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', width: '100%' }}>
+            <div style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>الحالة:</span>
+              <span className={`badge ${selectedCycle?.status === 'approved' ? 'badge-success' : 'badge-warning'}`}>
+                {selectedCycle?.status === 'draft' ? 'مسودة' : selectedCycle?.status === 'pending_approval' ? 'بانتظار الموافقة' : 'معتمد'}
+              </span>
+            </div>
+            <button className="btn btn-secondary" onClick={() => setShowDetailsDialog(false)}>إغلاق</button>
+
+            {isUserApprover && (
+              <button className="btn btn-primary" onClick={() => handleApprove(selectedCycle!.id)}>
+                {getIcon("check")} اعتماد وتمرير
+              </button>
+            )}
+
+            {isDraftCreator && (
+              <button className="btn btn-primary" onClick={() => handleApprove(selectedCycle!.id)}>
+                {getIcon("rocket")} تقديم للاعتماد
+              </button>
+            )}
+          </div>
         }
       >
         <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '1.5rem' }}>
-            <div>
-               <div style={{ marginBottom: '1.5rem' }}>
-                <div className="form-row" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
-                    <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                    <div className="input-group" style={{ display: 'flex', position: 'relative' }}>
-                        <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>
-                        {getIcon("search")}
-                        </span>
-                        <input
-                        type="text"
-                        className="form-control"
-                        style={{ paddingLeft: '35px' }}
-                        placeholder="بحث موظف..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                    <div className="stat-card" style={{ background: '#f0f7ff', padding: '1rem', borderRadius: '8px', border: '1px solid #cce5ff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>إجمالي المستحقات</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{formatCurrency(selectedCycle?.total_net || 0)}</div>
-                    </div>
-                    <div className="stat-card" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px', border: '1px solid #eee' }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>بانتظار الصرف</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{formatCurrency(payrollItems.reduce((acc, item) => acc + (item.status === 'active' ? (item.remaining_balance || 0) : 0), 0))}</div>
-                    </div>
-                    <div className="stat-card" style={{ background: '#e8f5e9', padding: '1rem', borderRadius: '8px', border: '1px solid #c3e6cb' }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>تم صرفه</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#28a745' }}>{formatCurrency(payrollItems.reduce((acc, item) => acc + (item.paid_amount || 0), 0))}</div>
-                    </div>
-                </div>
-                </div>
-
-                <div className="table-responsive">
-                    <Table
-                        columns={itemColumns}
-                        data={filteredItems}
-                        keyExtractor={(item) => item.id}
-                        emptyMessage="لا توجد بيانات"
+          <div>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div className="form-row" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
+                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                  <div className="input-group" style={{ display: 'flex', position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }}>
+                      {getIcon("search")}
+                    </span>
+                    <input
+                      type="text"
+                      className="form-control"
+                      style={{ paddingLeft: '35px' }}
+                      placeholder="بحث موظف..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                     />
+                  </div>
                 </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div className="stat-card" style={{ background: '#f0f7ff', padding: '1rem', borderRadius: '8px', border: '1px solid #cce5ff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>إجمالي المستحقات</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{formatCurrency(selectedCycle?.total_net || 0)}</div>
+                </div>
+                <div className="stat-card" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px', border: '1px solid #eee' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>بانتظار الصرف</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{formatCurrency(payrollItems.reduce((acc, item) => acc + (item.status === 'active' ? (item.remaining_balance || 0) : 0), 0))}</div>
+                </div>
+                <div className="stat-card" style={{ background: '#e8f5e9', padding: '1rem', borderRadius: '8px', border: '1px solid #c3e6cb' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>تم صرفه</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#28a745' }}>{formatCurrency(payrollItems.reduce((acc, item) => acc + (item.paid_amount || 0), 0))}</div>
+                </div>
+              </div>
             </div>
 
-            <div style={{ borderRight: '1px solid #eee', paddingRight: '1rem' }}>
-                <h5 style={{ marginBottom: '1rem', borderBottom: '2px solid var(--primary-color)', paddingBottom: '0.5rem' }}>مسار الاعتمادات</h5>
-                {selectedCycle?.approval_trail && selectedCycle.approval_trail.length > 0 ? (
-                   <div style={{ display: 'grid', gap: '15px' }}>
-                      {selectedCycle.approval_trail.map((step, idx) => (
-                        <div key={idx} style={{ position: 'relative', paddingLeft: '20px', borderLeft: '2px solid #28a745' }}>
-                           <div style={{ position: 'absolute', left: '-7px', top: '0', width: '12px', height: '12px', borderRadius: '50%', background: '#28a745' }}></div>
-                           <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{step.user_name}</div>
-                           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formatDateTime(step.timestamp)}</div>
-                           <div style={{ fontSize: '0.75rem', color: '#28a745' }}>تمت الموافقة</div>
-                        </div>
-                      ))}
-                      {selectedCycle?.status === 'pending_approval' && selectedCycle?.current_approver && (
-                        <div style={{ position: 'relative', paddingLeft: '20px', borderLeft: '2px dashed #fbc02d' }}>
-                           <div style={{ position: 'absolute', left: '-7px', top: '0', width: '12px', height: '12px', borderRadius: '50%', background: '#fbc02d' }}></div>
-                           <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{selectedCycle?.current_approver?.full_name}</div>
-                           <div style={{ fontSize: '0.75rem', color: '#fbc02d' }}>بانتظار الموافقة الحالية</div>
-                        </div>
-                      )}
-                   </div>
-                ) : (
-                   <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>لا توجد حركات سابقة</div>
-                )}
+            <div className="table-responsive">
+              <Table
+                columns={itemColumns}
+                data={filteredItems}
+                keyExtractor={(item) => item.id}
+                emptyMessage="لا توجد بيانات"
+              />
             </div>
+          </div>
+
+          <div style={{ borderRight: '1px solid #eee', paddingRight: '1rem' }}>
+            <h5 style={{ marginBottom: '1rem', borderBottom: '2px solid var(--primary-color)', paddingBottom: '0.5rem' }}>مسار الاعتمادات</h5>
+            {selectedCycle?.approval_trail && selectedCycle.approval_trail.length > 0 ? (
+              <div style={{ display: 'grid', gap: '15px' }}>
+                {selectedCycle.approval_trail.map((step, idx) => (
+                  <div key={idx} style={{ position: 'relative', paddingLeft: '20px', borderLeft: '2px solid #28a745' }}>
+                    <div style={{ position: 'absolute', left: '-7px', top: '0', width: '12px', height: '12px', borderRadius: '50%', background: '#28a745' }}></div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{step.user_name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formatDateTime(step.timestamp)}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#28a745' }}>تمت الموافقة</div>
+                  </div>
+                ))}
+                {selectedCycle?.status === 'pending_approval' && selectedCycle?.current_approver && (
+                  <div style={{ position: 'relative', paddingLeft: '20px', borderLeft: '2px dashed #fbc02d' }}>
+                    <div style={{ position: 'absolute', left: '-7px', top: '0', width: '12px', height: '12px', borderRadius: '50%', background: '#fbc02d' }}></div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{selectedCycle?.current_approver?.full_name}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#fbc02d' }}>بانتظار الموافقة الحالية</div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>لا توجد حركات سابقة</div>
+            )}
+          </div>
         </div>
       </Dialog>
 
@@ -728,33 +733,33 @@ export function Payroll() {
         onClose={() => setShowEditItemDialog(false)}
         title={`تعديل مبالغ: ${selectedItem?.employee_name}`}
         footer={
-           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-              <button className="btn btn-secondary" onClick={() => setShowEditItemDialog(false)}>إلغاء</button>
-              <button className="btn btn-primary" onClick={handleUpdateItem} disabled={isSubmitting}>حفظ التغييرات</button>
-           </div>
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <button className="btn btn-secondary" onClick={() => setShowEditItemDialog(false)}>إلغاء</button>
+            <button className="btn btn-primary" onClick={handleUpdateItem} disabled={isSubmitting}>حفظ التغييرات</button>
+          </div>
         }
       >
-         <div style={{ display: 'grid', gap: '1rem' }}>
-            <div className="form-group">
-               <label className="form-label">الراتب الأساسي / المبلغ الأساسي</label>
-               <input type="number" className="form-control" value={editItemData.base_salary} onChange={(e) => setEditItemData({...editItemData, base_salary: parseFloat(e.target.value)})} />
-            </div>
-            <div className="form-group">
-               <label className="form-label">إجمالي البدلات / الإضافات</label>
-               <input type="number" className="form-control" value={editItemData.total_allowances} onChange={(e) => setEditItemData({...editItemData, total_allowances: parseFloat(e.target.value)})} />
-            </div>
-            <div className="form-group">
-               <label className="form-label">إجمالي الاستقطاعات</label>
-               <input type="number" className="form-control" value={editItemData.total_deductions} onChange={(e) => setEditItemData({...editItemData, total_deductions: parseFloat(e.target.value)})} />
-            </div>
-            <div className="form-group">
-               <label className="form-label">ملاحظات على المبالغ</label>
-               <textarea className="form-control" value={editItemData.notes} onChange={(e) => setEditItemData({...editItemData, notes: e.target.value})} rows={2}></textarea>
-            </div>
-            <div style={{ padding: '10px', background: '#f0f7ff', borderRadius: '6px' }}>
-               <strong>الصافي الجديد: {formatCurrency(editItemData.base_salary + editItemData.total_allowances - editItemData.total_deductions)}</strong>
-            </div>
-         </div>
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          <div className="form-group">
+            <label className="form-label">الراتب الأساسي / المبلغ الأساسي</label>
+            <input type="number" className="form-control" value={editItemData.base_salary} onChange={(e) => setEditItemData({ ...editItemData, base_salary: parseFloat(e.target.value) })} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">إجمالي البدلات / الإضافات</label>
+            <input type="number" className="form-control" value={editItemData.total_allowances} onChange={(e) => setEditItemData({ ...editItemData, total_allowances: parseFloat(e.target.value) })} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">إجمالي الاستقطاعات</label>
+            <input type="number" className="form-control" value={editItemData.total_deductions} onChange={(e) => setEditItemData({ ...editItemData, total_deductions: parseFloat(e.target.value) })} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">ملاحظات على المبالغ</label>
+            <textarea className="form-control" value={editItemData.notes} onChange={(e) => setEditItemData({ ...editItemData, notes: e.target.value })} rows={2}></textarea>
+          </div>
+          <div style={{ padding: '10px', background: '#f0f7ff', borderRadius: '6px' }}>
+            <strong>الصافي الجديد: {formatCurrency(editItemData.base_salary + editItemData.total_allowances - editItemData.total_deductions)}</strong>
+          </div>
+        </div>
       </Dialog>
 
       {/* Other dialogs (Payment, History, Bulk) remain largely the same or minor edits */}
@@ -773,19 +778,19 @@ export function Payroll() {
         title="تحويل مبلغ للموظف"
         footer={
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-             <button className="btn btn-secondary" onClick={() => setShowPaymentDialog(false)}>إلغاء</button>
-             <button className="btn btn-primary" onClick={handleIndividualPayment} disabled={isSubmitting}>تأكيد الصرف</button>
+            <button className="btn btn-secondary" onClick={() => setShowPaymentDialog(false)}>إلغاء</button>
+            <button className="btn btn-primary" onClick={handleIndividualPayment} disabled={isSubmitting}>تأكيد الصرف</button>
           </div>
         }
       >
-         <div className="form-group pb-0">
-            <Select label="طريقة الصرف" value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
-                {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>)}
-            </Select>
-         </div>
-         <div className="form-group pb-0">
-            <TextInput label="المبلغ" type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
-         </div>
+        <div className="form-group pb-0">
+          <Select label="طريقة الصرف" value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
+            {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>)}
+          </Select>
+        </div>
+        <div className="form-group pb-0">
+          <TextInput label="المبلغ" type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
+        </div>
       </Dialog>
 
       <Dialog
@@ -794,19 +799,19 @@ export function Payroll() {
         title="صرف المسير بالكامل"
         footer={
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-             <button className="btn btn-secondary" onClick={() => setShowBulkPaymentDialog(false)}>إلغاء</button>
-             <button className="btn btn-primary" onClick={handleBulkPayment} disabled={isSubmitting}>تأكيد صرف الكل</button>
+            <button className="btn btn-secondary" onClick={() => setShowBulkPaymentDialog(false)}>إلغاء</button>
+            <button className="btn btn-primary" onClick={handleBulkPayment} disabled={isSubmitting}>تأكيد صرف الكل</button>
           </div>
         }
       >
-         <div className="form-group pb-0">
-            <Select label="الصرف من حساب" value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
-                {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>)}
-            </Select>
-         </div>
-         <div style={{ padding: '15px', background: '#e8f5e9', borderRadius: '8px', marginTop: '10px' }}>
-            إجمالي المبلغ: <strong>{formatCurrency(selectedCycle?.total_net || 0)}</strong>
-         </div>
+        <div className="form-group pb-0">
+          <Select label="الصرف من حساب" value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
+            {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>)}
+          </Select>
+        </div>
+        <div style={{ padding: '15px', background: '#e8f5e9', borderRadius: '8px', marginTop: '10px' }}>
+          إجمالي المبلغ: <strong>{formatCurrency(selectedCycle?.total_net || 0)}</strong>
+        </div>
       </Dialog>
     </>
   );

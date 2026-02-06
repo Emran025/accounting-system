@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showToast, Dialog, Table, Column } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ui/Dialog";
 import { Alert } from "@/components/ui/Alert";
@@ -30,7 +31,7 @@ export function CurrencySettingsTab() {
   const loadCurrencies = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetchAPI("/api/currencies");
+      const res = await fetchAPI(API_ENDPOINTS.FINANCE.CURRENCIES.BASE);
       if (res.success) {
         setCurrencies(res.data as Currency[]);
       }
@@ -49,8 +50,8 @@ export function CurrencySettingsTab() {
   const handleSave = async () => {
     try {
       const url = editingCurrency
-        ? `/api/currencies/${editingCurrency.id}`
-        : "/api/currencies";
+        ? API_ENDPOINTS.FINANCE.CURRENCIES.withId(editingCurrency.id)
+        : API_ENDPOINTS.FINANCE.CURRENCIES.BASE;
 
       const method = editingCurrency ? "PUT" : "POST";
 
@@ -92,7 +93,7 @@ export function CurrencySettingsTab() {
       variant: "danger",
       onConfirm: async () => {
         try {
-          const res = await fetchAPI(`/api/currencies/${id}`, { method: "DELETE" });
+          const res = await fetchAPI(API_ENDPOINTS.FINANCE.CURRENCIES.withId(id), { method: "DELETE" });
           if (res.success) {
             showToast("تم الحذف بنجاح", "success");
             loadCurrencies();
@@ -108,7 +109,7 @@ export function CurrencySettingsTab() {
 
   const handleToggleActive = async (curr: Currency) => {
     try {
-      const res = await fetchAPI(`/api/currencies/${curr.id}/toggle`, { method: "POST" });
+      const res = await fetchAPI(API_ENDPOINTS.FINANCE.CURRENCIES.TOGGLE(curr.id), { method: "POST" });
       if (res.success) {
         loadCurrencies();
         showToast("تم تحديث الحالة", "success");
@@ -263,9 +264,9 @@ export function CurrencySettingsTab() {
     setLoadingPolicy(true);
     try {
       const [currRes, statusRes, policiesRes] = await Promise.all([
-        fetchAPI("/api/currencies"),
-        fetchAPI("/api/currency-policies/active"),
-        fetchAPI("/api/currency-policies")
+        fetchAPI(API_ENDPOINTS.FINANCE.CURRENCIES.BASE),
+        fetchAPI(API_ENDPOINTS.FINANCE.CURRENCY_POLICIES.ACTIVE),
+        fetchAPI(API_ENDPOINTS.FINANCE.CURRENCY_POLICIES.BASE)
       ]);
 
       if (currRes.success) setCurrencies(currRes.data as Currency[]);
@@ -296,8 +297,8 @@ export function CurrencySettingsTab() {
   const handleSaveCurrency = async () => {
     try {
       const url = editingCurrency
-        ? `/api/currencies/${editingCurrency.id}`
-        : "/api/currencies";
+        ? API_ENDPOINTS.FINANCE.CURRENCIES.withId(editingCurrency.id)
+        : API_ENDPOINTS.FINANCE.CURRENCIES.BASE;
 
       const method = editingCurrency ? "PUT" : "POST";
 
@@ -310,7 +311,7 @@ export function CurrencySettingsTab() {
         showToast(editingCurrency ? "تم تحديث العملة" : "تم إضافة العملة", "success");
         setIsCurrencyModalOpen(false);
         // Reload specific part
-        const currRes = await fetchAPI("/api/currencies");
+        const currRes = await fetchAPI(API_ENDPOINTS.FINANCE.CURRENCIES.BASE);
         if (currRes.success) setCurrencies(currRes.data as Currency[]);
       } else {
         showToast(res.message || "حدث خطأ", "error");
@@ -341,10 +342,10 @@ export function CurrencySettingsTab() {
       variant: "danger",
       onConfirm: async () => {
         try {
-          const res = await fetchAPI(`/api/currencies/${id}`, { method: "DELETE" });
+          const res = await fetchAPI(API_ENDPOINTS.FINANCE.CURRENCIES.withId(id), { method: "DELETE" });
           if (res.success) {
             showToast("تم الحذف بنجاح", "success");
-            const currRes = await fetchAPI("/api/currencies");
+            const currRes = await fetchAPI(API_ENDPOINTS.FINANCE.CURRENCIES.BASE);
             if (currRes.success) setCurrencies(currRes.data as Currency[]);
           } else {
             showToast(res.message || "فشل الحذف", "error");
@@ -358,9 +359,9 @@ export function CurrencySettingsTab() {
 
   const handleToggleActiveCurrency = async (curr: Currency) => {
     try {
-      const res = await fetchAPI(`/api/currencies/${curr.id}/toggle`, { method: "POST" });
+      const res = await fetchAPI(API_ENDPOINTS.FINANCE.CURRENCIES.TOGGLE(curr.id), { method: "POST" });
       if (res.success) {
-        const currRes = await fetchAPI("/api/currencies");
+        const currRes = await fetchAPI(API_ENDPOINTS.FINANCE.CURRENCIES.BASE);
         if (currRes.success) setCurrencies(currRes.data as Currency[]);
         showToast("تم تحديث الحالة", "success");
       } else {
@@ -383,7 +384,7 @@ export function CurrencySettingsTab() {
       variant: "primary",
       onConfirm: async () => {
         try {
-          const res = await fetchAPI(`/api/currency-policies/${selectedPolicyId}/activate`, { method: "POST" });
+          const res = await fetchAPI(API_ENDPOINTS.FINANCE.CURRENCY_POLICIES.ACTIVATE(selectedPolicyId), { method: "POST" });
           if (res.success) {
             showToast("تم تفعيل السياسة بنجاح", "success");
             loadData(); // Reload all to refresh status

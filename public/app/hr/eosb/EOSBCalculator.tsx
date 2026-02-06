@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, showToast, Button, SearchableSelect } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Employee } from "../types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
@@ -44,7 +45,7 @@ export function EOSBCalculator() {
 
   const loadEmployees = async () => {
     try {
-      const res: any = await fetchAPI('/api/employees');
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
       const data = res.data || (Array.isArray(res) ? res : []);
       setEmployees(data);
     } catch (e) {
@@ -60,7 +61,7 @@ export function EOSBCalculator() {
 
     setIsLoading(true);
     try {
-      const res: any = await fetchAPI('/api/eosb/preview', {
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.EOSB.PREVIEW, {
         method: 'POST',
         body: JSON.stringify({
           employee_id: formData.employee_id,
@@ -141,8 +142,8 @@ export function EOSBCalculator() {
               <div className="stat-item">
                 <span className="stat-label">حالة التوظيف</span>
                 <span className="stat-value" style={{ fontSize: '0.95rem' }}>
-                  {selectedEmp.employment_status === 'active' ? 'نشط' : 
-                   selectedEmp.employment_status === 'suspended' ? 'موقوف' : 'منتهي'}
+                  {selectedEmp.employment_status === 'active' ? 'نشط' :
+                    selectedEmp.employment_status === 'suspended' ? 'موقوف' : 'منتهي'}
                 </span>
               </div>
             </div>
@@ -150,8 +151,8 @@ export function EOSBCalculator() {
         )}
 
         <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
-          <Button 
-            onClick={handleCalculate} 
+          <Button
+            onClick={handleCalculate}
             disabled={isLoading || !formData.employee_id}
             variant="primary"
             icon="calculator">
@@ -222,7 +223,7 @@ export function EOSBCalculator() {
               <Button variant="secondary" onClick={() => setShowDialog(false)}>
                 إلغاء
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   showToast("تم حفظ الحساب", "success");
                 }}

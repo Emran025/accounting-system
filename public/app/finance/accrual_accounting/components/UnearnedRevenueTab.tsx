@@ -1,6 +1,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showAlert, Table, Column, ConfirmDialog } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
@@ -19,7 +20,7 @@ export function UnearnedRevenueTab() {
   const loadUnearnedRevenue = useCallback(async (page: number = 1) => {
     try {
       setIsLoading(true);
-      const response = await fetchAPI(`accrual?module=unearned_revenue&page=${page}&limit=${itemsPerPage}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.ACCRUAL}?module=unearned_revenue&page=${page}&limit=${itemsPerPage}`);
       if (response.success && response.data) {
         setUnearned(response.data as UnearnedRevenue[]);
         const total = Number(response.total) || 0;
@@ -48,7 +49,7 @@ export function UnearnedRevenueTab() {
     if (!selectedId) return;
 
     try {
-      const response = await fetchAPI(`accrual?module=unearned_revenue`, {
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.ACCRUAL}?module=unearned_revenue`, {
         method: "PUT",
         body: JSON.stringify({
           id: selectedId,

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Table, Column, Dialog, showToast, Button, SearchableSelect } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { AttendanceRecord, Employee } from "../types";
 import { formatDate, formatTime } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
@@ -41,7 +42,7 @@ export function Attendance() {
 
   const loadEmployees = async () => {
     try {
-      const res: any = await fetchAPI('/api/employees');
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
       const data = res.data || (Array.isArray(res) ? res : []);
       setEmployees(data);
     } catch (e) {
@@ -51,17 +52,17 @@ export function Attendance() {
 
   const loadAttendance = async () => {
     if (!selectedEmployee) return;
-    
+
     setIsLoading(true);
     try {
       const res: any = await fetchAPI(
-        `/api/attendance?employee_id=${selectedEmployee}&start_date=${startDate}&end_date=${endDate}`
+        `${API_ENDPOINTS.HR.ATTENDANCE.BASE}?employee_id=${selectedEmployee}&start_date=${startDate}&end_date=${endDate}`
       );
       const data = res.data || (Array.isArray(res) ? res : []);
       setAttendanceRecords(data);
 
       const summaryRes: any = await fetchAPI(
-        `/api/attendance/summary?employee_id=${selectedEmployee}&start_date=${startDate}&end_date=${endDate}`
+        `${API_ENDPOINTS.HR.ATTENDANCE.SUMMARY}?employee_id=${selectedEmployee}&start_date=${startDate}&end_date=${endDate}`
       );
       setSummary(summaryRes);
     } catch (e) {
@@ -78,7 +79,7 @@ export function Attendance() {
     }
 
     try {
-      await fetchAPI('/api/attendance', {
+      await fetchAPI(API_ENDPOINTS.HR.ATTENDANCE.BASE, {
         method: 'POST',
         body: JSON.stringify(newRecord)
       });
@@ -201,8 +202,8 @@ export function Attendance() {
             />
           </div>
           <div className="flex items-end">
-            <Button 
-              onClick={loadAttendance} 
+            <Button
+              onClick={loadAttendance}
               disabled={!selectedEmployee}
               variant="primary"
               icon="search"

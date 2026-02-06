@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
@@ -155,7 +156,7 @@ export default function ProductsPage() {
             return;
         }
         try {
-            const res = await fetchAPI("categories", {
+            const res = await fetchAPI(API_ENDPOINTS.INVENTORY.CATEGORIES, {
                 method: "POST",
                 body: JSON.stringify({ name: newCategoryName }),
             });

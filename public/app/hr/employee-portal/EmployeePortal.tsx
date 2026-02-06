@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Table, Column, Dialog, showToast, Button } from "@/components/ui";
 import { TabNavigation } from "@/components/ui/TabNavigation";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { PayrollItem, LeaveRequest, AttendanceRecord } from "../types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
@@ -43,7 +44,7 @@ export function EmployeePortal() {
   const loadPayslips = async () => {
     setIsLoading(true);
     try {
-      const res: any = await fetchAPI('/api/employee-portal/my-payslips');
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEE_PORTAL.PAYSLIPS);
       const data = res.data || (Array.isArray(res) ? res : []);
       setPayslips(data);
     } catch (e) {
@@ -56,7 +57,7 @@ export function EmployeePortal() {
   const loadLeaveRequests = async () => {
     setIsLoading(true);
     try {
-      const res: any = await fetchAPI('/api/employee-portal/my-leave-requests');
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEE_PORTAL.LEAVE_REQUESTS);
       const data = res.data || (Array.isArray(res) ? res : []);
       setLeaveRequests(data);
     } catch (e) {
@@ -70,7 +71,7 @@ export function EmployeePortal() {
     setIsLoading(true);
     try {
       const res: any = await fetchAPI(
-        `/api/employee-portal/my-attendance?start_date=${startDate}&end_date=${endDate}`
+        `${API_ENDPOINTS.HR.EMPLOYEE_PORTAL.ATTENDANCE}?start_date=${startDate}&end_date=${endDate}`
       );
       if (res && !res.error) {
         setAttendance(res);
@@ -87,7 +88,7 @@ export function EmployeePortal() {
 
   const handleCreateLeaveRequest = async () => {
     try {
-      await fetchAPI('/api/employee-portal/my-leave-requests', {
+      await fetchAPI(API_ENDPOINTS.HR.EMPLOYEE_PORTAL.LEAVE_REQUESTS, {
         method: 'POST',
         body: JSON.stringify(newLeaveRequest)
       });
@@ -337,7 +338,7 @@ export function EmployeePortal() {
                   />
                 </div>
                 <div className="flex items-end">
-                  <Button 
+                  <Button
                     onClick={loadAttendance}
                     variant="primary"
                     icon="search"

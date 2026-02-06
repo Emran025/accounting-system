@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
 import { Table, showToast, Column, FilterSection, FilterGroup, DateRangePicker, FilterActions, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDateTime } from "@/lib/utils";
 import { User, getStoredUser } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
@@ -68,7 +69,7 @@ export default function AuditTrailPage() {
       if (moduleFilter) params.append("module", moduleFilter);
       if (searchTerm) params.append("search", searchTerm);
 
-      const response = await fetchAPI(`/api/audit-logs?${params.toString()}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.SYSTEM.AUDIT.LOGS}?${params.toString()}`);
       setLogs(response.logs as AuditLog[] || []);
       setTotalPages(Math.ceil((response.total as number || 0) / itemsPerPage));
       setCurrentPage(page);

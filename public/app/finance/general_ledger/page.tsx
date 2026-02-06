@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, showToast, Column, TabNavigation, FilterSection, FilterGroup, DateRangePicker, FilterActions, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
@@ -71,10 +72,10 @@ export default function GeneralLedgerPage() {
   const loadJournalEntries = useCallback(async (page: number = 1) => {
     try {
       setIsLoading(true);
-      let url = `/api/gl_entries?page=${page}&limit=${itemsPerPage}`;
+      let url = `${API_ENDPOINTS.FINANCE.GL.ENTRIES}?page=${page}&limit=${itemsPerPage}`;
       if (journalDateFrom) url += `&date_from=${journalDateFrom}`;
       if (journalDateTo) url += `&date_to=${journalDateTo}`;
-      
+
       const response = await fetchAPI(url);
       setJournalEntries(response.entries as JournalEntry[] || []);
       setJournalTotalPages(Math.ceil((response.total as number || 0) / itemsPerPage));
@@ -89,7 +90,7 @@ export default function GeneralLedgerPage() {
   const loadTrialBalance = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetchAPI("/api/trial_balance");
+      const response = await fetchAPI(API_ENDPOINTS.FINANCE.GL.TRIAL_BALANCE);
       setTrialBalance(response.items as TrialBalanceItem[] || []);
       setTrialTotals({
         debit: response.total_debit as number || 0,
@@ -105,7 +106,7 @@ export default function GeneralLedgerPage() {
 
   const loadAccounts = useCallback(async () => {
     try {
-      const response = await fetchAPI("/api/accounts");
+      const response = await fetchAPI(API_ENDPOINTS.FINANCE.ACCOUNTS.BASE);
       setAccounts(response.accounts as Account[] || []);
     } catch {
       console.error("Error loading accounts");
@@ -114,15 +115,15 @@ export default function GeneralLedgerPage() {
 
   const loadAccountHistory = useCallback(async () => {
     if (!selectedAccountId) return;
-    
+
     try {
       setIsLoading(true);
-      let url = `/api/account_balance_history?account_id=${selectedAccountId}`;
+      let url = `${API_ENDPOINTS.FINANCE.GL.BALANCE_HISTORY}?account_id=${selectedAccountId}`;
       const params = [];
       if (historyDateFrom) params.push(`date_from=${historyDateFrom}`);
       if (historyDateTo) params.push(`date_to=${historyDateTo}`);
       if (params.length) url += `?${params.join("&")}`;
-      
+
       const response = await fetchAPI(url);
       setAccountHistory(response.history as AccountHistoryItem[] || []);
     } catch {
@@ -136,7 +137,7 @@ export default function GeneralLedgerPage() {
     // Set default dates to current month
     const today = new Date().toISOString().split("T")[0];
     const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
-    
+
     setJournalDateFrom(firstDay);
     setJournalDateTo(today);
     setHistoryDateFrom(firstDay);

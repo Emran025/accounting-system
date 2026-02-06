@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Table, Column, Dialog, showToast, Button, SearchableSelect } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { LeaveRequest, Employee } from "../types";
 import { formatDate } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
@@ -43,7 +44,7 @@ export function LeaveRequests() {
 
   const loadEmployees = async () => {
     try {
-      const res: any = await fetchAPI('/api/employees');
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
       setEmployees(res.data || res || []);
     } catch (e) {
       console.error(e);
@@ -53,10 +54,10 @@ export function LeaveRequests() {
   const loadLeaveRequests = async () => {
     setIsLoading(true);
     try {
-      let url = '/api/leave-requests?';
+      let url = `${API_ENDPOINTS.HR.LEAVE.BASE}?`;
       if (selectedEmployee) url += `employee_id=${selectedEmployee}&`;
       if (statusFilter !== 'all') url += `status=${statusFilter}&`;
-      
+
       const res: any = await fetchAPI(url);
       const data = res.data || (Array.isArray(res) ? res : []);
       setLeaveRequests(data);
@@ -74,7 +75,7 @@ export function LeaveRequests() {
     }
 
     try {
-      await fetchAPI('/api/leave-requests', {
+      await fetchAPI(API_ENDPOINTS.HR.LEAVE.BASE, {
         method: 'POST',
         body: JSON.stringify(newRequest)
       });
@@ -102,7 +103,7 @@ export function LeaveRequests() {
     }
 
     try {
-      await fetchAPI(`/api/leave-requests/${selectedRequest.id}/approve`, {
+      await fetchAPI(API_ENDPOINTS.HR.LEAVE.APPROVE(selectedRequest.id), {
         method: 'POST',
         body: JSON.stringify(approvalData)
       });
@@ -233,7 +234,7 @@ export function LeaveRequests() {
             </Select>
           </div>
           <div className="flex items-end">
-            <Button 
+            <Button
               onClick={loadLeaveRequests}
               variant="primary"
               icon="search"
@@ -350,8 +351,8 @@ export function LeaveRequests() {
             <Button variant="secondary" onClick={() => setShowApproveDialog(false)}>
               إلغاء
             </Button>
-            <Button 
-              variant="primary" 
+            <Button
+              variant="primary"
               onClick={handleApprove}
               icon={approvalData.action === 'approved' ? 'check' : 'x'}>
               {approvalData.action === 'approved' ? 'موافقة' : 'رفض'}

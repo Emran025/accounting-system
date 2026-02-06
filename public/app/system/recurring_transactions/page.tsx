@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
@@ -56,7 +57,7 @@ export default function RecurringTransactionsPage() {
     const loadTemplates = useCallback(async (page: number = 1) => {
         try {
             setIsLoading(true);
-            const response = await fetchAPI(`recurring_transactions?page=${page}&limit=${itemsPerPage}`);
+            const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.RECURRING.BASE}?page=${page}&limit=${itemsPerPage}`);
             if (response.success && response.data) {
                 setTemplates(response.data as RecurringTemplate[]);
                 const total = Number(response.total) || 0;
@@ -102,7 +103,7 @@ export default function RecurringTransactionsPage() {
 
     const viewTemplate = async (id: number) => {
         try {
-            const response = await fetchAPI(`recurring_transactions?id=${id}`);
+            const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.RECURRING.BASE}?id=${id}`);
             if (response.success && response.data) {
                 const template = Array.isArray(response.data) ? response.data[0] : response.data;
                 if (template) {
@@ -118,7 +119,7 @@ export default function RecurringTransactionsPage() {
 
     const editTemplate = async (id: number) => {
         try {
-            const response = await fetchAPI(`recurring_transactions?id=${id}`);
+            const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.RECURRING.BASE}?id=${id}`);
             if (response.success && response.data) {
                 const template = Array.isArray(response.data) ? response.data[0] : response.data;
                 if (!template) {
@@ -202,7 +203,7 @@ export default function RecurringTransactionsPage() {
             };
             if (currentTemplateId) body.id = currentTemplateId;
 
-            const response = await fetchAPI("recurring_transactions", {
+            const response = await fetchAPI(API_ENDPOINTS.FINANCE.RECURRING.BASE, {
                 method: currentTemplateId ? "PUT" : "POST",
                 body: JSON.stringify(body),
             });
@@ -228,7 +229,7 @@ export default function RecurringTransactionsPage() {
         if (!deleteTemplateId) return;
 
         try {
-            const response = await fetchAPI(`recurring_transactions?id=${deleteTemplateId}`, {
+            const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.RECURRING.BASE}?id=${deleteTemplateId}`, {
                 method: "DELETE",
             });
             if (response.success) {
@@ -253,7 +254,7 @@ export default function RecurringTransactionsPage() {
         if (!generateTemplateId) return;
 
         try {
-            const response = await fetchAPI("recurring_transactions?action=process", {
+            const response = await fetchAPI(API_ENDPOINTS.FINANCE.RECURRING.PROCESS, {
                 method: "POST",
                 body: JSON.stringify({
                     template_id: generateTemplateId,
@@ -262,7 +263,7 @@ export default function RecurringTransactionsPage() {
             });
 
             if (response.success && response.data) {
-                
+
                 showAlert(
                     "alert-container",
                     `تم تنفيذ المعاملة بنجاح. رقم السند: `,//${response.data.voucher_number as Number || ""}

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
@@ -56,7 +57,7 @@ export default function BatchProcessingPage() {
   const loadBatches = useCallback(async (page: number = 1) => {
     try {
       setIsLoading(true);
-      const response = await fetchAPI(`batch?page=${page}&limit=${itemsPerPage}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.SYSTEM.BATCH}?page=${page}&limit=${itemsPerPage}`);
       if (response.success && response.data) {
         setBatches(response.data as Batch[]);
         const total = Number(response.total) || 0;
@@ -140,7 +141,7 @@ export default function BatchProcessingPage() {
     }
 
     try {
-      const response = await fetchAPI("batch", {
+      const response = await fetchAPI(API_ENDPOINTS.SYSTEM.BATCH, {
         method: "POST",
         body: JSON.stringify({
           batch_name: batchName,
@@ -175,7 +176,7 @@ export default function BatchProcessingPage() {
     setItemsDialog(true);
 
     try {
-      const response = await fetchAPI(`batch?action=status&batch_id=${batchId}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.SYSTEM.BATCH}?action=status&batch_id=${batchId}`);
       if (response.success && response.data) {
         const items = (response.data as { items?: BatchItem[] }).items || [];
         setBatchItems(items);
@@ -202,7 +203,7 @@ export default function BatchProcessingPage() {
 
     try {
       const action = executeBatchType === "journal_entry_import" ? "journal_entries" : "expenses";
-      const response = await fetchAPI(`batch?action=${action}`, {
+      const response = await fetchAPI(`${API_ENDPOINTS.SYSTEM.BATCH}?action=${action}`, {
         method: "POST",
         body: JSON.stringify({ batch_id: executeBatchId }),
       });
@@ -229,7 +230,7 @@ export default function BatchProcessingPage() {
     if (!deleteBatchId) return;
 
     try {
-      const response = await fetchAPI(`batch?id=${deleteBatchId}`, { method: "DELETE" });
+      const response = await fetchAPI(`${API_ENDPOINTS.SYSTEM.BATCH}?id=${deleteBatchId}`, { method: "DELETE" });
 
       if (response.success) {
         showToast("تم حذف الدفعة بنجاح", "success");
@@ -497,16 +498,16 @@ export default function BatchProcessingPage() {
       <ConfirmDialog
         isOpen={confirmDialog}
         onClose={() => {
-            setConfirmDialog(false);
-            setDeleteBatchId(null);
-            setExecuteBatchId(null);
+          setConfirmDialog(false);
+          setDeleteBatchId(null);
+          setExecuteBatchId(null);
         }}
         onConfirm={handleConfirm}
         title="تأكيد"
         message={
-            deleteBatchId 
-                ? "هل أنت متأكد من حذف هذه الدفعة؟" 
-                : "هل أنت متأكد من تنفيذ هذه الدفعة؟"
+          deleteBatchId
+            ? "هل أنت متأكد من حذف هذه الدفعة؟"
+            : "هل أنت متأكد من تنفيذ هذه الدفعة؟"
         }
         confirmText={deleteBatchId ? "حذف" : "تنفيذ"}
         confirmVariant={deleteBatchId ? "danger" : "primary"}

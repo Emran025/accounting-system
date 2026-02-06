@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Table, Column, Dialog, showToast, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { PayrollComponent } from "../types";
 import { formatCurrency } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
@@ -38,7 +39,7 @@ export function PayrollComponents() {
   const loadComponents = async () => {
     setIsLoading(true);
     try {
-      const res: any = await fetchAPI('/api/payroll-components');
+      const res: any = await fetchAPI(API_ENDPOINTS.HR.COMPONENTS);
       const data = res.data || (Array.isArray(res) ? res : []);
       setComponents(data);
     } catch (e) {
@@ -63,13 +64,13 @@ export function PayrollComponents() {
       };
 
       if (editingComponent) {
-        await fetchAPI(`/api/payroll-components/${editingComponent.id}`, {
+        await fetchAPI(`${API_ENDPOINTS.HR.COMPONENTS}/${editingComponent.id}`, {
           method: 'PUT',
           body: JSON.stringify(payload)
         });
         showToast("تم تحديث المكون بنجاح", "success");
       } else {
-        await fetchAPI('/api/payroll-components', {
+        await fetchAPI(API_ENDPOINTS.HR.COMPONENTS, {
           method: 'POST',
           body: JSON.stringify(payload)
         });
@@ -106,7 +107,7 @@ export function PayrollComponents() {
     if (!confirm("هل أنت متأكد من حذف هذا المكون؟")) return;
 
     try {
-      await fetchAPI(`/api/payroll-components/${id}`, {
+      await fetchAPI(`${API_ENDPOINTS.HR.COMPONENTS}/${id}`, {
         method: 'DELETE'
       });
       showToast("تم حذف المكون بنجاح", "success");

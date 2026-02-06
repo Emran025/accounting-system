@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showToast } from "@/components/ui";
 import { Product, Category } from "./types";
 
@@ -15,9 +16,9 @@ export function useProducts() {
         try {
             setIsLoading(true);
             const response = await fetchAPI(
-                `products?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
+                `${API_ENDPOINTS.INVENTORY.PRODUCTS}?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
             );
-            
+
             if (response.success) {
                 const rawProducts = (response.data as any[]) || [];
                 const mappedProducts: Product[] = rawProducts.map(p => ({
@@ -44,7 +45,7 @@ export function useProducts() {
 
     const loadCategories = useCallback(async () => {
         try {
-            const response = await fetchAPI("categories");
+            const response = await fetchAPI(API_ENDPOINTS.INVENTORY.CATEGORIES);
             if (response.success) {
                 setCategories((response.data as Category[]) || []);
             }
@@ -57,7 +58,7 @@ export function useProducts() {
         try {
             const method = id ? "PUT" : "POST";
             const body = id ? { ...payload, id } : payload;
-            const response = await fetchAPI("products", {
+            const response = await fetchAPI(API_ENDPOINTS.INVENTORY.PRODUCTS, {
                 method,
                 body: JSON.stringify(body),
             });
@@ -77,7 +78,7 @@ export function useProducts() {
 
     const deleteProduct = useCallback(async (id: number) => {
         try {
-            const response = await fetchAPI(`products?id=${id}`, { method: "DELETE" });
+            const response = await fetchAPI(`${API_ENDPOINTS.INVENTORY.PRODUCTS}?id=${id}`, { method: "DELETE" });
             if (response.success) {
                 showToast("تم حذف المنتج", "success");
                 return true;

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Table, Column, SearchableSelect , Button } from "@/components/ui";
+import { Table, Column, SearchableSelect, Button } from "@/components/ui";
 import { fetchAPI, formatCurrency } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Employee } from "../types";
 import { getIcon } from "@/lib/icons";
 
@@ -28,7 +29,7 @@ export function Employees() {
         search: searchTerm,
         department_id: filterDepartment
       });
-      const res = await fetchAPI(`/api/employees?${query}`);
+      const res = await fetchAPI(`${API_ENDPOINTS.HR.EMPLOYEES.BASE}?${query}`);
       setEmployees(res.data as Employee[] || []);
       setTotalPages(Number(res.last_page) || 1);
     } catch (error) {
@@ -49,10 +50,10 @@ export function Employees() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-        case 'active': return 'نشط';
-        case 'suspended': return 'معلق';
-        case 'terminated': return 'منهي خدماته';
-        default: return status;
+      case 'active': return 'نشط';
+      case 'suspended': return 'معلق';
+      case 'terminated': return 'منهي خدماته';
+      default: return status;
     }
   };
 
@@ -62,21 +63,25 @@ export function Employees() {
     { key: "role", header: "المسمى الوظيفي", dataLabel: "المسمى الوظيفي", render: (item) => item.role?.role_name_ar || '-' },
     { key: "department", header: "القسم", dataLabel: "القسم", render: (item) => item.department?.name_ar || '-' },
     { key: "base_salary", header: "الراتب الأساسي", dataLabel: "الراتب الأساسي", render: (item) => formatCurrency(item.base_salary) },
-    { key: "employment_status", header: "الحالة", dataLabel: "الحالة", render: (item) => (
-      <span className={`badge ${getStatusBadgeClass(item.employment_status)}`}>
-        {getStatusText(item.employment_status)}
-      </span>
-    )},
-    { key: "id", header: "الإجراءات", dataLabel: "الإجراءات", render: (item) => (
-      <div className="action-buttons">
-        <button className="icon-btn view" onClick={() => router.push(`/hr/employees/view/${item.id}`)} title="عرض الملف">
-          <i className="fas fa-eye"></i>
-        </button>
-        <button className="icon-btn edit" onClick={() => router.push(`/hr/employees/edit/${item.id}`)} title="تعديل">
-           <i className="fas fa-edit"></i>
-        </button>
-      </div>
-    )},
+    {
+      key: "employment_status", header: "الحالة", dataLabel: "الحالة", render: (item) => (
+        <span className={`badge ${getStatusBadgeClass(item.employment_status)}`}>
+          {getStatusText(item.employment_status)}
+        </span>
+      )
+    },
+    {
+      key: "id", header: "الإجراءات", dataLabel: "الإجراءات", render: (item) => (
+        <div className="action-buttons">
+          <button className="icon-btn view" onClick={() => router.push(`/hr/employees/view/${item.id}`)} title="عرض الملف">
+            <i className="fas fa-eye"></i>
+          </button>
+          <button className="icon-btn edit" onClick={() => router.push(`/hr/employees/edit/${item.id}`)} title="تعديل">
+            <i className="fas fa-edit"></i>
+          </button>
+        </div>
+      )
+    },
   ];
 
   return (
@@ -87,14 +92,14 @@ export function Employees() {
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <SearchableSelect
-              options={[]}
-              value={null}
-              onChange={() => {}}
-              onSearch={(val) => {
-                  setSearchTerm(val);
-              }}
-              placeholder="بحث سريع..."
-              className="header-search-bar"
+            options={[]}
+            value={null}
+            onChange={() => { }}
+            onSearch={(val) => {
+              setSearchTerm(val);
+            }}
+            placeholder="بحث سريع..."
+            className="header-search-bar"
           />
           <Button
             variant="primary"
@@ -112,9 +117,9 @@ export function Employees() {
         emptyMessage="لا يوجد موظفين"
         isLoading={isLoading}
         pagination={{
-            currentPage: currentPage,
-            totalPages: totalPages,
-            onPageChange: setCurrentPage
+          currentPage: currentPage,
+          totalPages: totalPages,
+          onPageChange: setCurrentPage
         }}
       />
     </div>

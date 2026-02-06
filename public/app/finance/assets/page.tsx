@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, canAccess, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
@@ -48,7 +49,7 @@ export default function AssetsPage() {
         try {
             setIsLoading(true);
             const response = await fetchAPI(
-                `assets?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
+                `${API_ENDPOINTS.FINANCE.ASSETS}?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
             );
             if (response.success && response.data) {
                 setAssets(response.data as Asset[]);
@@ -148,7 +149,7 @@ export default function AssetsPage() {
             };
             if (currentAssetId) body.id = currentAssetId;
 
-            const response = await fetchAPI("assets", {
+            const response = await fetchAPI(API_ENDPOINTS.FINANCE.ASSETS, {
                 method,
                 body: JSON.stringify(body),
             });
@@ -174,7 +175,7 @@ export default function AssetsPage() {
         if (!deleteAssetId) return;
 
         try {
-            const response = await fetchAPI(`assets?id=${deleteAssetId}`, { method: "DELETE" });
+            const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.ASSETS}?id=${deleteAssetId}`, { method: "DELETE" });
             if (response.success) {
                 showAlert("alert-container", "تم الحذف بنجاح", "success");
                 setConfirmDialog(false);

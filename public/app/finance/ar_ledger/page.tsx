@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import {Dialog, ConfirmDialog, showToast, showAlert, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions, SelectableInvoiceTable, SelectedItem, SalesReturnDialog, SelectableInvoice, SelectableInvoiceItem, ReturnData, InvoiceTableColumn } from "@/components/ui";
+import { Dialog, ConfirmDialog, showToast, showAlert, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions, SelectableInvoiceTable, SelectedItem, SalesReturnDialog, SelectableInvoice, SelectableInvoiceItem, ReturnData, InvoiceTableColumn } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
 import { getIcon, Icon } from "@/lib/icons";
@@ -20,10 +21,10 @@ interface LedgerTransaction extends SelectableInvoice {
 }
 
 interface Pagination {
-    total_records: number;
-    total_pages: number;
-    current_page: number;
-  };
+  total_records: number;
+  total_pages: number;
+  current_page: number;
+};
 interface LedgerStats {
   total_debit: number;
   total_credit: number;
@@ -69,7 +70,7 @@ function ARLedgerPageContent() {
     total_pages: 0,
     current_page: 0,
   });
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,7 +92,7 @@ function ARLedgerPageContent() {
   const [deleteTransactionId, setDeleteTransactionId] = useState<number | null>(null);
   const [restoreTransactionId, setRestoreTransactionId] = useState<number | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<DetailedInvoice | null>(null);
-  
+
   // Returns state
   const [selectedReturnItems, setSelectedReturnItems] = useState<SelectedItem[]>([]);
   const [returnDialog, setReturnDialog] = useState(false);
@@ -118,7 +119,7 @@ function ARLedgerPageContent() {
     if (!customerId) return;
 
     try {
-      const response = await fetchAPI(`ar_customers?id=${customerId}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.AR.CUSTOMERS}?id=${customerId}`);
       if (response.success && response.data) {
         const customerData = Array.isArray(response.data) ? response.data[0] : response.data;
         setCustomer(customerData as Customer);
@@ -141,7 +142,7 @@ function ARLedgerPageContent() {
         if (filters.date_from) params += `&date_from=${filters.date_from}`;
         if (filters.date_to) params += `&date_to=${filters.date_to}`;
 
-        const response = await fetchAPI(`ar_ledger?${params}`);
+        const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.AR.LEDGER}?${params}`);
         if (response.success && response.data) {
           const rawTransactions = response.data as any[];
           const mappedTransactions: LedgerTransaction[] = rawTransactions.map((item) => ({
@@ -227,7 +228,7 @@ function ARLedgerPageContent() {
       if (currentTransactionId) data.id = currentTransactionId;
 
       const method = currentTransactionId ? "PUT" : "POST";
-      const response = await fetchAPI("ar_ledger", {
+      const response = await fetchAPI(API_ENDPOINTS.FINANCE.AR.TRANSACTIONS, {
         method,
         body: JSON.stringify(data),
       });
@@ -247,7 +248,7 @@ function ARLedgerPageContent() {
 
   const viewInvoice = async (id: number) => {
     try {
-      const response = await fetchAPI(`invoice_details?id=${id}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICE_DETAILS}?id=${id}`);
       if (response.success && response.data) {
         setSelectedInvoice(response.data as DetailedInvoice);
         setViewDialog(true);
@@ -259,16 +260,16 @@ function ARLedgerPageContent() {
 
   const getInvoiceItems = async (item: LedgerTransaction): Promise<SelectableInvoiceItem[]> => {
     if (!item.reference_id) return [];
-    
-    const endpoint = item.reference_type === "sales_returns" 
-        ? `sales/returns/show?id=${item.reference_id}`
-        : `invoice_details?id=${item.reference_id}`;
-        
+
+    const endpoint = item.reference_type === "sales_returns"
+      ? `${API_ENDPOINTS.SALES.RETURNS.SHOW}?id=${item.reference_id}`
+      : `${API_ENDPOINTS.SALES.INVOICE_DETAILS}?id=${item.reference_id}`;
+
     try {
       const response = await fetchAPI(endpoint);
       if (response.success && response.data) {
         const data = response.data as DetailedInvoice;
-          return (data.items as SelectableInvoiceItem[]) || [];
+        return (data.items as SelectableInvoiceItem[]) || [];
       }
       return [];
     } catch (error) {
@@ -283,20 +284,20 @@ function ARLedgerPageContent() {
 
   const openReturnDialog = async () => {
     if (selectedReturnItems.length === 0) {
-        showToast("يرجى تحديد عناصر للإرجاع أولاً", "warning");
-        return;
+      showToast("يرجى تحديد عناصر للإرجاع أولاً", "warning");
+      return;
     }
-    
+
     // Fetch missing invoice details for calculation
     const uniqueInvoiceIds = Array.from(new Set(selectedReturnItems.map(i => i.invoiceId)));
     const missingIds = uniqueInvoiceIds.filter(id => !invoicesMap[id]);
-    
+
     if (missingIds.length > 0) {
       setIsLoadingInvoices(true);
       try {
         const newMap = { ...invoicesMap };
         await Promise.all(missingIds.map(async (id) => {
-          const res = await fetchAPI(`invoice_details?id=${id}`);
+          const res = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICE_DETAILS}?id=${id}`);
           if (res.success && res.data) {
             newMap[id] = res.data as SelectableInvoice;
           }
@@ -309,25 +310,25 @@ function ARLedgerPageContent() {
         setIsLoadingInvoices(false);
       }
     }
-    
+
     setReturnDialog(true);
   };
 
   const handleConfirmReturn = async (data: ReturnData | ReturnData[]) => {
     const dataArray = Array.isArray(data) ? data : [data];
-    
+
     try {
       for (const returnData of dataArray) {
-        const response = await fetchAPI("sales/returns", {
+        const response = await fetchAPI(API_ENDPOINTS.SALES.RETURNS.BASE, {
           method: "POST",
           body: JSON.stringify(returnData),
         });
-        
+
         if (!response.success) {
           throw new Error(response.message || "فشل تسجيل المرتجع");
         }
       }
-      
+
       showToast("تم تسجيل المرتجع بنجاح", "success");
       // Result will be handled by onSuccess in dialog
     } catch (error: any) {
@@ -345,7 +346,7 @@ function ARLedgerPageContent() {
     if (!deleteTransactionId) return;
 
     try {
-      const response = await fetchAPI(`ar_ledger?id=${deleteTransactionId}`, {
+      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.AR.TRANSACTIONS}?id=${deleteTransactionId}`, {
         method: "DELETE",
       });
       if (response.success) {
@@ -370,7 +371,7 @@ function ARLedgerPageContent() {
     if (!restoreTransactionId) return;
 
     try {
-      const response = await fetchAPI("ar_ledger&sub_action=restore", {
+      const response = await fetchAPI(API_ENDPOINTS.FINANCE.AR.TRANSACTIONS, {
         method: "POST",
         body: JSON.stringify({ id: restoreTransactionId }),
       });
@@ -416,7 +417,7 @@ function ARLedgerPageContent() {
       header: "#",
       dataLabel: "#",
       render: (item) => (
-        <span 
+        <span
           className={item.reference_type === "invoices" ? "clickable-id" : ""}
           onClick={() => item.reference_type === "invoices" && viewInvoice(item.reference_id!)}
           style={{ cursor: item.reference_type === "invoices" ? "pointer" : "default", fontWeight: "bold", color: item.reference_type === "invoices" ? "var(--primary-color)" : "inherit" }}
@@ -441,9 +442,8 @@ function ARLedgerPageContent() {
       dataLabel: "نوع العملية",
       render: (item) => (
         <span
-          className={`badge ${
-            item.type === "invoice" ? "badge-primary" : "badge-success"
-          }`}
+          className={`badge ${item.type === "invoice" ? "badge-primary" : "badge-success"
+            }`}
         >
           {getTypeName(item.type)}
         </span>
@@ -454,7 +454,7 @@ function ARLedgerPageContent() {
       header: "الوصف",
       dataLabel: "الوصف",
       render: (item) => (
-        <div 
+        <div
           className={item.reference_type === "invoices" ? "clickable-desc" : ""}
           onClick={() => item.reference_type === "invoices" && viewInvoice(item.reference_id!)}
           style={{ cursor: item.reference_type === "invoices" ? "pointer" : "default" }}
@@ -543,16 +543,16 @@ function ARLedgerPageContent() {
         user={user}
         actions={
           <>
-            <Button 
-              variant="secondary" 
-              icon="search" 
+            <Button
+              variant="secondary"
+              icon="search"
               onClick={() => setFilterDialog(true)}
             >
               تصفية
             </Button>
-            <Button 
-              variant="primary" 
-              icon="plus" 
+            <Button
+              variant="primary"
+              icon="plus"
               onClick={openAddTransactionDialog}
             >
               عملية جديدة
@@ -563,32 +563,32 @@ function ARLedgerPageContent() {
 
       {customer && (
         <FilterSection className="animate-fade" style={{ marginBottom: "1.5rem" }}>
-           <div className="title-with-icon">
-              <div className="stat-icon products" style={{ width: "45px", height: "45px", fontSize: "1.2rem" }}>
-                {getIcon("user")}
-              </div>
-              <div>
-                <h3 style={{ margin: 0 }}>{customer.name}</h3>
-                <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>
-                  {customer.phone || "بدون هاتف"} | {customer.tax_number || "بدون رقم ضريبي"}
-                </p>
-              </div>
-           </div>
-           
-           <FilterGroup className="checkbox-group" style={{ marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: "0.5rem" }}>
-              <input
-                type="checkbox"
-                id="show-deleted-toggle"
-                checked={showDeleted}
-                onChange={(e) => {
-                  setShowDeleted(e.target.checked);
-                  loadLedger(1);
-                }}
-              />
-              <label htmlFor="show-deleted-toggle" style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: 0, cursor: "pointer" }}>
-                عرض المحذوفات
-              </label>
-           </FilterGroup>
+          <div className="title-with-icon">
+            <div className="stat-icon products" style={{ width: "45px", height: "45px", fontSize: "1.2rem" }}>
+              {getIcon("user")}
+            </div>
+            <div>
+              <h3 style={{ margin: 0 }}>{customer.name}</h3>
+              <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>
+                {customer.phone || "بدون هاتف"} | {customer.tax_number || "بدون رقم ضريبي"}
+              </p>
+            </div>
+          </div>
+
+          <FilterGroup className="checkbox-group" style={{ marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: "0.5rem" }}>
+            <input
+              type="checkbox"
+              id="show-deleted-toggle"
+              checked={showDeleted}
+              onChange={(e) => {
+                setShowDeleted(e.target.checked);
+                loadLedger(1);
+              }}
+            />
+            <label htmlFor="show-deleted-toggle" style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: 0, cursor: "pointer" }}>
+              عرض المحذوفات
+            </label>
+          </FilterGroup>
         </FilterSection>
       )}
 
@@ -765,7 +765,7 @@ function ARLedgerPageContent() {
         isOpen={viewDialog}
         onClose={() => setViewDialog(false)}
         title="تفاصيل الفاتورة"
-       // size="large"
+      // size="large"
       >
         {selectedInvoice && (
           <div>
@@ -783,9 +783,8 @@ function ARLedgerPageContent() {
                   <span className="stat-label">نوع الدفع</span>
                   <span className="stat-value">
                     <span
-                      className={`badge ${
-                        selectedInvoice.payment_type === "credit" ? "badge-warning" : "badge-success"
-                      }`}
+                      className={`badge ${selectedInvoice.payment_type === "credit" ? "badge-warning" : "badge-success"
+                        }`}
                     >
                       {selectedInvoice.payment_type === "credit" ? "آجل (ذمم)" : "نقدي"}
                     </span>
@@ -907,10 +906,10 @@ function ARLedgerPageContent() {
         invoicesMap={invoicesMap}
         onConfirmReturn={handleConfirmReturn}
         onSuccess={() => {
-            setReturnDialog(false);
-            setSelectedReturnItems([]);
-            loadLedger(currentPage);
-            loadCustomerDetails();
+          setReturnDialog(false);
+          setSelectedReturnItems([]);
+          loadLedger(currentPage);
+          loadCustomerDetails();
         }}
       />
     </ModuleLayout>

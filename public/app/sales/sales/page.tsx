@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, showToast, SegmentedToggle, SelectableInvoiceTable, SalesReturnDialog, SelectedItem, SelectableInvoiceItem as UiInvoiceItem, InvoiceTableColumn, SelectableInvoice, ReturnData } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDateTime, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
@@ -189,7 +190,7 @@ export default function SalesPage() {
 
     const loadFees = useCallback(async () => {
         try {
-            const response: any = await fetchAPI("government_fees");
+            const response: any = await fetchAPI(API_ENDPOINTS.SYSTEM.GOVERNMENT_FEES.BASE);
             if (response.success && response.data && response.data.fees) {
                 setGovernmentFees(response.data.fees.filter((f: GovernmentFee) => f.is_active));
             }
@@ -200,7 +201,7 @@ export default function SalesPage() {
 
     const loadProducts = useCallback(async () => {
         try {
-            const response = await fetchAPI(`products?include_purchase_price=1`);
+            const response = await fetchAPI(`${API_ENDPOINTS.INVENTORY.PRODUCTS}?include_purchase_price=1`);
             if (response.success && response.data) {
                 const filtered = (response.data as Product[]).filter((p) => p.stock_quantity > 0);
                 setProducts(filtered);
@@ -213,7 +214,7 @@ export default function SalesPage() {
     const loadInvoices = useCallback(async (page: number = 1) => {
         try {
             setIsLoading(true);
-            const response = await fetchAPI(`invoices?page=${page}&limit=${itemsPerPage}`);
+            const response = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICES}?page=${page}&limit=${itemsPerPage}`);
             if (response.success && response.data && response.pagination) {
                 // Type narrowing: response has data and pagination, so it's safe to cast
                 const typedResponse = response as unknown as PaginatedResponse<Invoice>;
@@ -242,7 +243,7 @@ export default function SalesPage() {
 
             // Load currencies
             try {
-                const res = await fetchAPI("/api/currencies");
+                const res = await fetchAPI(API_ENDPOINTS.FINANCE.CURRENCIES.BASE);
                 if (res.success) {
                     const list = res.data as Currency[];
                     const activeList = list.filter(c => c.is_active);
@@ -255,7 +256,7 @@ export default function SalesPage() {
 
             // Load Settings (VAT Rate)
             try {
-                const settingsRes = await fetchAPI("/api/settings");
+                const settingsRes = await fetchAPI(API_ENDPOINTS.SYSTEM.SETTINGS.INDEX);
                 if (settingsRes.success && settingsRes.data) {
                     const vatSetting = (settingsRes.data as any[]).find((s: any) => s.setting_key === 'vat_rate');
                     if (vatSetting) {
@@ -484,7 +485,7 @@ export default function SalesPage() {
             // Ensure subtotal matches the items
             invoiceData.subtotal = invoiceData.items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
 
-            const response = await fetchAPI("invoices", {
+            const response = await fetchAPI(API_ENDPOINTS.SALES.INVOICES, {
                 method: "POST",
                 body: JSON.stringify(invoiceData),
             });
@@ -496,7 +497,7 @@ export default function SalesPage() {
                 if (response.id) {
                     try {
                         // We await this so the QR code is generated before printing
-                        const zatcaRes = await fetchAPI(`invoices/${response.id}/zatca/submit`, { method: "POST" });
+                        const zatcaRes = await fetchAPI(API_ENDPOINTS.SALES.ZATCA.SUBMIT(response.id as number), { method: "POST" });
                         if (zatcaRes.success) {
                             console.log("ZATCA Submitted", zatcaRes);
                         } else if (zatcaRes.status === 'skipped') {
@@ -542,7 +543,7 @@ export default function SalesPage() {
 
     const viewInvoice = async (id: number) => {
         try {
-            const response = await fetchAPI(`invoice_details?id=${id}`);
+            const response = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICE_DETAILS}?id=${id}`);
             if (response.success && response.data) {
                 setSelectedInvoice(response.data as Invoice);
                 setViewDialog(true);
@@ -568,7 +569,7 @@ export default function SalesPage() {
         }
 
         try {
-            const response = await fetchAPI(`invoices?id=${deleteInvoiceId}`, {
+            const response = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICES}?id=${deleteInvoiceId}`, {
                 method: "DELETE",
             });
             if (response.success) {
@@ -589,7 +590,7 @@ export default function SalesPage() {
     // Helper to fetch invoice items for the selectable table
     const getInvoiceItemsForTable = useCallback(async (invoice: Invoice): Promise<UiInvoiceItem[]> => {
         try {
-            const response = await fetchAPI(`invoice_details?id=${invoice.id}`);
+            const response = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICE_DETAILS}?id=${invoice.id}`);
             if (response.success && response.data) {
                 const detailedInvoice = response.data as any;
                 // Map API items to UI items
@@ -629,7 +630,7 @@ export default function SalesPage() {
             try {
                 const newMap = { ...invoicesMap };
                 await Promise.all(missingIds.map(async (id) => {
-                    const res = await fetchAPI(`invoice_details?id=${id}`);
+                    const res = await fetchAPI(`${API_ENDPOINTS.SALES.INVOICE_DETAILS}?id=${id}`);
                     if (res.success && res.data) {
                         newMap[id] = res.data as SelectableInvoice;
                     }
@@ -651,7 +652,7 @@ export default function SalesPage() {
 
         try {
             for (const returnData of dataArray) {
-                const response = await fetchAPI("sales/returns", {
+                const response = await fetchAPI(API_ENDPOINTS.SALES.RETURNS.BASE, {
                     method: "POST",
                     body: JSON.stringify(returnData),
                 });

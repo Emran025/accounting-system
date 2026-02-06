@@ -1,6 +1,7 @@
 // Authentication utilities - migrated from common.js
 
 import { fetchAPI } from "./api";
+import { API_ENDPOINTS } from "./endpoints";
 
 export interface User {
   id: number;
@@ -58,12 +59,12 @@ export function canAccess(
   action: "view" | "create" | "edit" | "delete" = "view"
 ): boolean {
   if (!Array.isArray(permissions)) return false;
-  
+
   const moduleName = moduleAccessMap[module] || module;
   const permission = permissions.find((p) => p.module === moduleName);
-  
+
   if (!permission) return false;
-  
+
   switch (action) {
     case "view":
       return permission.can_view;
@@ -83,10 +84,10 @@ export function canAccess(
  */
 export function getStoredUser(): User | null {
   if (typeof window === "undefined") return null;
-  
+
   const userStr = localStorage.getItem("user");
   if (!userStr) return null;
-  
+
   try {
     return JSON.parse(userStr);
   } catch {
@@ -99,10 +100,10 @@ export function getStoredUser(): User | null {
  */
 export function getStoredPermissions(): Permission[] {
   if (typeof window === "undefined") return [];
-  
+
   const permStr = localStorage.getItem("userPermissions");
   if (!permStr) return [];
-  
+
   try {
     return JSON.parse(permStr);
   } catch {
@@ -115,7 +116,7 @@ export function getStoredPermissions(): Permission[] {
  */
 export function storeAuth(user: User, permissions: Permission[], token?: string): void {
   if (typeof window === "undefined") return;
-  
+
   localStorage.setItem("user", JSON.stringify(user));
   localStorage.setItem("userPermissions", JSON.stringify(permissions));
   localStorage.setItem("userRole", user.role);
@@ -129,7 +130,7 @@ export function storeAuth(user: User, permissions: Permission[], token?: string)
  */
 export function clearAuth(): void {
   if (typeof window === "undefined") return;
-  
+
   localStorage.removeItem("user");
   localStorage.removeItem("userPermissions");
   localStorage.removeItem("userRole");
@@ -141,19 +142,19 @@ export function clearAuth(): void {
  */
 export async function checkAuth(): Promise<AuthState> {
   try {
-    const response = await fetchAPI("/api/check");
-    
+    const response = await fetchAPI(API_ENDPOINTS.AUTH.CHECK);
+
     if (response.authenticated && response.user) {
       const permissions = Array.isArray(response.permissions) ? response.permissions : [];
       storeAuth(response.user as User, permissions, response.token as string);
-      
+
       return {
         isAuthenticated: true,
         user: response.user as User,
         permissions,
       };
     }
-    
+
     clearAuth();
     return {
       isAuthenticated: false,
@@ -178,21 +179,21 @@ export async function login(
   password: string
 ): Promise<{ success: boolean; error?: string; user?: User }> {
   try {
-    const response = await fetchAPI("/api/login", {
+    const response = await fetchAPI(API_ENDPOINTS.AUTH.LOGIN, {
       method: "POST",
       body: JSON.stringify({ username, password }),
     });
-    
+
     if (response.success && response.user) {
       const permissions = Array.isArray(response.permissions) ? response.permissions : [];
       storeAuth(response.user as User, permissions, response.token as string);
-      
+
       return {
         success: true,
         user: response.user as User,
       };
     }
-    
+
     return {
       success: false,
       error: response.message || "فشل تسجيل الدخول",
@@ -210,7 +211,7 @@ export async function login(
  */
 export async function logout(): Promise<void> {
   try {
-    await fetchAPI("/api/logout", { method: "POST" });
+    await fetchAPI(API_ENDPOINTS.AUTH.LOGOUT, { method: "POST" });
   } catch {
     // Ignore errors on logout
   } finally {
@@ -256,7 +257,7 @@ export function getSidebarLinks(permissions: Permission[]): Array<{
     { href: "/finance/ap_ledger", icon: "hand-coins", label: "مدفوعات الموردين", module: "ap_supplier" },
     { href: "/system/settings", icon: "settings", label: "الإعدادات", module: "settings" },
   ];
-  
+
   return allLinks.filter((link) => canAccess(permissions, link.module, "view"));
 }
 

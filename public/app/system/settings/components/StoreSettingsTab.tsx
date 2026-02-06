@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showToast } from "@/components/ui";
 import { StoreSettings } from "../types";
 import { TextInput } from "@/components/ui/TextInput";
@@ -18,7 +19,7 @@ export function StoreSettingsTab() {
 
   const loadStoreSettings = useCallback(async () => {
     try {
-      const response = await fetchAPI("/api/settings/store");
+      const response = await fetchAPI(API_ENDPOINTS.SYSTEM.SETTINGS.STORE);
       if (response.settings) {
         setStoreSettings(response.settings as StoreSettings);
       }
@@ -33,7 +34,7 @@ export function StoreSettingsTab() {
 
   const saveStoreSettings = async () => {
     try {
-      await fetchAPI("/api/settings/store", {
+      await fetchAPI(API_ENDPOINTS.SYSTEM.SETTINGS.STORE, {
         method: "PUT",
         body: JSON.stringify(storeSettings),
       });
@@ -76,7 +77,7 @@ export function StoreSettingsTab() {
         <div className="form-group pb-0">
           <TextInput
             label="الرقم الضريبي"
-             id="tax_number"
+            id="tax_number"
             value={storeSettings.tax_number}
             onChange={(e) => setStoreSettings({ ...storeSettings, tax_number: e.target.value })}
           />
