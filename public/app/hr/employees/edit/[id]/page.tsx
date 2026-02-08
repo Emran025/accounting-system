@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { getStoredUser, User } from "@/lib/auth";
@@ -9,7 +9,8 @@ import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Role, Department, Employee } from "../../../types";
 import { TabNavigation } from "@/components/ui";
 
-export default function EditEmployeePage({ params }: { params: { id: string } }) {
+export default function EditEmployeePage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [activeTab, setActiveTab] = useState("info");
@@ -42,14 +43,14 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
     useEffect(() => {
         setUser(getStoredUser());
         loadData();
-    }, []);
+    }, [id]);
 
     const loadData = async () => {
         try {
             const [rolesRes, deptsRes, empRes] = await Promise.all([
                 fetchAPI(API_ENDPOINTS.SYSTEM.USERS.ROLES),
                 fetchAPI(API_ENDPOINTS.HR.DEPARTMENTS),
-                fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.withId(params.id))
+                fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.withId(id))
             ]);
 
             setRoles(rolesRes.data as Role[] || (Array.isArray(rolesRes) ? rolesRes : []));
@@ -94,7 +95,7 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
         e.preventDefault();
         setIsLoading(true);
         try {
-            const res = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.withId(params.id), {
+            const res = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.withId(id), {
                 method: 'PUT',
                 body: JSON.stringify(formData),
             });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { getStoredUser, User } from "@/lib/auth";
@@ -8,7 +8,8 @@ import { fetchAPI, formatCurrency } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Employee } from "../../../types";
 
-export default function ViewEmployeePage({ params }: { params: { id: string } }) {
+export default function ViewEmployeePage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [employee, setEmployee] = useState<Employee | null>(null);
@@ -17,11 +18,11 @@ export default function ViewEmployeePage({ params }: { params: { id: string } })
     useEffect(() => {
         setUser(getStoredUser());
         loadData();
-    }, []);
+    }, [id]);
 
     const loadData = async () => {
         try {
-            const res = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.withId(params.id));
+            const res = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.withId(id));
             setEmployee(res.data as Employee || res as unknown as Employee);
         } catch (e) {
             console.error("Failed to load employee", e);
