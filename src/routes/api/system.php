@@ -16,6 +16,9 @@ Route::middleware('can:settings,view')->get('/settings/store', [SettingsControll
 Route::middleware('can:settings,edit')->put('/settings/store', [SettingsController::class, 'updateStoreSettings'])->name('api.settings.store.update');
 Route::middleware('can:settings,view')->get('/settings/invoice', [SettingsController::class, 'getInvoiceSettings'])->name('api.settings.invoice');
 Route::middleware('can:settings,edit')->put('/settings/invoice', [SettingsController::class, 'updateInvoiceSettings'])->name('api.settings.invoice.update');
+Route::middleware('can:settings,view')->get('/settings/zatca', [SettingsController::class, 'getZatcaSettings'])->name('api.settings.zatca');
+Route::middleware('can:settings,edit')->put('/settings/zatca', [SettingsController::class, 'updateZatcaSettings'])->name('api.settings.zatca.update');
+Route::middleware('can:settings,edit')->post('/zatca/onboard', [SettingsController::class, 'onboardZatca'])->name('api.zatca.onboard');
 
 // Government Fees (Kharaaj)
 Route::middleware('can:settings,view')->get('/government_fees', [GovernmentFeesController::class, 'index'])->name('government_fees.index');

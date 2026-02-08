@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
             INDEX: "/settings",
             STORE: "/settings/store",
             INVOICE: "/settings/invoice",
+            ZATCA: "/settings/zatca",
         },
         GOVERNMENT_FEES: {
             BASE: "/government_fees",

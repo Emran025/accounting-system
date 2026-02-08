@@ -8,6 +8,7 @@ import { getIcon } from "@/lib/icons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
+import { ZatcaSettingsTab } from "./ZatcaSettingsTab";
 
 interface GovernmentFee {
     id: number;
@@ -35,6 +36,7 @@ export function GovernmentFeesTab() {
     const [fees, setFees] = useState<GovernmentFee[]>([]);
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [subTab, setSubTab] = useState<"fees" | "zatca">("fees");
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -209,22 +211,46 @@ export function GovernmentFeesTab() {
     ];
 
     return (
-        <div className="card">
-            <div className="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3>الالتزامات الحكومية (الخراج)</h3>
-                <button className="btn btn-primary btn-sm" onClick={() => handleOpenDialog()}>
-                    {getIcon("plus")} إضافة التزام جديد
+        <div className="animate-fade">
+            <div className="sub-navigation mb-4 d-flex gap-2 p-1 bg-light rounded-3" style={{ maxWidth: '400px' }}>
+                <button
+                    className={`btn btn-sm flex-fill ${subTab === 'fees' ? 'btn-primary shadow-sm' : 'btn-link text-secondary'}`}
+                    onClick={() => setSubTab('fees')}
+                >
+                    {getIcon("scale-balanced")} الرسوم والالتزامات
+                </button>
+                <button
+                    className={`btn btn-sm flex-fill ${subTab === 'zatca' ? 'btn-primary shadow-sm' : 'btn-link text-secondary'}`}
+                    onClick={() => setSubTab('zatca')}
+                >
+                    {getIcon("shield-check")} إعدادات زاتكا (ZATCA)
                 </button>
             </div>
-            <div className="card-body">
-                <Table
-                    columns={feesColumns}
-                    data={fees}
-                    keyExtractor={(fee) => fee.id}
-                    isLoading={isLoading}
-                    emptyMessage="لا توجد التزامات مسجلة"
-                />
-            </div>
+
+            {subTab === 'zatca' ? (
+                <ZatcaSettingsTab />
+            ) : (
+                <div className="card shadow-sm border-0">
+                    <div className="card-header border-0 bg-white p-4" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                            <h3 className="mb-0" style={{ fontWeight: 700 }}>الالتزامات الحكومية (الخراج)</h3>
+                            <p className="text-muted mb-0 small">إدارة الرسوم الحكومية المضافة تلقائياً للفواتير</p>
+                        </div>
+                        <button className="btn btn-primary btn-sm px-3 shadow-sm" onClick={() => handleOpenDialog()}>
+                            {getIcon("plus")} إضافة التزام جديد
+                        </button>
+                    </div>
+                    <div className="card-body p-0">
+                        <Table
+                            columns={feesColumns}
+                            data={fees}
+                            keyExtractor={(fee) => fee.id}
+                            isLoading={isLoading}
+                            emptyMessage="لا توجد التزامات مسجلة"
+                        />
+                    </div>
+                </div>
+            )}
 
             <Dialog
                 isOpen={dialogOpen}
