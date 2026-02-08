@@ -101,7 +101,7 @@ For **complete documentation**, see the `/docs` folder:
 | **AP (Payables)** | Supplier payment management | Payment scheduling, supplier ledger |
 | **General Ledger** | Double-entry bookkeeping | Chart of accounts, journal vouchers, trial balance |
 | **Financial Reports** | Comprehensive reporting | Balance Sheet, P&L, Cash Flow, Comparative Analysis |
-| **HR & Payroll** | Employee management | Multi-level approval, salary processing, allowances |
+| **HR & Payroll** | Complete HR & Workforce Management | **20+ modules:** Employees, Recruitment, Onboarding, Performance, Learning, Compensation, Benefits, EHS, Wellness, Knowledge Management, and more |
 | **Fixed Assets** | Asset lifecycle | Depreciation (SL/DB), disposal tracking |
 | **Multi-Currency** | International transactions | Exchange rates, multi-currency invoicing |
 | **Fiscal Periods** | Period management | Opening/closing periods, period locking |
@@ -265,7 +265,7 @@ php artisan test
 | **Sales** | invoices, invoice_items, zatca_einvoices, sales_returns, sales_return_items |
 | **AR/AP** | ar_customers, ar_transactions, ap_suppliers, ap_transactions |
 | **Finance** | chart_of_accounts, general_ledger, fiscal_periods, journal_vouchers |
-| **HR & Payroll** | employees, departments, payroll_cycles, payroll_items, payroll_transactions, employee_documents, employee_allowances, employee_deductions |
+| **HR & Payroll** | employees, departments, payroll_cycles, payroll_items, payroll_transactions, employee_documents, employee_allowances, employee_deductions, expat_management, employee_assets, recruitment_requisitions, job_applicants, interviews, onboarding_workflows, contingent_workers, qa_compliance, workforce_schedules, employee_relations_cases, travel_requests, employee_loans, corporate_announcements, pulse_surveys, performance_goals, performance_appraisals, learning_courses, succession_plans, compensation_plans, benefits_plans, ehs_incidents, wellness_programs, knowledge_base, expertise_directory, and 20+ more tables |
 | **Advanced** | assets, asset_depreciation, prepayments, unearned_revenue, reconciliations, currencies, currency_denominations |
 | **System** | settings, document_sequences, batch_processing, batch_items, recurring_transactions, telescope, government_fees, invoice_fees |
 
