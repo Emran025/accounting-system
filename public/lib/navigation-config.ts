@@ -29,6 +29,7 @@ export const navigationGroups: NavigationGroup[] = [
     icon: "dashboard",
     links: [
       { href: "/system/dashboard", icon: "dashboard", label: "لوحة التحكم", description: "نظرة عامة شاملة على النظام", module: "dashboard" },
+      { href: "/system/modules-status", icon: "check-circle", label: "حالة الوحدات", description: "حالة جميع وحدات النظام", module: "dashboard" },
       { href: "/system/reports", icon: "pie-chart", label: "التقارير والتحليلات", description: "تقارير مالية وتحليلات متقدمة", module: "reports" },
       { href: "/system/audit_trail", icon: "activity", label: "سجل التدقيق", description: "تتبع جميع العمليات", module: "audit_trail" },
       { href: "/system/recurring_transactions", icon: "repeat", label: "المعاملات المتكررة", description: "جدولة العمليات الآلية", module: "recurring_transactions" },
@@ -129,17 +130,58 @@ export const navigationGroups: NavigationGroup[] = [
     label: "الموارد البشرية",
     icon: "users",
     links: [
+      // Core HR Management
       { href: "/hr/employees", icon: "user", label: "الموظفين", description: "قاعدة بيانات الموظفين", module: "employees" },
+      { href: "/hr/expat-management", icon: "globe", label: "إدارة المغتربين", description: "إدارة الوثائق والتصاريح للموظفين المغتربين", module: "employees" },
+      { href: "/hr/employee-assets", icon: "laptop", label: "أصول الموظفين", description: "إدارة المعدات والأصول المخصصة للموظفين", module: "employees" },
+      { href: "/hr/contracts", icon: "file-contract", label: "العقود والاتفاقيات", description: "إدارة عقود العمل والاتفاقيات", module: "employees" },
+
+      // Talent Acquisition
+      { href: "/hr/recruitment", icon: "user-plus", label: "التوظيف والمرشحين", description: "نظام تتبع المتقدمين للوظائف", module: "recruitment" },
+      { href: "/hr/onboarding", icon: "user-check", label: "التوظيف والإنهاء", description: "عمليات التوظيف وإنهاء الخدمة", module: "onboarding" },
+
+      // Workforce Strategy
+      { href: "/hr/contingent-workers", icon: "briefcase", label: "العمالة المؤقتة", description: "إدارة المقاولين والاستشاريين", module: "contingent" },
+
+      // Legal & Compliance
+      { href: "/hr/qa-compliance", icon: "shield-check", label: "الجودة والامتثال", description: "إدارة الامتثال والتدقيق الداخلي", module: "compliance" },
+
+      // Time, Attendance & Scheduling
+      { href: "/hr/attendance", icon: "clock", label: "الحضور والانصراف", description: "تتبع الدوام وتقرير الساعات", module: "attendance" },
+      { href: "/hr/scheduling", icon: "calendar-days", label: "جدولة القوى العاملة", description: "جدولة المناوبات والتحسين", module: "scheduling" },
+      { href: "/hr/leave", icon: "calendar", label: "الإجازات", description: "إدارة طلبات الإجازات والغياب", module: "leave" },
+
+      // Employee Relations & Services
+      { href: "/hr/employee-relations", icon: "scale", label: "علاقات الموظفين", description: "إدارة الشكاوى والانضباط", module: "relations" },
+      { href: "/hr/travel-expenses", icon: "plane", label: "السفر والمصروفات", description: "طلبات السفر وتقارير المصروفات", module: "travel" },
+      { href: "/hr/loans", icon: "hand-holding-usd", label: "القروض المالية", description: "إدارة قروض الموظفين", module: "loans" },
+      { href: "/hr/communications", icon: "bullhorn", label: "الاتصالات المؤسسية", description: "الإعلانات والاستطلاعات", module: "communications" },
+
+      // Performance & Talent Development
+      { href: "/hr/performance", icon: "chart-line", label: "الأداء والأهداف", description: "إدارة الأهداف وتقييمات الأداء", module: "performance" },
+      { href: "/hr/learning", icon: "graduation-cap", label: "التدريب والتعلم", description: "نظام إدارة التعلم (LMS)", module: "learning" },
+      { href: "/hr/succession", icon: "sitemap", label: "التخطيط للخلافة", description: "تخطيط الخلافة والمسار الوظيفي", module: "succession" },
+
+      // Compensation & Benefits
+      { href: "/hr/compensation", icon: "money-bill-wave", label: "إدارة التعويضات", description: "تخطيط الرواتب والمزايا", module: "compensation" },
+      { href: "/hr/benefits", icon: "heart", label: "المزايا والاستحقاقات", description: "إدارة خطط المزايا", module: "benefits" },
+
+      // Payroll
       { href: "/hr/payroll", icon: "banknote", label: "الرواتب", description: "إدارة مسيرات الرواتب والاعتمادات", module: "payroll" },
       { href: "/hr/payroll-components", icon: "settings", label: "مكونات الرواتب", description: "إدارة البدلات والاستقطاعات", module: "payroll" },
-      { href: "/hr/attendance", icon: "clock", label: "الحضور والانصراف", description: "تتبع الدوام وتقرير الساعات", module: "payroll" },
-      { href: "/hr/leave", icon: "calendar", label: "الإجازات", description: "إدارة طلبات الإجازات والغياب", module: "payroll" },
-      { href: "/hr/eosb", icon: "calculator", label: "مكافأة نهاية الخدمة", description: "حساب تسويات نهاية الخدمة", module: "payroll" },
-      { href: "/hr/employee-portal", icon: "user-cog", label: "البوابة الذاتية", description: "كشوف المرتبات وطلبات الموظف", module: "payroll" },
-      { href: "/system/dashboard", icon: "landmark", label: "الأقسام", description: "الهيكل التنظيمي (قريباً)", module: "dashboard" },
-      { href: "/system/dashboard", icon: "user-cog", label: "المسميات الوظيفية", description: "إدارة الوظائف (قريباً)", module: "dashboard" },
-      { href: "/system/dashboard", icon: "activity", label: "تقييم الأداء", description: "تقييمات الموظفين (قريباً)", module: "dashboard" },
-      { href: "/system/dashboard", icon: "clipboard-check", label: "التدريب", description: "برامج التدريب (قريباً)", module: "dashboard" },
+      { href: "/hr/payroll-integrations", icon: "link", label: "تكاملات ما بعد الرواتب", description: "ملفات البنوك والتكاملات", module: "payroll" },
+
+      // Health, Safety & Well-being
+      { href: "/hr/ehs", icon: "hard-hat", label: "الصحة والسلامة", description: "إدارة الحوادث والسلامة", module: "ehs" },
+      { href: "/hr/wellness", icon: "heart-pulse", label: "الرفاهية", description: "برامج الصحة والرفاهية", module: "wellness" },
+
+      // Knowledge Management
+      { href: "/hr/knowledge-base", icon: "book", label: "قاعدة المعرفة", description: "مكتبة المعرفة وأفضل الممارسات", module: "knowledge" },
+      { href: "/hr/expertise", icon: "users-gear", label: "دليل الخبراء", description: "دليل الخبراء الداخليين", module: "expertise" },
+
+      // Employee Portal
+      { href: "/hr/employee-portal", icon: "user-cog", label: "البوابة الذاتية", description: "كشوف المرتبات وطلبات الموظف", module: "portal" },
+      { href: "/hr/eosb", icon: "calculator", label: "مكافأة نهاية الخدمة", description: "حساب تسويات نهاية الخدمة", module: "eosb" },
     ],
   },
 
