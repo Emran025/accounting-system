@@ -156,5 +156,40 @@ class ZATCAServiceTest extends TestCase
         // Should be base64 encoded
         $this->assertTrue(base64_decode($qrData, true) !== false);
     }
+
+    /**
+     * Test successful onboarding
+     */
+    public function test_can_onboard(): void
+    {
+        $data = [
+            'vat_number' => '300000000000003',
+            'org_name' => 'Test Org',
+            'org_unit' => 'Main',
+            'common_name' => 'Test Common Name'
+        ];
+
+        $result = $this->zatcaService->onboard('123456', $data);
+
+        $this->assertTrue($result['success']);
+        $this->assertDatabaseHas('settings', ['setting_key' => 'zatca_binary_token']);
+        $this->assertDatabaseHas('settings', ['setting_key' => 'zatca_secret']);
+        $this->assertDatabaseHas('settings', ['setting_key' => 'zatca_request_id']);
+    }
+
+    /**
+     * Test certificate validation
+     */
+    public function test_validate_certificate_checks_token(): void
+    {
+        $this->assertFalse($this->zatcaService->validateCertificate());
+
+        Setting::create([
+            'setting_key' => 'zatca_binary_token',
+            'setting_value' => 'some_token'
+        ]);
+
+        $this->assertTrue($this->zatcaService->validateCertificate());
+    }
 }
 
