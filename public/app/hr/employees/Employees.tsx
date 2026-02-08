@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Table, Column, SearchableSelect, Button } from "@/components/ui";
-import { fetchAPI, formatCurrency } from "@/lib/api";
+import { fetchAPI } from "@/lib/api";
+import { formatCurrency } from "@/lib/utils";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Employee } from "../types";
 import { getIcon } from "@/lib/icons";

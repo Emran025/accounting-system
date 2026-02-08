@@ -4,7 +4,8 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { getStoredUser, User } from "@/lib/auth";
-import { fetchAPI, formatCurrency } from "@/lib/api";
+import { fetchAPI } from "@/lib/api";
+import { formatCurrency } from "@/lib/utils";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Employee } from "../../../types";
 

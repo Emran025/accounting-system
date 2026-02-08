@@ -150,20 +150,6 @@ export function getSetting(key: string, defaultValue: any = null): any {
   return systemSettings[key] !== undefined ? systemSettings[key] : defaultValue;
 }
 
-/**
- * Format currency using dynamic symbol from settings
- */
-export function formatCurrency(amount: number | string): string {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  const symbol = getSetting('currency_symbol', 'ر.س');
-
-  return (
-    new Intl.NumberFormat('ar-SA', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(num || 0) + ' ' + symbol
-  );
-}
 
 /**
  * Format date to locale string

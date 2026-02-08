@@ -13,13 +13,13 @@ import { getSetting } from "./api";
  * @returns Formatted currency string (e.g., "1,234.56 ر.س")
  */
 export function formatCurrency(amount: number | string | null | undefined): string {
-  const num = parseFloat(String(amount)) || 0;
+  const num = typeof amount === 'number' ? amount : parseFloat(String(amount || 0)) || 0;
   const symbol = getSetting('currency_symbol', 'ر.س');
 
-  return num.toLocaleString("ar-SA", {
+  return new Intl.NumberFormat('ar-SA', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }) + " " + symbol;
+  }).format(num) + ' ' + symbol;
 }
 
 /**
