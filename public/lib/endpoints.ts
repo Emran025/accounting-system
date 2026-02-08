@@ -142,6 +142,165 @@ export const API_ENDPOINTS = {
             CALCULATE: (id: string | number) => `/eosb/${id}/calculate`,
         },
         COMPONENTS: "/payroll-components",
+        EXPAT_MANAGEMENT: {
+            BASE: "/expat-management",
+            withId: (id: string | number) => `/expat-management/${id}`,
+        },
+        EMPLOYEE_ASSETS: {
+            BASE: "/employee-assets",
+            withId: (id: string | number) => `/employee-assets/${id}`,
+        },
+        RECRUITMENT: {
+            REQUISITIONS: {
+                BASE: "/recruitment/requisitions",
+                withId: (id: string | number) => `/recruitment/requisitions/${id}`,
+            },
+            APPLICANTS: {
+                BASE: "/recruitment/applicants",
+                STATUS: (id: string | number) => `/recruitment/applicants/${id}/status`,
+            },
+            INTERVIEWS: {
+                BASE: "/recruitment/interviews",
+                withId: (id: string | number) => `/recruitment/interviews/${id}`,
+            },
+        },
+        ONBOARDING: {
+            BASE: "/onboarding",
+            withId: (id: string | number) => `/onboarding/${id}`,
+            TASK: (workflowId: string | number, taskId: string | number) => `/onboarding/${workflowId}/tasks/${taskId}`,
+            DOCUMENTS: (workflowId: string | number) => `/onboarding/${workflowId}/documents`,
+        },
+        CONTINGENT_WORKERS: {
+            BASE: "/contingent-workers",
+            withId: (id: string | number) => `/contingent-workers/${id}`,
+            CONTRACTS: (workerId: string | number) => `/contingent-workers/${workerId}/contracts`,
+        },
+        QA_COMPLIANCE: {
+            BASE: "/qa-compliance",
+            withId: (id: string | number) => `/qa-compliance/${id}`,
+            CAPA: (complianceId: string | number) => `/qa-compliance/${complianceId}/capa`,
+        },
+        WORKFORCE_SCHEDULING: {
+            BASE: "/workforce-schedules",
+            withId: (id: string | number) => `/workforce-schedules/${id}`,
+            SHIFTS: (scheduleId: string | number) => `/workforce-schedules/${scheduleId}/shifts`,
+            SHIFT: (scheduleId: string | number, shiftId: string | number) => `/workforce-schedules/${scheduleId}/shifts/${shiftId}`,
+        },
+        EMPLOYEE_RELATIONS: {
+            BASE: "/employee-relations",
+            withId: (id: string | number) => `/employee-relations/${id}`,
+            DISCIPLINARY: (caseId: string | number) => `/employee-relations/${caseId}/disciplinary`,
+        },
+        TRAVEL: {
+            REQUESTS: {
+                BASE: "/travel-requests",
+                STATUS: (id: string | number) => `/travel-requests/${id}/status`,
+            },
+            EXPENSES: {
+                BASE: "/travel-expenses",
+                STATUS: (id: string | number) => `/travel-expenses/${id}/status`,
+            },
+        },
+        EMPLOYEE_LOANS: {
+            BASE: "/employee-loans",
+            withId: (id: string | number) => `/employee-loans/${id}`,
+            STATUS: (id: string | number) => `/employee-loans/${id}/status`,
+            REPAYMENT: (id: string | number, repaymentId: string | number) => `/employee-loans/${id}/repayments/${repaymentId}`,
+        },
+        PERFORMANCE: {
+            GOALS: {
+                BASE: "/performance/goals",
+                withId: (id: string | number) => `/performance/goals/${id}`,
+            },
+            APPRAISALS: {
+                BASE: "/performance/appraisals",
+                withId: (id: string | number) => `/performance/appraisals/${id}`,
+            },
+            FEEDBACK: {
+                BASE: "/performance/feedback",
+            },
+        },
+        LEARNING: {
+            COURSES: {
+                BASE: "/learning/courses",
+                withId: (id: string | number) => `/learning/courses/${id}`,
+            },
+            ENROLLMENTS: {
+                BASE: "/learning/enrollments",
+                withId: (id: string | number) => `/learning/enrollments/${id}`,
+            },
+        },
+        COMMUNICATIONS: {
+            ANNOUNCEMENTS: {
+                BASE: "/communications/announcements",
+                withId: (id: string | number) => `/communications/announcements/${id}`,
+            },
+            SURVEYS: {
+                BASE: "/communications/surveys",
+                RESPONSES: (surveyId: string | number) => `/communications/surveys/${surveyId}/responses`,
+            },
+        },
+        EHS: {
+            INCIDENTS: {
+                BASE: "/ehs/incidents",
+                withId: (id: string | number) => `/ehs/incidents/${id}`,
+            },
+            HEALTH_RECORDS: {
+                BASE: "/ehs/health-records",
+            },
+            PPE: {
+                BASE: "/ehs/ppe",
+            },
+        },
+        WELLNESS: {
+            PROGRAMS: {
+                BASE: "/wellness/programs",
+            },
+            PARTICIPATIONS: {
+                BASE: "/wellness/participations",
+                withId: (id: string | number) => `/wellness/participations/${id}`,
+            },
+        },
+        SUCCESSION: {
+            BASE: "/succession",
+            withId: (id: string | number) => `/succession/${id}`,
+            CANDIDATES: (planId: string | number) => `/succession/${planId}/candidates`,
+            CANDIDATE: (planId: string | number, candidateId: string | number) => `/succession/${planId}/candidates/${candidateId}`,
+        },
+        COMPENSATION: {
+            PLANS: {
+                BASE: "/compensation/plans",
+                withId: (id: string | number) => `/compensation/plans/${id}`,
+            },
+            ENTRIES: {
+                BASE: "/compensation/entries",
+                STATUS: (id: string | number) => `/compensation/entries/${id}/status`,
+            },
+        },
+        BENEFITS: {
+            PLANS: {
+                BASE: "/benefits/plans",
+                withId: (id: string | number) => `/benefits/plans/${id}`,
+            },
+            ENROLLMENTS: {
+                BASE: "/benefits/enrollments",
+                withId: (id: string | number) => `/benefits/enrollments/${id}`,
+            },
+        },
+        POST_PAYROLL: {
+            BASE: "/post-payroll",
+            PROCESS: (id: string | number) => `/post-payroll/${id}/process`,
+            RECONCILE: (id: string | number) => `/post-payroll/${id}/reconcile`,
+        },
+        KNOWLEDGE: {
+            BASE: "/knowledge-base",
+            withId: (id: string | number) => `/knowledge-base/${id}`,
+            HELPFUL: (id: string | number) => `/knowledge-base/${id}/helpful`,
+        },
+        EXPERTISE: {
+            BASE: "/expertise",
+            withId: (id: string | number) => `/expertise/${id}`,
+        },
     },
     INVENTORY: {
         PRODUCTS: "/products",
