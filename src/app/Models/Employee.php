@@ -149,4 +149,184 @@ class Employee extends Authenticatable
     public function currentContract() {
         return $this->hasOne(EmployeeContract::class)->where('is_current', true);
     }
+
+    /**
+     * Get expat management records for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function expatManagement() {
+        return $this->hasOne(ExpatManagement::class);
+    }
+
+    /**
+     * Get employee assets allocated to this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function assets() {
+        return $this->hasMany(EmployeeAsset::class);
+    }
+
+    /**
+     * Get onboarding/offboarding workflows for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function onboardingWorkflows() {
+        return $this->hasMany(OnboardingWorkflow::class);
+    }
+
+    /**
+     * Get employee relations cases for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function relationsCases() {
+        return $this->hasMany(EmployeeRelationsCase::class);
+    }
+
+    /**
+     * Get travel requests for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function travelRequests() {
+        return $this->hasMany(TravelRequest::class);
+    }
+
+    /**
+     * Get employee loans for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function loans() {
+        return $this->hasMany(EmployeeLoan::class);
+    }
+
+    /**
+     * Get performance goals for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function performanceGoals() {
+        return $this->hasMany(PerformanceGoal::class);
+    }
+
+    /**
+     * Get performance appraisals for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function performanceAppraisals() {
+        return $this->hasMany(PerformanceAppraisal::class);
+    }
+
+    /**
+     * Get continuous feedback for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function continuousFeedback() {
+        return $this->hasMany(ContinuousFeedback::class);
+    }
+
+    /**
+     * Get learning enrollments for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function learningEnrollments() {
+        return $this->hasMany(LearningEnrollment::class);
+    }
+
+    /**
+     * Get succession candidates where this employee is a candidate.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function successionCandidates() {
+        return $this->hasMany(SuccessionCandidate::class);
+    }
+
+    /**
+     * Get compensation entries for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function compensationEntries() {
+        return $this->hasMany(CompensationEntry::class);
+    }
+
+    /**
+     * Get benefits enrollments for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function benefitsEnrollments() {
+        return $this->hasMany(BenefitsEnrollment::class);
+    }
+
+    /**
+     * Get EHS incidents for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function ehsIncidents() {
+        return $this->hasMany(EhsIncident::class);
+    }
+
+    /**
+     * Get health records for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function healthRecords() {
+        return $this->hasMany(EmployeeHealthRecord::class);
+    }
+
+    /**
+     * Get PPE management records for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function ppeManagement() {
+        return $this->hasMany(PpeManagement::class);
+    }
+
+    /**
+     * Get wellness participations for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function wellnessParticipations() {
+        return $this->hasMany(WellnessParticipation::class);
+    }
+
+    /**
+     * Get expertise directory entries for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function expertise() {
+        return $this->hasMany(ExpertiseDirectory::class);
+    }
+
+    /**
+     * Get employee certifications.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function certifications() {
+        return $this->hasMany(EmployeeCertification::class);
+    }
+
+    /**
+     * Get schedule shifts for this employee.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function scheduleShifts() {
+        return $this->hasMany(ScheduleShift::class);
+    }
 }
