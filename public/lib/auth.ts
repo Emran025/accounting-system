@@ -264,7 +264,7 @@ export function getSidebarLinks(permissions: Permission[]): Array<{
     { href: "/inventory/products", icon: "box", label: "المنتجات", module: "products" },
     { href: "/purchases/purchases", icon: "shopping-bag", label: "المشتريات", module: "purchases" },
     { href: "/purchases/expenses", icon: "credit-card", label: "المصروفات", module: "expenses" },
-    { href: "/hr/employees", icon: "user", label: "الموظفين", module: "employees" },
+    { href: "/hr/employees", icon: "user", label: "الموظفين", module: "Workforce-Management" },
     { href: "/hr/payroll", icon: "banknote", label: "الرواتب والمستحقات", module: "payroll" },
     { href: "/ar_customers", icon: "user-plus", label: "عملاء الآجل", module: "ar_customers" },
     { href: "/finance/general_ledger", icon: "book-open", label: "دفتر الأستاذ", module: "general_ledger" },

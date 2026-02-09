@@ -255,8 +255,8 @@ export function Compensation() {
 
             <TabNavigation
                 tabs={[
-                    { id: "plans", label: "خطط التعويضات", icon: "file-alt" },
-                    { id: "entries", label: "إدخالات التعويضات", icon: "list" },
+                    { key: "plans", label: "خطط التعويضات", icon: "file-alt" },
+                    { key: "entries", label: "إدخالات التعويضات", icon: "list" },
                 ]}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}

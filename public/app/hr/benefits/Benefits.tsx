@@ -253,8 +253,8 @@ export function Benefits() {
 
       <TabNavigation
         tabs={[
-          { id: "plans", label: "خطط المزايا", icon: "file-alt" },
-          { id: "enrollments", label: "التسجيلات", icon: "user-check" },
+          { key: "plans", label: "خطط المزايا", icon: "file-alt" },
+          { key: "enrollments", label: "التسجيلات", icon: "user-check" },
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}

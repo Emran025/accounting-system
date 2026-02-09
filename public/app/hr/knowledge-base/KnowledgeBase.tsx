@@ -229,8 +229,8 @@ export function KnowledgeBase() {
 
       <TabNavigation
         tabs={[
-          { id: "knowledge", label: "قاعدة المعرفة", icon: "book" },
-          { id: "expertise", label: "دليل الخبراء", icon: "users-gear" },
+          { key: "knowledge", label: "قاعدة المعرفة", icon: "book" },
+          { key: "expertise", label: "دليل الخبراء", icon: "users-gear" },
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}

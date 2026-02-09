@@ -264,8 +264,8 @@ export function Learning() {
 
       <TabNavigation
         tabs={[
-          { id: "courses", label: "الدورات", icon: "book" },
-          { id: "enrollments", label: "التسجيلات", icon: "user-check" },
+          { key: "courses", label: "الدورات", icon: "book" },
+          { key: "enrollments", label: "التسجيلات", icon: "user-check" },
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}

@@ -246,8 +246,8 @@ export function Recruitment() {
 
       <TabNavigation
         tabs={[
-          { id: "requisitions", label: "طلبات التوظيف", icon: "file-alt" },
-          { id: "applicants", label: "المرشحين", icon: "users" },
+          { key: "requisitions", label: "طلبات التوظيف", icon: "file-alt" },
+          { key: "applicants", label: "المرشحين", icon: "users" },
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}

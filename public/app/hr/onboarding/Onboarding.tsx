@@ -170,8 +170,8 @@ export function Onboarding() {
 
       <TabNavigation
         tabs={[
-          { id: "onboarding", label: "التوظيف", icon: "user-plus" },
-          { id: "offboarding", label: "إنهاء الخدمة", icon: "user-minus" },
+          { key: "onboarding", label: "التوظيف", icon: "user-plus" },
+          { key: "offboarding", label: "إنهاء الخدمة", icon: "user-minus" },
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}

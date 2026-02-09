@@ -272,8 +272,8 @@ export function Performance() {
 
       <TabNavigation
         tabs={[
-          { id: "goals", label: "الأهداف", icon: "target" },
-          { id: "appraisals", label: "التقييمات", icon: "clipboard-check" },
+          { key: "goals", label: "الأهداف", icon: "target" },
+          { key: "appraisals", label: "التقييمات", icon: "clipboard-check" },
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}
