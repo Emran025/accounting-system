@@ -12,7 +12,8 @@ import {
     ShieldCheck, Landmark, BarChart3, UserCog, Bell, FileSearch,
     Tags, Ruler, Factory, Files, Hammer, Cpu, ClipboardCheck,
     Briefcase, CheckSquare, Hourglass, LayoutDashboard, Save, Calculator,
-    FileText, FileCheck, Scroll
+    FileText, FileCheck, Scroll, Globe, Laptop, Book, HardHat, HeartPulse, Link,
+    CalendarDays, UserCheck, Plane, Megaphone, GraduationCap, Heart
 } from 'lucide-react';
 
 interface IconProps {
@@ -105,6 +106,21 @@ export const icons = {
     "file-contract": (props: IconProps) => <FileText className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     "file-check": (props: IconProps) => <FileCheck className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     "scroll": (props: IconProps) => <Scroll className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    globe: (props: IconProps) => <Globe className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    laptop: (props: IconProps) => <Laptop className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    book: (props: IconProps) => <Book className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "hard-hat": (props: IconProps) => <HardHat className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "heart-pulse": (props: IconProps) => <HeartPulse className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    link: (props: IconProps) => <Link className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "calendar-days": (props: IconProps) => <CalendarDays className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "user-check": (props: IconProps) => <UserCheck className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    plane: (props: IconProps) => <Plane className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "hand-holding-usd": (props: IconProps) => <HandCoins className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    bullhorn: (props: IconProps) => <Megaphone className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "graduation-cap": (props: IconProps) => <GraduationCap className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "money-bill-wave": (props: IconProps) => <Banknote className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    heart: (props: IconProps) => <Heart className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "users-gear": (props: IconProps) => <UserCog className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
 };
 
 export type IconName = keyof typeof icons;
