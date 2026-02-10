@@ -20,6 +20,8 @@ export function Attendance() {
   const [isLoading, setIsLoading] = useState(false);
   const [showRecordDialog, setShowRecordDialog] = useState(false);
   const [summary, setSummary] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [newRecord, setNewRecord] = useState({
     employee_id: "",
@@ -38,7 +40,7 @@ export function Attendance() {
     if (selectedEmployee) {
       loadAttendance();
     }
-  }, [selectedEmployee, startDate, endDate]);
+  }, [selectedEmployee, startDate, endDate, currentPage]);
 
   const loadEmployees = async () => {
     try {
@@ -56,10 +58,11 @@ export function Attendance() {
     setIsLoading(true);
     try {
       const res: any = await fetchAPI(
-        `${API_ENDPOINTS.HR.ATTENDANCE.BASE}?employee_id=${selectedEmployee}&start_date=${startDate}&end_date=${endDate}`
+        `${API_ENDPOINTS.HR.ATTENDANCE.BASE}?employee_id=${selectedEmployee}&start_date=${startDate}&end_date=${endDate}&page=${currentPage}`
       );
       const data = res.data || (Array.isArray(res) ? res : []);
       setAttendanceRecords(data);
+      setTotalPages(res.last_page || 1);
 
       const summaryRes: any = await fetchAPI(
         `${API_ENDPOINTS.HR.ATTENDANCE.SUMMARY}?employee_id=${selectedEmployee}&start_date=${startDate}&end_date=${endDate}`
@@ -190,7 +193,10 @@ export function Attendance() {
             <TextInput
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setCurrentPage(1);
+              }}
             />
           </div>
           <div>
@@ -198,7 +204,10 @@ export function Attendance() {
             <TextInput
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                setCurrentPage(1);
+              }}
             />
           </div>
           <div className="flex items-end">
@@ -244,6 +253,11 @@ export function Attendance() {
           isLoading={isLoading}
           emptyMessage="لا توجد سجلات حضور"
           keyExtractor={(item) => item.id.toString()}
+          pagination={{
+            currentPage,
+            totalPages,
+            onPageChange: setCurrentPage
+          }}
         />
       </div>
 

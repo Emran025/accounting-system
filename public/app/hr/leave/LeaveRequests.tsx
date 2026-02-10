@@ -32,6 +32,8 @@ export function LeaveRequests() {
   const [showRequestDialog, setShowRequestDialog] = useState(false);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [newRequest, setNewRequest] = useState({
     employee_id: "",
@@ -52,7 +54,7 @@ export function LeaveRequests() {
 
   useEffect(() => {
     loadLeaveRequests();
-  }, [selectedEmployee, statusFilter]);
+  }, [selectedEmployee, statusFilter, currentPage]);
 
   const loadEmployees = async () => {
     try {
@@ -66,13 +68,14 @@ export function LeaveRequests() {
   const loadLeaveRequests = async () => {
     setIsLoading(true);
     try {
-      let url = `${API_ENDPOINTS.HR.LEAVE.BASE}?`;
+      let url = `${API_ENDPOINTS.HR.LEAVE.BASE}?page=${currentPage}&`;
       if (selectedEmployee) url += `employee_id=${selectedEmployee}&`;
       if (statusFilter !== 'all') url += `status=${statusFilter}&`;
 
       const res: any = await fetchAPI(url);
       const data = res.data || (Array.isArray(res) ? res : []);
       setLeaveRequests(data);
+      setTotalPages(res.last_page || 1);
     } catch (e) {
       showToast("فشل تحميل طلبات الإجازة", "error");
     } finally {
@@ -236,7 +239,10 @@ export function LeaveRequests() {
             <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الحالة</label>
             <Select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
             >
               <option value="all">الكل</option>
               <option value="pending">قيد الانتظار</option>
@@ -264,6 +270,11 @@ export function LeaveRequests() {
           isLoading={isLoading}
           emptyMessage="لا توجد طلبات إجازة"
           keyExtractor={(item) => item.id.toString()}
+          pagination={{
+            currentPage,
+            totalPages,
+            onPageChange: setCurrentPage
+          }}
         />
       </div>
 

@@ -83,6 +83,13 @@ Route::middleware('can:employees,view')->get('/employee-assets/{id}', [\App\Http
 Route::middleware('can:employees,edit')->put('/employee-assets/{id}', [\App\Http\Controllers\Api\EmployeeAssetsController::class, 'update']);
 Route::middleware('can:employees,delete')->delete('/employee-assets/{id}', [\App\Http\Controllers\Api\EmployeeAssetsController::class, 'destroy']);
 
+// Contracts & Agreements Management
+Route::middleware('can:employees,view')->get('/contracts', [\App\Http\Controllers\Api\EmployeeContractsController::class, 'index']);
+Route::middleware('can:employees,create')->post('/contracts', [\App\Http\Controllers\Api\EmployeeContractsController::class, 'store']);
+Route::middleware('can:employees,view')->get('/contracts/{id}', [\App\Http\Controllers\Api\EmployeeContractsController::class, 'show']);
+Route::middleware('can:employees,edit')->put('/contracts/{id}', [\App\Http\Controllers\Api\EmployeeContractsController::class, 'update']);
+Route::middleware('can:employees,delete')->delete('/contracts/{id}', [\App\Http\Controllers\Api\EmployeeContractsController::class, 'destroy']);
+
 // Recruitment & ATS
 Route::middleware('can:employees,view')->get('/recruitment/requisitions', [\App\Http\Controllers\Api\RecruitmentController::class, 'indexRequisitions']);
 Route::middleware('can:employees,create')->post('/recruitment/requisitions', [\App\Http\Controllers\Api\RecruitmentController::class, 'storeRequisition']);

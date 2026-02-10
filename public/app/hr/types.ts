@@ -30,11 +30,11 @@ export interface Employee {
 }
 
 export interface Role {
-    id: number;
-    role_key: string;
-    role_name_ar: string;
-    role_name_en: string;
-    description?: string;
+  id: number;
+  role_key: string;
+  role_name_ar: string;
+  role_name_en: string;
+  description?: string;
 }
 
 export interface Department {
@@ -171,4 +171,62 @@ export interface PayrollComponent {
   is_active: boolean;
   display_order: number;
   description?: string;
+}
+
+export interface EmployeeRelationsCase {
+  id: number;
+  case_number: string;
+  employee_id: number;
+  employee?: { full_name: string };
+  case_type: string;
+  confidentiality_level: string;
+  description: string;
+  status: string;
+  reported_date: string;
+  resolved_date?: string | null;
+  resolution?: string | null;
+  disciplinary_actions?: DisciplinaryAction[];
+}
+
+export interface DisciplinaryAction {
+  id: number;
+  action_type: string;
+  violation_description: string;
+  action_taken: string;
+  action_date: string;
+  expiry_date?: string | null;
+}
+
+export interface Workflow {
+  id: number;
+  employee_id: number;
+  employee?: {
+    full_name: string;
+    employee_code: string;
+  };
+  workflow_type: string;
+  status: string;
+  start_date: string;
+  target_completion_date?: string;
+  actual_completion_date?: string;
+  completion_percentage: number;
+  tasks?: Array<{
+    id: number;
+    task_name: string;
+    status: string;
+  }>;
+}
+
+export interface Schedule {
+  id: number;
+  schedule_name: string;
+  schedule_date: string;
+  department?: { name_ar: string };
+  status: string;
+  shifts?: Array<{
+    id: number;
+    employee?: { full_name: string };
+    shift_date: string;
+    hours: number;
+  }>;
 }

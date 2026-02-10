@@ -4,6 +4,7 @@
  */
 
 import { getSetting } from "./api";
+import QRCode from "qrcode";
 
 /**
  * Format a number as currency using the system's configured currency symbol.
@@ -28,10 +29,19 @@ export function formatCurrency(amount: number | string | null | undefined): stri
  * @param dateStr ISO date string or any parseable date format
  * @returns Formatted date string (e.g., "٢٠٢٦/٠٢/٠٦") or "-" if invalid
  */
-export function formatDate(dateStr: string | null | undefined): string {
+export function formatDate(dateStr: string | null | undefined, includeTime = false): string {
   if (!dateStr) return "-";
   try {
     const date = new Date(dateStr);
+    if (includeTime) {
+      return date.toLocaleString("ar-SA", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
     return date.toLocaleDateString("ar-SA", {
       year: "numeric",
       month: "2-digit",
@@ -227,5 +237,113 @@ export function parseNumber(value: string | number | null | undefined): number {
   if (value === null || value === undefined) return 0;
   const parsed = parseFloat(String(value));
   return isNaN(parsed) ? 0 : parsed;
+}
+
+/**
+ * Get Arabic day and month names for date display
+ */
+export function getArabicDate(): string {
+  const now = new Date();
+  const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  const months = [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  ];
+
+  const dayName = days[now.getDay()];
+  const day = now.getDate();
+  const monthName = months[now.getMonth()];
+  const year = now.getFullYear();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+
+  return `${dayName}، ${day} ${monthName} , ${year} - ${hours}:${minutes}`;
+}
+
+/**
+ * Generate barcode-like image (Data URL)
+ */
+export function generateBarcode(text: string, padding = 20): string {
+  if (typeof document === 'undefined') return '';
+
+  try {
+    const input = String(text || '');
+    const bytes = new TextEncoder().encode(input);
+
+    const bits: number[] = [];
+    for (const b of bytes) {
+      for (let i = 7; i >= 0; i--) {
+        bits.push((b >> i) & 1);
+      }
+      bits.push(0);
+    }
+
+    if (bits.length === 0) return '';
+
+    const segments: { bit: number; count: number }[] = [];
+    let curr = bits[0];
+    let cnt = 1;
+    for (let i = 1; i < bits.length; i++) {
+      if (bits[i] === curr) cnt++;
+      else {
+        segments.push({ bit: curr, count: cnt });
+        curr = bits[i];
+        cnt = 1;
+      }
+    }
+    segments.push({ bit: curr, count: cnt });
+
+    const unit = 1.6;
+    const width = Math.round(
+      segments.reduce((s, seg) => s + seg.count * unit, 0) + padding * 2
+    );
+    const height = 120;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(120, width);
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    let x = padding;
+    for (const seg of segments) {
+      const segWidth = Math.max(1, Math.round(seg.count * unit));
+      if (seg.bit === 1) {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(x, 0, segWidth, canvas.height);
+      }
+      x += segWidth;
+    }
+
+    return canvas.toDataURL();
+  } catch (e) {
+    console.error('Barcode generation error', e);
+    return '';
+  }
+}
+
+/**
+ * Generate QR Code image (Data URL)
+ */
+export async function generateQRCode(text: string): Promise<string> {
+  if (typeof document === 'undefined') return '';
+
+  try {
+    return await QRCode.toDataURL(text, {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: 250,
+      color: {
+        dark: '#000000',
+        light: '#ffffff',
+      },
+    });
+  } catch (err) {
+    console.error('QR Code generation error', err);
+    return '';
+  }
 }
 

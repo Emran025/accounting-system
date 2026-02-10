@@ -150,6 +150,10 @@ export const API_ENDPOINTS = {
             BASE: "/employee-assets",
             withId: (id: string | number) => `/employee-assets/${id}`,
         },
+        CONTRACTS: {
+            BASE: "/contracts",
+            withId: (id: string | number) => `/contracts/${id}`,
+        },
         RECRUITMENT: {
             REQUISITIONS: {
                 BASE: "/recruitment/requisitions",

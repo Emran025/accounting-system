@@ -7,26 +7,8 @@ import { fetchAPI } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
+import type { Workflow } from "../types";
 
-interface Workflow {
-  id: number;
-  employee_id: number;
-  employee?: {
-    full_name: string;
-    employee_code: string;
-  };
-  workflow_type: string;
-  status: string;
-  start_date: string;
-  target_completion_date?: string;
-  actual_completion_date?: string;
-  completion_percentage: number;
-  tasks?: Array<{
-    id: number;
-    task_name: string;
-    status: string;
-  }>;
-}
 
 const workflowTypeLabels: Record<string, string> = {
   onboarding: "توظيف",

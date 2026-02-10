@@ -7,20 +7,8 @@ import { fetchAPI } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
+import type { Schedule } from "../types";
 
-interface Schedule {
-  id: number;
-  schedule_name: string;
-  schedule_date: string;
-  department?: { name_ar: string };
-  status: string;
-  shifts?: Array<{
-    id: number;
-    employee?: { full_name: string };
-    shift_date: string;
-    hours: number;
-  }>;
-}
 
 const statusLabels: Record<string, string> = {
   draft: "مسودة",

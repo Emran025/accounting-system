@@ -1,17 +1,18 @@
 // React Icons - Using Lucide React
 import React from 'react';
-import { 
-    Mail,Plus, SquarePen, Trash2, Eye, Check, Printer, Box, Download, ShoppingCart, 
-    LogOut, X, CircleAlert, Home, Users, User, ChevronUp, ChevronDown, 
-    ChevronRight, Settings, DollarSign, Building2, Lock, Unlock, 
-    RefreshCw, Minus, History, Search, Clock, CircleCheck, List, 
+import {
+    Mail, Plus, SquarePen, Trash2, Eye, Check, Printer, Box, Download, ShoppingCart,
+    LogOut, X, CircleAlert, Home, Users, User, ChevronUp, ChevronDown,
+    ChevronRight, Settings, DollarSign, Building2, Lock, Unlock,
+    RefreshCw, Minus, History, Search, Clock, CircleCheck, List,
     ClipboardList, ChartBar, ChartLine, Wallet, Coins, HandHelping,
     TrendingUp, Receipt, CreditCard, Banknote, UserPlus, BookOpen,
     Network, FileSignature, Calendar, Timer, Scale, Activity,
     Repeat, Layers, Truck, HandCoins, ShoppingBag, PieChart,
     ShieldCheck, Landmark, BarChart3, UserCog, Bell, FileSearch,
     Tags, Ruler, Factory, Files, Hammer, Cpu, ClipboardCheck,
-    Briefcase, CheckSquare, Hourglass, LayoutDashboard, Save, Calculator
+    Briefcase, CheckSquare, Hourglass, LayoutDashboard, Save, Calculator,
+    FileText, FileCheck, Scroll
 } from 'lucide-react';
 
 interface IconProps {
@@ -101,6 +102,9 @@ export const icons = {
     "user-circle": (props: IconProps) => <User className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     "chevron-right": (props: IconProps) => <ChevronRight className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     "chevron-down": (props: IconProps) => <ChevronDown className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "file-contract": (props: IconProps) => <FileText className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "file-check": (props: IconProps) => <FileCheck className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "scroll": (props: IconProps) => <Scroll className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
 };
 
 export type IconName = keyof typeof icons;
