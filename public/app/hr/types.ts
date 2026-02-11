@@ -230,3 +230,217 @@ export interface Schedule {
     hours: number;
   }>;
 }
+
+// ── Travel & Expenses ──
+export interface TravelRequest {
+  id: number;
+  request_number: string;
+  employee_id: number;
+  employee?: { full_name: string };
+  destination: string;
+  purpose: string;
+  departure_date: string;
+  return_date: string;
+  estimated_cost?: number;
+  status: string;
+  approved_by?: number;
+  approved_at?: string;
+  rejection_reason?: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface TravelExpense {
+  id: number;
+  travel_request_id?: number;
+  travel_request?: TravelRequest;
+  employee_id: number;
+  employee?: { full_name: string };
+  expense_type: string;
+  expense_date: string;
+  amount: number;
+  currency: string;
+  exchange_rate?: number;
+  amount_in_base_currency?: number;
+  receipt_path?: string;
+  description?: string;
+  status: string;
+  is_duplicate?: boolean;
+  approved_by?: number;
+  notes?: string;
+  created_at?: string;
+}
+
+// ── Employee Loans ──
+export interface LoanRepayment {
+  id: number;
+  loan_id: number;
+  installment_number: number;
+  due_date: string;
+  amount: number;
+  principal: number;
+  interest: number;
+  status: string;
+  paid_date?: string;
+  payroll_cycle_id?: number;
+}
+
+export interface EmployeeLoan {
+  id: number;
+  loan_number: string;
+  employee_id: number;
+  employee?: { full_name: string };
+  loan_type: string;
+  loan_amount: number;
+  interest_rate: number;
+  installment_count: number;
+  monthly_installment: number;
+  remaining_balance: number;
+  start_date: string;
+  end_date: string;
+  auto_deduction: boolean;
+  status: string;
+  approved_by?: number;
+  notes?: string;
+  repayments?: LoanRepayment[];
+  created_at: string;
+}
+
+// ── Corporate Communications ──
+export interface CorporateAnnouncement {
+  id: number;
+  title: string;
+  content: string;
+  priority: string;
+  target_audience: string;
+  target_departments?: number[];
+  target_roles?: number[];
+  target_locations?: string[];
+  publish_date: string;
+  expiry_date?: string;
+  is_published: boolean;
+  created_by?: number;
+  created_at?: string;
+}
+
+export interface SurveyResponse {
+  id: number;
+  survey_id: number;
+  employee_id?: number;
+  responses: Record<string, any>;
+  submitted_at: string;
+}
+
+export interface PulseSurvey {
+  id: number;
+  survey_name: string;
+  description?: string;
+  survey_type: string;
+  questions: any[];
+  start_date: string;
+  end_date: string;
+  is_anonymous: boolean;
+  is_active: boolean;
+  target_audience: string;
+  target_departments?: number[];
+  target_roles?: number[];
+  created_by?: number;
+  responses?: SurveyResponse[];
+  created_at?: string;
+}
+
+// ── EHS (Environment, Health, Safety) ──
+export interface EhsIncident {
+  id: number;
+  incident_number: string;
+  employee_id?: number;
+  employee?: { full_name: string };
+  incident_type: string;
+  incident_date: string;
+  incident_time?: string;
+  location?: string;
+  description: string;
+  severity: string;
+  status: string;
+  immediate_action_taken?: string;
+  root_cause?: string;
+  preventive_measures?: string;
+  osha_reportable?: boolean;
+  reported_by?: number;
+  investigated_by?: number;
+  notes?: string;
+  created_at?: string;
+}
+
+export interface EmployeeHealthRecord {
+  id: number;
+  employee_id: number;
+  employee?: { full_name: string };
+  record_type: string;
+  record_date: string;
+  expiry_date?: string;
+  provider_name?: string;
+  results?: string;
+  file_path?: string;
+  notes?: string;
+}
+
+export interface PpeRecord {
+  id: number;
+  employee_id: number;
+  employee?: { full_name: string };
+  ppe_item: string;
+  ppe_type: string;
+  issue_date: string;
+  expiry_date?: string;
+  status: string;
+  notes?: string;
+}
+
+// ── Wellness ──
+export interface WellnessProgram {
+  id: number;
+  program_name: string;
+  description?: string;
+  program_type: string;
+  start_date: string;
+  end_date: string;
+  target_metrics?: any;
+  is_active: boolean;
+  created_by?: number;
+  notes?: string;
+  participations?: WellnessParticipation[];
+  created_at?: string;
+}
+
+export interface WellnessParticipation {
+  id: number;
+  program_id: number;
+  program?: WellnessProgram;
+  employee_id: number;
+  employee?: { full_name: string };
+  enrollment_date: string;
+  status: string;
+  points: number;
+  metrics_data?: any;
+  notes?: string;
+}
+
+// ── Post-Payroll Integrations ──
+export interface PostPayrollIntegration {
+  id: number;
+  payroll_cycle_id: number;
+  payroll_cycle?: { id: number; cycle_name: string; status: string };
+  integration_type: string;
+  file_format?: string;
+  total_amount: number;
+  transaction_count: number;
+  status: string;
+  file_path?: string;
+  processed_by?: number;
+  processed_at?: string;
+  reconciled_at?: string;
+  error_message?: string;
+  notes?: string;
+  created_at?: string;
+}

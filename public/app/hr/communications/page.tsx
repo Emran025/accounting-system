@@ -1,9 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { getStoredUser } from "@/lib/auth";
-import { useState, useEffect } from "react";
-import { getIcon } from "@/lib/icons";
+import { CorporateCommunications } from "./CorporateCommunications";
 
 export default function CommunicationsPage() {
     const [user, setUser] = useState<any>(null);
@@ -15,15 +15,7 @@ export default function CommunicationsPage() {
     return (
         <ModuleLayout groupKey="hr" requiredModule="communications">
             <PageHeader title="الاتصالات المؤسسية" user={user} showDate={true} />
-            <div className="sales-card animate-fade">
-                <div className="text-center py-12">
-                    <div className="text-6xl mb-4" style={{ color: 'var(--primary-color)', opacity: 0.5 }}>
-                        <i className="fas fa-bullhorn"></i>
-                    </div>
-                    <h2 className="text-2xl font-bold mb-2">هذه الصفحة قيد التطوير</h2>
-                    <p className="text-muted">نحن نعمل بجد لإحضار ميزة الاتصالات المؤسسية إليك قريباً.</p>
-                </div>
-            </div>
+            <CorporateCommunications />
         </ModuleLayout>
     );
 }

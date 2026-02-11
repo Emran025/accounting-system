@@ -1,11 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { getStoredUser } from "@/lib/auth";
-import { useState, useEffect } from "react";
-import { getIcon } from "@/lib/icons";
+import { EhsModule } from "./EhsModule";
 
-export default function EHSPage() {
+export default function EhsPage() {
     const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
@@ -14,16 +14,8 @@ export default function EHSPage() {
 
     return (
         <ModuleLayout groupKey="hr" requiredModule="ehs">
-            <PageHeader title="الصحة والسلامة" user={user} showDate={true} />
-            <div className="sales-card animate-fade">
-                <div className="text-center py-12">
-                    <div className="text-6xl mb-4" style={{ color: 'var(--primary-color)', opacity: 0.5 }}>
-                        <i className="fas fa-hard-hat"></i>
-                    </div>
-                    <h2 className="text-2xl font-bold mb-2">هذه الصفحة قيد التطوير</h2>
-                    <p className="text-muted">نحن نعمل بجد لإحضار ميزة الصحة والسلامة (EHS) إليك قريباً.</p>
-                </div>
-            </div>
+            <PageHeader title="البيئة والصحة والسلامة" user={user} showDate={true} />
+            <EhsModule />
         </ModuleLayout>
     );
 }
