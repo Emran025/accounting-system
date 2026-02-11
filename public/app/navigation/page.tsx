@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { NavigationCard, NavigationGrid, NavigationSidebar } from "@/components/navigation";
 import { navigationGroups, getNavigationGroup } from "@/lib/navigation-config";
 import { checkAuth, Permission, canAccess } from "@/lib/auth";
-import { initSystemSettings } from "@/lib/api";
+import { initSystemSettings } from "@/lib/settings";
 
 export default function NavigationPage() {
   const router = useRouter();

@@ -1177,7 +1177,6 @@ tbody tr:hover {
 /* Login */
 .login-container {
   min-height: 100vh;
-  display: flex;
   align-items: center;
   justify-content: center;
   background: radial-gradient(circle at top right, #fcf6f3, #ece0d9);
@@ -3474,7 +3473,6 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
 /* ===== Login Page ===== */
 .login-container {
   min-height: 100vh;
-  display: flex;
   align-items: center;
   justify-content: center;
   background: var(--bg-gradient);

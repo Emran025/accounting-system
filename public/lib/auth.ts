@@ -2,6 +2,7 @@
 
 import { fetchAPI } from "./api";
 import { API_ENDPOINTS } from "./endpoints";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 /**
  * Represents a user in the system.
@@ -158,89 +159,52 @@ export function clearAuth(): void {
 /**
  * Validates the current session with the backend.
  * Synchronizes local authentication state with the server's response.
+ * Delegated to useAuthStore.
  * 
  * @returns {Promise<AuthState>} Updated authentication state
  */
 export async function checkAuth(): Promise<AuthState> {
-  try {
-    const response = await fetchAPI(API_ENDPOINTS.AUTH.CHECK);
+  const store = useAuthStore.getState();
+  await store.checkAuth();
+  const { user, permissions, isAuthenticated } = store;
 
-    if (response.authenticated && response.user) {
-      const permissions = Array.isArray(response.permissions) ? response.permissions : [];
-      storeAuth(response.user as User, permissions, response.token as string);
-
-      return {
-        isAuthenticated: true,
-        user: response.user as User,
-        permissions,
-      };
-    }
-
-    clearAuth();
-    return {
-      isAuthenticated: false,
-      user: null,
-      permissions: [],
-    };
-  } catch {
-    clearAuth();
-    return {
-      isAuthenticated: false,
-      user: null,
-      permissions: [],
-    };
-  }
+  return {
+    isAuthenticated,
+    user,
+    permissions
+  };
 }
 
 /**
  * Login user
+ * Delegated to useAuthStore.
  */
 export async function login(
   username: string,
   password: string
 ): Promise<{ success: boolean; error?: string; user?: User }> {
-  try {
-    const response = await fetchAPI(API_ENDPOINTS.AUTH.LOGIN, {
-      method: "POST",
-      body: JSON.stringify({ username, password }),
-    });
+  const store = useAuthStore.getState();
+  const result = await store.login(username, password);
 
-    if (response.success && response.user) {
-      const permissions = Array.isArray(response.permissions) ? response.permissions : [];
-      storeAuth(response.user as User, permissions, response.token as string);
-
-      return {
-        success: true,
-        user: response.user as User,
-      };
-    }
-
+  if (result.success) {
     return {
-      success: false,
-      error: response.message || "فشل تسجيل الدخول",
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "حدث خطأ في الاتصال",
+      success: true,
+      user: store.user || undefined
     };
   }
+
+  return {
+    success: false,
+    error: result.error
+  };
 }
 
 /**
  * Logout user
+ * Delegated to useAuthStore.
  */
 export async function logout(): Promise<void> {
-  try {
-    await fetchAPI(API_ENDPOINTS.AUTH.LOGOUT, { method: "POST" });
-  } catch {
-    // Ignore errors on logout
-  } finally {
-    clearAuth();
-    if (typeof window !== "undefined") {
-      window.location.href = "/auth/login";
-    }
-  }
+  await useAuthStore.getState().logout();
 }
 
 /**

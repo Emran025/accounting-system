@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { fetchAPI, getSetting } from "@/lib/api";
+import { fetchAPI } from "@/lib/api";
+import { getSetting } from "@/lib/settings";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showToast, Dialog } from "@/components/ui";
 import { getIcon } from "@/lib/icons";

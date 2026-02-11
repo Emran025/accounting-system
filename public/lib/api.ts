@@ -124,37 +124,6 @@ export async function fetchAPI(
   }
 }
 
-/**
- * Global settings cache for the application
- */
-let systemSettings: any = null;
 
-/**
- * Fetches and caches system-wide settings from the server.
- * This should be ideally called during the application's initialization phase.
- * 
- * @returns Promise resolving to the settings object or null if failed
- */
-export async function initSystemSettings() {
-  if (systemSettings) return systemSettings;
-  try {
-    const result = await fetchAPI(API_ENDPOINTS.SYSTEM.SETTINGS.INDEX);
-    if (result.success && result.settings) {
-      systemSettings = result.settings;
-      return systemSettings;
-    }
-  } catch (e) {
-    console.error("Failed to initialize system settings", e);
-  }
-  return null;
-}
-
-/**
- * Get a setting value by key
- */
-export function getSetting(key: string, defaultValue: any = null): any {
-  if (!systemSettings) return defaultValue;
-  return systemSettings[key] !== undefined ? systemSettings[key] : defaultValue;
-}
 
 

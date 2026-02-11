@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getIcon } from "@/lib/icons";
-import { Permission, getSidebarLinks, logout } from "@/lib/auth";
+import { Permission, getSidebarLinks } from "@/lib/auth";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useUIStore } from "@/stores/useUIStore";
 import { FullLogo } from "@/components/ui/Logo";
 
 interface SidebarProps {
@@ -13,21 +15,24 @@ interface SidebarProps {
 }
 
 export function Sidebar({ permissions, onCollapsedChange }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // Use UI Store for sidebar state
+  const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
+  const logoutAction = useAuthStore(state => state.logout);
+
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
 
   const links = getSidebarLinks(permissions);
 
   useEffect(() => {
-    // Check for saved collapsed state - only irrelevant if initial load is desktop
-    if (window.innerWidth > 1024) {
-      const saved = localStorage.getItem("sidebarCollapsed");
-      if (saved === "true") {
-        setIsCollapsed(true);
-        onCollapsedChange?.(true);
-        document.body.classList.add("sidebar-is-collapsed");
-      }
+    // Sync store state with prop callback (legacy support)
+    onCollapsedChange?.(sidebarCollapsed);
+
+    // Apply body class based on store state
+    if (sidebarCollapsed) {
+      document.body.classList.add("sidebar-is-collapsed");
+    } else {
+      document.body.classList.remove("sidebar-is-collapsed");
     }
 
     // Handle Resize Events to reset states
@@ -35,49 +40,31 @@ export function Sidebar({ permissions, onCollapsedChange }: SidebarProps) {
       if (window.innerWidth > 1024) {
         // Desktop: Reset mobile states
         setIsMobileOpen(false);
-        // Restore desktop state from storage if needed, or just keep current React state
-        const saved = localStorage.getItem("sidebarCollapsed");
-        if (saved === "true") {
-            document.body.classList.add("sidebar-is-collapsed");
-        } else {
-            document.body.classList.remove("sidebar-is-collapsed");
-        }
       } else {
         // Mobile: Reset desktop collapsed states so full menu shows
-        // Don't modify isCollapsed state (React), but do remove body class
+        // We don't change store here to preserve preference, but we remove the class for mobile view
         document.body.classList.remove("sidebar-is-collapsed");
       }
     };
 
     window.addEventListener("resize", handleResize);
-    // Initial check
     handleResize();
 
     return () => window.removeEventListener("resize", handleResize);
-  }, [onCollapsedChange]);
+  }, [sidebarCollapsed, onCollapsedChange]);
 
   const handleToggle = () => {
     if (window.innerWidth <= 1024) {
-        // Mobile Toggle
-        setIsMobileOpen(!isMobileOpen);
+      // Mobile Toggle
+      setIsMobileOpen(!isMobileOpen);
     } else {
-        // Desktop Collapse Toggle
-        const newState = !isCollapsed;
-        setIsCollapsed(newState);
-        localStorage.setItem("sidebarCollapsed", String(newState));
-        onCollapsedChange?.(newState);
-        
-        // Update body class for global styling
-        if (newState) {
-          document.body.classList.add("sidebar-is-collapsed");
-        } else {
-          document.body.classList.remove("sidebar-is-collapsed");
-        }
+      // Desktop Collapse Toggle
+      setSidebarCollapsed(!sidebarCollapsed);
     }
   };
 
   const handleLogout = async () => {
-    await logout();
+    await logoutAction();
   };
 
   const closeMobileSidebar = () => {
@@ -96,14 +83,14 @@ export function Sidebar({ permissions, onCollapsedChange }: SidebarProps) {
       <button
         className={`sidebar-toggle-btn ${isMobileOpen ? "mobile-open" : ""}`}
         onClick={handleToggle}
-        aria-label={isCollapsed ? "توسيع القائمة" : "طي القائمة"}
+        aria-label={sidebarCollapsed ? "توسيع القائمة" : "طي القائمة"}
       >
         {getIcon("chevronRight")}
       </button>
 
       {/* Sidebar */}
-      <aside className={`sidebar ${isCollapsed ? "collapsed" : ""} ${isMobileOpen ? "mobile-visible" : ""}`}>
-        <FullLogo isCollapsed={isCollapsed} />
+      <aside className={`sidebar ${sidebarCollapsed ? "collapsed" : ""} ${isMobileOpen ? "mobile-visible" : ""}`}>
+        <FullLogo isCollapsed={sidebarCollapsed} />
         <nav className="sidebar-nav">
           {links.map((link) => (
             <Link

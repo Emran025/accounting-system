@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, ReactNode } from "react";
+import { useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { ToastContainer } from "@/components/ui";
-import { checkAuth, Permission, User } from "@/lib/auth";
-import { initSystemSettings } from "@/lib/api";
+import { initSystemSettings } from "@/lib/settings";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useUIStore } from "@/stores/useUIStore";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -19,65 +20,71 @@ export function MainLayout({
   requiredAction = "view",
 }: MainLayoutProps) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [isContentExpanded, setIsContentExpanded] = useState(false);
+
+  // Auth Store
+  const {
+    user,
+    permissions,
+    isLoading,
+    checkAuth,
+    isAuthenticated
+  } = useAuthStore();
+
+  // UI Store
+  const {
+    sidebarCollapsed,
+    setSidebarCollapsed
+  } = useUIStore();
 
   useEffect(() => {
     const verifyAuth = async () => {
       // Initialize settings first so they are available for all components
       await initSystemSettings();
-      
-      const authState = await checkAuth();
 
-      if (!authState.isAuthenticated) {
+      const isAuth = await checkAuth();
+
+      if (!isAuth) {
         router.push("/auth/login");
         return;
       }
 
       // Check module access if required
-      if (requiredModule && Array.isArray(authState.permissions)) {
-        const hasAccess = authState.permissions.some(
-          (p) =>
-            p.module === requiredModule &&
-            (requiredAction === "view"
-              ? p.can_view
-              : requiredAction === "create"
-              ? p.can_create
-              : requiredAction === "edit"
-              ? p.can_edit
-              : p.can_delete)
-        );
+      if (requiredModule) {
+        // We get fresh permissions from store (checkAuth updates them)
+        const currentPermissions = useAuthStore.getState().permissions;
 
-        if (!hasAccess) {
+        if (Array.isArray(currentPermissions)) {
+          const hasAccess = currentPermissions.some(
+            (p) =>
+              p.module === requiredModule &&
+              (requiredAction === "view"
+                ? p.can_view
+                : requiredAction === "create"
+                  ? p.can_create
+                  : requiredAction === "edit"
+                    ? p.can_edit
+                    : p.can_delete)
+          );
+
+          if (!hasAccess) {
+            router.push("/system/dashboard");
+            return;
+          }
+        } else {
+          // If required but permissions is not an array, deny access
           router.push("/system/dashboard");
           return;
         }
-      } else if (requiredModule) {
-        // If required but permissions is not an array, deny access
-        router.push("/system/dashboard");
-        return;
       }
 
-      setUser(authState.user);
-      setPermissions(authState.permissions);
-      setIsLoading(false);
-
-      // Check saved sidebar state
-      const savedCollapsed = localStorage.getItem("sidebarCollapsed");
-      if (savedCollapsed === "true") {
-        setIsContentExpanded(true);
+      // Sidebar state is handled by useUIStore (persisted automatically)
+      if (useUIStore.getState().sidebarCollapsed) {
         document.body.classList.add("sidebar-is-collapsed");
       }
     };
 
     verifyAuth();
-  }, [router, requiredModule, requiredAction]);
-
-  const handleSidebarCollapse = (collapsed: boolean) => {
-    setIsContentExpanded(collapsed);
-  };
+  }, [router, requiredModule, requiredAction, checkAuth]);
 
   if (isLoading) {
     return (
@@ -119,9 +126,9 @@ export function MainLayout({
     <div className="main-container">
       <Sidebar
         permissions={permissions}
-        onCollapsedChange={handleSidebarCollapse}
+        onCollapsedChange={setSidebarCollapsed}
       />
-      <main className={`content ${isContentExpanded ? "expanded" : ""}`}>
+      <main className={`content ${sidebarCollapsed ? "expanded" : ""}`}>
         {children}
       </main>
       <ToastContainer />
@@ -129,20 +136,12 @@ export function MainLayout({
   );
 }
 
-// Export a context for accessing user/permissions in child components
-import { createContext, useContext } from "react";
-
-interface AuthContextType {
-  user: User | null;
-  permissions: Permission[];
-}
-
-export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  permissions: [],
-});
-
+// Backward compatibility hook - proxies to useAuthStore
 export function useAuth() {
-  return useContext(AuthContext);
+  const store = useAuthStore();
+  return {
+    user: store.user,
+    permissions: store.permissions
+  };
 }
 
