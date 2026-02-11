@@ -7,26 +7,7 @@ import { fetchAPI } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { getIcon } from "@/lib/icons";
-
-interface EmployeeAsset {
-  id: number;
-  employee_id: number;
-  employee?: {
-    full_name: string;
-    employee_code: string;
-  };
-  asset_code: string;
-  asset_name: string;
-  asset_type: string;
-  serial_number?: string;
-  qr_code?: string;
-  allocation_date: string;
-  return_date?: string;
-  status: string;
-  next_maintenance_date?: string;
-  notes?: string;
-}
+import { EmployeeAsset } from "@/app/hr/types";
 
 const assetTypeLabels: Record<string, string> = {
   laptop: "لابتوب",

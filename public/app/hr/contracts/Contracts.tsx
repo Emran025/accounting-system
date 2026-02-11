@@ -7,24 +7,7 @@ import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { getIcon } from "@/lib/icons";
-
-interface EmployeeContract {
-    id: number;
-    employee_id: number;
-    contract_number: string;
-    contract_start_date: string;
-    contract_end_date?: string;
-    probation_end_date?: string;
-    base_salary: number;
-    contract_type: 'full_time' | 'part_time' | 'contract' | 'freelance';
-    is_current: boolean;
-    employee?: {
-        full_name: string;
-        employee_code: string;
-    };
-    notes?: string;
-}
+import { EmployeeContract } from "@/app/hr/types";
 
 export function Contracts() {
     const router = useRouter();

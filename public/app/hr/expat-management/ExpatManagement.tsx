@@ -7,32 +7,7 @@ import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { getIcon } from "@/lib/icons";
-
-interface ExpatRecord {
-  id: number;
-  employee_id: number;
-  employee?: {
-    full_name: string;
-    employee_code: string;
-  };
-  passport_number?: string;
-  passport_expiry?: string;
-  visa_number?: string;
-  visa_expiry?: string;
-  work_permit_number?: string;
-  work_permit_expiry?: string;
-  residency_number?: string;
-  residency_expiry?: string;
-  host_country?: string;
-  home_country?: string;
-  cost_of_living_adjustment: number;
-  housing_allowance: number;
-  relocation_package: number;
-  tax_equalization: boolean;
-  repatriation_date?: string;
-  notes?: string;
-}
+import { ExpatRecord } from "@/app/hr/types";
 
 export function ExpatManagement() {
   const router = useRouter();

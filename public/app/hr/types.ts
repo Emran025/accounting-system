@@ -485,3 +485,64 @@ export interface PostPayrollIntegration {
   notes?: string;
   created_at?: string;
 }
+
+export interface EmployeeContract {
+  id: number;
+  employee_id: number;
+  contract_number: string;
+  contract_start_date: string;
+  contract_end_date?: string;
+  probation_end_date?: string;
+  base_salary: number;
+  contract_type: 'full_time' | 'part_time' | 'contract' | 'freelance';
+  is_current: boolean;
+  employee?: {
+    full_name: string;
+    employee_code: string;
+  };
+  notes?: string;
+}
+
+export interface EmployeeAsset {
+  id: number;
+  employee_id: number;
+  employee?: {
+    full_name: string;
+    employee_code: string;
+  };
+  asset_code: string;
+  asset_name: string;
+  asset_type: string;
+  serial_number?: string;
+  qr_code?: string;
+  allocation_date: string;
+  return_date?: string;
+  status: string;
+  next_maintenance_date?: string;
+  notes?: string;
+}
+
+export interface ExpatRecord {
+  id: number;
+  employee_id: number;
+  employee?: {
+    full_name: string;
+    employee_code: string;
+  };
+  passport_number?: string;
+  passport_expiry?: string;
+  visa_number?: string;
+  visa_expiry?: string;
+  work_permit_number?: string;
+  work_permit_expiry?: string;
+  residency_number?: string;
+  residency_expiry?: string;
+  host_country?: string;
+  home_country?: string;
+  cost_of_living_adjustment: number;
+  housing_allowance: number;
+  relocation_package: number;
+  tax_equalization: boolean;
+  repatriation_date?: string;
+  notes?: string;
+}
