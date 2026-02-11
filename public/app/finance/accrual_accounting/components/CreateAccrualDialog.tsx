@@ -1,9 +1,12 @@
 
 import { useState } from "react";
-import { Dialog, showAlert } from "@/components/ui";
+import { Dialog, showAlert, Button, NumberInput } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { parseNumber } from "@/lib/utils";
+import { TextInput } from "@/components/ui/TextInput";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/Textarea";
 
 interface AccrualDialogProps {
   isOpen: boolean;
@@ -112,12 +115,12 @@ export function CreateAccrualDialog({ isOpen, onClose, onSuccess }: AccrualDialo
       }
       footer={
         <>
-          <button className="btn btn-secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose}>
             إلغاء
-          </button>
-          <button className="btn btn-primary" onClick={saveAccrual}>
+          </Button>
+          <Button variant="primary" onClick={saveAccrual}>
             حفظ
-          </button>
+          </Button>
         </>
       }
     >
@@ -126,185 +129,161 @@ export function CreateAccrualDialog({ isOpen, onClose, onSuccess }: AccrualDialo
           e.preventDefault();
           saveAccrual();
         }}
+        className="space-y-4"
       >
-        <div className="form-group">
-          <label htmlFor="accrual-type-select">نوع القيد *</label>
-          <select
-            id="accrual-type-select"
-            value={accrualType}
-            onChange={(e) =>
-              setAccrualType(e.target.value as typeof accrualType)
-            }
-          >
-            <option value="payroll">كشف مرتبات</option>
-            <option value="prepayment">مدفوعات مقدمة</option>
-            <option value="unearned">إيرادات غير مكتسبة</option>
-          </select>
-        </div>
+        <Select
+          label="نوع القيد *"
+          id="accrual-type-select"
+          value={accrualType}
+          onChange={(e) =>
+            setAccrualType(e.target.value as typeof accrualType)
+          }
+          options={[
+            { value: "payroll", label: "كشف مرتبات" },
+            { value: "prepayment", label: "مدفوعات مقدمة" },
+            { value: "unearned", label: "إيرادات غير مكتسبة" },
+          ]}
+        />
 
         {/* Payroll Fields */}
         {accrualType === "payroll" && (
           <>
-            <div className="form-group">
-              <label htmlFor="payroll-date">تاريخ الراتب *</label>
-              <input
-                type="date"
-                id="payroll-date"
-                value={payrollDate}
-                onChange={(e) => setPayrollDate(e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="gross-pay">إجمالي الراتب *</label>
-              <input
-                type="number"
+            <TextInput
+              type="date"
+              label="تاريخ الراتب *"
+              id="payroll-date"
+              value={payrollDate}
+              onChange={(e) => setPayrollDate(e.target.value)}
+              required
+            />
+            <div className="form-row">
+              <NumberInput
+                label="إجمالي الراتب *"
                 id="gross-pay"
                 value={grossPay}
-                onChange={(e) => setGrossPay(e.target.value)}
-                step="0.01"
-                min="0"
+                onChange={(val) => setGrossPay(val)}
+                step={0.01}
+                min={0}
                 required
+                className="flex-1"
               />
-            </div>
-            <div className="form-group">
-              <label htmlFor="deductions">الخصومات</label>
-              <input
-                type="number"
+              <NumberInput
+                label="الخصومات"
                 id="deductions"
                 value={deductions}
-                onChange={(e) => setDeductions(e.target.value)}
-                step="0.01"
-                min="0"
+                onChange={(val) => setDeductions(val)}
+                step={0.01}
+                min={0}
+                className="flex-1"
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="payroll-description">الوصف</label>
-              <textarea
-                id="payroll-description"
-                value={payrollDescription}
-                onChange={(e) => setPayrollDescription(e.target.value)}
-                rows={2}
-              />
-            </div>
+            <Textarea
+              label="الوصف"
+              id="payroll-description"
+              value={payrollDescription}
+              onChange={(e) => setPayrollDescription(e.target.value)}
+              rows={2}
+            />
           </>
         )}
 
         {/* Prepayment Fields */}
         {accrualType === "prepayment" && (
           <>
-            <div className="form-group">
-              <label htmlFor="prepayment-date">تاريخ الدفع *</label>
-              <input
-                type="date"
-                id="prepayment-date"
-                value={prepaymentDate}
-                onChange={(e) => setPrepaymentDate(e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="prepayment-amount">المبلغ الإجمالي *</label>
-              <input
-                type="number"
+            <TextInput
+              type="date"
+              label="تاريخ الدفع *"
+              id="prepayment-date"
+              value={prepaymentDate}
+              onChange={(e) => setPrepaymentDate(e.target.value)}
+              required
+            />
+            <div className="form-row">
+              <NumberInput
+                label="المبلغ الإجمالي *"
                 id="prepayment-amount"
                 value={prepaymentAmount}
-                onChange={(e) => setPrepaymentAmount(e.target.value)}
-                step="0.01"
-                min="0"
+                onChange={(val) => setPrepaymentAmount(val)}
+                step={0.01}
+                min={0}
                 required
+                className="flex-1"
               />
-            </div>
-            <div className="form-group">
-              <label htmlFor="prepayment-months">عدد الأشهر *</label>
-              <input
-                type="number"
+              <NumberInput
+                label="عدد الأشهر *"
                 id="prepayment-months"
                 value={prepaymentMonths}
-                onChange={(e) => setPrepaymentMonths(e.target.value)}
-                min="1"
+                onChange={(val) => setPrepaymentMonths(val)}
+                min={1}
                 required
+                className="flex-1"
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="prepayment-expense-account">حساب المصروف</label>
-              <input
-                type="text"
-                id="prepayment-expense-account"
-                value={prepaymentExpenseAccount}
-                onChange={(e) => setPrepaymentExpenseAccount(e.target.value)}
-                placeholder="رمز الحساب (اختياري)"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="prepayment-description">الوصف *</label>
-              <textarea
-                id="prepayment-description"
-                value={prepaymentDescription}
-                onChange={(e) => setPrepaymentDescription(e.target.value)}
-                rows={2}
-                required
-              />
-            </div>
+            <TextInput
+              label="حساب المصروف"
+              id="prepayment-expense-account"
+              value={prepaymentExpenseAccount}
+              onChange={(e) => setPrepaymentExpenseAccount(e.target.value)}
+              placeholder="رمز الحساب (اختياري)"
+            />
+            <Textarea
+              label="الوصف *"
+              id="prepayment-description"
+              value={prepaymentDescription}
+              onChange={(e) => setPrepaymentDescription(e.target.value)}
+              rows={2}
+              required
+            />
           </>
         )}
 
         {/* Unearned Revenue Fields */}
         {accrualType === "unearned" && (
           <>
-            <div className="form-group">
-              <label htmlFor="unearned-date">تاريخ الاستلام *</label>
-              <input
-                type="date"
-                id="unearned-date"
-                value={unearnedDate}
-                onChange={(e) => setUnearnedDate(e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="unearned-amount">المبلغ الإجمالي *</label>
-              <input
-                type="number"
+            <TextInput
+              type="date"
+              label="تاريخ الاستلام *"
+              id="unearned-date"
+              value={unearnedDate}
+              onChange={(e) => setUnearnedDate(e.target.value)}
+              required
+            />
+            <div className="form-row">
+              <NumberInput
+                label="المبلغ الإجمالي *"
                 id="unearned-amount"
                 value={unearnedAmount}
-                onChange={(e) => setUnearnedAmount(e.target.value)}
-                step="0.01"
-                min="0"
+                onChange={(val) => setUnearnedAmount(val)}
+                step={0.01}
+                min={0}
                 required
+                className="flex-1"
               />
-            </div>
-            <div className="form-group">
-              <label htmlFor="unearned-months">عدد الأشهر *</label>
-              <input
-                type="number"
+              <NumberInput
+                label="عدد الأشهر *"
                 id="unearned-months"
                 value={unearnedMonths}
-                onChange={(e) => setUnearnedMonths(e.target.value)}
-                min="1"
+                onChange={(val) => setUnearnedMonths(val)}
+                min={1}
                 required
+                className="flex-1"
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="unearned-revenue-account">حساب الإيراد</label>
-              <input
-                type="text"
-                id="unearned-revenue-account"
-                value={unearnedRevenueAccount}
-                onChange={(e) => setUnearnedRevenueAccount(e.target.value)}
-                placeholder="رمز الحساب (اختياري)"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="unearned-description">الوصف *</label>
-              <textarea
-                id="unearned-description"
-                value={unearnedDescription}
-                onChange={(e) => setUnearnedDescription(e.target.value)}
-                rows={2}
-                required
-              />
-            </div>
+            <TextInput
+              label="حساب الإيراد"
+              id="unearned-revenue-account"
+              value={unearnedRevenueAccount}
+              onChange={(e) => setUnearnedRevenueAccount(e.target.value)}
+              placeholder="رمز الحساب (اختياري)"
+            />
+            <Textarea
+              label="الوصف *"
+              id="unearned-description"
+              value={unearnedDescription}
+              onChange={(e) => setUnearnedDescription(e.target.value)}
+              rows={2}
+              required
+            />
           </>
         )}
       </form>

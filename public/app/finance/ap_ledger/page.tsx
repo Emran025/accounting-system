@@ -3,7 +3,10 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions, NumberInput } from "@/components/ui";
+import { TextInput } from "@/components/ui/TextInput";
+import { Textarea } from "@/components/ui/Textarea";
+import { Select } from "@/components/ui/select";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
@@ -260,19 +263,15 @@ function APLedgerPageContent() {
           </FilterActions>
         }
       >
-        <div className="form-group">
-          <label>المبلغ *</label>
-          <input
-            type="number"
+        <div className="space-y-4">
+          <NumberInput
+            label="المبلغ *"
             value={transactionAmount}
-            onChange={(e) => setTransactionAmount(e.target.value)}
+            onChange={(val) => setTransactionAmount(val)}
             placeholder="0.00"
-            autoFocus
           />
-        </div>
-        <div className="form-group">
-          <label>الوصف / رقم السند</label>
-          <textarea
+          <Textarea
+            label="الوصف / رقم السند"
             value={transactionDescription}
             onChange={(e) => setTransactionDescription(e.target.value)}
             rows={3}

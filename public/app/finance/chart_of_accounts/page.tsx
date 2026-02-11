@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, SearchableSelect } from "@/components/ui";
+import { ActionButtons, Table, Dialog, ConfirmDialog, showToast, Column, SearchableSelect, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency } from "@/lib/utils";
@@ -227,18 +227,24 @@ export default function ChartOfAccountsPage() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => (
-        <div className="action-buttons">
-          {canAccess(permissions, "chart_of_accounts", "edit") && (
-            <button className="icon-btn edit" onClick={() => openEditDialog(item)} title="تعديل">
-              {getIcon("edit")}
-            </button>
-          )}
-          {canAccess(permissions, "chart_of_accounts", "delete") && (
-            <button className="icon-btn delete" onClick={() => confirmDelete(item.id)} title="حذف">
-              {getIcon("trash")}
-            </button>
-          )}
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "edit",
+              title: "تعديل",
+              variant: "edit",
+              onClick: () => openEditDialog(item),
+              hidden: !canAccess(permissions, "chart_of_accounts", "edit")
+            },
+            {
+              icon: "trash",
+              title: "حذف",
+              variant: "delete",
+              onClick: () => confirmDelete(item.id),
+              hidden: !canAccess(permissions, "chart_of_accounts", "delete")
+            }
+          ]}
+        />
       ),
     },
   ];
@@ -252,18 +258,24 @@ export default function ChartOfAccountsPage() {
           <SearchableSelect
             placeholder="بحث بالرقم أو الاسم..."
             value={searchTerm}
-            onSearch={() => { handleSearch }}
-            onChange={() => { handleSearch }}
-            options={[]}
+            onSearch={(term) => {
+              setSearchTerm(term);
+              loadAccounts(term);
+            }}
+            onChange={(val) => {
+              const term = val?.toString() || "";
+              setSearchTerm(term);
+              loadAccounts(term);
+            }}
+            options={accounts.map(acc => ({ value: acc.id, label: `${acc.code} - ${acc.name}` }))}
             className="header-search-bar"
           />
         }
         actions={
           canAccess(permissions, "chart_of_accounts", "create") && (
-            <button className="btn btn-primary" onClick={openAddDialog}>
-              {getIcon("plus")}
+            <Button variant="primary" icon="plus" onClick={openAddDialog}>
               إضافة حساب
-            </button>
+            </Button>
           )
         }
       />
@@ -293,12 +305,12 @@ export default function ChartOfAccountsPage() {
         title={selectedAccount ? "تعديل الحساب" : "إضافة حساب جديد"}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setFormDialog(false)}>
+            <Button variant="secondary" onClick={() => setFormDialog(false)}>
               إلغاء
-            </button>
-            <button className="btn btn-primary" onClick={handleSubmit}>
+            </Button>
+            <Button variant="primary" onClick={handleSubmit}>
               {selectedAccount ? "تحديث" : "إضافة"}
-            </button>
+            </Button>
           </>
         }
       >

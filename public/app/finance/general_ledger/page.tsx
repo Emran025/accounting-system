@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
 import { Table, showToast, Column, TabNavigation, FilterSection, FilterGroup, DateRangePicker, FilterActions, Button } from "@/components/ui";
+import { Select } from "@/components/ui/select";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -370,19 +371,15 @@ export default function GeneralLedgerPage() {
         <div className={`tab-content ${activeTab === "history" ? "active" : ""}`}>
           <div className="sales-card">
             <FilterSection>
-              <FilterGroup label="الحساب">
-                <select
-                  value={selectedAccountId}
-                  onChange={(e) => setSelectedAccountId(e.target.value)}
-                >
-                  <option value="">اختر حساب</option>
-                  {accounts.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.code} - {acc.name}
-                    </option>
-                  ))}
-                </select>
-              </FilterGroup>
+              <Select
+                label="الحساب"
+                value={selectedAccountId}
+                onChange={(e) => setSelectedAccountId(e.target.value)}
+                options={[
+                  { value: "", label: "اختر حساب" },
+                  ...accounts.map(acc => ({ value: acc.id, label: `${acc.code} - ${acc.name}` }))
+                ]}
+              />
               <DateRangePicker
                 label="الفترة"
                 startDate={historyDateFrom}

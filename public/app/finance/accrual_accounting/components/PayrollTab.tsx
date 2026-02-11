@@ -2,9 +2,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { showAlert, Table, Column } from "@/components/ui";
+import { showAlert, Table, Column, ActionButtons } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { getIcon } from "@/lib/icons";
 import { Payroll } from "../types";
 
 export function PayrollTab() {
@@ -75,11 +74,16 @@ export function PayrollTab() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => (
-        <div className="action-buttons">
-          <button className="icon-btn view" title="عرض">
-            {getIcon("eye")}
-          </button>
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "eye",
+              title: "عرض",
+              variant: "view",
+              onClick: () => console.log("View payroll", item.id)
+            }
+          ]}
+        />
       ),
     },
   ];

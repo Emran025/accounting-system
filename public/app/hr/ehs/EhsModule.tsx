@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, Button, showToast, TabNavigation } from "@/components/ui";
+import { ActionButtons, Table, Column, Dialog, Button, showToast, TabNavigation, Label, SearchableSelect } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/select";
-import { SearchableSelect } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate } from "@/lib/utils";
+import { PageSubHeader } from "@/components/layout";
 import { getIcon } from "@/lib/icons";
 import type { Employee, EhsIncident, EmployeeHealthRecord, PpeRecord } from "../types";
 
@@ -108,11 +108,30 @@ export function EhsModule() {
         { key: "status", header: "الحالة", dataLabel: "الحالة", render: (i) => <span className={`badge ${incidentStatusBadges[i.status]}`}>{incidentStatusLabels[i.status]}</span> },
         {
             key: "id", header: "إجراءات", dataLabel: "إجراءات", render: (i) => (
-                <div className="action-buttons">
-                    <button className="icon-btn view" onClick={() => { setSelectedIncident(i); setShowIncDetails(true); }} title="تفاصيل"><i className="fas fa-eye"></i></button>
-                    {i.status === "reported" && <button className="icon-btn" onClick={() => handleUpdateIncident(i.id, { status: "under_investigation" })} title="بدء التحقيق" style={{ color: "var(--info-color)" }}><i className="fas fa-search"></i></button>}
-                    {i.status === "under_investigation" && <button className="icon-btn" onClick={() => handleUpdateIncident(i.id, { status: "resolved" })} title="تم الحل" style={{ color: "var(--success-color)" }}><i className="fas fa-check"></i></button>}
-                </div>
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "eye",
+                            title: "تفاصيل",
+                            variant: "view",
+                            onClick: () => { setSelectedIncident(i); setShowIncDetails(true); }
+                        },
+                        {
+                            icon: "search",
+                            title: "بدء التحقيق",
+                            variant: "primary",
+                            onClick: () => handleUpdateIncident(i.id, { status: "under_investigation" }),
+                            hidden: i.status !== "reported"
+                        },
+                        {
+                            icon: "check",
+                            title: "تم الحل",
+                            variant: "success",
+                            onClick: () => handleUpdateIncident(i.id, { status: "resolved" }),
+                            hidden: i.status !== "under_investigation"
+                        }
+                    ]}
+                />
             )
         },
     ];
@@ -134,25 +153,28 @@ export function EhsModule() {
         { key: "status", header: "الحالة", dataLabel: "الحالة", render: (i) => <span className={`badge ${i.status === "issued" ? "badge-success" : "badge-secondary"}`}>{i.status === "issued" ? "صادر" : i.status}</span> },
     ];
 
-    const tabs = [{ key: "incidents", label: "الحوادث", icon: "exclamation-triangle" }, { key: "health", label: "السجلات الصحية", icon: "heartbeat" }, { key: "ppe", label: "معدات الوقاية", icon: "hard-hat" }];
+    const tabs = [{ key: "incidents", label: "الحوادث", icon: "alert" }, { key: "health", label: "السجلات الصحية", icon: "activity" }, { key: "ppe", label: "معدات الوقاية", icon: "hard-hat" }];
 
     return (
         <div className="sales-card animate-fade">
-            <div className="card-header-flex" style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.5rem", alignItems: "center" }}><h3 style={{ margin: 0 }}>{getIcon("shield-alt")} البيئة والصحة والسلامة</h3></div>
+            <PageSubHeader
+                title="البيئة والصحة والسلامة"
+                titleIcon="shield-check"
+            />
             <TabNavigation tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
             {activeTab === "incidents" && <>
-                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}><Button onClick={() => { setIncForm({ employee_id: "", incident_type: "accident", incident_date: new Date().toISOString().split("T")[0], incident_time: "", location: "", description: "", severity: "minor", immediate_action_taken: "", osha_reportable: false, notes: "" }); setShowIncDialog(true); }} className="btn-primary"><i className="fas fa-plus"></i> تسجيل حادث</Button></div>
+                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}><Button onClick={() => { setIncForm({ employee_id: "", incident_type: "accident", incident_date: new Date().toISOString().split("T")[0], incident_time: "", location: "", description: "", severity: "minor", immediate_action_taken: "", osha_reportable: false, notes: "" }); setShowIncDialog(true); }} variant="primary" icon="plus">تسجيل حادث</Button></div>
                 <Table columns={incColumns} data={incidents} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد حوادث" isLoading={incLoading} pagination={{ currentPage: incPage, totalPages: incTotal, onPageChange: setIncPage }} />
             </>}
 
             {activeTab === "health" && <>
-                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}><Button onClick={() => { setHrForm({ employee_id: "", record_type: "medical_exam", record_date: new Date().toISOString().split("T")[0], expiry_date: "", provider_name: "", results: "", notes: "" }); setShowHrDialog(true); }} className="btn-primary"><i className="fas fa-plus"></i> إضافة سجل</Button></div>
+                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}><Button onClick={() => { setHrForm({ employee_id: "", record_type: "medical_exam", record_date: new Date().toISOString().split("T")[0], expiry_date: "", provider_name: "", results: "", notes: "" }); setShowHrDialog(true); }} variant="primary" icon="plus">إضافة سجل</Button></div>
                 <Table columns={hrColumns} data={healthRecords} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد سجلات" isLoading={hrLoading} pagination={{ currentPage: hrPage, totalPages: hrTotal, onPageChange: setHrPage }} />
             </>}
 
             {activeTab === "ppe" && <>
-                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}><Button onClick={() => { setPpeForm({ employee_id: "", ppe_item: "", ppe_type: "helmet", issue_date: new Date().toISOString().split("T")[0], expiry_date: "", notes: "" }); setShowPpeDialog(true); }} className="btn-primary"><i className="fas fa-plus"></i> تسجيل معدة</Button></div>
+                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}><Button onClick={() => { setPpeForm({ employee_id: "", ppe_item: "", ppe_type: "helmet", issue_date: new Date().toISOString().split("T")[0], expiry_date: "", notes: "" }); setShowPpeDialog(true); }} variant="primary" icon="plus">تسجيل معدة</Button></div>
                 <Table columns={ppeColumns} data={ppeRecords} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد معدات" isLoading={ppeLoading} pagination={{ currentPage: ppePage, totalPages: ppeTotal, onPageChange: setPpePage }} />
             </>}
 
@@ -160,17 +182,33 @@ export function EhsModule() {
             <Dialog isOpen={showIncDialog} onClose={() => setShowIncDialog(false)} title="تسجيل حادث" maxWidth="700px">
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الموظف</label><SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={incForm.employee_id} onChange={(v) => setIncForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختياري" /></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>نوع الحادث</label><Select value={incForm.incident_type} onChange={(e) => setIncForm({ ...incForm, incident_type: e.target.value })}><option value="accident">حادث</option><option value="near_miss">شبه حادث</option><option value="injury">إصابة</option><option value="illness">مرض</option><option value="property_damage">ضرر ممتلكات</option><option value="environmental">بيئي</option><option value="other">أخرى</option></Select></div>
+                        <div className="flex flex-col gap-1">
+                            <Label className="text-secondary mb-1">الموظف</Label>
+                            <SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={incForm.employee_id} onChange={(v) => setIncForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختياري" />
+                        </div>
+                        <Select
+                            label="نوع الحادث"
+                            value={incForm.incident_type}
+                            onChange={(e) => setIncForm({ ...incForm, incident_type: e.target.value })}
+                            options={Object.entries(incidentTypeLabels).map(([value, label]) => ({ value, label }))}
+                        />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>التاريخ *</label><TextInput type="date" value={incForm.incident_date} onChange={(e) => setIncForm({ ...incForm, incident_date: e.target.value })} /></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الشدة</label><Select value={incForm.severity} onChange={(e) => setIncForm({ ...incForm, severity: e.target.value })}><option value="minor">طفيف</option><option value="moderate">متوسط</option><option value="serious">خطير</option><option value="critical">حرج</option><option value="fatal">قاتل</option></Select></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الموقع</label><TextInput value={incForm.location} onChange={(e) => setIncForm({ ...incForm, location: e.target.value })} /></div>
+                        <TextInput label="التاريخ *" type="date" value={incForm.incident_date} onChange={(e) => setIncForm({ ...incForm, incident_date: e.target.value })} />
+                        <Select
+                            label="الشدة"
+                            value={incForm.severity}
+                            onChange={(e) => setIncForm({ ...incForm, severity: e.target.value })}
+                            options={Object.entries(severityLabels).map(([value, label]) => ({ value, label }))}
+                        />
+                        <TextInput label="الموقع" value={incForm.location} onChange={(e) => setIncForm({ ...incForm, location: e.target.value })} />
                     </div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الوصف *</label><Textarea value={incForm.description} onChange={(e) => setIncForm({ ...incForm, description: e.target.value })} rows={3} /></div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الإجراء الفوري</label><Textarea value={incForm.immediate_action_taken} onChange={(e) => setIncForm({ ...incForm, immediate_action_taken: e.target.value })} rows={2} /></div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><input type="checkbox" checked={incForm.osha_reportable} onChange={(e) => setIncForm({ ...incForm, osha_reportable: e.target.checked })} id="osha" /><label htmlFor="osha">يتطلب تقرير OSHA</label></div>
+                    <Textarea label="الوصف *" value={incForm.description} onChange={(e) => setIncForm({ ...incForm, description: e.target.value })} rows={3} />
+                    <Textarea label="الإجراء الفوري" value={incForm.immediate_action_taken} onChange={(e) => setIncForm({ ...incForm, immediate_action_taken: e.target.value })} rows={2} />
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <input type="checkbox" checked={incForm.osha_reportable} onChange={(e) => setIncForm({ ...incForm, osha_reportable: e.target.checked })} id="osha" />
+                        <Label htmlFor="osha" className="text-secondary">يتطلب تقرير OSHA</Label>
+                    </div>
                     <div className="flex justify-end gap-2" style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-color)" }}><Button variant="secondary" onClick={() => setShowIncDialog(false)}>إلغاء</Button><Button variant="primary" onClick={handleSaveIncident} icon="save">حفظ</Button></div>
                 </div>
             </Dialog>
@@ -198,15 +236,23 @@ export function EhsModule() {
             <Dialog isOpen={showHrDialog} onClose={() => setShowHrDialog(false)} title="إضافة سجل صحي" maxWidth="600px">
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الموظف *</label><SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={hrForm.employee_id} onChange={(v) => setHrForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر" /></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>النوع</label><Select value={hrForm.record_type} onChange={(e) => setHrForm({ ...hrForm, record_type: e.target.value })}><option value="vaccination">تطعيم</option><option value="medical_exam">فحص طبي</option><option value="drug_test">فحص مخدرات</option><option value="health_screening">فحص صحي</option><option value="other">أخرى</option></Select></div>
+                        <div className="flex flex-col gap-1">
+                            <Label className="text-secondary mb-1">الموظف *</Label>
+                            <SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={hrForm.employee_id} onChange={(v) => setHrForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر" />
+                        </div>
+                        <Select
+                            label="النوع"
+                            value={hrForm.record_type}
+                            onChange={(e) => setHrForm({ ...hrForm, record_type: e.target.value })}
+                            options={Object.entries(healthRecordTypeLabels).map(([value, label]) => ({ value, label }))}
+                        />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>التاريخ</label><TextInput type="date" value={hrForm.record_date} onChange={(e) => setHrForm({ ...hrForm, record_date: e.target.value })} /></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>انتهاء الصلاحية</label><TextInput type="date" value={hrForm.expiry_date} onChange={(e) => setHrForm({ ...hrForm, expiry_date: e.target.value })} /></div>
+                        <TextInput label="التاريخ" type="date" value={hrForm.record_date} onChange={(e) => setHrForm({ ...hrForm, record_date: e.target.value })} />
+                        <TextInput label="انتهاء الصلاحية" type="date" value={hrForm.expiry_date} onChange={(e) => setHrForm({ ...hrForm, expiry_date: e.target.value })} />
                     </div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>مقدم الخدمة</label><TextInput value={hrForm.provider_name} onChange={(e) => setHrForm({ ...hrForm, provider_name: e.target.value })} /></div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>النتائج</label><Textarea value={hrForm.results} onChange={(e) => setHrForm({ ...hrForm, results: e.target.value })} rows={2} /></div>
+                    <TextInput label="مقدم الخدمة" value={hrForm.provider_name} onChange={(e) => setHrForm({ ...hrForm, provider_name: e.target.value })} />
+                    <Textarea label="النتائج" value={hrForm.results} onChange={(e) => setHrForm({ ...hrForm, results: e.target.value })} rows={2} />
                     <div className="flex justify-end gap-2" style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-color)" }}><Button variant="secondary" onClick={() => setShowHrDialog(false)}>إلغاء</Button><Button variant="primary" onClick={handleSaveHealthRecord} icon="save">حفظ</Button></div>
                 </div>
             </Dialog>
@@ -215,13 +261,21 @@ export function EhsModule() {
             <Dialog isOpen={showPpeDialog} onClose={() => setShowPpeDialog(false)} title="تسجيل معدة وقاية" maxWidth="600px">
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الموظف *</label><SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={ppeForm.employee_id} onChange={(v) => setPpeForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر" /></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>النوع</label><Select value={ppeForm.ppe_type} onChange={(e) => setPpeForm({ ...ppeForm, ppe_type: e.target.value })}><option value="helmet">خوذة</option><option value="safety_shoes">حذاء أمان</option><option value="gloves">قفازات</option><option value="goggles">نظارات</option><option value="vest">سترة</option><option value="mask">كمامة</option><option value="other">أخرى</option></Select></div>
+                        <div className="flex flex-col gap-1">
+                            <Label className="text-secondary mb-1">الموظف *</Label>
+                            <SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={ppeForm.employee_id} onChange={(v) => setPpeForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر" />
+                        </div>
+                        <Select
+                            label="النوع"
+                            value={ppeForm.ppe_type}
+                            onChange={(e) => setPpeForm({ ...ppeForm, ppe_type: e.target.value })}
+                            options={Object.entries(ppeTypeLabels).map(([value, label]) => ({ value, label }))}
+                        />
                     </div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>اسم المعدة *</label><TextInput value={ppeForm.ppe_item} onChange={(e) => setPpeForm({ ...ppeForm, ppe_item: e.target.value })} /></div>
+                    <TextInput label="اسم المعدة *" value={ppeForm.ppe_item} onChange={(e) => setPpeForm({ ...ppeForm, ppe_item: e.target.value })} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>تاريخ الإصدار</label><TextInput type="date" value={ppeForm.issue_date} onChange={(e) => setPpeForm({ ...ppeForm, issue_date: e.target.value })} /></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>تاريخ الانتهاء</label><TextInput type="date" value={ppeForm.expiry_date} onChange={(e) => setPpeForm({ ...ppeForm, expiry_date: e.target.value })} /></div>
+                        <TextInput label="تاريخ الإصدار" type="date" value={ppeForm.issue_date} onChange={(e) => setPpeForm({ ...ppeForm, issue_date: e.target.value })} />
+                        <TextInput label="تاريخ الانتهاء" type="date" value={ppeForm.expiry_date} onChange={(e) => setPpeForm({ ...ppeForm, expiry_date: e.target.value })} />
                     </div>
                     <div className="flex justify-end gap-2" style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-color)" }}><Button variant="secondary" onClick={() => setShowPpeDialog(false)}>إلغاء</Button><Button variant="primary" onClick={handleSavePpe} icon="save">حفظ</Button></div>
                 </div>

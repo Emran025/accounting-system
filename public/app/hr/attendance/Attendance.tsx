@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, showToast, Button, SearchableSelect } from "@/components/ui";
+import { Table, Column, Dialog, showToast, Button, SearchableSelect, Label } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { AttendanceRecord, Employee } from "../types";
 import { formatDate, formatTime } from "@/lib/utils";
+import { PageSubHeader } from "@/components/layout";
 import { getIcon } from "@/lib/icons";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
@@ -165,22 +166,23 @@ export function Attendance() {
 
   return (
     <div className="sales-card animate-fade">
-      <div className="card-header-flex">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h3 style={{ margin: 0 }}>{getIcon("clock")} سجلات الحضور والانصراف</h3>
-        </div>
-        <Button
-          variant="primary"
-          onClick={() => setShowRecordDialog(true)}
-          icon="plus">
-          تسجيل حضور جديد
-        </Button>
-      </div>
+      <PageSubHeader
+        title="سجلات الحضور والانصراف"
+        titleIcon="clock"
+        actions={
+          <Button
+            variant="primary"
+            onClick={() => setShowRecordDialog(true)}
+            icon="plus">
+            تسجيل حضور جديد
+          </Button>
+        }
+      />
 
       <div className="sales-card compact" style={{ marginBottom: '1.5rem' }}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الموظف</label>
+          <div className="flex flex-col gap-1">
+            <Label className="text-secondary mb-1">الموظف</Label>
             <SearchableSelect
               options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
               value={selectedEmployee?.toString() || ""}
@@ -188,28 +190,24 @@ export function Attendance() {
               placeholder="اختر الموظف"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>من تاريخ</label>
-            <TextInput
-              type="date"
-              value={startDate}
-              onChange={(e) => {
-                setStartDate(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>إلى تاريخ</label>
-            <TextInput
-              type="date"
-              value={endDate}
-              onChange={(e) => {
-                setEndDate(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
+          <TextInput
+            label="من تاريخ"
+            type="date"
+            value={startDate}
+            onChange={(e) => {
+              setStartDate(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+          <TextInput
+            label="إلى تاريخ"
+            type="date"
+            value={endDate}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
           <div className="flex items-end">
             <Button
               onClick={loadAttendance}
@@ -268,8 +266,8 @@ export function Attendance() {
         maxWidth="600px"
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الموظف *</label>
+          <div className="flex flex-col gap-1">
+            <Label className="text-secondary mb-1">الموظف *</Label>
             <SearchableSelect
               options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
               value={newRecord.employee_id}
@@ -277,52 +275,43 @@ export function Attendance() {
               placeholder="اختر الموظف"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>التاريخ *</label>
-            <TextInput
-              type="date"
-              value={newRecord.attendance_date}
-              onChange={(e) => setNewRecord({ ...newRecord, attendance_date: e.target.value })}
-            />
-          </div>
+          <TextInput
+            label="التاريخ *"
+            type="date"
+            value={newRecord.attendance_date}
+            onChange={(e) => setNewRecord({ ...newRecord, attendance_date: e.target.value })}
+          />
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>وقت الدخول</label>
-              <TextInput
-                type="time"
-                value={newRecord.check_in}
-                onChange={(e) => setNewRecord({ ...newRecord, check_in: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>وقت الخروج</label>
-              <TextInput
-                type="time"
-                value={newRecord.check_out}
-                onChange={(e) => setNewRecord({ ...newRecord, check_out: e.target.value })}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الحالة</label>
-            <Select
-              value={newRecord.status}
-              onChange={(e) => setNewRecord({ ...newRecord, status: e.target.value as any })}
-            >
-              <option value="present">حاضر</option>
-              <option value="absent">غائب</option>
-              <option value="leave">إجازة</option>
-              <option value="holiday">عطلة</option>
-              <option value="weekend">نهاية أسبوع</option>
-            </Select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>ملاحظات</label>
-            <Textarea
-              value={newRecord.notes}
-              onChange={(e) => setNewRecord({ ...newRecord, notes: e.target.value })}
+            <TextInput
+              label="وقت الدخول"
+              type="time"
+              value={newRecord.check_in}
+              onChange={(e) => setNewRecord({ ...newRecord, check_in: e.target.value })}
+            />
+            <TextInput
+              label="وقت الخروج"
+              type="time"
+              value={newRecord.check_out}
+              onChange={(e) => setNewRecord({ ...newRecord, check_out: e.target.value })}
             />
           </div>
+          <Select
+            label="الحالة"
+            value={newRecord.status}
+            onChange={(e) => setNewRecord({ ...newRecord, status: e.target.value as any })}
+            options={[
+              { value: 'present', label: 'حاضر' },
+              { value: 'absent', label: 'غائب' },
+              { value: 'leave', label: 'إجازة' },
+              { value: 'holiday', label: 'عطلة' },
+              { value: 'weekend', label: 'نهاية أسبوع' }
+            ]}
+          />
+          <Textarea
+            label="ملاحظات"
+            value={newRecord.notes}
+            onChange={(e) => setNewRecord({ ...newRecord, notes: e.target.value })}
+          />
           <div className="flex justify-end gap-2" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
             <Button variant="secondary" onClick={() => setShowRecordDialog(false)}>
               إلغاء

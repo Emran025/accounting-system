@@ -13,7 +13,8 @@ import {
     Tags, Ruler, Factory, Files, Hammer, Cpu, ClipboardCheck,
     Briefcase, CheckSquare, Hourglass, LayoutDashboard, Save, Calculator,
     FileText, FileCheck, Scroll, Globe, Laptop, Book, HardHat, HeartPulse, Link,
-    CalendarDays, UserCheck, Plane, Megaphone, GraduationCap, Heart
+    CalendarDays, UserCheck, Plane, Megaphone, GraduationCap, Heart, EyeOff, BarChart,
+    Send, Filter, Handshake, CheckCheck, Play, Star, Pause, ThumbsUp, Upload, Folder, Gavel
 } from 'lucide-react';
 
 interface IconProps {
@@ -121,6 +122,20 @@ export const icons = {
     "money-bill-wave": (props: IconProps) => <Banknote className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     heart: (props: IconProps) => <Heart className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     "users-gear": (props: IconProps) => <UserCog className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "eye-off": (props: IconProps) => <EyeOff className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    poll: (props: IconProps) => <BarChart className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    send: (props: IconProps) => <Send className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    filter: (props: IconProps) => <Filter className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    handshake: (props: IconProps) => <Handshake className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "check-check": (props: IconProps) => <CheckCheck className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    play: (props: IconProps) => <Play className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    star: (props: IconProps) => <Star className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    pause: (props: IconProps) => <Pause className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "thumbs-up": (props: IconProps) => <ThumbsUp className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    upload: (props: IconProps) => <Upload className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    folder: (props: IconProps) => <Folder className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "file-alt": (props: IconProps) => <FileText className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    gavel: (props: IconProps) => <Gavel className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
 };
 
 export type IconName = keyof typeof icons;

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, showToast, Button } from "@/components/ui";
+import { Table, Column, Dialog, showToast, Button, Label } from "@/components/ui";
 import { TabNavigation } from "@/components/ui/TabNavigation";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { PayrollItem, LeaveRequest, AttendanceRecord } from "../types";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { getIcon } from "@/lib/icons";
+import { PageSubHeader } from "@/components/layout";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/Textarea";
@@ -263,11 +263,10 @@ export function EmployeePortal() {
 
   return (
     <div className="sales-card animate-fade">
-      <div className="card-header-flex">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h3 style={{ margin: 0 }}>{getIcon("user-circle")} البوابة الذاتية للموظف</h3>
-        </div>
-      </div>
+      <PageSubHeader
+        title="البوابة الذاتية للموظف"
+        titleIcon="user-circle"
+      />
 
       <div className="settings-wrapper">
         <TabNavigation
@@ -321,22 +320,18 @@ export function EmployeePortal() {
           <div className="tab-content active" style={{ marginTop: '1.5rem' }}>
             <div className="sales-card compact" style={{ marginBottom: '1.5rem' }}>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>من تاريخ</label>
-                  <TextInput
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>إلى تاريخ</label>
-                  <TextInput
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </div>
+                <TextInput
+                  label="من تاريخ"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+                <TextInput
+                  label="إلى تاريخ"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
                 <div className="flex items-end">
                   <Button
                     onClick={loadAttendance}
@@ -392,44 +387,37 @@ export function EmployeePortal() {
         maxWidth="600px"
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>نوع الإجازة *</label>
-            <Select
-              value={newLeaveRequest.leave_type}
-              onChange={(e) => setNewLeaveRequest({ ...newLeaveRequest, leave_type: e.target.value as any })}
-            >
-              <option value="vacation">إجازة سنوية</option>
-              <option value="sick">إجازة مرضية</option>
-              <option value="emergency">إجازة طارئة</option>
-              <option value="unpaid">إجازة بدون راتب</option>
-              <option value="other">أخرى</option>
-            </Select>
-          </div>
+          <Select
+            label="نوع الإجازة *"
+            value={newLeaveRequest.leave_type}
+            onChange={(e) => setNewLeaveRequest({ ...newLeaveRequest, leave_type: e.target.value as any })}
+            options={[
+              { value: "vacation", label: "إجازة سنوية" },
+              { value: "sick", label: "إجازة مرضية" },
+              { value: "emergency", label: "إجازة طارئة" },
+              { value: "unpaid", label: "إجازة بدون راتب" },
+              { value: "other", label: "أخرى" }
+            ]}
+          />
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>من تاريخ *</label>
-              <TextInput
-                type="date"
-                value={newLeaveRequest.start_date}
-                onChange={(e) => setNewLeaveRequest({ ...newLeaveRequest, start_date: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>إلى تاريخ *</label>
-              <TextInput
-                type="date"
-                value={newLeaveRequest.end_date}
-                onChange={(e) => setNewLeaveRequest({ ...newLeaveRequest, end_date: e.target.value })}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>السبب</label>
-            <Textarea
-              value={newLeaveRequest.reason}
-              onChange={(e) => setNewLeaveRequest({ ...newLeaveRequest, reason: e.target.value })}
+            <TextInput
+              label="من تاريخ *"
+              type="date"
+              value={newLeaveRequest.start_date}
+              onChange={(e) => setNewLeaveRequest({ ...newLeaveRequest, start_date: e.target.value })}
+            />
+            <TextInput
+              label="إلى تاريخ *"
+              type="date"
+              value={newLeaveRequest.end_date}
+              onChange={(e) => setNewLeaveRequest({ ...newLeaveRequest, end_date: e.target.value })}
             />
           </div>
+          <Textarea
+            label="السبب"
+            value={newLeaveRequest.reason}
+            onChange={(e) => setNewLeaveRequest({ ...newLeaveRequest, reason: e.target.value })}
+          />
           <div className="flex justify-end gap-2" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
             <Button variant="secondary" onClick={() => setShowLeaveDialog(false)}>
               إلغاء

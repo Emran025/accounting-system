@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, showToast, Button } from "@/components/ui";
+import { ActionButtons, Table, Column, Dialog, showToast, Button, Label } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { PayrollCycle, PayrollItem, Employee } from "../types";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
+import { PageSubHeader } from "@/components/layout";
 import { getIcon } from "@/lib/icons";
-import { TextInput } from "@/components/ui/TextInput";
-import { Select } from "@/components/ui/select";
+import { TextInput, Select, Textarea } from "@/components/ui";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/RadioGroup";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -388,29 +388,37 @@ export function Payroll() {
     { key: "total_net", header: "المبلغ الإجمالي", dataLabel: "صافي المبلغ", render: (item) => <strong>{formatCurrency(item.total_net)}</strong> },
     {
       key: "id", header: "الإجراءات", dataLabel: "الإجراءات", render: (item: any) => (
-        <div className="action-buttons">
-          <button className="icon-btn view" title="التفاصيل والمراجعة" onClick={() => { setSelectedCycle(item); loadCycleDetails(item.id); }}>
-            {getIcon("eye")}
-          </button>
-
-          {(item.status === 'draft' && item.created_by == currentUser?.id) && (
-            <button className="icon-btn success" title="بدأ مسار الاعتماد" onClick={() => handleApprove(item.id)}>
-              {getIcon("rocket")}
-            </button>
-          )}
-
-          {(item.status === 'pending_approval' && item.current_approver_id == currentUser?.id) && (
-            <button className="icon-btn success" title="موافقة وتمرير" onClick={() => handleApprove(item.id)}>
-              {getIcon("check")}
-            </button>
-          )}
-
-          {item.status === 'approved' && (
-            <button className="icon-btn primary" title="صرف الكل" onClick={() => { setSelectedCycle(item); setShowBulkPaymentDialog(true); }}>
-              {getIcon("dollar")}
-            </button>
-          )}
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "eye",
+              title: "التفاصيل والمراجعة",
+              variant: "view",
+              onClick: () => { setSelectedCycle(item); loadCycleDetails(item.id); }
+            },
+            {
+              icon: "send",
+              title: "بدأ مسار الاعتماد",
+              variant: "success",
+              onClick: () => handleApprove(item.id),
+              hidden: !(item.status === 'draft' && item.created_by == currentUser?.id)
+            },
+            {
+              icon: "check",
+              title: "موافقة وتمرير",
+              variant: "success",
+              onClick: () => handleApprove(item.id),
+              hidden: !(item.status === 'pending_approval' && item.current_approver_id == currentUser?.id)
+            },
+            {
+              icon: "dollar",
+              title: "صرف الكل",
+              variant: "primary",
+              onClick: () => { setSelectedCycle(item); setShowBulkPaymentDialog(true); },
+              hidden: item.status !== 'approved'
+            }
+          ]}
+        />
       )
     },
   ];
@@ -470,31 +478,39 @@ export function Payroll() {
       key: "actions", header: "الإجراءات", dataLabel: "الإجراءات", render: (item) => {
         const remaining = (item.remaining_balance !== undefined) ? item.remaining_balance : item.net_salary;
         return (
-          <div className="action-buttons">
-            {(isUserApprover || isDraftCreator) && (
-              <button className="icon-btn edit" title="تعديل المبالغ" onClick={() => {
-                setSelectedItem(item);
-                setEditItemData({
-                  base_salary: item.base_salary,
-                  total_allowances: item.total_allowances,
-                  total_deductions: item.total_deductions,
-                  notes: item.notes || ""
-                });
-                setShowEditItemDialog(true);
-              }}>
-                {getIcon("edit")}
-              </button>
-            )}
-
-            {remaining > 0 && selectedCycle?.status === 'approved' && item.status === 'active' && (
-              <button className="btn btn-sm btn-outline-primary" onClick={() => openPaymentDialog(item)} style={{ fontSize: '0.75rem', padding: '2px 8px' }}>
-                {getIcon("dollar")} تحويل
-              </button>
-            )}
-            <button className="icon-btn view" title="سجل التحويلات" onClick={() => loadItemHistory(item)}>
-              {getIcon("history")}
-            </button>
-          </div>
+          <ActionButtons
+            actions={[
+              {
+                icon: "edit",
+                title: "تعديل المبالغ",
+                variant: "edit",
+                onClick: () => {
+                  setSelectedItem(item);
+                  setEditItemData({
+                    base_salary: item.base_salary,
+                    total_allowances: item.total_allowances,
+                    total_deductions: item.total_deductions,
+                    notes: item.notes || ""
+                  });
+                  setShowEditItemDialog(true);
+                },
+                hidden: !(isUserApprover || isDraftCreator)
+              },
+              {
+                icon: "dollar",
+                title: "تحويل",
+                variant: "primary",
+                onClick: () => openPaymentDialog(item),
+                hidden: !(remaining > 0 && selectedCycle?.status === 'approved' && item.status === 'active')
+              },
+              {
+                icon: "history",
+                title: "سجل التحويلات",
+                variant: "view",
+                onClick: () => loadItemHistory(item)
+              }
+            ]}
+          />
         );
       }
     },
@@ -519,19 +535,18 @@ export function Payroll() {
   return (
     <>
       <div className="sales-card animate-fade">
-        <div className="card-header-flex" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h3 style={{ margin: 0 }}>{getIcon("dollar")} إدارة الرواتب واعتمادات الصرف</h3>
-          </div>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <PageSubHeader
+          title="إدارة الرواتب واعتمادات الصرف"
+          titleIcon="dollar"
+          actions={
             <Button
               variant="primary"
               onClick={() => setShowCreateCycleDialog(true)}
               icon="plus">
               صرف جديد (مكافأة/حافز/راتب)
             </Button>
-          </div>
-        </div>
+          }
+        />
 
         <Table
           columns={cycleColumns}
@@ -559,59 +574,44 @@ export function Payroll() {
       >
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
           <div style={{ display: 'grid', gap: '1rem' }}>
-            <div className="form-group pb-0">
-              <Select
-                label="طبيعة الصرف"
-                value={newCycle.payment_nature}
-                onChange={(e) => setNewCycle({ ...newCycle, payment_nature: e.target.value as any, cycle_name: e.target.value === 'salary' ? '' : newCycle.cycle_name })}
-              >
-                <option value="salary">راتب شهري أساسي</option>
-                <option value="incentive">حافز أداء</option>
-                <option value="bonus">مكافأة استثنائية</option>
-                <option value="other">أخرى</option>
-              </Select>
-            </div>
+            <Select
+              label="طبيعة الصرف"
+              value={newCycle.payment_nature}
+              onChange={(e) => setNewCycle({ ...newCycle, payment_nature: e.target.value as any, cycle_name: e.target.value === 'salary' ? '' : newCycle.cycle_name })}
+              options={[
+                { value: 'salary', label: 'راتب شهري أساسي' },
+                { value: 'incentive', label: 'حافز أداء' },
+                { value: 'bonus', label: 'مكافأة استثنائية' },
+                { value: 'other', label: 'أخرى' }
+              ]}
+            />
 
-            {newCycle.payment_nature !== 'salary' && (
-              <div className="form-group pb-0">
-                <TextInput
-                  label="عنوان المسير / المناسبة"
-                  type="text"
-                  placeholder="مثال: حوافز مبيعات شهر يناير"
-                  value={newCycle.cycle_name}
-                  onChange={(e) => setNewCycle({ ...newCycle, cycle_name: e.target.value })}
-                />
-              </div>
-            )}
+            <TextInput
+              label="عنوان المسير / المناسبة"
+              type="text"
+              placeholder="مثال: حوافز مبيعات شهر يناير"
+              value={newCycle.cycle_name}
+              onChange={(e) => setNewCycle({ ...newCycle, cycle_name: e.target.value })}
+            />
 
-            <div className="form-group pb-0">
-              <TextInput
-                label="تاريخ الاستحقاق/الصرف"
-                type="date"
-                value={newCycle.payment_date}
-                onChange={(e) => setNewCycle({ ...newCycle, payment_date: e.target.value })}
-              />
-            </div>
+            <TextInput
+              label="تاريخ الاستحقاق/الصرف"
+              type="date"
+              value={newCycle.payment_date}
+              onChange={(e) => setNewCycle({ ...newCycle, payment_date: e.target.value })}
+            />
 
-            {newCycle.payment_nature !== 'salary' && (
-              <div className="form-group pb-0">
-                {/* Note: TextInput doesn't strictly support icon-right span natively via props yet, so using classic input or adapting TextInput logic. 
-                             Using TextInput for consistency, assuming label support is sufficient. The "SAR" suffix is visual sugar. 
-                             I'll wrap it or use `TextInput` normally.
-                          */}
-                <TextInput
-                  label="المبلغ الموحد (اختياري)"
-                  type="number"
-                  placeholder="0.00"
-                  value={newCycle.base_amount}
-                  onChange={(e) => setNewCycle({ ...newCycle, base_amount: e.target.value })}
-                />
-              </div>
-            )}
+            <TextInput
+              label="المبلغ الموحد (اختياري)"
+              type="number"
+              placeholder="0.00"
+              value={newCycle.base_amount}
+              onChange={(e) => setNewCycle({ ...newCycle, base_amount: e.target.value })}
+            />
           </div>
 
           <div style={{ border: '1px solid #eee', borderRadius: '8px', padding: '1rem', background: '#fcfcfc' }}>
-            <label className="form-label" style={{ fontWeight: 600, marginBottom: '1rem', display: 'block' }}>تخصيص الموظفين المشمولين</label>
+            <Label className="form-label" style={{ fontWeight: 600, marginBottom: '1rem', display: 'block' }}>تخصيص الموظفين المشمولين</Label>
 
             <div style={{ marginBottom: '1rem' }}>
               <RadioGroup
@@ -759,22 +759,10 @@ export function Payroll() {
         }
       >
         <div style={{ display: 'grid', gap: '1rem' }}>
-          <div className="form-group">
-            <label className="form-label">الراتب الأساسي / المبلغ الأساسي</label>
-            <input type="number" className="form-control" value={editItemData.base_salary} onChange={(e) => setEditItemData({ ...editItemData, base_salary: parseFloat(e.target.value) })} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">إجمالي البدلات / الإضافات</label>
-            <input type="number" className="form-control" value={editItemData.total_allowances} onChange={(e) => setEditItemData({ ...editItemData, total_allowances: parseFloat(e.target.value) })} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">إجمالي الاستقطاعات</label>
-            <input type="number" className="form-control" value={editItemData.total_deductions} onChange={(e) => setEditItemData({ ...editItemData, total_deductions: parseFloat(e.target.value) })} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">ملاحظات على المبالغ</label>
-            <textarea className="form-control" value={editItemData.notes} onChange={(e) => setEditItemData({ ...editItemData, notes: e.target.value })} rows={2}></textarea>
-          </div>
+          <TextInput label="الراتب الأساسي / المبلغ الأساسي" type="number" value={editItemData.base_salary} onChange={(e) => setEditItemData({ ...editItemData, base_salary: parseFloat(e.target.value) })} />
+          <TextInput label="إجمالي البدلات / الإضافات" type="number" value={editItemData.total_allowances} onChange={(e) => setEditItemData({ ...editItemData, total_allowances: parseFloat(e.target.value) })} />
+          <TextInput label="إجمالي الاستقطاعات" type="number" value={editItemData.total_deductions} onChange={(e) => setEditItemData({ ...editItemData, total_deductions: parseFloat(e.target.value) })} />
+          <Textarea label="ملاحظات على المبالغ" value={editItemData.notes} onChange={(e) => setEditItemData({ ...editItemData, notes: e.target.value })} rows={2} />
           <div style={{ padding: '10px', background: '#f0f7ff', borderRadius: '6px' }}>
             <strong>الصافي الجديد: {formatCurrency(editItemData.base_salary + editItemData.total_allowances - editItemData.total_deductions)}</strong>
           </div>
@@ -802,14 +790,13 @@ export function Payroll() {
           </div>
         }
       >
-        <div className="form-group pb-0">
-          <Select label="طريقة الصرف" value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
-            {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>)}
-          </Select>
-        </div>
-        <div className="form-group pb-0">
-          <TextInput label="المبلغ" type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
-        </div>
+        <Select
+          label="طريقة الصرف"
+          value={selectedAccountId}
+          onChange={(e) => setSelectedAccountId(e.target.value)}
+          options={accounts.map(acc => ({ value: acc.id, label: `${acc.code} - ${acc.name}` }))}
+        />
+        <TextInput label="المبلغ" type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
       </Dialog>
 
       <Dialog
@@ -823,11 +810,9 @@ export function Payroll() {
           </div>
         }
       >
-        <div className="form-group pb-0">
-          <Select label="الصرف من حساب" value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
-            {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>)}
-          </Select>
-        </div>
+        <Select label="الصرف من حساب" value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
+          {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>)}
+        </Select>
         <div style={{ padding: '15px', background: '#e8f5e9', borderRadius: '8px', marginTop: '10px' }}>
           إجمالي المبلغ: <strong>{formatCurrency(selectedCycle?.total_net || 0)}</strong>
         </div>

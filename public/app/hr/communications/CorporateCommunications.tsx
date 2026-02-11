@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, Button, showToast, TabNavigation } from "@/components/ui";
+import { ActionButtons, Table, Column, Dialog, Button, TabNavigation, showToast, Label } from "@/components/ui";
+import { PageSubHeader } from "@/components/layout";
 import { TextInput } from "@/components/ui/TextInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/select";
@@ -93,11 +94,16 @@ export function CorporateCommunications() {
         { key: "is_published", header: "منشور", dataLabel: "منشور", render: (i) => <span className={`badge ${i.is_published ? "badge-success" : "badge-secondary"}`}>{i.is_published ? "نعم" : "لا"}</span> },
         {
             key: "id", header: "إجراءات", dataLabel: "إجراءات", render: (i) => (
-                <div className="action-buttons">
-                    <button className="icon-btn" onClick={() => togglePublish(i)} title={i.is_published ? "إلغاء النشر" : "نشر"} style={{ color: i.is_published ? "var(--danger-color)" : "var(--success-color)" }}>
-                        <i className={`fas fa-${i.is_published ? "eye-slash" : "eye"}`}></i>
-                    </button>
-                </div>
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: i.is_published ? "eye-off" : "eye",
+                            title: i.is_published ? "إلغاء النشر" : "نشر",
+                            variant: i.is_published ? "delete" : "success",
+                            onClick: () => togglePublish(i)
+                        }
+                    ]}
+                />
             )
         },
     ];
@@ -111,7 +117,16 @@ export function CorporateCommunications() {
         { key: "responses", header: "الردود", dataLabel: "الردود", render: (i) => i.responses?.length || 0 },
         {
             key: "id", header: "إجراءات", dataLabel: "إجراءات", render: (i) => (
-                <div className="action-buttons"><button className="icon-btn view" onClick={() => { setSelectedSurvey(i); setShowSurvDetails(true); }} title="تفاصيل"><i className="fas fa-eye"></i></button></div>
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "eye",
+                            title: "تفاصيل",
+                            variant: "view",
+                            onClick: () => { setSelectedSurvey(i); setShowSurvDetails(true); }
+                        }
+                    ]}
+                />
             )
         },
     ];
@@ -120,36 +135,85 @@ export function CorporateCommunications() {
 
     return (
         <div className="sales-card animate-fade">
-            <div className="card-header-flex" style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.5rem", alignItems: "center" }}>
-                <h3 style={{ margin: 0 }}>{getIcon("bullhorn")} الاتصالات المؤسسية</h3>
-            </div>
+            <PageSubHeader
+                title="الاتصالات المؤسسية"
+                titleIcon="bullhorn"
+                actions={
+                    <>
+                        {activeTab === "announcements" ? (
+                            <Button onClick={() => { setAnnForm({ title: "", content: "", priority: "normal", target_audience: "all", publish_date: new Date().toISOString().split("T")[0], expiry_date: "", is_published: false }); setShowAnnDialog(true); }}
+                                variant="primary"
+                                icon="plus"
+                            >
+                                إعلان جديد
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={() => {
+                                    setSurvForm({
+                                        survey_name: "",
+                                        description: "",
+                                        survey_type: "engagement",
+                                        questions: "[]",
+                                        start_date: new Date().toISOString().split("T")[0],
+                                        end_date: "",
+                                        is_anonymous: true,
+                                        target_audience: "all"
+                                    });
+                                    setShowSurvDialog(true);
+                                }}
+                                variant="primary"
+                                icon="plus"
+                            >
+                                استبيان جديد
+                            </Button>
+                        )}
+                    </>
+                }
+            />
             <TabNavigation tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-            {activeTab === "announcements" && <>
-                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}>
-                    <Button onClick={() => { setAnnForm({ title: "", content: "", priority: "normal", target_audience: "all", publish_date: new Date().toISOString().split("T")[0], expiry_date: "", is_published: false }); setShowAnnDialog(true); }} className="btn-primary"><i className="fas fa-plus"></i> إعلان جديد</Button>
-                </div>
+            {activeTab === "announcements" && (
                 <Table columns={annColumns} data={announcements} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد إعلانات" isLoading={annLoading} pagination={{ currentPage: annPage, totalPages: annTotal, onPageChange: setAnnPage }} />
-            </>}
+            )}
 
-            {activeTab === "surveys" && <>
-                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}>
-                    <Button onClick={() => { setSurvForm({ survey_name: "", description: "", survey_type: "engagement", questions: "[]", start_date: new Date().toISOString().split("T")[0], end_date: "", is_anonymous: true, target_audience: "all" }); setShowSurvDialog(true); }} className="btn-primary"><i className="fas fa-plus"></i> استبيان جديد</Button>
-                </div>
+            {activeTab === "surveys" && (
                 <Table columns={survColumns} data={surveys} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد استبيانات" isLoading={survLoading} pagination={{ currentPage: survPage, totalPages: survTotal, onPageChange: setSurvPage }} />
-            </>}
+            )}
 
             {/* Announcement Dialog */}
             <Dialog isOpen={showAnnDialog} onClose={() => setShowAnnDialog(false)} title="إعلان جديد" maxWidth="700px">
                 <div className="space-y-4">
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>العنوان *</label><TextInput value={annForm.title} onChange={(e) => setAnnForm({ ...annForm, title: e.target.value })} /></div>
+                    <TextInput label="العنوان *" value={annForm.title} onChange={(e) => setAnnForm({ ...annForm, title: e.target.value })} />
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الأولوية</label><Select value={annForm.priority} onChange={(e) => setAnnForm({ ...annForm, priority: e.target.value })}><option value="low">منخفض</option><option value="normal">عادي</option><option value="high">مرتفع</option><option value="urgent">عاجل</option></Select></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الجمهور</label><Select value={annForm.target_audience} onChange={(e) => setAnnForm({ ...annForm, target_audience: e.target.value })}><option value="all">الجميع</option><option value="department">قسم</option><option value="role">دور</option></Select></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>تاريخ النشر</label><TextInput type="date" value={annForm.publish_date} onChange={(e) => setAnnForm({ ...annForm, publish_date: e.target.value })} /></div>
+                        <Select
+                            label="الأولوية"
+                            value={annForm.priority}
+                            onChange={(e) => setAnnForm({ ...annForm, priority: e.target.value })}
+                            options={[
+                                { value: 'low', label: 'منخفض' },
+                                { value: 'normal', label: 'عادي' },
+                                { value: 'high', label: 'مرتفع' },
+                                { value: 'urgent', label: 'عاجل' }
+                            ]}
+                        />
+                        <Select
+                            label="الجمهور"
+                            value={annForm.target_audience}
+                            onChange={(e) => setAnnForm({ ...annForm, target_audience: e.target.value })}
+                            options={[
+                                { value: 'all', label: 'الجميع' },
+                                { value: 'department', label: 'قسم' },
+                                { value: 'role', label: 'دور' }
+                            ]}
+                        />
+                        <TextInput label="تاريخ النشر" type="date" value={annForm.publish_date} onChange={(e) => setAnnForm({ ...annForm, publish_date: e.target.value })} />
                     </div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>المحتوى *</label><Textarea value={annForm.content} onChange={(e) => setAnnForm({ ...annForm, content: e.target.value })} rows={5} /></div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><input type="checkbox" checked={annForm.is_published} onChange={(e) => setAnnForm({ ...annForm, is_published: e.target.checked })} id="pub" /><label htmlFor="pub">نشر فوري</label></div>
+                    <Textarea label="المحتوى *" value={annForm.content} onChange={(e) => setAnnForm({ ...annForm, content: e.target.value })} rows={5} />
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <input type="checkbox" checked={annForm.is_published} onChange={(e) => setAnnForm({ ...annForm, is_published: e.target.checked })} id="pub" />
+                        <Label htmlFor="pub" className="text-secondary">نشر فوري</Label>
+                    </div>
                     <div className="flex justify-end gap-2" style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-color)" }}><Button variant="secondary" onClick={() => setShowAnnDialog(false)}>إلغاء</Button><Button variant="primary" onClick={handleSaveAnnouncement} icon="save">حفظ</Button></div>
                 </div>
             </Dialog>
@@ -157,18 +221,40 @@ export function CorporateCommunications() {
             {/* Survey Dialog */}
             <Dialog isOpen={showSurvDialog} onClose={() => setShowSurvDialog(false)} title="استبيان جديد" maxWidth="700px">
                 <div className="space-y-4">
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>اسم الاستبيان *</label><TextInput value={survForm.survey_name} onChange={(e) => setSurvForm({ ...survForm, survey_name: e.target.value })} /></div>
+                    <TextInput label="اسم الاستبيان *" value={survForm.survey_name} onChange={(e) => setSurvForm({ ...survForm, survey_name: e.target.value })} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>النوع</label><Select value={survForm.survey_type} onChange={(e) => setSurvForm({ ...survForm, survey_type: e.target.value })}><option value="sentiment">مشاعر</option><option value="burnout">إرهاق</option><option value="engagement">مشاركة</option><option value="custom">مخصص</option></Select></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الجمهور</label><Select value={survForm.target_audience} onChange={(e) => setSurvForm({ ...survForm, target_audience: e.target.value })}><option value="all">الجميع</option><option value="department">قسم</option><option value="role">دور</option></Select></div>
+                        <Select
+                            label="النوع"
+                            value={survForm.survey_type}
+                            onChange={(e) => setSurvForm({ ...survForm, survey_type: e.target.value })}
+                            options={[
+                                { value: 'sentiment', label: 'مشاعر' },
+                                { value: 'burnout', label: 'إرهاق' },
+                                { value: 'engagement', label: 'مشاركة' },
+                                { value: 'custom', label: 'مخصص' }
+                            ]}
+                        />
+                        <Select
+                            label="الجمهور"
+                            value={survForm.target_audience}
+                            onChange={(e) => setSurvForm({ ...survForm, target_audience: e.target.value })}
+                            options={[
+                                { value: 'all', label: 'الجميع' },
+                                { value: 'department', label: 'قسم' },
+                                { value: 'role', label: 'دور' }
+                            ]}
+                        />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>البداية</label><TextInput type="date" value={survForm.start_date} onChange={(e) => setSurvForm({ ...survForm, start_date: e.target.value })} /></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>النهاية *</label><TextInput type="date" value={survForm.end_date} onChange={(e) => setSurvForm({ ...survForm, end_date: e.target.value })} /></div>
+                        <TextInput label="البداية" type="date" value={survForm.start_date} onChange={(e) => setSurvForm({ ...survForm, start_date: e.target.value })} />
+                        <TextInput label="النهاية *" type="date" value={survForm.end_date} onChange={(e) => setSurvForm({ ...survForm, end_date: e.target.value })} />
                     </div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الوصف</label><Textarea value={survForm.description} onChange={(e) => setSurvForm({ ...survForm, description: e.target.value })} rows={2} /></div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الأسئلة (JSON)</label><Textarea value={survForm.questions} onChange={(e) => setSurvForm({ ...survForm, questions: e.target.value })} rows={4} /></div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><input type="checkbox" checked={survForm.is_anonymous} onChange={(e) => setSurvForm({ ...survForm, is_anonymous: e.target.checked })} id="anon" /><label htmlFor="anon">مجهول</label></div>
+                    <Textarea label="الوصف" value={survForm.description} onChange={(e) => setSurvForm({ ...survForm, description: e.target.value })} rows={2} />
+                    <Textarea label="الأسئلة (JSON)" value={survForm.questions} onChange={(e) => setSurvForm({ ...survForm, questions: e.target.value })} rows={4} />
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <input type="checkbox" checked={survForm.is_anonymous} onChange={(e) => setSurvForm({ ...survForm, is_anonymous: e.target.checked })} id="anon" />
+                        <Label htmlFor="anon" className="text-secondary">مجهول</Label>
+                    </div>
                     <div className="flex justify-end gap-2" style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-color)" }}><Button variant="secondary" onClick={() => setShowSurvDialog(false)}>إلغاء</Button><Button variant="primary" onClick={handleSaveSurvey} icon="save">حفظ</Button></div>
                 </div>
             </Dialog>

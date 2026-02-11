@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, Button, showToast } from "@/components/ui";
+import { Table, Column, Dialog, Button, showToast, ActionButtons, Label } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/select";
@@ -9,8 +9,8 @@ import { SearchableSelect } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate, formatCurrency } from "@/lib/utils";
-import { getIcon } from "@/lib/icons";
-import type { Employee, EmployeeLoan, LoanRepayment } from "../types";
+import { PageSubHeader } from "@/components/layout";
+import type { Employee, EmployeeLoan } from "../types";
 
 const loanTypeLabels: Record<string, string> = {
     salary_advance: "سلفة راتب", housing: "قرض إسكان", car: "قرض سيارة",
@@ -117,26 +117,58 @@ export function EmployeeLoans() {
         { key: "status", header: "الحالة", dataLabel: "الحالة", render: (item) => <span className={`badge ${statusBadges[item.status] || "badge-secondary"}`}>{statusLabels[item.status] || item.status}</span> },
         {
             key: "id", header: "الإجراءات", dataLabel: "الإجراءات", render: (item) => (
-                <div className="action-buttons">
-                    <button className="icon-btn view" onClick={() => openDetail(item)} title="تفاصيل"><i className="fas fa-eye"></i></button>
-                    {item.status === "pending" && <button className="icon-btn" onClick={() => handleStatusUpdate(item.id, "approved")} title="موافقة" style={{ color: "var(--success-color)" }}><i className="fas fa-check"></i></button>}
-                    {item.status === "pending" && <button className="icon-btn" onClick={() => handleStatusUpdate(item.id, "cancelled")} title="رفض" style={{ color: "var(--danger-color)" }}><i className="fas fa-times"></i></button>}
-                </div>
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "eye",
+                            title: "تفاصيل",
+                            variant: "view",
+                            onClick: () => openDetail(item)
+                        },
+                        {
+                            icon: "check",
+                            title: "موافقة",
+                            variant: "success",
+                            onClick: () => handleStatusUpdate(item.id, "approved"),
+                            hidden: item.status !== "pending"
+                        },
+                        {
+                            icon: "x",
+                            title: "رفض",
+                            variant: "delete",
+                            onClick: () => handleStatusUpdate(item.id, "cancelled"),
+                            hidden: item.status !== "pending"
+                        }
+                    ]}
+                />
             )
         },
     ];
 
     return (
         <div className="sales-card animate-fade">
-            <div className="card-header-flex" style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.5rem", alignItems: "center" }}>
-                <h3 style={{ margin: 0 }}>{getIcon("hand-holding-usd")} القروض المالية للموظفين</h3>
-                <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-                    <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }} className="form-select" style={{ minWidth: "140px" }}>
-                        <option value="">جميع الحالات</option><option value="pending">معلق</option><option value="active">نشط</option><option value="completed">مكتمل</option>
-                    </select>
-                    <Button onClick={openCreate} className="btn-primary"><i className="fas fa-plus"></i> طلب قرض</Button>
-                </div>
-            </div>
+            <PageSubHeader
+                title="القروض المالية للموظفين"
+                titleIcon="hand-holding-usd"
+                actions={
+                    <>
+                        <Select
+                            value={statusFilter}
+                            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                            style={{ minWidth: "140px" }}
+                            placeholder="جميع الحالات"
+                            options={Object.entries(statusLabels).map(([value, label]) => ({ value, label })).filter(o => ["pending", "active", "completed"].includes(o.value))}
+                        />
+                        <Button
+                            variant="primary"
+                            icon="plus"
+                            onClick={openCreate}
+                        >
+                            طلب قرض
+                        </Button>
+                    </>
+                }
+            />
             <div className="sales-card compact" style={{ marginBottom: "1.5rem", background: "linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)", border: "1px solid #bbf7d0" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem" }}>
                     <div className="stat-card"><div className="stat-label">الإجمالي</div><div className="stat-value">{totalRecords}</div></div>
@@ -151,22 +183,26 @@ export function EmployeeLoans() {
             <Dialog isOpen={showCreateDialog} onClose={() => setShowCreateDialog(false)} title="طلب قرض جديد" maxWidth="700px">
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الموظف *</label>
-                            <SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={form.employee_id} onChange={(v) => setForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر الموظف" /></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>نوع القرض</label>
-                            <Select value={form.loan_type} onChange={(e) => setForm({ ...form, loan_type: e.target.value })}><option value="salary_advance">سلفة راتب</option><option value="housing">إسكان</option><option value="car">سيارة</option><option value="personal">شخصي</option><option value="other">أخرى</option></Select></div>
+                        <div className="flex flex-col gap-1">
+                            <Label className="text-secondary mb-1">الموظف *</Label>
+                            <SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={form.employee_id} onChange={(v) => setForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر الموظف" />
+                        </div>
+                        <Select label="نوع القرض" value={form.loan_type} onChange={(e) => setForm({ ...form, loan_type: e.target.value })} options={Object.entries(loanTypeLabels).map(([value, label]) => ({ value, label }))} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>مبلغ القرض *</label><TextInput type="number" value={form.loan_amount} onChange={(e) => setForm({ ...form, loan_amount: e.target.value })} /></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الفائدة (%)</label><TextInput type="number" value={form.interest_rate} onChange={(e) => setForm({ ...form, interest_rate: e.target.value })} /></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>عدد الأقساط *</label><TextInput type="number" value={form.installment_count} onChange={(e) => setForm({ ...form, installment_count: e.target.value })} /></div>
+                        <TextInput label="مبلغ القرض *" type="number" value={form.loan_amount} onChange={(e) => setForm({ ...form, loan_amount: e.target.value })} />
+                        <TextInput label="الفائدة (%)" type="number" value={form.interest_rate} onChange={(e) => setForm({ ...form, interest_rate: e.target.value })} />
+                        <TextInput label="عدد الأقساط *" type="number" value={form.installment_count} onChange={(e) => setForm({ ...form, installment_count: e.target.value })} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>تاريخ البدء</label><TextInput type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
-                        <div style={{ display: "flex", alignItems: "flex-end", gap: "0.5rem", paddingBottom: "0.5rem" }}><input type="checkbox" checked={form.auto_deduction} onChange={(e) => setForm({ ...form, auto_deduction: e.target.checked })} id="ad" /><label htmlFor="ad" style={{ color: "var(--text-secondary)" }}>خصم تلقائي</label></div>
+                        <TextInput label="تاريخ البدء" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+                        <div style={{ display: "flex", alignItems: "flex-end", gap: "0.5rem", paddingBottom: "1.25rem" }}>
+                            <input type="checkbox" checked={form.auto_deduction} onChange={(e) => setForm({ ...form, auto_deduction: e.target.checked })} id="ad" />
+                            <Label htmlFor="ad" className="text-secondary">خصم تلقائي</Label>
+                        </div>
                     </div>
                     {form.loan_amount && form.installment_count && <div className="sales-card compact" style={{ background: "linear-gradient(135deg,#e0f2fe,#f0f9ff)", border: "1px solid #bae6fd", padding: "1rem" }}><strong>القسط الشهري التقديري:</strong> <span style={{ fontWeight: "bold", color: "var(--primary-color)" }}>{formatCurrency(Number(calcPreview()))}</span></div>}
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>ملاحظات</label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
+                    <Textarea label="ملاحظات" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
                     <div className="flex justify-end gap-2" style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-color)" }}><Button variant="secondary" onClick={() => setShowCreateDialog(false)}>إلغاء</Button><Button variant="primary" onClick={handleSave} icon="save">حفظ</Button></div>
                 </div>
             </Dialog>
@@ -181,10 +217,26 @@ export function EmployeeLoans() {
                         <div><strong>الحالة:</strong> <span className={`badge ${statusBadges[selectedLoan.status]}`}>{statusLabels[selectedLoan.status]}</span></div>
                         <div><strong>البدء:</strong> {formatDate(selectedLoan.start_date)}</div><div><strong>الانتهاء:</strong> {formatDate(selectedLoan.end_date)}</div>
                     </div>
-                    {selectedLoan.status === "pending" && <div style={{ display: "flex", gap: "0.5rem" }}><Button variant="primary" onClick={() => handleStatusUpdate(selectedLoan.id, "approved")}><i className="fas fa-check"></i> موافقة</Button><Button variant="secondary" onClick={() => handleStatusUpdate(selectedLoan.id, "cancelled")}><i className="fas fa-times"></i> رفض</Button></div>}
+                    {selectedLoan.status === "pending" && (
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                            <Button variant="primary" icon="check" onClick={() => handleStatusUpdate(selectedLoan.id, "approved")}>موافقة</Button>
+                            <Button variant="secondary" icon="x" onClick={() => handleStatusUpdate(selectedLoan.id, "cancelled")}>رفض</Button>
+                        </div>
+                    )}
                     <div><h4 style={{ marginBottom: "0.5rem" }}>جدول السداد</h4>
                         {selectedLoan.repayments && selectedLoan.repayments.length > 0 ? <div style={{ maxHeight: "300px", overflowY: "auto" }}><table className="table" style={{ width: "100%", fontSize: "0.9rem" }}><thead><tr><th>#</th><th>الاستحقاق</th><th>المبلغ</th><th>أصل</th><th>فائدة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody>
-                            {selectedLoan.repayments.map(r => <tr key={r.id}><td>{r.installment_number}</td><td>{formatDate(r.due_date)}</td><td>{formatCurrency(r.amount)}</td><td>{formatCurrency(r.principal)}</td><td>{formatCurrency(r.interest)}</td><td><span className={`badge ${r.status === "paid" ? "badge-success" : "badge-warning"}`}>{r.status === "paid" ? "مدفوع" : "معلق"}</span></td><td>{r.status === "pending" && selectedLoan.status === "active" && <button className="icon-btn" onClick={() => handleRecordRepayment(selectedLoan.id, r.id)} title="تسجيل" style={{ color: "var(--success-color)" }}><i className="fas fa-check-circle"></i></button>}</td></tr>)}
+                            {selectedLoan.repayments.map(r => <tr key={r.id}><td>{r.installment_number}</td><td>{formatDate(r.due_date)}</td><td>{formatCurrency(r.amount)}</td><td>{formatCurrency(r.principal)}</td><td>{formatCurrency(r.interest)}</td><td><span className={`badge ${r.status === "paid" ? "badge-success" : "badge-warning"}`}>{r.status === "paid" ? "مدفوع" : "معلق"}</span></td><td>{r.status === "pending" && selectedLoan.status === "active" && (
+                                <ActionButtons
+                                    actions={[
+                                        {
+                                            icon: "check-circle",
+                                            title: "تسجيل الدفعة",
+                                            variant: "success",
+                                            onClick: () => handleRecordRepayment(selectedLoan.id, r.id)
+                                        }
+                                    ]}
+                                />
+                            )}</td></tr>)}
                         </tbody></table></div> : <p style={{ color: "var(--text-muted)" }}>لا يوجد جدول سداد بعد.</p>}
                     </div>
                 </div>}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { TabNavigation } from "@/components/ui";
+import { TabNavigation, Button } from "@/components/ui";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
 import { BalanceSheetTab } from "./components/BalanceSheetTab";
@@ -35,10 +35,13 @@ export default function ReportsPage() {
                 user={user}
                 showDate={true}
                 actions={
-                    <button className="btn btn-secondary" onClick={handleExport}>
-                        {getIcon("download")}
+                    <Button
+                        variant="secondary"
+                        onClick={handleExport}
+                        icon="download"
+                    >
                         طباعة / تصدير
-                    </button>
+                    </Button>
                 }
             />
 

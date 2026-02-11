@@ -1,7 +1,7 @@
 "use client";
 
 import { Input, InputProps } from "./Input";
-import { Label } from "./label";
+import { Label } from "./Label";
 import { InputError } from "./input-error";
 
 interface TextInputProps extends InputProps {

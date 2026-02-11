@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { TabNavigation } from "@/components/ui";
+import { TabNavigation, Button} from "@/components/ui";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
 
@@ -42,10 +42,13 @@ export default function AccrualAccountingPage() {
         title="المحاسبة الاستحقاقية"
         user={user}
         actions={
-          <button className="btn btn-primary" onClick={() => setAccrualDialog(true)}>
-            {getIcon("plus")}
-            إضافة قيد
-          </button>
+          <Button
+              variant="primary"
+              onClick={() => setAccrualDialog(true)}
+              icon="plus"
+          >
+              إضافة قيد
+          </Button>
         }
       />
 

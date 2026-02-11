@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
+import { ActionButtons, Table, Dialog, ConfirmDialog, Button, Column, showAlert, SearchableSelect, NumberInput } from "@/components/ui";
+import { TextInput } from "@/components/ui/TextInput";
+import { Textarea } from "@/components/ui/Textarea";
+import { Select } from "@/components/ui/select";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, canAccess, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
-import { getIcon } from "@/lib/icons";
 
 interface Asset {
     id: number;
@@ -243,22 +245,24 @@ export default function AssetsPage() {
             header: "الإجراءات",
             dataLabel: "الإجراءات",
             render: (item) => (
-                <div className="action-buttons">
-                    {canAccess(permissions, "assets", "edit") && (
-                        <button className="icon-btn edit" onClick={() => editAsset(item.id)} title="تعديل">
-                            {getIcon("edit")}
-                        </button>
-                    )}
-                    {canAccess(permissions, "assets", "delete") && (
-                        <button
-                            className="icon-btn delete"
-                            onClick={() => confirmDeleteAsset(item.id)}
-                            title="حذف"
-                        >
-                            {getIcon("trash")}
-                        </button>
-                    )}
-                </div>
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "edit",
+                            title: "تعديل",
+                            variant: "edit",
+                            onClick: () => editAsset(item.id),
+                            hidden: !canAccess(permissions, "assets", "edit")
+                        },
+                        {
+                            icon: "trash",
+                            title: "حذف",
+                            variant: "delete",
+                            onClick: () => confirmDeleteAsset(item.id),
+                            hidden: !canAccess(permissions, "assets", "delete")
+                        }
+                    ]}
+                />
             ),
         },
     ];
@@ -269,21 +273,25 @@ export default function AssetsPage() {
                 title="إدارة الأصول"
                 user={user}
                 searchInput={
-                    <input
-                        type="text"
-                        id="params-search"
+                    <SearchableSelect
                         placeholder="بحث في الاسم أو الوصف..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{ width: "300px" }}
+                        options={assets.map((asset) => ({ value: asset.name, label: asset.name }))}
+                        onChange={(val) => setSearchTerm(val?.toString() || "")}
+                        onSearch={(term) => setSearchTerm(term)}
+                        className="header-search-bar"
+                        id="params-search"
                     />
                 }
                 actions={
                     canAccess(permissions, "assets", "create") && (
-                        <button className="btn btn-primary" onClick={openAddDialog}>
-                            {getIcon("plus")}
+                        <Button
+                            variant="primary"
+                            onClick={openAddDialog}
+                            icon="plus"
+                        >
                             أصل جديد
-                        </button>
+                        </Button>
                     )
                 }
             />
@@ -312,12 +320,12 @@ export default function AssetsPage() {
                 title={currentAssetId ? "تعديل بيانات الأصل" : "إضافة أصل جديد"}
                 footer={
                     <>
-                        <button className="btn btn-secondary" onClick={() => setAssetDialog(false)}>
+                        <Button variant="secondary" onClick={() => setAssetDialog(false)}>
                             إلغاء
-                        </button>
-                        <button className="btn btn-primary" onClick={saveAsset}>
+                        </Button>
+                        <Button variant="primary" onClick={saveAsset}>
                             حفظ
-                        </button>
+                        </Button>
                     </>
                 }
             >
@@ -327,78 +335,68 @@ export default function AssetsPage() {
                         saveAsset();
                     }}
                 >
-                    <div className="form-group">
-                        <label htmlFor="asset-name">اسم الأصل *</label>
-                        <input
-                            type="text"
-                            id="asset-name"
-                            value={assetName}
-                            onChange={(e) => setAssetName(e.target.value)}
+                    <TextInput
+                        label="اسم الأصل *"
+                        id="asset-name"
+                        value={assetName}
+                        onChange={(e) => setAssetName(e.target.value)}
+                        required
+                    />
+
+                    <div className="form-row">
+                        <NumberInput
+                            label="القيمة *"
+                            id="asset-value"
+                            value={assetValue}
+                            onChange={(val) => setAssetValue(val)}
+                            min={0}
+                            step={0.01}
                             required
+                            className="flex-1"
+                        />
+                        <TextInput
+                            type="date"
+                            label="تاريخ الشراء *"
+                            id="asset-date"
+                            value={assetDate}
+                            onChange={(e) => setAssetDate(e.target.value)}
+                            required
+                            className="flex-1"
                         />
                     </div>
 
                     <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="asset-value">القيمة *</label>
-                            <input
-                                type="number"
-                                id="asset-value"
-                                value={assetValue}
-                                onChange={(e) => setAssetValue(e.target.value)}
-                                min="0"
-                                step="0.01"
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="asset-date">تاريخ الشراء *</label>
-                            <input
-                                type="date"
-                                id="asset-date"
-                                value={assetDate}
-                                onChange={(e) => setAssetDate(e.target.value)}
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="asset-depreciation">نسبة الإهلاك (%)</label>
-                            <input
-                                type="number"
-                                id="asset-depreciation"
-                                value={assetDepreciation}
-                                onChange={(e) => setAssetDepreciation(e.target.value)}
-                                min="0"
-                                max="100"
-                                step="0.1"
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="asset-status">الحالة</label>
-                            <select
-                                id="asset-status"
-                                value={assetStatus}
-                                onChange={(e) => setAssetStatus(e.target.value as typeof assetStatus)}
-                            >
-                                <option value="active">نشط</option>
-                                <option value="maintenance">في الصيانة</option>
-                                <option value="disposed">مستبعد</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="asset-description">الوصف</label>
-                        <textarea
-                            id="asset-description"
-                            value={assetDescription}
-                            onChange={(e) => setAssetDescription(e.target.value)}
-                            rows={3}
+                        <NumberInput
+                            label="نسبة الإهلاك (%)"
+                            id="asset-depreciation"
+                            value={assetDepreciation}
+                            onChange={(val) => setAssetDepreciation(val)}
+                            min={0}
+                            max={100}
+                            step={0.1}
+                            className="flex-1"
+                        />
+                        <Select
+                            label="الحالة"
+                            id="asset-status"
+                            value={assetStatus}
+                            onChange={(e) => setAssetStatus(e.target.value as typeof assetStatus)}
+                            className="flex-1"
+                            options={[
+                                { value: "active", label: "نشط" },
+                                { value: "maintenance", label: "في الصيانة" },
+                                { value: "disposed", label: "مستبعد" }
+                            ]}
                         />
                     </div>
+
+                    <Textarea
+                        label="الوصف"
+                        id="asset-description"
+                        value={assetDescription}
+                        onChange={(e) => setAssetDescription(e.target.value)}
+                        rows={3}
+                    />
                 </form>
             </Dialog>
 

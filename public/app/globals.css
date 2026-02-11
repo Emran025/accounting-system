@@ -1792,7 +1792,6 @@ tbody tr:hover {
 /* Searchable Select */
 .searchable-select {
   position: relative;
-  width: 100%;
 }
 
 .searchable-select input[type="text"] {

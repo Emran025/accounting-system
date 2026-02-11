@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, Button, showToast, TabNavigation } from "@/components/ui";
+import { ActionButtons, Table, Column, Dialog, Button, showToast, TabNavigation, Label } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/select";
@@ -261,26 +261,37 @@ export function TravelExpenses() {
         {
             key: "id", header: "الإجراءات", dataLabel: "الإجراءات",
             render: (item) => (
-                <div className="action-buttons">
-                    <button className="icon-btn view" onClick={() => { setSelectedRequest(item); setShowReqDetails(true); }} title="عرض التفاصيل">
-                        <i className="fas fa-eye"></i>
-                    </button>
-                    {item.status === "draft" && (
-                        <button className="icon-btn edit" onClick={() => handleUpdateRequestStatus(item.id, "pending_approval")} title="إرسال للموافقة">
-                            <i className="fas fa-paper-plane"></i>
-                        </button>
-                    )}
-                    {item.status === "pending_approval" && (
-                        <>
-                            <button className="icon-btn" onClick={() => handleUpdateRequestStatus(item.id, "approved")} title="موافقة" style={{ color: "var(--success-color)" }}>
-                                <i className="fas fa-check"></i>
-                            </button>
-                            <button className="icon-btn" onClick={() => handleUpdateRequestStatus(item.id, "rejected")} title="رفض" style={{ color: "var(--danger-color)" }}>
-                                <i className="fas fa-times"></i>
-                            </button>
-                        </>
-                    )}
-                </div>
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "eye",
+                            title: "عرض التفاصيل",
+                            variant: "view",
+                            onClick: () => { setSelectedRequest(item); setShowReqDetails(true); }
+                        },
+                        {
+                            icon: "send",
+                            title: "إرسال للموافقة",
+                            variant: "edit",
+                            onClick: () => handleUpdateRequestStatus(item.id, "pending_approval"),
+                            hidden: item.status !== "draft"
+                        },
+                        {
+                            icon: "check",
+                            title: "موافقة",
+                            variant: "success",
+                            onClick: () => handleUpdateRequestStatus(item.id, "approved"),
+                            hidden: item.status !== "pending_approval"
+                        },
+                        {
+                            icon: "x",
+                            title: "رفض",
+                            variant: "delete",
+                            onClick: () => handleUpdateRequestStatus(item.id, "rejected"),
+                            hidden: item.status !== "pending_approval"
+                        }
+                    ]}
+                />
             ),
         },
     ];
@@ -311,28 +322,38 @@ export function TravelExpenses() {
         {
             key: "id", header: "الإجراءات", dataLabel: "الإجراءات",
             render: (item) => (
-                <div className="action-buttons">
-                    {item.status === "pending" && (
-                        <button className="icon-btn edit" onClick={() => handleUpdateExpenseStatus(item.id, "submitted")} title="تقديم">
-                            <i className="fas fa-paper-plane"></i>
-                        </button>
-                    )}
-                    {item.status === "submitted" && (
-                        <>
-                            <button className="icon-btn" onClick={() => handleUpdateExpenseStatus(item.id, "approved")} title="موافقة" style={{ color: "var(--success-color)" }}>
-                                <i className="fas fa-check"></i>
-                            </button>
-                            <button className="icon-btn" onClick={() => handleUpdateExpenseStatus(item.id, "rejected")} title="رفض" style={{ color: "var(--danger-color)" }}>
-                                <i className="fas fa-times"></i>
-                            </button>
-                        </>
-                    )}
-                    {item.status === "approved" && (
-                        <button className="icon-btn" onClick={() => handleUpdateExpenseStatus(item.id, "reimbursed")} title="تسديد" style={{ color: "var(--info-color)" }}>
-                            <i className="fas fa-money-bill-wave"></i>
-                        </button>
-                    )}
-                </div>
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "send",
+                            title: "تقديم",
+                            variant: "edit",
+                            onClick: () => handleUpdateExpenseStatus(item.id, "submitted"),
+                            hidden: item.status !== "pending"
+                        },
+                        {
+                            icon: "check",
+                            title: "موافقة",
+                            variant: "success",
+                            onClick: () => handleUpdateExpenseStatus(item.id, "approved"),
+                            hidden: item.status !== "submitted"
+                        },
+                        {
+                            icon: "x",
+                            title: "رفض",
+                            variant: "delete",
+                            onClick: () => handleUpdateExpenseStatus(item.id, "rejected"),
+                            hidden: item.status !== "submitted"
+                        },
+                        {
+                            icon: "banknote",
+                            title: "تسديد",
+                            variant: "view",
+                            onClick: () => handleUpdateExpenseStatus(item.id, "reimbursed"),
+                            hidden: item.status !== "approved"
+                        }
+                    ]}
+                />
             ),
         },
     ];
@@ -365,15 +386,20 @@ export function TravelExpenses() {
                     </div>
 
                     <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem", justifyContent: "flex-end", alignItems: "center" }}>
-                        <select value={reqStatusFilter} onChange={(e) => { setReqStatusFilter(e.target.value); setReqPage(1); }} className="form-select" style={{ minWidth: "160px" }}>
-                            <option value="">جميع الحالات</option>
-                            <option value="draft">مسودة</option>
-                            <option value="pending_approval">بانتظار الموافقة</option>
-                            <option value="approved">موافق عليه</option>
-                            <option value="rejected">مرفوض</option>
-                            <option value="completed">مكتمل</option>
-                        </select>
-                        <Button onClick={openNewRequest} className="btn-primary"><i className="fas fa-plus"></i> طلب سفر جديد</Button>
+                        <Select
+                            value={reqStatusFilter}
+                            onChange={(e) => { setReqStatusFilter(e.target.value); setReqPage(1); }}
+                            style={{ minWidth: "160px" }}
+                            placeholder="جميع الحالات"
+                            options={Object.entries(requestStatusLabels).map(([value, label]) => ({ value, label }))}
+                        />
+                        <Button
+                            onClick={openNewRequest}
+                            variant="primary"
+                            icon="plus"
+                        >
+                            طلب سفر جديد
+                        </Button>
                     </div>
 
                     <Table columns={requestColumns} data={requests} keyExtractor={(item) => item.id.toString()} emptyMessage="لا توجد طلبات سفر مسجلة" isLoading={reqLoading}
@@ -392,14 +418,13 @@ export function TravelExpenses() {
                     </div>
 
                     <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem", justifyContent: "flex-end", alignItems: "center" }}>
-                        <select value={expStatusFilter} onChange={(e) => { setExpStatusFilter(e.target.value); setExpPage(1); }} className="form-select" style={{ minWidth: "160px" }}>
-                            <option value="">جميع الحالات</option>
-                            <option value="pending">معلق</option>
-                            <option value="submitted">مقدم</option>
-                            <option value="approved">موافق</option>
-                            <option value="rejected">مرفوض</option>
-                            <option value="reimbursed">تم السداد</option>
-                        </select>
+                        <Select
+                            value={expStatusFilter}
+                            onChange={(e) => { setExpStatusFilter(e.target.value); setExpPage(1); }}
+                            style={{ minWidth: "160px" }}
+                            placeholder="جميع الحالات"
+                            options={Object.entries(expenseStatusLabels).map(([value, label]) => ({ value, label }))}
+                        />
                         <Button onClick={openNewExpense} className="btn-primary"><i className="fas fa-plus"></i> تسجيل مصروف</Button>
                     </div>
 
@@ -413,35 +438,35 @@ export function TravelExpenses() {
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الموظف *</label>
+                            <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>الموظف *</Label>
                             <SearchableSelect options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
                                 value={reqForm.employee_id} onChange={(val) => setReqForm(prev => ({ ...prev, employee_id: val?.toString() || "" }))} placeholder="اختر الموظف" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الوجهة *</label>
+                            <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>الوجهة *</Label>
                             <TextInput value={reqForm.destination} onChange={(e) => setReqForm({ ...reqForm, destination: e.target.value })} placeholder="مثال: الرياض - جدة" />
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>تاريخ المغادرة *</label>
+                            <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>تاريخ المغادرة *</Label>
                             <TextInput type="date" value={reqForm.departure_date} onChange={(e) => setReqForm({ ...reqForm, departure_date: e.target.value })} />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>تاريخ العودة *</label>
+                            <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>تاريخ العودة *</Label>
                             <TextInput type="date" value={reqForm.return_date} onChange={(e) => setReqForm({ ...reqForm, return_date: e.target.value })} />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>التكلفة التقديرية</label>
+                            <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>التكلفة التقديرية</Label>
                             <TextInput type="number" value={reqForm.estimated_cost} onChange={(e) => setReqForm({ ...reqForm, estimated_cost: e.target.value })} placeholder="0.00" />
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الغرض من السفر *</label>
+                        <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>الغرض من السفر *</Label>
                         <Textarea value={reqForm.purpose} onChange={(e) => setReqForm({ ...reqForm, purpose: e.target.value })} rows={3} />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>ملاحظات</label>
+                        <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>ملاحظات</Label>
                         <Textarea value={reqForm.notes} onChange={(e) => setReqForm({ ...reqForm, notes: e.target.value })} rows={2} />
                     </div>
                     <div className="flex justify-end gap-2" style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-color)" }}>
@@ -480,37 +505,35 @@ export function TravelExpenses() {
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الموظف *</label>
+                            <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>الموظف *</Label>
                             <SearchableSelect options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
                                 value={expForm.employee_id} onChange={(val) => setExpForm(prev => ({ ...prev, employee_id: val?.toString() || "" }))} placeholder="اختر الموظف" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>نوع المصروف</label>
-                            <Select value={expForm.expense_type} onChange={(e) => setExpForm({ ...expForm, expense_type: e.target.value })}>
-                                <option value="flight">طيران</option>
-                                <option value="hotel">فندق</option>
-                                <option value="meal">وجبات</option>
-                                <option value="transportation">مواصلات</option>
-                                <option value="other">أخرى</option>
-                            </Select>
+                            <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>نوع المصروف</Label>
+                            <Select
+                                value={expForm.expense_type}
+                                onChange={(e) => setExpForm({ ...expForm, expense_type: e.target.value })}
+                                options={Object.entries(expenseTypeLabels).map(([value, label]) => ({ value, label }))}
+                            />
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>المبلغ *</label>
+                            <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>المبلغ *</Label>
                             <TextInput type="number" value={expForm.amount} onChange={(e) => setExpForm({ ...expForm, amount: e.target.value })} placeholder="0.00" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>العملة</label>
+                            <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>العملة</Label>
                             <TextInput value={expForm.currency} onChange={(e) => setExpForm({ ...expForm, currency: e.target.value })} placeholder="SAR" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>تاريخ المصروف</label>
+                            <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>تاريخ المصروف</Label>
                             <TextInput type="date" value={expForm.expense_date} onChange={(e) => setExpForm({ ...expForm, expense_date: e.target.value })} />
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الوصف</label>
+                        <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>الوصف</Label>
                         <Textarea value={expForm.description} onChange={(e) => setExpForm({ ...expForm, description: e.target.value })} rows={2} />
                     </div>
                     <div className="flex justify-end gap-2" style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-color)" }}>

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Table, Column, Button, TabNavigation } from "@/components/ui";
+import { ActionButtons, Table, Column, Button, TabNavigation } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
 
@@ -153,15 +154,16 @@ export function Compensation() {
             header: "الإجراءات",
             dataLabel: "الإجراءات",
             render: (item) => (
-                <div className="action-buttons">
-                    <button
-                        className="icon-btn view"
-                        onClick={() => router.push(`/hr/compensation/plans/${item.id}`)}
-                        title="عرض التفاصيل"
-                    >
-                        <i className="fas fa-eye"></i>
-                    </button>
-                </div>
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "eye",
+                            title: "عرض التفاصيل",
+                            variant: "view",
+                            onClick: () => router.push(`/hr/compensation/plans/${item.id}`)
+                        }
+                    ]}
+                />
             ),
         },
     ];
@@ -222,36 +224,39 @@ export function Compensation() {
             header: "الإجراءات",
             dataLabel: "الإجراءات",
             render: (item) => (
-                <div className="action-buttons">
-                    <button
-                        className="icon-btn view"
-                        onClick={() => router.push(`/hr/compensation/entries/${item.id}`)}
-                        title="عرض التفاصيل"
-                    >
-                        <i className="fas fa-eye"></i>
-                    </button>
-                </div>
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "eye",
+                            title: "عرض التفاصيل",
+                            variant: "view",
+                            onClick: () => router.push(`/hr/compensation/entries/${item.id}`)
+                        }
+                    ]}
+                />
             ),
         },
     ];
 
     return (
         <div className="sales-card animate-fade">
-            <div className="card-header-flex" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <h3 style={{ margin: 0 }}>{getIcon("money-bill-wave")} إدارة التعويضات</h3>
-                </div>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    {activeTab === "plans" && (
-                        <Button
-                            onClick={() => router.push('/hr/compensation/plans/add')}
-                            className="btn-primary"
-                        >
-                            <i className="fas fa-plus"></i> خطة تعويضات جديدة
-                        </Button>
-                    )}
-                </div>
-            </div>
+            <PageSubHeader
+                title="إدارة التعويضات"
+                titleIcon="money-bill-wave"
+                actions={
+                    <>
+                        {activeTab === "plans" && (
+                            <Button
+                                onClick={() => router.push('/hr/compensation/plans/add')}
+                                variant="primary"
+                                icon="plus"
+                            >
+                                خطة تعويضات جديدة
+                            </Button>
+                        )}
+                    </>
+                }
+            />
 
             <TabNavigation
                 tabs={[

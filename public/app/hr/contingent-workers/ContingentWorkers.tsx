@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Table, Column, Button, SearchableSelect } from "@/components/ui";
+import { ActionButtons, Table, Column, Button, SearchableSelect, Select } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
 
@@ -135,51 +136,36 @@ export function ContingentWorkers() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => (
-        <div className="action-buttons">
-          <button
-            className="icon-btn view"
-            onClick={() => router.push(`/hr/contingent-workers/${item.id}`)}
-            title="عرض التفاصيل"
-          >
-            <i className="fas fa-eye"></i>
-          </button>
-          <button
-            className="icon-btn edit"
-            onClick={() => router.push(`/hr/contingent-workers/edit/${item.id}`)}
-            title="تعديل"
-          >
-            <i className="fas fa-edit"></i>
-          </button>
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "eye",
+              title: "عرض التفاصيل",
+              variant: "view",
+              onClick: () => router.push(`/hr/contingent-workers/${item.id}`)
+            },
+            {
+              icon: "edit",
+              title: "تعديل",
+              variant: "edit",
+              onClick: () => router.push(`/hr/contingent-workers/edit/${item.id}`)
+            }
+          ]}
+        />
       ),
     },
   ];
 
   return (
     <div className="sales-card animate-fade">
-      <div className="card-header-flex" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h3 style={{ margin: 0 }}>{getIcon("briefcase")} العمالة المؤقتة</h3>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="form-select"
-            style={{ minWidth: '150px' }}
-          >
-            <option value="">جميع الحالات</option>
-            <option value="active">نشط</option>
-            <option value="inactive">غير نشط</option>
-            <option value="terminated">منهي</option>
-          </select>
+      <PageSubHeader
+        title="العمالة المؤقتة"
+        titleIcon="briefcase"
+        searchInput={
           <SearchableSelect
             options={[]}
             value={null}
-            onChange={() => {}}
+            onChange={() => { }}
             onSearch={(val) => {
               setSearchTerm(val);
               setCurrentPage(1);
@@ -187,14 +173,33 @@ export function ContingentWorkers() {
             placeholder="بحث..."
             className="search-input"
           />
-          <Button
-            onClick={() => router.push('/hr/contingent-workers/add')}
-            className="btn-primary"
-          >
-            <i className="fas fa-plus"></i> إضافة عامل مؤقت
-          </Button>
-        </div>
-      </div>
+        }
+        actions={
+          <>
+            <Select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              style={{ minWidth: '150px' }}
+              placeholder="جميع الحالات"
+              options={[
+                { value: 'active', label: 'نشط' },
+                { value: 'inactive', label: 'غير نشط' },
+                { value: 'terminated', label: 'منهي' }
+              ]}
+            />
+            <Button
+              onClick={() => router.push('/hr/contingent-workers/add')}
+              variant="primary"
+              icon="plus"
+            >
+              إضافة عامل مؤقت
+            </Button>
+          </>
+        }
+      />
 
       <Table
         columns={columns}

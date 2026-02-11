@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, Button, ActionButtons, NumberInput } from "@/components/ui";
+import { TextInput } from "@/components/ui/TextInput";
+import { Textarea } from "@/components/ui/Textarea";
+import { Select } from "@/components/ui/select";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -212,21 +215,30 @@ export default function ProductsPage() {
             header: "الإجراءات",
             dataLabel: "الإجراءات",
             render: (it) => (
-                <div className="action-buttons">
-                    <button className="icon-btn view" onClick={() => { setSelectedProduct(it); setViewDialog(true); }} title="عرض">
-                        <Icon name="eye" />
-                    </button>
-                    {canAccess(permissions, "products", "edit") && (
-                        <button className="icon-btn edit" onClick={() => openEditDialog(it)} title="تعديل">
-                            <Icon name="edit" />
-                        </button>
-                    )}
-                    {canAccess(permissions, "products", "delete") && (
-                        <button className="icon-btn delete" onClick={() => { setDeleteId(it.id); setConfirmDialog(true); }} title="حذف">
-                            <Icon name="trash" />
-                        </button>
-                    )}
-                </div>
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "eye",
+                            title: "عرض",
+                            variant: "view",
+                            onClick: () => { setSelectedProduct(it); setViewDialog(true); }
+                        },
+                        {
+                            icon: "edit",
+                            title: "تعديل",
+                            variant: "edit",
+                            onClick: () => openEditDialog(it),
+                            hidden: !canAccess(permissions, "products", "edit")
+                        },
+                        {
+                            icon: "trash",
+                            title: "حذف",
+                            variant: "delete",
+                            onClick: () => { setDeleteId(it.id); setConfirmDialog(true); },
+                            hidden: !canAccess(permissions, "products", "delete")
+                        }
+                    ]}
+                />
             )
         }
     ];
@@ -247,9 +259,9 @@ export default function ProductsPage() {
                 }
                 actions={
                     canAccess(permissions, "products", "create") && (
-                        <button className="btn btn-primary" onClick={openAddDialog}>
-                            <Icon name="plus" /> إضافة منتج
-                        </button>
+                        <Button variant="primary" icon="plus" onClick={openAddDialog}>
+                            إضافة منتج
+                        </Button>
                     )
                 }
             />
@@ -276,90 +288,119 @@ export default function ProductsPage() {
                 maxWidth="800px"
                 footer={
                     <>
-                        <button className="btn btn-secondary" onClick={() => setProductDialog(false)}>إلغاء</button>
-                        <button className="btn btn-primary" onClick={handleSubmit}>
+                        <Button variant="secondary" onClick={() => setProductDialog(false)}>إلغاء</Button>
+                        <Button variant="primary" onClick={handleSubmit}>
                             {selectedProduct ? "تحديث" : "إضافة"}
-                        </button>
+                        </Button>
                     </>
                 }
             >
                 <div className="form-row">
-                    <div className="form-group">
-                        <label>اسم المنتج *</label>
-                        <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-                    </div>
-                    <div className="form-group">
-                        <label>الباركود</label>
-                        <input type="text" value={formData.barcode} onChange={(e) => setFormData({ ...formData, barcode: e.target.value })} />
-                    </div>
+                    <TextInput
+                        label="اسم المنتج *"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    />
+                    <TextInput
+                        label="الباركود"
+                        value={formData.barcode}
+                        onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                    />
                 </div>
 
                 <div className="form-row">
                     <div className="form-group">
                         <label>الفئة</label>
                         <div className="input-with-action">
-                            <select value={formData.category_id} onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}>
-                                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCategoryDialog(true)}>
-                                <Icon name="plus" />
-                            </button>
+                            <Select
+                                value={formData.category_id}
+                                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                                options={categories.map(c => ({ value: String(c.id), label: c.name }))}
+                            />
+                            <Button
+                                variant="secondary"
+                                icon="plus"
+                                onClick={() => setCategoryDialog(true)}
+                                className="btn-sm"
+                            />
                         </div>
                     </div>
-                    <div className="form-group">
-                        <label>نوع الوحدة</label>
-                        <select value={formData.unit_type} onChange={(e) => setFormData({ ...formData, unit_type: e.target.value })}>
-                            <option value="piece">حبة / قطعة</option>
-                            <option value="ctn">كرتون</option>
-                        </select>
-                    </div>
+                    <Select
+                        label="نوع الوحدة"
+                        value={formData.unit_type}
+                        onChange={(e) => setFormData({ ...formData, unit_type: e.target.value })}
+                        options={[
+                            { value: "piece", label: "حبة / قطعة" },
+                            { value: "ctn", label: "كرتون" }
+                        ]}
+                    />
                 </div>
 
                 <div className="form-row">
-                    <div className="form-group">
-                        <label>سعر الشراء *</label>
-                        <input type="number" value={formData.purchase_price} onChange={(e) => calculatePrices("purchase_price", e.target.value)} step="0.01" />
-                    </div>
-                    <div className="form-group">
-                        <label>هامش الربح (%)</label>
-                        <input type="number" value={formData.profit_margin} onChange={(e) => calculatePrices("profit_margin", e.target.value)} step="0.1" />
-                    </div>
-                    <div className="form-group">
-                        <label>سعر البيع *</label>
-                        <input type="number" value={formData.selling_price} onChange={(e) => calculatePrices("selling_price", e.target.value)} step="0.01" />
-                    </div>
+                    <NumberInput
+                        label="سعر الشراء *"
+                        value={formData.purchase_price}
+                        onChange={(val) => calculatePrices("purchase_price", String(val))}
+                        step={0.01}
+                    />
+                    <NumberInput
+                        label="هامش الربح (%)"
+                        value={formData.profit_margin}
+                        onChange={(val) => calculatePrices("profit_margin", String(val))}
+                        step={0.1}
+                    />
+                    <NumberInput
+                        label="سعر البيع *"
+                        value={formData.selling_price}
+                        onChange={(val) => calculatePrices("selling_price", String(val))}
+                        step={0.01}
+                    />
                 </div>
 
                 <div className="form-row">
-                    <div className="form-group">
-                        <label>وحدات/صندوق</label>
-                        <input type="number" value={formData.units_per_package} onChange={(e) => calculatePrices("units_per_package", e.target.value)} min="1" />
-                    </div>
-                    <div className="form-group">
-                        <label>المخزون الحالي</label>
-                        <input type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} />
-                    </div>
-                    <div className="form-group">
-                        <label>حد الطلب الأدنى</label>
-                        <input type="number" value={formData.min_stock} onChange={(e) => setFormData({ ...formData, min_stock: e.target.value })} />
-                    </div>
+                    <NumberInput
+                        label="وحدات/صندوق"
+                        value={formData.units_per_package}
+                        onChange={(val) => calculatePrices("units_per_package", String(val))}
+                        min={1}
+                    />
+                    <NumberInput
+                        label="المخزون الحالي"
+                        value={formData.stock}
+                        onChange={(val) => setFormData({ ...formData, stock: String(val) })}
+                    />
+                    <NumberInput
+                        label="حد الطلب الأدنى"
+                        value={formData.min_stock}
+                        onChange={(val) => setFormData({ ...formData, min_stock: String(val) })}
+                    />
                 </div>
 
-                <div className="form-group">
-                    <label>الوصف</label>
-                    <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={2} />
-                </div>
+                <Textarea
+                    label="الوصف"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={2}
+                />
             </Dialog>
 
-            <Dialog isOpen={categoryDialog} onClose={() => setCategoryDialog(false)} title="إضافة فئة جديدة" maxWidth="400px">
-                <div className="form-group">
-                    <label>اسم الفئة *</label>
-                    <input type="text" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
-                </div>
-                <div className="dialog-footer">
-                    <button className="btn btn-secondary" onClick={() => setCategoryDialog(false)}>إلغاء</button>
-                    <button className="btn btn-primary" onClick={addCategory}>إضافة</button>
-                </div>
+            <Dialog
+                isOpen={categoryDialog}
+                onClose={() => setCategoryDialog(false)}
+                title="إضافة فئة جديدة"
+                maxWidth="400px"
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => setCategoryDialog(false)}>إلغاء</Button>
+                        <Button variant="primary" onClick={addCategory}>إضافة</Button>
+                    </>
+                }
+            >
+                <TextInput
+                    label="اسم الفئة *"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                />
             </Dialog>
 
             <Dialog isOpen={viewDialog} onClose={() => setViewDialog(false)} title="تفاصيل المنتج" maxWidth="600px">

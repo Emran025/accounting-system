@@ -7,6 +7,7 @@ import { getStoredUser, User } from "@/lib/auth";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Role, Department } from "../../types";
+import { Label, Select, TextInput, EmailInput, PasswordInput, Button } from "@/components/ui";
 
 /**
  * Add Employee Page Component.
@@ -111,33 +112,21 @@ export default function AddEmployeePage() {
                             <h4 style={{ margin: 0 }}>المعلومات الشخصية</h4>
                         </div>
                         <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-                            <div className="form-group">
-                                <label>الاسم الكامل <span className="text-danger">*</span></label>
-                                <input type="text" name="full_name" className="form-control" required value={formData.full_name} onChange={handleChange} placeholder="الاسم رباعي" />
-                            </div>
-                            <div className="form-group">
-                                <label>رقم الهوية / الإقامة</label>
-                                <input type="text" name="national_id" className="form-control" value={formData.national_id} onChange={handleChange} placeholder="10xxxxxxxxx" />
-                            </div>
-                            <div className="form-group">
-                                <label>تاريخ الميلاد</label>
-                                <input type="date" name="date_of_birth" className="form-control" value={formData.date_of_birth} onChange={handleChange} />
-                            </div>
-                            <div className="form-group">
-                                <label>الجنس</label>
-                                <select name="gender" className="form-control" value={formData.gender} onChange={handleChange}>
-                                    <option value="male">ذكر</option>
-                                    <option value="female">أنثى</option>
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>رقم الهاتف</label>
-                                <input type="text" name="phone" className="form-control" value={formData.phone} onChange={handleChange} placeholder="05xxxxxxxx" />
-                            </div>
-                            <div className="form-group">
-                                <label>العنوان</label>
-                                <input type="text" name="address" className="form-control" value={formData.address} onChange={handleChange} placeholder="المدينة، الحي، الشارع" />
-                            </div>
+                            <TextInput label="الاسم الكامل" name="full_name" required value={formData.full_name} onChange={handleChange} placeholder="الاسم رباعي" />
+                            <TextInput label="رقم الهوية / الإقامة" name="national_id" value={formData.national_id} onChange={handleChange} placeholder="10xxxxxxxxx" />
+                            <TextInput label="تاريخ الميلاد" type="date" name="date_of_birth" value={formData.date_of_birth} onChange={handleChange} />
+                            <Select
+                                label="الجنس"
+                                name="gender"
+                                value={formData.gender}
+                                onChange={handleChange}
+                                options={[
+                                    { value: 'male', label: 'ذكر' },
+                                    { value: 'female', label: 'أنثى' }
+                                ]}
+                            />
+                            <TextInput label="رقم الهاتف" name="phone" value={formData.phone} onChange={handleChange} placeholder="05xxxxxxxx" />
+                            <TextInput label="العنوان" name="address" value={formData.address} onChange={handleChange} placeholder="المدينة، الحي، الشارع" />
                         </div>
                     </div>
 
@@ -148,45 +137,47 @@ export default function AddEmployeePage() {
                             <h4 style={{ margin: 0 }}>معلومات التوظيف</h4>
                         </div>
                         <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-                            <div className="form-group">
-                                <label>الرقم الوظيفي <span className="text-danger">*</span></label>
-                                <input type="text" name="employee_code" className="form-control" required value={formData.employee_code} onChange={handleChange} />
-                            </div>
-                            <div className="form-group">
-                                <label>المسمى الوظيفي</label>
-                                <select name="role_id" className="form-control" value={formData.role_id} onChange={handleChange}>
-                                    <option value="">اختر المسمى الوظيفي (الدور)</option>
-                                    {roles.map(role => <option key={role.id} value={role.id}>{role.role_name_ar}</option>)}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>القسم</label>
-                                <select name="department_id" className="form-control" value={formData.department_id} onChange={handleChange}>
-                                    <option value="">اختر القسم</option>
-                                    {departments.map(dept => <option key={dept.id} value={dept.id}>{dept.name_ar}</option>)}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>تاريخ المباشرة <span className="text-danger">*</span></label>
-                                <input type="date" name="hire_date" className="form-control" required value={formData.hire_date} onChange={handleChange} />
-                            </div>
-                            <div className="form-group">
-                                <label>نوع العقد</label>
-                                <select name="contract_type" className="form-control" value={formData.contract_type} onChange={handleChange}>
-                                    <option value="full_time">دوام كامل</option>
-                                    <option value="part_time">دوام جزئي</option>
-                                    <option value="contract">عقد محدد المدة</option>
-                                    <option value="freelance">تعاون / عمل حر</option>
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>حالة التوظيف</label>
-                                <select name="employment_status" className="form-control" value={formData.employment_status} onChange={handleChange}>
-                                    <option value="active">نشط</option>
-                                    <option value="suspended">معلق</option>
-                                    <option value="terminated">منهي خدماته</option>
-                                </select>
-                            </div>
+                            <TextInput label="الرقم الوظيفي" name="employee_code" required value={formData.employee_code} onChange={handleChange} />
+                            <Select
+                                label="المسمى الوظيفي"
+                                name="role_id"
+                                value={formData.role_id}
+                                onChange={handleChange}
+                                placeholder="اختر المسمى الوظيفي (الدور)"
+                                options={roles.map(role => ({ value: role.id, label: role.role_name_ar }))}
+                            />
+                            <Select
+                                label="القسم"
+                                name="department_id"
+                                value={formData.department_id}
+                                onChange={handleChange}
+                                placeholder="اختر القسم"
+                                options={departments.map(dept => ({ value: dept.id, label: dept.name_ar }))}
+                            />
+                            <TextInput label="تاريخ المباشرة" type="date" name="hire_date" required value={formData.hire_date} onChange={handleChange} />
+                            <Select
+                                label="نوع العقد"
+                                name="contract_type"
+                                value={formData.contract_type}
+                                onChange={handleChange}
+                                options={[
+                                    { value: 'full_time', label: 'دوام كامل' },
+                                    { value: 'part_time', label: 'دوام جزئي' },
+                                    { value: 'contract', label: 'عقد محدد المدة' },
+                                    { value: 'freelance', label: 'تعاون / عمل حر' }
+                                ]}
+                            />
+                            <Select
+                                label="حالة التوظيف"
+                                name="employment_status"
+                                value={formData.employment_status}
+                                onChange={handleChange}
+                                options={[
+                                    { value: 'active', label: 'نشط' },
+                                    { value: 'suspended', label: 'معلق' },
+                                    { value: 'terminated', label: 'منهي خدماته' }
+                                ]}
+                            />
                         </div>
                     </div>
 
@@ -197,36 +188,22 @@ export default function AddEmployeePage() {
                             <h4 style={{ margin: 0 }}>المعلومات المالية</h4>
                         </div>
                         <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-                            <div className="form-group">
-                                <label>الراتب الأساسي <span className="text-danger">*</span></label>
-                                <input type="number" name="base_salary" className="form-control" required value={formData.base_salary} onChange={handleChange} min="0" step="0.01" />
-                            </div>
-                            <div className="form-group">
-                                <label>رقم التأمينات الاجتماعية (GOSI)</label>
-                                <input type="text" name="gosi_number" className="form-control" value={formData.gosi_number} onChange={handleChange} />
-                            </div>
-                            <div className="form-group">
-                                <label>اسم البنك</label>
-                                <input type="text" name="bank_name" className="form-control" value={formData.bank_name} onChange={handleChange} />
-                            </div>
-                            <div className="form-group">
-                                <label>رقم الآيبان (IBAN)</label>
-                                <input type="text" name="iban" className="form-control" value={formData.iban} onChange={handleChange} placeholder="SAxxxxxxxxxxxxxxxxxxxxxx" />
-                            </div>
-                            <div className="form-group">
-                                <label>رصيد الإجازات الافتتاحي (أيام)</label>
-                                <input type="number" name="vacation_days_balance" className="form-control" value={formData.vacation_days_balance} onChange={handleChange} min="0" step="0.5" />
-                            </div>
+                            <TextInput label="الراتب الأساسي" type="number" name="base_salary" required value={formData.base_salary} onChange={handleChange} min="0" step="0.01" />
+                            <TextInput label="رقم التأمينات الاجتماعية (GOSI)" name="gosi_number" value={formData.gosi_number} onChange={handleChange} />
+                            <TextInput label="اسم البنك" name="bank_name" value={formData.bank_name} onChange={handleChange} />
+                            <TextInput label="رقم الآيبان (IBAN)" name="iban" value={formData.iban} onChange={handleChange} placeholder="SAxxxxxxxxxxxxxxxxxxxxxx" />
+                            <TextInput label="رصيد الإجازات الافتتاحي (أيام)" type="number" name="vacation_days_balance" value={formData.vacation_days_balance} onChange={handleChange} min="0" step="0.5" />
                         </div>
 
                         <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
-                            <div className="form-group">
-                                <label>المدير المباشر</label>
-                                <select name="manager_id" className="form-control" value={formData.manager_id} onChange={handleChange}>
-                                    <option value="">اختر المدير المباشر</option>
-                                    {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.full_name}</option>)}
-                                </select>
-                            </div>
+                            <Select
+                                label="المدير المباشر"
+                                name="manager_id"
+                                value={formData.manager_id}
+                                onChange={handleChange}
+                                placeholder="اختر المدير المباشر"
+                                options={employees.map(emp => ({ value: emp.id, label: emp.full_name }))}
+                            />
                         </div>
                     </div>
 
@@ -238,22 +215,16 @@ export default function AddEmployeePage() {
                         </div>
                         <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>تستخدم هذه البيانات لدخول الموظف إلى بوابة الخدمات الذاتية.</p>
                         <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-                            <div className="form-group">
-                                <label>البريد الإلكتروني <span className="text-danger">*</span></label>
-                                <input type="email" name="email" className="form-control" required value={formData.email} onChange={handleChange} />
-                            </div>
-                            <div className="form-group">
-                                <label>كلمة المرور <span className="text-danger">*</span></label>
-                                <input type="password" name="password" className="form-control" required value={formData.password} onChange={handleChange} minLength={6} placeholder="********" />
-                            </div>
+                            <EmailInput label="البريد الإلكتروني" name="email" required value={formData.email} onChange={handleChange} />
+                            <PasswordInput label="كلمة المرور" name="password" required value={formData.password} onChange={handleChange} minLength={6} placeholder="********" />
                         </div>
                     </div>
 
                     <div className="form-actions" style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
-                        <button type="button" className="btn btn-secondary" onClick={() => router.back()}>إلغاء</button>
-                        <button type="submit" className="btn btn-primary" disabled={isLoading}>
-                            <i className="fas fa-save"></i> {isLoading ? 'جاري الحفظ...' : 'حفظ الموظف'}
-                        </button>
+                        <Button variant="secondary" onClick={() => router.back()}>إلغاء</Button>
+                        <Button type="submit" isLoading={isLoading} icon="save">
+                            حفظ الموظف
+                        </Button>
                     </div>
                 </form>
             </div>

@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
+import { ActionButtons, Table, Dialog, ConfirmDialog, showToast, Column, showAlert, Button } from "@/components/ui";
+import { TextInput } from "@/components/ui/TextInput";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate } from "@/lib/utils";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
-import { getIcon } from "@/lib/icons";
 
 interface FiscalPeriod {
   id: number;
@@ -255,35 +255,37 @@ export default function FiscalPeriodsPage() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => (
-        <div className="action-buttons">
-          <button className="icon-btn view" onClick={() => viewPeriod(item.id)} title="عرض">
-            {getIcon("eye")}
-          </button>
-          {!item.is_closed && (
-            <>
-              <button
-                className="icon-btn"
-                onClick={() => (item.is_locked ? confirmUnlockPeriod(item.id) : confirmLockPeriod(item.id))}
-                title={item.is_locked ? "فتح" : "قفل"}
-              >
-                {getIcon(item.is_locked ? "unlock" : "lock")}
-              </button>
-              {!item.is_locked && (
-                <button className="icon-btn edit" onClick={() => editPeriod(item.id)} title="تعديل">
-                  {getIcon("edit")}
-                </button>
-              )}
-              <button
-                className="icon-btn"
-                onClick={() => confirmClosePeriod(item.id)}
-                title="إغلاق"
-                style={{ background: "var(--danger-color)", color: "white" }}
-              >
-                {getIcon("check")}
-              </button>
-            </>
-          )}
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "eye",
+              title: "عرض",
+              variant: "view",
+              onClick: () => viewPeriod(item.id)
+            },
+            {
+              icon: item.is_locked ? "unlock" : "lock",
+              title: item.is_locked ? "فتح" : "قفل",
+              variant: "view",
+              onClick: () => (item.is_locked ? confirmUnlockPeriod(item.id) : confirmLockPeriod(item.id)),
+              hidden: item.is_closed
+            },
+            {
+              icon: "edit",
+              title: "تعديل",
+              variant: "edit",
+              onClick: () => editPeriod(item.id),
+              hidden: item.is_closed || item.is_locked
+            },
+            {
+              icon: "check",
+              title: "إغلاق",
+              variant: "delete", // Closing is a "danger" action here
+              onClick: () => confirmClosePeriod(item.id),
+              hidden: item.is_closed
+            }
+          ]}
+        />
       ),
     },
   ];
@@ -294,10 +296,9 @@ export default function FiscalPeriodsPage() {
         title="الفترات المالية"
         user={user}
         actions={
-          <button className="btn btn-primary" onClick={openCreateDialog}>
-            {getIcon("plus")}
+          <Button variant="primary" icon="plus" onClick={openCreateDialog}>
             فترة جديدة
-          </button>
+          </Button>
         }
       />
 
@@ -325,12 +326,12 @@ export default function FiscalPeriodsPage() {
         title={currentPeriodId ? "تعديل الفترة" : "فترة مالية جديدة"}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setPeriodDialog(false)}>
+            <Button variant="secondary" onClick={() => setPeriodDialog(false)}>
               إلغاء
-            </button>
-            <button className="btn btn-primary" onClick={savePeriod}>
+            </Button>
+            <Button variant="primary" onClick={savePeriod}>
               حفظ
-            </button>
+            </Button>
           </>
         }
       >
@@ -339,39 +340,35 @@ export default function FiscalPeriodsPage() {
             e.preventDefault();
             savePeriod();
           }}
+          className="space-y-4"
         >
-          <div className="form-group">
-            <label htmlFor="period-name">اسم الفترة *</label>
-            <input
-              type="text"
-              id="period-name"
-              value={periodName}
-              onChange={(e) => setPeriodName(e.target.value)}
-              required
-            />
-          </div>
+          <TextInput
+            label="اسم الفترة *"
+            id="period-name"
+            value={periodName}
+            onChange={(e) => setPeriodName(e.target.value)}
+            required
+          />
 
           <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="period-start">تاريخ البداية *</label>
-              <input
-                type="date"
-                id="period-start"
-                value={periodStart}
-                onChange={(e) => setPeriodStart(e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="period-end">تاريخ النهاية *</label>
-              <input
-                type="date"
-                id="period-end"
-                value={periodEnd}
-                onChange={(e) => setPeriodEnd(e.target.value)}
-                required
-              />
-            </div>
+            <TextInput
+              type="date"
+              label="تاريخ البداية *"
+              id="period-start"
+              value={periodStart}
+              onChange={(e) => setPeriodStart(e.target.value)}
+              required
+              className="flex-1"
+            />
+            <TextInput
+              type="date"
+              label="تاريخ النهاية *"
+              id="period-end"
+              value={periodEnd}
+              onChange={(e) => setPeriodEnd(e.target.value)}
+              required
+              className="flex-1"
+            />
           </div>
         </form>
       </Dialog>

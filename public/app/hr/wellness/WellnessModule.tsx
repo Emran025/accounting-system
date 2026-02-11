@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, Button, showToast, TabNavigation } from "@/components/ui";
+import { ActionButtons, Table, Column, Dialog, Button, showToast, TabNavigation, Label } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/select";
@@ -9,7 +9,9 @@ import { SearchableSelect } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate } from "@/lib/utils";
+import { PageSubHeader } from "@/components/layout";
 import { getIcon } from "@/lib/icons";
+
 import type { Employee, WellnessProgram, WellnessParticipation } from "../types";
 
 const programTypeLabels: Record<string, string> = { steps_challenge: "تحدي الخطوات", health_challenge: "تحدي صحي", fitness: "لياقة بدنية", nutrition: "تغذية", mental_health: "صحة نفسية", other: "أخرى" };
@@ -85,7 +87,16 @@ export function WellnessModule() {
         { key: "participations", header: "المشاركون", dataLabel: "المشاركون", render: (i) => i.participations?.length || 0 },
         {
             key: "id", header: "إجراءات", dataLabel: "إجراءات", render: (i) => (
-                <button className="icon-btn view" onClick={() => { setSelectedProgram(i); setShowProgDetails(true); }} title="تفاصيل"><i className="fas fa-eye"></i></button>
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "eye",
+                            title: "تفاصيل",
+                            variant: "view",
+                            onClick: () => { setSelectedProgram(i); setShowProgDetails(true); }
+                        }
+                    ]}
+                />
             )
         },
     ];
@@ -98,10 +109,24 @@ export function WellnessModule() {
         { key: "status", header: "الحالة", dataLabel: "الحالة", render: (i) => <span className={`badge ${participationStatusBadges[i.status]}`}>{participationStatusLabels[i.status]}</span> },
         {
             key: "id", header: "إجراءات", dataLabel: "إجراءات", render: (i) => (
-                <div className="action-buttons">
-                    {i.status === "enrolled" && <button className="icon-btn" onClick={() => handleUpdateParticipation(i.id, "active")} title="تفعيل" style={{ color: "var(--success-color)" }}><i className="fas fa-play"></i></button>}
-                    {i.status === "active" && <button className="icon-btn" onClick={() => handleUpdateParticipation(i.id, "completed")} title="إكمال" style={{ color: "var(--info-color)" }}><i className="fas fa-check"></i></button>}
-                </div>
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "play",
+                            title: "تفعيل",
+                            variant: "success",
+                            onClick: () => handleUpdateParticipation(i.id, "active"),
+                            hidden: i.status !== "enrolled"
+                        },
+                        {
+                            icon: "check",
+                            title: "إكمال",
+                            variant: "view",
+                            onClick: () => handleUpdateParticipation(i.id, "completed"),
+                            hidden: i.status !== "active"
+                        }
+                    ]}
+                />
             )
         },
     ];
@@ -110,29 +135,48 @@ export function WellnessModule() {
 
     return (
         <div className="sales-card animate-fade">
-            <div className="card-header-flex" style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.5rem", alignItems: "center" }}><h3 style={{ margin: 0 }}>{getIcon("heart")} برامج العافية</h3></div>
+            <PageSubHeader
+                title="برامج العافية"
+                titleIcon="heart"
+            />
             <TabNavigation tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
             {activeTab === "programs" && <>
-                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}><Button onClick={() => { setProgForm({ program_name: "", description: "", program_type: "fitness", start_date: new Date().toISOString().split("T")[0], end_date: "", notes: "" }); setShowProgDialog(true); }} className="btn-primary"><i className="fas fa-plus"></i> برنامج جديد</Button></div>
+                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}>
+                    <Button
+                        onClick={() => { setProgForm({ program_name: "", description: "", program_type: "fitness", start_date: new Date().toISOString().split("T")[0], end_date: "", notes: "" }); setShowProgDialog(true); }}
+                        variant="primary"
+                        icon="plus"
+                    >
+                        برنامج جديد
+                    </Button>
+                </div>
                 <Table columns={progColumns} data={programs} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد برامج" isLoading={progLoading} pagination={{ currentPage: progPage, totalPages: progTotal, onPageChange: setProgPage }} />
             </>}
 
             {activeTab === "participations" && <>
-                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}><Button onClick={() => { setPartForm({ program_id: "", employee_id: "", notes: "" }); setShowPartDialog(true); }} className="btn-primary"><i className="fas fa-plus"></i> تسجيل مشارك</Button></div>
+                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}>
+                    <Button
+                        onClick={() => { setPartForm({ program_id: "", employee_id: "", notes: "" }); setShowPartDialog(true); }}
+                        variant="primary"
+                        icon="plus"
+                    >
+                        تسجيل مشارك
+                    </Button>
+                </div>
                 <Table columns={partColumns} data={participations} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد مشاركات" isLoading={partLoading} pagination={{ currentPage: partPage, totalPages: partTotal, onPageChange: setPartPage }} />
             </>}
 
             {/* Create Program Dialog */}
             <Dialog isOpen={showProgDialog} onClose={() => setShowProgDialog(false)} title="برنامج عافية جديد" maxWidth="600px">
                 <div className="space-y-4">
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>اسم البرنامج *</label><TextInput value={progForm.program_name} onChange={(e) => setProgForm({ ...progForm, program_name: e.target.value })} /></div>
+                    <TextInput label="اسم البرنامج *" value={progForm.program_name} onChange={(e) => setProgForm({ ...progForm, program_name: e.target.value })} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>النوع</label><Select value={progForm.program_type} onChange={(e) => setProgForm({ ...progForm, program_type: e.target.value })}><option value="steps_challenge">تحدي خطوات</option><option value="health_challenge">تحدي صحي</option><option value="fitness">لياقة</option><option value="nutrition">تغذية</option><option value="mental_health">صحة نفسية</option><option value="other">أخرى</option></Select></div>
-                        <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>البداية</label><TextInput type="date" value={progForm.start_date} onChange={(e) => setProgForm({ ...progForm, start_date: e.target.value })} /></div>
+                        <Select label="النوع" value={progForm.program_type} onChange={(e) => setProgForm({ ...progForm, program_type: e.target.value })} options={Object.entries(programTypeLabels).map(([value, label]) => ({ value, label }))} />
+                        <TextInput label="البداية" type="date" value={progForm.start_date} onChange={(e) => setProgForm({ ...progForm, start_date: e.target.value })} />
                     </div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>النهاية *</label><TextInput type="date" value={progForm.end_date} onChange={(e) => setProgForm({ ...progForm, end_date: e.target.value })} /></div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الوصف</label><Textarea value={progForm.description} onChange={(e) => setProgForm({ ...progForm, description: e.target.value })} rows={3} /></div>
+                    <TextInput label="النهاية *" type="date" value={progForm.end_date} onChange={(e) => setProgForm({ ...progForm, end_date: e.target.value })} />
+                    <Textarea label="الوصف" value={progForm.description} onChange={(e) => setProgForm({ ...progForm, description: e.target.value })} rows={3} />
                     <div className="flex justify-end gap-2" style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-color)" }}><Button variant="secondary" onClick={() => setShowProgDialog(false)}>إلغاء</Button><Button variant="primary" onClick={handleSaveProgram} icon="save">حفظ</Button></div>
                 </div>
             </Dialog>
@@ -155,9 +199,12 @@ export function WellnessModule() {
             {/* Enroll Dialog */}
             <Dialog isOpen={showPartDialog} onClose={() => setShowPartDialog(false)} title="تسجيل مشارك" maxWidth="500px">
                 <div className="space-y-4">
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>البرنامج *</label><Select value={partForm.program_id} onChange={(e) => setPartForm({ ...partForm, program_id: e.target.value })}><option value="">اختر البرنامج</option>{programs.filter(p => p.is_active).map(p => <option key={p.id} value={p.id}>{p.program_name}</option>)}</Select></div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>الموظف *</label><SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={partForm.employee_id} onChange={(v) => setPartForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر الموظف" /></div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>ملاحظات</label><Textarea value={partForm.notes} onChange={(e) => setPartForm({ ...partForm, notes: e.target.value })} rows={2} /></div>
+                    <Select label="البرنامج *" value={partForm.program_id} onChange={(e) => setPartForm({ ...partForm, program_id: e.target.value })} placeholder="اختر البرنامج" options={programs.filter(p => p.is_active).map(p => ({ value: p.id.toString(), label: p.program_name }))} />
+                    <div className="flex flex-col gap-1">
+                        <Label className="text-secondary mb-1">الموظف *</Label>
+                        <SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={partForm.employee_id} onChange={(v) => setPartForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر الموظف" />
+                    </div>
+                    <Textarea label="ملاحظات" value={partForm.notes} onChange={(e) => setPartForm({ ...partForm, notes: e.target.value })} rows={2} />
                     <div className="flex justify-end gap-2" style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-color)" }}><Button variant="secondary" onClick={() => setShowPartDialog(false)}>إلغاء</Button><Button variant="primary" onClick={handleEnroll} icon="save">تسجيل</Button></div>
                 </div>
             </Dialog>

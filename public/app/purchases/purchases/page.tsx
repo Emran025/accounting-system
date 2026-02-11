@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, SearchableSelect, SelectOption, showToast, Column } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, Button, SearchableSelect, SelectOption, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -342,13 +342,21 @@ export default function PurchasesPage() {
                 }
                 actions={
                     <>
-                        <button className="btn btn-secondary" onClick={openRequestsDialog}>
-                            <Icon name="list" /> طلبيات الشراء
-                        </button>
+                        <Button
+                            variant="secondary"
+                            icon="list"
+                            onClick={openRequestsDialog}
+                        >
+                            طلبيات الشراء
+                        </Button>
                         {canAccess(permissions, "purchases", "create") && (
-                            <button className="btn btn-primary" onClick={openAddDialog}>
-                                <Icon name="plus" /> إضافة مشترى
-                            </button>
+                            <Button
+                                variant="primary"
+                                icon="plus"
+                                onClick={openAddDialog}
+                            >
+                               إضافة مشترى
+                            </Button>
                         )}
                     </>
                 }

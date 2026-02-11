@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, showToast, Button, SearchableSelect } from "@/components/ui";
+import { Dialog, showToast, Button, SearchableSelect, Label } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { Employee } from "../types";
+import { Employee, EOSBCalculation } from "../types";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { PageSubHeader } from "@/components/layout";
 import { getIcon } from "@/lib/icons";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
@@ -14,21 +15,6 @@ import { Select } from "@/components/ui/select";
  * End of Service Benefit (EOSB) Calculation result.
  * Based on Saudi Labor Law Article 84-85 for termination benefits.
  */
-interface EOSBCalculation {
-  years_of_service: number;
-  months_of_service: number;
-  days_of_service: number;
-  last_gross_salary: number;
-  eosb_amount: number;
-  unused_vacation_amount: number;
-  notice_period_amount: number;
-  total_settlement: number;
-  breakdown: {
-    eosb: number;
-    unused_vacation: number;
-    notice_period: number;
-  };
-}
 
 /**
  * End of Service Benefit (EOSB) Calculator Component.
@@ -97,16 +83,15 @@ export function EOSBCalculator() {
 
   return (
     <div className="sales-card animate-fade">
-      <div className="card-header-flex">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h3 style={{ margin: 0 }}>{getIcon("calculator")} حاسبة مكافأة نهاية الخدمة</h3>
-        </div>
-      </div>
+      <PageSubHeader
+        title="حاسبة مكافأة نهاية الخدمة"
+        titleIcon="calculator"
+      />
 
       <div className="sales-card compact" style={{ marginBottom: '1.5rem' }}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الموظف *</label>
+          <div className="flex flex-col gap-1">
+            <Label className="text-secondary mb-1">الموظف *</Label>
             <SearchableSelect
               options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
               value={formData.employee_id}
@@ -118,25 +103,22 @@ export function EOSBCalculator() {
               placeholder="اختر الموظف"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>تاريخ إنهاء الخدمة *</label>
-            <TextInput
-              type="date"
-              value={formData.termination_date}
-              onChange={(e) => setFormData({ ...formData, termination_date: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>سبب إنهاء الخدمة *</label>
-            <Select
-              value={formData.termination_reason}
-              onChange={(e) => setFormData({ ...formData, termination_reason: e.target.value as any })}
-            >
-              <option value="resignation">استقالة</option>
-              <option value="termination">إنهاء من قبل صاحب العمل</option>
-              <option value="end_of_contract">انتهاء العقد</option>
-            </Select>
-          </div>
+          <TextInput
+            label="تاريخ إنهاء الخدمة *"
+            type="date"
+            value={formData.termination_date}
+            onChange={(e) => setFormData({ ...formData, termination_date: e.target.value })}
+          />
+          <Select
+            label="سبب إنهاء الخدمة *"
+            value={formData.termination_reason}
+            onChange={(e) => setFormData({ ...formData, termination_reason: e.target.value as any })}
+            options={[
+              { value: 'resignation', label: 'استقالة' },
+              { value: 'termination', label: 'إنهاء من قبل صاحب العمل' },
+              { value: 'end_of_contract', label: 'انتهاء العقد' }
+            ]}
+          />
         </div>
 
         {selectedEmp && (

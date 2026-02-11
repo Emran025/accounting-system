@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useState, useEffect } from "react";
-import { Label } from "./label";
+import { Label } from "./Label";
 
 interface SwitchProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string;

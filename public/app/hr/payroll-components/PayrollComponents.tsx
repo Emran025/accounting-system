@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, showToast, Button } from "@/components/ui";
+import { ActionButtons, Table, Column, Dialog, showToast, Button, Label } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { PayrollComponent } from "../types";
 import { formatCurrency } from "@/lib/utils";
+import { PageSubHeader } from "@/components/layout";
 import { getIcon } from "@/lib/icons";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
@@ -195,42 +196,43 @@ export function PayrollComponents() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (comp) => (
-        <div className="action-buttons">
-          <button
-            className="icon-btn edit"
-            onClick={() => handleEdit(comp)}
-            title="تعديل"
-          >
-            {getIcon("edit")}
-          </button>
-          <button
-            className="icon-btn delete"
-            onClick={() => handleDelete(comp.id)}
-            title="حذف"
-          >
-            {getIcon("trash")}
-          </button>
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "edit",
+              title: "تعديل",
+              variant: "edit",
+              onClick: () => handleEdit(comp)
+            },
+            {
+              icon: "trash",
+              title: "حذف",
+              variant: "delete",
+              onClick: () => handleDelete(comp.id)
+            }
+          ]}
+        />
       )
     }
   ];
 
   return (
     <div className="sales-card animate-fade">
-      <div className="card-header-flex">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h3 style={{ margin: 0 }}>{getIcon("cog")} مكونات الرواتب</h3>
-        </div>
-        <Button
-          variant="primary"
-          onClick={() => {
-            resetForm();
-            setShowDialog(true);
-          }}
-          icon="plus">
-          إضافة مكون جديد
-        </Button>
-      </div>
+      <PageSubHeader
+        title="مكونات الرواتب"
+        titleIcon="settings"
+        actions={
+          <Button
+            variant="primary"
+            onClick={() => {
+              resetForm();
+              setShowDialog(true);
+            }}
+            icon="plus">
+            إضافة مكون جديد
+          </Button>
+        }
+      />
 
       <div className="sales-card">
         <Table
@@ -254,7 +256,7 @@ export function PayrollComponents() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>كود المكون *</label>
+              <Label className="block mb-1" style={{ color: 'var(--text-secondary)' }}>كود المكون *</Label>
               <TextInput
                 value={formData.component_code}
                 onChange={(e) => setFormData({ ...formData, component_code: e.target.value })}
@@ -262,7 +264,7 @@ export function PayrollComponents() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>اسم المكون *</label>
+              <Label className="block mb-1" style={{ color: 'var(--text-secondary)' }}>اسم المكون *</Label>
               <TextInput
                 value={formData.component_name}
                 onChange={(e) => setFormData({ ...formData, component_name: e.target.value })}
@@ -272,35 +274,37 @@ export function PayrollComponents() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>نوع المكون *</label>
+              <Label className="block mb-1" style={{ color: 'var(--text-secondary)' }}>نوع المكون *</Label>
               <Select
                 value={formData.component_type}
                 onChange={(e) => setFormData({ ...formData, component_type: e.target.value as any })}
-              >
-                <option value="allowance">بدل</option>
-                <option value="deduction">خصم</option>
-                <option value="overtime">ساعات إضافية</option>
-                <option value="bonus">مكافأة</option>
-                <option value="other">أخرى</option>
-              </Select>
+                options={[
+                  { value: 'allowance', label: 'بدل' },
+                  { value: 'deduction', label: 'خصم' },
+                  { value: 'overtime', label: 'ساعات إضافية' },
+                  { value: 'bonus', label: 'مكافأة' },
+                  { value: 'other', label: 'أخرى' }
+                ]}
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>نوع الحساب *</label>
+              <Label className="block mb-1" style={{ color: 'var(--text-secondary)' }}>نوع الحساب *</Label>
               <Select
                 value={formData.calculation_type}
                 onChange={(e) => setFormData({ ...formData, calculation_type: e.target.value as any })}
-              >
-                <option value="fixed">ثابت</option>
-                <option value="percentage">نسبة مئوية</option>
-                <option value="formula">صيغة</option>
-                <option value="attendance_based">بناءً على الحضور</option>
-              </Select>
+                options={[
+                  { value: 'fixed', label: 'ثابت' },
+                  { value: 'percentage', label: 'نسبة مئوية' },
+                  { value: 'formula', label: 'صيغة' },
+                  { value: 'attendance_based', label: 'بناءً على الحضور' }
+                ]}
+              />
             </div>
           </div>
 
           {formData.calculation_type === 'fixed' && (
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>المبلغ الثابت *</label>
+              <Label className="block mb-1" style={{ color: 'var(--text-secondary)' }}>المبلغ الثابت *</Label>
               <TextInput
                 type="number"
                 step="0.01"
@@ -313,7 +317,7 @@ export function PayrollComponents() {
           {formData.calculation_type === 'percentage' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>المبلغ الأساسي *</label>
+                <Label className="block mb-1" style={{ color: 'var(--text-secondary)' }}>المبلغ الأساسي *</Label>
                 <TextInput
                   type="number"
                   step="0.01"
@@ -322,7 +326,7 @@ export function PayrollComponents() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>النسبة المئوية (%) *</label>
+                <Label className="block mb-1" style={{ color: 'var(--text-secondary)' }}>النسبة المئوية (%) *</Label>
                 <TextInput
                   type="number"
                   step="0.01"
@@ -337,7 +341,7 @@ export function PayrollComponents() {
 
           {formData.calculation_type === 'formula' && (
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الصيغة *</label>
+              <Label className="block mb-1" style={{ color: 'var(--text-secondary)' }}>الصيغة *</Label>
               <TextInput
                 value={formData.formula}
                 onChange={(e) => setFormData({ ...formData, formula: e.target.value })}
@@ -351,7 +355,7 @@ export function PayrollComponents() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>ترتيب العرض</label>
+              <Label className="block mb-1" style={{ color: 'var(--text-secondary)' }}>ترتيب العرض</Label>
               <TextInput
                 type="number"
                 value={formData.display_order}
@@ -359,25 +363,25 @@ export function PayrollComponents() {
               />
             </div>
             <div className="flex items-center gap-6 pt-6">
-              <label className="flex items-center gap-2" style={{ cursor: 'pointer' }}>
+              <Label className="flex items-center gap-2" style={{ cursor: 'pointer' }}>
                 <Checkbox
                   checked={formData.is_taxable}
                   onChange={(e) => setFormData({ ...formData, is_taxable: e.target.checked })}
                 />
                 <span style={{ color: 'var(--text-secondary)' }}>خاضع للضريبة</span>
-              </label>
-              <label className="flex items-center gap-2" style={{ cursor: 'pointer' }}>
+              </Label>
+              <Label className="flex items-center gap-2" style={{ cursor: 'pointer' }}>
                 <Checkbox
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                 />
                 <span style={{ color: 'var(--text-secondary)' }}>نشط</span>
-              </label>
+              </Label>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الوصف</label>
+            <Label className="block mb-1" style={{ color: 'var(--text-secondary)' }}>الوصف</Label>
             <Textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}

@@ -3,7 +3,10 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Dialog, ConfirmDialog, showToast, showAlert, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions, SelectableInvoiceTable, SelectedItem, SalesReturnDialog, SelectableInvoice, SelectableInvoiceItem, ReturnData, InvoiceTableColumn } from "@/components/ui";
+import { ActionButtons, Dialog, ConfirmDialog, showToast, showAlert, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions, SelectableInvoiceTable, SelectedItem, SalesReturnDialog, SelectableInvoice, SelectableInvoiceItem, ReturnData, InvoiceTableColumn, NumberInput } from "@/components/ui";
+import { TextInput } from "@/components/ui/TextInput";
+import { Textarea } from "@/components/ui/Textarea";
+import { Select } from "@/components/ui/select";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
@@ -494,32 +497,38 @@ function ARLedgerPageContent() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => (
-        <div className="action-buttons">
-          {item.is_deleted ? (
-            <button className="icon-btn edit" onClick={() => confirmRestoreTransaction(item.id)} title="استعادة">
-              <Icon name="check" />
-            </button>
-          ) : (
-            <>
-              {canEdit(item) && (
-                <button className="icon-btn edit" onClick={() => openEditTransaction(item)} title="تعديل">
-                  <Icon name="edit" />
-                </button>
-              )}
-              {/* Only allow delete for payment transactions, not invoices */}
-              {item.type !== "invoice" && (
-                <button className="icon-btn delete" onClick={() => confirmDeleteTransaction(item.id)} title="حذف">
-                  <Icon name="trash" />
-                </button>
-              )}
-              {item.reference_type === "invoices" && (
-                <button className="icon-btn view" onClick={() => viewInvoice(item.reference_id!)} title="عرض الفاتورة">
-                  <Icon name="eye" />
-                </button>
-              )}
-            </>
-          )}
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "check",
+              title: "استعادة",
+              variant: "edit",
+              onClick: () => confirmRestoreTransaction(item.id),
+              hidden: !item.is_deleted
+            },
+            {
+              icon: "edit",
+              title: "تعديل",
+              variant: "edit",
+              onClick: () => openEditTransaction(item),
+              hidden: item.is_deleted || !canEdit(item)
+            },
+            {
+              icon: "trash",
+              title: "حذف",
+              variant: "delete",
+              onClick: () => confirmDeleteTransaction(item.id),
+              hidden: item.is_deleted || item.type === "invoice"
+            },
+            {
+              icon: "eye",
+              title: "عرض الفاتورة",
+              variant: "view",
+              onClick: () => viewInvoice(item.reference_id!),
+              hidden: item.is_deleted || item.reference_type !== "invoices"
+            }
+          ]}
+        />
       ),
     },
   ];
@@ -665,7 +674,7 @@ function ARLedgerPageContent() {
           </FilterActions>
         }
       >
-        <div className="form-group">
+        <div className="space-y-4">
           <FilterGroup label="الفترة">
             <DateRangePicker
               startDate={filters.date_from}
@@ -674,20 +683,18 @@ function ARLedgerPageContent() {
               onEndDateChange={(val) => setFilters({ ...filters, date_to: val })}
             />
           </FilterGroup>
-        </div>
-        <div className="form-group">
-          <FilterGroup label="نوع العملية">
-            <select
-              id="filter-type"
-              value={filters.type}
-              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-            >
-              <option value="">الكل</option>
-              <option value="invoice">فاتورة مبيعات</option>
-              <option value="payment">سند قبض (دفعة)</option>
-              <option value="return">مرتجع</option>
-            </select>
-          </FilterGroup>
+          <Select
+            label="نوع العملية"
+            id="filter-type"
+            value={filters.type}
+            onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+            options={[
+              { value: "", label: "الكل" },
+              { value: "invoice", label: "فاتورة مبيعات" },
+              { value: "payment", label: "سند قبض (دفعة)" },
+              { value: "return", label: "مرتجع" },
+            ]}
+          />
         </div>
       </Dialog>
 
@@ -712,51 +719,48 @@ function ARLedgerPageContent() {
             e.preventDefault();
             saveTransaction();
           }}
+          className="space-y-4"
         >
-          <div className="form-group">
-            <label htmlFor="trans-type">نوع العملية *</label>
-            <select
-              id="trans-type"
-              value={transactionType}
-              onChange={(e) => setTransactionType(e.target.value as typeof transactionType)}
-              required
-              disabled={!!currentTransactionId}
-            >
-              <option value="payment">سند قبض (استلام نقدية)</option>
-              <option value="invoice">فاتورة (أجل) - يدوي</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label htmlFor="trans-amount">المبلغ *</label>
-            <input
-              type="number"
-              step="0.01"
+          <Select
+            label="نوع العملية *"
+            id="trans-type"
+            value={transactionType}
+            onChange={(e) => setTransactionType(e.target.value as typeof transactionType)}
+            required
+            disabled={!!currentTransactionId}
+            options={[
+              { value: "payment", label: "سند قبض (استلام نقدية)" },
+              { value: "invoice", label: "فاتورة (أجل) - يدوي" },
+            ]}
+          />
+          <div className="form-row">
+            <NumberInput
+              label="المبلغ *"
               id="trans-amount"
               value={transactionAmount}
-              onChange={(e) => setTransactionAmount(e.target.value)}
+              onChange={(val) => setTransactionAmount(val)}
+              step={0.01}
               required
+              className="flex-1"
             />
-          </div>
-          <div className="form-group">
-            <label htmlFor="trans-date">التاريخ *</label>
-            <input
+            <TextInput
               type="date"
+              label="التاريخ *"
               id="trans-date"
               value={transactionDate}
               onChange={(e) => setTransactionDate(e.target.value)}
               required
               disabled={!!currentTransactionId}
+              className="flex-1"
             />
           </div>
-          <div className="form-group full-width">
-            <label htmlFor="trans-desc">الوصف / البيان</label>
-            <textarea
-              id="trans-desc"
-              rows={3}
-              value={transactionDescription}
-              onChange={(e) => setTransactionDescription(e.target.value)}
-            />
-          </div>
+          <Textarea
+            label="الوصف / البيان"
+            id="trans-desc"
+            rows={3}
+            value={transactionDescription}
+            onChange={(e) => setTransactionDescription(e.target.value)}
+          />
         </form>
       </Dialog>
 

@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, Button, showToast } from "@/components/ui";
+import { ActionButtons, Table, Column, Dialog, Button, showToast, SearchableSelect, Label } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/select";
-import { SearchableSelect } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate } from "@/lib/utils";
+import { PageSubHeader } from "@/components/layout";
 import { getIcon } from "@/lib/icons";
 import type { Employee, EmployeeRelationsCase, DisciplinaryAction } from "../types";
 
@@ -276,29 +276,28 @@ export function EmployeeRelations() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => (
-        <div className="action-buttons">
-          <button
-            className="icon-btn view"
-            onClick={() => openCaseDetails(item)}
-            title="عرض التفاصيل"
-          >
-            <i className="fas fa-eye"></i>
-          </button>
-          <button
-            className="icon-btn edit"
-            onClick={() => openEditCase(item)}
-            title="تعديل القضية"
-          >
-            <i className="fas fa-edit"></i>
-          </button>
-          <button
-            className="icon-btn"
-            onClick={() => openDisciplinaryDialog(item)}
-            title="إضافة إجراء تأديبي"
-          >
-            <i className="fas fa-gavel"></i>
-          </button>
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "eye",
+              title: "عرض التفاصيل",
+              variant: "view",
+              onClick: () => openCaseDetails(item)
+            },
+            {
+              icon: "edit",
+              title: "تعديل القضية",
+              variant: "edit",
+              onClick: () => openEditCase(item)
+            },
+            {
+              icon: "gavel",
+              title: "إضافة إجراء تأديبي",
+              variant: "secondary",
+              onClick: () => openDisciplinaryDialog(item)
+            }
+          ]}
+        />
       ),
     },
   ];
@@ -312,35 +311,37 @@ export function EmployeeRelations() {
 
   return (
     <div className="sales-card animate-fade">
-      <div
-        className="card-header-flex"
-        style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.5rem", alignItems: "center" }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <h3 style={{ margin: 0 }}>{getIcon("scale")} علاقات الموظفين والقضايا</h3>
-        </div>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="form-select"
-            style={{ minWidth: "160px" }}
-          >
-            <option value="">جميع الحالات</option>
-            <option value="open">مفتوح</option>
-            <option value="in_review">قيد المراجعة</option>
-            <option value="under_investigation">قيد التحقيق</option>
-            <option value="resolved">محلول</option>
-            <option value="closed">مغلق</option>
-          </select>
-          <Button onClick={openNewCaseDialog} className="btn-primary">
-            <i className="fas fa-plus"></i> فتح قضية جديدة
-          </Button>
-        </div>
-      </div>
+      <PageSubHeader
+        title="علاقات الموظفين والقضايا"
+        titleIcon="scale"
+        actions={
+          <>
+            <Select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="form-select"
+              style={{ minWidth: "160px", padding: '0.4rem 2rem 0.4rem 1rem' }}
+              placeholder="جميع الحالات"
+              options={[
+                { value: 'open', label: 'مفتوح' },
+                { value: 'in_review', label: 'قيد المراجعة' },
+                { value: 'under_investigation', label: 'قيد التحقيق' },
+                { value: 'resolved', label: 'محلول' },
+                { value: 'closed', label: 'مغلق' }
+              ]}
+            />
+            <Button onClick={openNewCaseDialog}
+              variant="primary"
+              icon="plus"
+            >
+              فتح قضية جديدة
+            </Button>
+          </>
+        }
+      />
 
       <div
         className="sales-card compact"
@@ -398,101 +399,80 @@ export function EmployeeRelations() {
       >
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-                الموظف *
-              </label>
-              <SearchableSelect
-                options={employees.map((emp) => ({ value: emp.id.toString(), label: emp.full_name }))}
-                value={caseForm.employee_id}
-                onChange={(val) => setCaseForm(prev => ({ ...prev, employee_id: val?.toString() || "" }))}
-                placeholder="اختر الموظف"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-                نوع القضية
-              </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <Label className="text-secondary mb-1">الموظف *</Label>
+                <SearchableSelect
+                  options={employees.map((emp) => ({ value: emp.id.toString(), label: emp.full_name }))}
+                  value={caseForm.employee_id}
+                  onChange={(val) => setCaseForm(prev => ({ ...prev, employee_id: val?.toString() || "" }))}
+                  placeholder="اختر الموظف"
+                />
+              </div>
               <Select
+                label="نوع القضية"
                 value={caseForm.case_type}
                 onChange={(e) => setCaseForm({ ...caseForm, case_type: e.target.value })}
-              >
-                <option value="complaint">شكوى</option>
-                <option value="grievance">تظلم</option>
-                <option value="misconduct">سوء سلوك</option>
-                <option value="performance">أداء</option>
-                <option value="harassment">تحرش</option>
-                <option value="other">أخرى</option>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-                مستوى السرية
-              </label>
-              <Select
-                value={caseForm.confidentiality_level}
-                onChange={(e) => setCaseForm({ ...caseForm, confidentiality_level: e.target.value })}
-              >
-                <option value="low">منخفض</option>
-                <option value="medium">متوسط</option>
-                <option value="high">مرتفع</option>
-                <option value="restricted">سري للغاية</option>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-                الحالة
-              </label>
-              <Select
-                value={caseForm.status}
-                onChange={(e) => setCaseForm({ ...caseForm, status: e.target.value })}
-              >
-                <option value="open">مفتوح</option>
-                <option value="in_review">قيد المراجعة</option>
-                <option value="under_investigation">قيد التحقيق</option>
-                <option value="resolved">محلول</option>
-                <option value="closed">مغلق</option>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-                تاريخ البلاغ
-              </label>
-              <TextInput
-                type="date"
-                value={caseForm.reported_date}
-                onChange={(e) => setCaseForm({ ...caseForm, reported_date: e.target.value })}
+                options={[
+                  { value: 'complaint', label: 'شكوى' },
+                  { value: 'grievance', label: 'تظلم' },
+                  { value: 'misconduct', label: 'سوء سلوك' },
+                  { value: 'performance', label: 'أداء' },
+                  { value: 'harassment', label: 'تحرش' },
+                  { value: 'other', label: 'أخرى' }
+                ]}
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-              وصف القضية *
-            </label>
-            <Textarea
-              value={caseForm.description}
-              onChange={(e) => setCaseForm({ ...caseForm, description: e.target.value })}
-              rows={4}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select
+              label="مستوى السرية"
+              value={caseForm.confidentiality_level}
+              onChange={(e) => setCaseForm({ ...caseForm, confidentiality_level: e.target.value })}
+              options={[
+                { value: 'low', label: 'منخفض' },
+                { value: 'medium', label: 'متوسط' },
+                { value: 'high', label: 'مرتفع' },
+                { value: 'restricted', label: 'سري للغاية' }
+              ]}
+            />
+            <Select
+              label="الحالة"
+              value={caseForm.status}
+              onChange={(e) => setCaseForm({ ...caseForm, status: e.target.value })}
+              options={[
+                { value: 'open', label: 'مفتوح' },
+                { value: 'in_review', label: 'قيد المراجعة' },
+                { value: 'under_investigation', label: 'قيد التحقيق' },
+                { value: 'resolved', label: 'محلول' },
+                { value: 'closed', label: 'مغلق' }
+              ]}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-              ملخص الحل (اختياري)
-            </label>
-            <Textarea
-              value={caseForm.resolution}
-              onChange={(e) => setCaseForm({ ...caseForm, resolution: e.target.value })}
-              rows={3}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <TextInput
+              label="تاريخ البلاغ"
+              type="date"
+              value={caseForm.reported_date}
+              onChange={(e) => setCaseForm({ ...caseForm, reported_date: e.target.value })}
             />
           </div>
+
+          <Textarea
+            label="وصف القضية *"
+            value={caseForm.description}
+            onChange={(e) => setCaseForm({ ...caseForm, description: e.target.value })}
+            rows={4}
+          />
+
+          <Textarea
+            label="ملخص الحل (اختياري)"
+            value={caseForm.resolution}
+            onChange={(e) => setCaseForm({ ...caseForm, resolution: e.target.value })}
+            rows={3}
+          />
 
           <div
             className="flex justify-end gap-2"
@@ -562,8 +542,8 @@ export function EmployeeRelations() {
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <strong>الإجراءات التأديبية</strong>
-                <Button size="sm" onClick={() => openDisciplinaryDialog(selectedCase)} className="btn-secondary">
-                  <i className="fas fa-gavel"></i> إضافة إجراء
+                <Button size="sm" onClick={() => openDisciplinaryDialog(selectedCase)} variant="secondary" icon="gavel">
+                  إضافة إجراء
                 </Button>
               </div>
               {selectedCase.disciplinary_actions && selectedCase.disciplinary_actions.length > 0 ? (
@@ -592,25 +572,20 @@ export function EmployeeRelations() {
       >
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-                نوع الإجراء
-              </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Select
+                label="نوع الإجراء"
                 value={disciplinaryForm.action_type}
                 onChange={(e) => setDisciplinaryForm({ ...disciplinaryForm, action_type: e.target.value })}
-              >
-                <option value="warning">إنذار</option>
-                <option value="suspension">إيقاف</option>
-                <option value="deduction">خصم</option>
-                <option value="termination">إنهاء خدمة</option>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-                تاريخ الإجراء
-              </label>
+                options={[
+                  { value: 'warning', label: 'إنذار' },
+                  { value: 'suspension', label: 'إيقاف' },
+                  { value: 'deduction', label: 'خصم' },
+                  { value: 'termination', label: 'إنهاء خدمة' }
+                ]}
+              />
               <TextInput
+                label="تاريخ الإجراء"
                 type="date"
                 value={disciplinaryForm.action_date}
                 onChange={(e) => setDisciplinaryForm({ ...disciplinaryForm, action_date: e.target.value })}
@@ -618,38 +593,26 @@ export function EmployeeRelations() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-              وصف المخالفة
-            </label>
-            <Textarea
-              value={disciplinaryForm.violation_description}
-              onChange={(e) => setDisciplinaryForm({ ...disciplinaryForm, violation_description: e.target.value })}
-              rows={3}
-            />
-          </div>
+          <Textarea
+            label="وصف المخالفة"
+            value={disciplinaryForm.violation_description}
+            onChange={(e) => setDisciplinaryForm({ ...disciplinaryForm, violation_description: e.target.value })}
+            rows={3}
+          />
 
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-              الإجراء المتخذ
-            </label>
-            <Textarea
-              value={disciplinaryForm.action_taken}
-              onChange={(e) => setDisciplinaryForm({ ...disciplinaryForm, action_taken: e.target.value })}
-              rows={3}
-            />
-          </div>
+          <Textarea
+            label="الإجراء المتخذ"
+            value={disciplinaryForm.action_taken}
+            onChange={(e) => setDisciplinaryForm({ ...disciplinaryForm, action_taken: e.target.value })}
+            rows={3}
+          />
 
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-              تاريخ انتهاء صلاحية الإجراء (اختياري)
-            </label>
-            <TextInput
-              type="date"
-              value={disciplinaryForm.expiry_date}
-              onChange={(e) => setDisciplinaryForm({ ...disciplinaryForm, expiry_date: e.target.value })}
-            />
-          </div>
+          <TextInput
+            label="تاريخ انتهاء صلاحية الإجراء (اختياري)"
+            type="date"
+            value={disciplinaryForm.expiry_date}
+            onChange={(e) => setDisciplinaryForm({ ...disciplinaryForm, expiry_date: e.target.value })}
+          />
 
           <div
             className="flex justify-end gap-2"

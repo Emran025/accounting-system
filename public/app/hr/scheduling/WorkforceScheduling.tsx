@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Table, Column, Button } from "@/components/ui";
+import { ActionButtons, Table, Column, Button } from "@/components/ui";
+import { PageSubHeader } from "@/components/layout";
 import { fetchAPI } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -88,41 +89,41 @@ export function WorkforceScheduling() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => (
-        <div className="action-buttons">
-          <button
-            className="icon-btn view"
-            onClick={() => router.push(`/hr/scheduling/${item.id}`)}
-            title="عرض الجدول"
-          >
-            <i className="fas fa-eye"></i>
-          </button>
-          <button
-            className="icon-btn edit"
-            onClick={() => router.push(`/hr/scheduling/edit/${item.id}`)}
-            title="تعديل"
-          >
-            <i className="fas fa-edit"></i>
-          </button>
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "eye",
+              title: "عرض الجدول",
+              variant: "view",
+              onClick: () => router.push(`/hr/scheduling/${item.id}`)
+            },
+            {
+              icon: "edit",
+              title: "تعديل",
+              variant: "edit",
+              onClick: () => router.push(`/hr/scheduling/edit/${item.id}`)
+            }
+          ]}
+        />
       ),
     },
   ];
 
   return (
     <div className="sales-card animate-fade">
-      <div className="card-header-flex" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h3 style={{ margin: 0 }}>{getIcon("calendar-days")} جدولة القوى العاملة</h3>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+      <PageSubHeader
+        title="جدولة القوى العاملة"
+        titleIcon="calendar-days"
+        actions={
           <Button
-            onClick={() => router.push('/hr/scheduling/add')}
-            className="btn-primary"
+            onClick={() => router.push("/hr/scheduling/add")}
+            variant="primary"
+            icon="plus"
           >
-            <i className="fas fa-plus"></i> إنشاء جدول جديد
+            إنشاء جدول جديد
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       <Table
         columns={columns}

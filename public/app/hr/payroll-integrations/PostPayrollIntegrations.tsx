@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, Button, showToast } from "@/components/ui";
+import { ActionButtons, Table, Column, Dialog, Button, showToast } from "@/components/ui";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/Textarea";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate, formatCurrency } from "@/lib/utils";
-import { getIcon } from "@/lib/icons";
+import { PageSubHeader } from "@/components/layout";
 import type { PostPayrollIntegration } from "../types";
 
 const integrationTypeLabels: Record<string, string> = { bank_file: "ملف بنكي", gl_entry: "قيود محاسبية", third_party_pay: "مدفوعات طرف ثالث", garnishment: "حجز راتب" };
@@ -77,29 +77,65 @@ export function PostPayrollIntegrations() {
         { key: "processed_at", header: "تاريخ المعالجة", dataLabel: "المعالجة", render: (i) => i.processed_at ? formatDate(i.processed_at) : "-" },
         {
             key: "id", header: "إجراءات", dataLabel: "إجراءات", render: (i) => (
-                <div className="action-buttons">
-                    <button className="icon-btn view" onClick={() => { setSelectedItem(i); setShowDetailDialog(true); }} title="تفاصيل"><i className="fas fa-eye"></i></button>
-                    {i.status === "pending" && <button className="icon-btn" onClick={() => handleProcess(i.id)} title="معالجة" style={{ color: "var(--info-color)" }}><i className="fas fa-cog"></i></button>}
-                    {i.status === "completed" && <button className="icon-btn" onClick={() => handleReconcile(i.id)} title="مطابقة" style={{ color: "var(--success-color)" }}><i className="fas fa-check-double"></i></button>}
-                </div>
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "eye",
+                            title: "تفاصيل",
+                            variant: "view",
+                            onClick: () => { setSelectedItem(i); setShowDetailDialog(true); }
+                        },
+                        {
+                            icon: "settings",
+                            title: "معالجة",
+                            variant: "view",
+                            onClick: () => handleProcess(i.id),
+                            hidden: i.status !== "pending"
+                        },
+                        {
+                            icon: "check-check",
+                            title: "مطابقة",
+                            variant: "success",
+                            onClick: () => handleReconcile(i.id),
+                            hidden: i.status !== "completed"
+                        }
+                    ]}
+                />
             )
         },
     ];
 
     return (
         <div className="sales-card animate-fade">
-            <div className="card-header-flex" style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.5rem", alignItems: "center" }}>
-                <h3 style={{ margin: 0 }}>{getIcon("exchange-alt")} تكاملات ما بعد الرواتب</h3>
-                <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-                    <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }} className="form-select" style={{ minWidth: "140px" }}>
-                        <option value="">جميع الأنواع</option><option value="bank_file">ملف بنكي</option><option value="gl_entry">قيود</option><option value="third_party_pay">طرف ثالث</option><option value="garnishment">حجز</option>
-                    </select>
-                    <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }} className="form-select" style={{ minWidth: "140px" }}>
-                        <option value="">جميع الحالات</option><option value="pending">معلق</option><option value="completed">مكتمل</option><option value="reconciled">تمت المطابقة</option><option value="failed">فشل</option>
-                    </select>
-                    <Button onClick={() => { setForm({ payroll_cycle_id: "", integration_type: "bank_file", file_format: "", notes: "" }); setShowCreateDialog(true); }} className="btn-primary"><i className="fas fa-plus"></i> تكامل جديد</Button>
-                </div>
-            </div>
+            <PageSubHeader
+                title="تكاملات ما بعد الرواتب"
+                titleIcon="repeat"
+                actions={
+                    <>
+                        <Select
+                            value={typeFilter}
+                            onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
+                            style={{ minWidth: "140px" }}
+                            placeholder="جميع الأنواع"
+                            options={Object.entries(integrationTypeLabels).map(([value, label]) => ({ value, label }))}
+                        />
+                        <Select
+                            value={statusFilter}
+                            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                            style={{ minWidth: "140px" }}
+                            placeholder="جميع الحالات"
+                            options={Object.entries(statusLabels).map(([value, label]) => ({ value, label })).filter(o => ["pending", "completed", "reconciled", "failed"].includes(o.value))}
+                        />
+                        <Button
+                            onClick={() => { setForm({ payroll_cycle_id: "", integration_type: "bank_file", file_format: "", notes: "" }); setShowCreateDialog(true); }}
+                            variant="primary"
+                            icon="plus"
+                        >
+                            تكامل جديد
+                        </Button>
+                    </>
+                }
+            />
 
             <div className="sales-card compact" style={{ marginBottom: "1.5rem", background: "linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%)", border: "1px solid #ddd6fe" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem" }}>
@@ -115,15 +151,25 @@ export function PostPayrollIntegrations() {
             {/* Create Dialog */}
             <Dialog isOpen={showCreateDialog} onClose={() => setShowCreateDialog(false)} title="تكامل جديد" maxWidth="600px">
                 <div className="space-y-4">
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>دورة الرواتب *</label>
-                        <Select value={form.payroll_cycle_id} onChange={(e) => setForm({ ...form, payroll_cycle_id: e.target.value })}>
-                            <option value="">اختر الدورة</option>{payrollCycles.map(c => <option key={c.id} value={c.id}>{c.cycle_name || `دورة #${c.id}`}</option>)}
-                        </Select></div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>نوع التكامل</label>
-                        <Select value={form.integration_type} onChange={(e) => setForm({ ...form, integration_type: e.target.value })}>
-                            <option value="bank_file">ملف بنكي (NACHA/SEPA)</option><option value="gl_entry">قيود محاسبية</option><option value="third_party_pay">مدفوعات طرف ثالث</option><option value="garnishment">حجز راتب</option>
-                        </Select></div>
-                    <div><label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>ملاحظات</label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
+                    <Select
+                        label="دورة الرواتب *"
+                        value={form.payroll_cycle_id}
+                        onChange={(e) => setForm({ ...form, payroll_cycle_id: e.target.value })}
+                        options={payrollCycles.map(c => ({ value: c.id, label: c.cycle_name || `دورة #${c.id}` }))}
+                        placeholder="اختر الدورة"
+                    />
+                    <Select
+                        label="نوع التكامل"
+                        value={form.integration_type}
+                        onChange={(e) => setForm({ ...form, integration_type: e.target.value })}
+                        options={[
+                            { value: 'bank_file', label: 'ملف بنكي (NACHA/SEPA)' },
+                            { value: 'gl_entry', label: 'قيود محاسبية' },
+                            { value: 'third_party_pay', label: 'مدفوعات طرف ثالث' },
+                            { value: 'garnishment', label: 'حجز راتب' }
+                        ]}
+                    />
+                    <Textarea label="ملاحظات" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
                     <div className="flex justify-end gap-2" style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-color)" }}><Button variant="secondary" onClick={() => setShowCreateDialog(false)}>إلغاء</Button><Button variant="primary" onClick={handleCreate} icon="save">إنشاء</Button></div>
                 </div>
             </Dialog>
@@ -144,8 +190,8 @@ export function PostPayrollIntegrations() {
                     </div>
                     {selectedItem.notes && <div><strong>ملاحظات:</strong><p>{selectedItem.notes}</p></div>}
                     <div style={{ display: "flex", gap: "0.5rem" }}>
-                        {selectedItem.status === "pending" && <Button variant="primary" onClick={() => { handleProcess(selectedItem.id); setShowDetailDialog(false); }}><i className="fas fa-cog"></i> معالجة</Button>}
-                        {selectedItem.status === "completed" && <Button variant="primary" onClick={() => { handleReconcile(selectedItem.id); setShowDetailDialog(false); }}><i className="fas fa-check-double"></i> مطابقة</Button>}
+                        {selectedItem.status === "pending" && <Button variant="primary" onClick={() => { handleProcess(selectedItem.id); setShowDetailDialog(false); }} icon="settings">معالجة</Button>}
+                        {selectedItem.status === "completed" && <Button variant="primary" onClick={() => { handleReconcile(selectedItem.id); setShowDetailDialog(false); }} icon="check-check">مطابقة</Button>}
                     </div>
                 </div>}
             </Dialog>

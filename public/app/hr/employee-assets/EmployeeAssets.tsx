@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Table, Column, Button, SearchableSelect } from "@/components/ui";
+import { ActionButtons, Table, Column, Button, SearchableSelect, Select } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
 
@@ -136,51 +137,34 @@ export function EmployeeAssets() {
     {
       key: "id",
       header: "الإجراءات",
-      dataLabel: "الإجراءات",
+      dataLabel: "إجراءات",
       render: (item) => (
-        <div className="action-buttons">
-          <button
-            className="icon-btn view"
-            onClick={() => router.push(`/hr/employee-assets/view/${item.id}`)}
-            title="عرض التفاصيل"
-          >
-            <i className="fas fa-eye"></i>
-          </button>
-          <button
-            className="icon-btn edit"
-            onClick={() => router.push(`/hr/employee-assets/edit/${item.id}`)}
-            title="تعديل"
-          >
-            <i className="fas fa-edit"></i>
-          </button>
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "eye",
+              title: "عرض التفاصيل",
+              variant: "view",
+              onClick: () => router.push(`/hr/employee-assets/view/${item.id}`)
+            },
+            {
+              icon: "edit",
+              title: "تعديل",
+              variant: "edit",
+              onClick: () => router.push(`/hr/employee-assets/edit/${item.id}`)
+            }
+          ]}
+        />
       ),
     },
   ];
 
   return (
     <div className="sales-card animate-fade">
-      <div className="card-header-flex" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h3 style={{ margin: 0 }}>{getIcon("laptop")} أصول الموظفين</h3>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="form-select"
-            style={{ minWidth: '150px' }}
-          >
-            <option value="">جميع الحالات</option>
-            <option value="allocated">مخصص</option>
-            <option value="returned">مسترد</option>
-            <option value="maintenance">صيانة</option>
-            <option value="lost">مفقود</option>
-            <option value="damaged">تالف</option>
-          </select>
+      <PageSubHeader
+        title="أصول الموظفين"
+        titleIcon="laptop"
+        searchInput={
           <SearchableSelect
             options={[]}
             value={null}
@@ -192,14 +176,29 @@ export function EmployeeAssets() {
             placeholder="بحث..."
             className="search-input"
           />
-          <Button
-            onClick={() => router.push('/hr/employee-assets/add')}
-            className="btn-primary"
-          >
-            <i className="fas fa-plus"></i> إضافة أصل
-          </Button>
-        </div>
-      </div>
+        }
+        actions={
+          <>
+            <Select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              style={{ minWidth: '150px' }}
+              placeholder="جميع الحالات"
+              options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))}
+            />
+            <Button
+              onClick={() => router.push('/hr/employee-assets/add')}
+              variant="primary"
+              icon="plus"
+            >
+              إضافة أصل
+            </Button>
+          </>
+        }
+      />
 
       <Table
         columns={columns}

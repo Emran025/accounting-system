@@ -31,7 +31,7 @@ interface RadioGroupItemProps extends React.InputHTMLAttributes<HTMLInputElement
     label?: string;
 }
 
-import { Label } from "./label";
+import { Label } from "./Label";
 
 export function RadioGroupItem({ value, label, className = "", ...props }: RadioGroupItemProps) {
     const context = React.useContext(RadioGroupContext);

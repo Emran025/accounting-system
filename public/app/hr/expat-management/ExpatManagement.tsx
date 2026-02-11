@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Table, Column, Button, SearchableSelect } from "@/components/ui";
+import { Table, Column, Button, SearchableSelect, ActionButtons } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
 
@@ -141,33 +142,32 @@ export function ExpatManagement() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => (
-        <div className="action-buttons">
-          <button
-            className="icon-btn view"
-            onClick={() => router.push(`/hr/expat-management/view/${item.id}`)}
-            title="عرض التفاصيل"
-          >
-            <i className="fas fa-eye"></i>
-          </button>
-          <button
-            className="icon-btn edit"
-            onClick={() => router.push(`/hr/expat-management/edit/${item.id}`)}
-            title="تعديل"
-          >
-            <i className="fas fa-edit"></i>
-          </button>
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "eye",
+              title: "عرض التفاصيل",
+              variant: "view",
+              onClick: () => router.push(`/hr/expat-management/view/${item.id}`)
+            },
+            {
+              icon: "edit",
+              title: "تعديل",
+              variant: "edit",
+              onClick: () => router.push(`/hr/expat-management/edit/${item.id}`)
+            }
+          ]}
+        />
       ),
     },
   ];
 
   return (
     <div className="sales-card animate-fade">
-      <div className="card-header-flex" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h3 style={{ margin: 0 }}>{getIcon("globe")} إدارة المغتربين</h3>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+      <PageSubHeader
+        title="إدارة المغتربين"
+        titleIcon="globe"
+        searchInput={
           <SearchableSelect
             options={[]}
             value={null}
@@ -179,14 +179,18 @@ export function ExpatManagement() {
             placeholder="بحث..."
             className="search-input"
           />
+        }
+        actions={
           <Button
             onClick={() => router.push('/hr/expat-management/add')}
-            className="btn-primary"
+            variant="primary"
+            icon="plus"
           >
-            <i className="fas fa-plus"></i> إضافة سجل
+            إضافة سجل
           </Button>
-        </div>
-      </div>
+
+        }
+      />
 
       <Table
         columns={columns}

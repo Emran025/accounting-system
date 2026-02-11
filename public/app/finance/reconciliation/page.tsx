@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
+import { ActionButtons, Table, Dialog, ConfirmDialog, showToast, Column, showAlert, NumberInput, Button } from "@/components/ui";
+import { TextInput } from "@/components/ui/TextInput";
+import { Textarea } from "@/components/ui/Textarea";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate, parseNumber } from "@/lib/utils";
@@ -204,24 +206,23 @@ export default function ReconciliationPage() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => (
-        <div className="action-buttons">
-          <button
-            className="icon-btn view"
-            onClick={() => viewReconciliation(item)}
-            title="عرض"
-          >
-            {getIcon("eye")}
-          </button>
-          {Math.abs(item.difference) > 0.01 && (
-            <button
-              className="icon-btn edit"
-              onClick={() => createAdjustment(item.id)}
-              title="إنشاء قيد تسوية"
-            >
-              {getIcon("edit")}
-            </button>
-          )}
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "eye",
+              title: "عرض",
+              variant: "view",
+              onClick: () => viewReconciliation(item)
+            },
+            {
+              icon: "edit",
+              title: "إنشاء قيد تسوية",
+              variant: "edit",
+              onClick: () => createAdjustment(item.id),
+              hidden: Math.abs(item.difference) <= 0.01
+            }
+          ]}
+        />
       ),
     },
   ];
@@ -232,10 +233,9 @@ export default function ReconciliationPage() {
         title="التسوية البنكية"
         user={user}
         actions={
-          <button className="btn btn-primary" onClick={openCreateDialog}>
-            {getIcon("plus")}
+          <Button variant="primary" icon="plus" onClick={openCreateDialog}>
             تسوية جديدة
-          </button>
+          </Button>
         }
       />
 
@@ -263,12 +263,12 @@ export default function ReconciliationPage() {
         title="تسوية جديدة"
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setCreateDialog(false)}>
+            <Button variant="secondary" onClick={() => setCreateDialog(false)}>
               إلغاء
-            </button>
-            <button className="btn btn-primary" onClick={saveReconciliation}>
+            </Button>
+            <Button variant="primary" onClick={saveReconciliation}>
               حفظ
-            </button>
+            </Button>
           </>
         }
       >
@@ -277,35 +277,31 @@ export default function ReconciliationPage() {
             e.preventDefault();
             saveReconciliation();
           }}
+          className="space-y-4"
         >
-          <div className="form-group">
-            <label htmlFor="reconciliation-date">تاريخ التسوية *</label>
-            <input
-              type="date"
-              id="reconciliation-date"
-              value={reconciliationDate}
-              onChange={(e) => {
-                setReconciliationDate(e.target.value);
-                calculateReconciliation();
-              }}
-              required
-            />
-          </div>
+          <TextInput
+            type="date"
+            label="تاريخ التسوية *"
+            id="reconciliation-date"
+            value={reconciliationDate}
+            onChange={(e) => {
+              setReconciliationDate(e.target.value);
+              calculateReconciliation();
+            }}
+            required
+          />
 
-          <div className="form-group">
-            <label htmlFor="bank-balance">رصيد البنك *</label>
-            <input
-              type="number"
-              id="bank-balance"
-              value={bankBalance}
-              onChange={(e) => setBankBalance(e.target.value)}
-              step="0.01"
-              required
-            />
-          </div>
+          <NumberInput
+            label="رصيد البنك *"
+            id="bank-balance"
+            value={bankBalance}
+            onChange={(val) => setBankBalance(val)}
+            step={0.01}
+            required
+          />
 
           {ledgerBalance > 0 && (
-            <div className="summary-stat-box" style={{ marginBottom: "1rem" }}>
+            <div className="summary-stat-box">
               <div className="stat-item">
                 <span className="stat-label">رصيد الدفتر</span>
                 <span className="stat-value">{formatCurrency(ledgerBalance)}</span>
@@ -313,15 +309,13 @@ export default function ReconciliationPage() {
             </div>
           )}
 
-          <div className="form-group">
-            <label htmlFor="reconciliation-notes">ملاحظات</label>
-            <textarea
-              id="reconciliation-notes"
-              value={reconciliationNotes}
-              onChange={(e) => setReconciliationNotes(e.target.value)}
-              rows={3}
-            />
-          </div>
+          <Textarea
+            label="ملاحظات"
+            id="reconciliation-notes"
+            value={reconciliationNotes}
+            onChange={(e) => setReconciliationNotes(e.target.value)}
+            rows={3}
+          />
         </form>
       </Dialog>
 

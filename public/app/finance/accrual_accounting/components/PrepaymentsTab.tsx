@@ -2,9 +2,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { showAlert, Table, Column, ConfirmDialog } from "@/components/ui";
+import { ActionButtons, showAlert, Table, Column, ConfirmDialog } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { getIcon } from "@/lib/icons";
 import { Prepayment } from "../types";
 
 export function PrepaymentsTab() {
@@ -106,18 +105,22 @@ export function PrepaymentsTab() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => (
-        <div className="action-buttons">
-          <button className="icon-btn view" title="عرض">
-            {getIcon("eye")}
-          </button>
-          <button
-            className="icon-btn edit"
-            onClick={() => confirmAmortizePrepayment(item.id)}
-            title="استهلاك"
-          >
-            {getIcon("edit")}
-          </button>
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "eye",
+              title: "عرض",
+              variant: "view",
+              onClick: () => console.log("View prepayment", item.id)
+            },
+            {
+              icon: "edit",
+              title: "استهلاك",
+              variant: "edit",
+              onClick: () => confirmAmortizePrepayment(item.id)
+            }
+          ]}
+        />
       ),
     },
   ];

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert , Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate, parseNumber } from "@/lib/utils";
@@ -395,10 +395,13 @@ export default function RecurringTransactionsPage() {
                 user={user}
                 showDate={true}
                 actions={
-                    <button className="btn btn-primary" onClick={openCreateDialog}>
-                        {getIcon("plus")}
+                    <Button
+                        variant="primary"
+                        onClick={openCreateDialog}
+                        icon="plus"
+                    >
                         قالب جديد
-                    </button>
+                    </Button>
                 }
             />
 

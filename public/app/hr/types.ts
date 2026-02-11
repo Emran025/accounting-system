@@ -188,6 +188,22 @@ export interface EmployeeRelationsCase {
   disciplinary_actions?: DisciplinaryAction[];
 }
 
+
+export interface EOSBCalculation {
+  years_of_service: number;
+  months_of_service: number;
+  days_of_service: number;
+  last_gross_salary: number;
+  eosb_amount: number;
+  unused_vacation_amount: number;
+  notice_period_amount: number;
+  total_settlement: number;
+  breakdown: {
+    eosb: number;
+    unused_vacation: number;
+    notice_period: number;
+  };
+}
 export interface DisciplinaryAction {
   id: number;
   action_type: string;
@@ -210,12 +226,21 @@ export interface Workflow {
   target_completion_date?: string;
   actual_completion_date?: string;
   completion_percentage: number;
-  tasks?: Array<{
-    id: number;
-    task_name: string;
-    status: string;
-  }>;
+  tasks?: Task[];
+  documents: Doc[];
+  notes?: string;
 }
+
+export interface Task {
+  id: number; workflow_id: number; task_name: string; task_type: string;
+  department: string; status: string; sequence_order: number;
+  completed_date?: string; completed_by?: number; notes?: string;
+}
+
+
+
+
+export interface Doc { id: number; document_name: string; document_type: string; status: string; }
 
 export interface Schedule {
   id: number;
@@ -411,6 +436,22 @@ export interface WellnessProgram {
   notes?: string;
   participations?: WellnessParticipation[];
   created_at?: string;
+}
+
+export interface Course {
+  id: number; course_code: string; course_name: string; description?: string;
+  delivery_method: string; course_type: string; duration_hours: number;
+  is_published: boolean; is_recurring: boolean; recurrence_months?: number;
+  requires_assessment: boolean; passing_score?: number; video_url?: string;
+  enrollments?: Array<{ id: number; employee?: { full_name: string }; status: string; progress_percentage: number }>;
+}
+
+export interface Enrollment {
+  id: number; course_id: number; course?: { course_name: string; course_code: string };
+  employee_id: number; employee?: { full_name: string };
+  enrollment_type: string; status: string; progress_percentage: number;
+  enrollment_date: string; completion_date?: string; due_date?: string;
+  score?: number; is_passed?: boolean;
 }
 
 export interface WellnessParticipation {

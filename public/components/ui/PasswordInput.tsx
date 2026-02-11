@@ -3,7 +3,7 @@
 import { useState, forwardRef } from "react";
 import { getIcon } from "@/lib/icons"; // Assuming getIcon is available, or use Icon component
 
-import { Label } from "./label";
+import { Label } from "./Label";
 import { InputError } from "./input-error";
 
 export interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement> {

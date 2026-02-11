@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Table, Column, Button, SearchableSelect } from "@/components/ui";
+import { ActionButtons, Table, Column, Button, SearchableSelect, Select } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
 
@@ -117,49 +118,47 @@ export function QaCompliance() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => (
-        <div className="action-buttons">
-          <button
-            className="icon-btn view"
-            onClick={() => router.push(`/hr/qa-compliance/${item.id}`)}
-            title="عرض التفاصيل"
-          >
-            <i className="fas fa-eye"></i>
-          </button>
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "eye",
+              title: "عرض التفاصيل",
+              variant: "view",
+              onClick: () => router.push(`/hr/qa-compliance/${item.id}`)
+            }
+          ]}
+        />
       ),
     },
   ];
 
   return (
     <div className="sales-card animate-fade">
-      <div className="card-header-flex" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h3 style={{ margin: 0 }}>{getIcon("shield-check")} الجودة والامتثال</h3>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="form-select"
-            style={{ minWidth: '150px' }}
-          >
-            <option value="">جميع الحالات</option>
-            <option value="pending">قيد الانتظار</option>
-            <option value="in_progress">قيد التنفيذ</option>
-            <option value="completed">مكتمل</option>
-            <option value="non_compliant">غير متوافق</option>
-          </select>
-          <Button
-            onClick={() => router.push('/hr/qa-compliance/add')}
-            className="btn-primary"
-          >
-            <i className="fas fa-plus"></i> إضافة سجل امتثال
-          </Button>
-        </div>
-      </div>
+      <PageSubHeader
+        title="الجودة والامتثال"
+        titleIcon="shield-check"
+        actions={
+          <>
+            <Select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              style={{ minWidth: "150px" }}
+              placeholder="جميع الحالات"
+              options={Object.entries(statusLabels).map(([value, label]) => ({ value, label })).filter(o => ["pending", "in_progress", "completed", "non_compliant"].includes(o.value))}
+            />
+            <Button
+              onClick={() => router.push("/hr/qa-compliance/add")}
+              variant="primary"
+              icon="plus"
+            >
+              إضافة سجل امتثال
+            </Button>
+          </>
+        }
+      />
 
       <Table
         columns={columns}

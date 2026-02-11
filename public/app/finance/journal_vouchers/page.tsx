@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, Button } from "@/components/ui";
+import { ActionButtons, Table, Dialog, ConfirmDialog, showToast, Column, Button, NumberInput, SearchableSelect } from "@/components/ui";
+import { TextInput } from "@/components/ui/TextInput";
+import { Select } from "@/components/ui/select";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -261,25 +263,30 @@ export default function JournalVouchersPage() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (item) => (
-        <div className="action-buttons">
-          <button className="icon-btn view" onClick={() => openViewDialog(item)} title="عرض">
-            {getIcon("eye")}
-          </button>
-          {item.status === "draft" && canAccess(permissions, "journal_vouchers", "edit") && (
-            <button
-              className="icon-btn edit"
-              onClick={() => postVoucher(item.id)}
-              title="ترحيل"
-            >
-              {getIcon("check")}
-            </button>
-          )}
-          {item.status === "draft" && canAccess(permissions, "journal_vouchers", "delete") && (
-            <button className="icon-btn delete" onClick={() => confirmDelete(item.id)} title="حذف">
-              {getIcon("trash")}
-            </button>
-          )}
-        </div>
+        <ActionButtons
+          actions={[
+            {
+              icon: "eye",
+              title: "عرض",
+              variant: "view",
+              onClick: () => openViewDialog(item)
+            },
+            {
+              icon: "check",
+              title: "ترحيل",
+              variant: "edit",
+              onClick: () => postVoucher(item.id),
+              hidden: item.status !== "draft" || !canAccess(permissions, "journal_vouchers", "edit")
+            },
+            {
+              icon: "trash",
+              title: "حذف",
+              variant: "delete",
+              onClick: () => confirmDelete(item.id),
+              hidden: item.status !== "draft" || !canAccess(permissions, "journal_vouchers", "delete")
+            }
+          ]}
+        />
       ),
     },
   ];
@@ -289,30 +296,26 @@ export default function JournalVouchersPage() {
       key: "account_id",
       header: "الحساب",
       render: (line, index) => (
-        <select
+        <Select
           value={line.account_id}
           onChange={(e) => updateLine(index, "account_id", e.target.value)}
           className="w-full"
-        >
-          <option value="">اختر حساب</option>
-          {accounts.map((acc) => (
-            <option key={acc.id} value={acc.id}>
-              {acc.code} - {acc.name}
-            </option>
-          ))}
-        </select>
+          options={[
+            { value: "", label: "اختر حساب" },
+            ...accounts.map(acc => ({ value: acc.id, label: `${acc.code} - ${acc.name}` }))
+          ]}
+        />
       ),
     },
     {
       key: "debit",
       header: "مدين",
       render: (line, index) => (
-        <input
-          type="number"
+        <NumberInput
           value={line.debit}
-          onChange={(e) => updateLine(index, "debit", e.target.value)}
-          min="0"
-          step="0.01"
+          onChange={(val) => updateLine(index, "debit", val)}
+          min={0}
+          step={0.01}
           className="w-full"
         />
       ),
@@ -321,12 +324,11 @@ export default function JournalVouchersPage() {
       key: "credit",
       header: "دائن",
       render: (line, index) => (
-        <input
-          type="number"
+        <NumberInput
           value={line.credit}
-          onChange={(e) => updateLine(index, "credit", e.target.value)}
-          min="0"
-          step="0.01"
+          onChange={(val) => updateLine(index, "credit", val)}
+          min={0}
+          step={0.01}
           className="w-full"
         />
       ),
@@ -335,8 +337,7 @@ export default function JournalVouchersPage() {
       key: "description",
       header: "البيان",
       render: (line, index) => (
-        <input
-          type="text"
+        <TextInput
           value={line.description}
           onChange={(e) => updateLine(index, "description", e.target.value)}
           placeholder="بيان اختياري..."
@@ -419,34 +420,31 @@ export default function JournalVouchersPage() {
         maxWidth="800px"
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setFormDialog(false)}>
+            <Button variant="secondary" onClick={() => setFormDialog(false)}>
               إلغاء
-            </button>
-            <button className="btn btn-primary" onClick={handleSubmit}>
+            </Button>
+            <Button variant="primary" onClick={handleSubmit}>
               حفظ
-            </button>
+            </Button>
           </>
         }
       >
         <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="voucher_date">التاريخ *</label>
-            <input
-              type="date"
-              id="voucher_date"
-              value={formData.voucher_date}
-              onChange={(e) => setFormData({ ...formData, voucher_date: e.target.value })}
-            />
-          </div>
-          <div className="form-group" style={{ flex: 2 }}>
-            <label htmlFor="description">الوصف *</label>
-            <input
-              type="text"
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
-          </div>
+          <TextInput
+            type="date"
+            label="التاريخ *"
+            id="voucher_date"
+            value={formData.voucher_date}
+            onChange={(e) => setFormData({ ...formData, voucher_date: e.target.value })}
+            className="flex-1"
+          />
+          <TextInput
+            label="الوصف *"
+            id="description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            className="flex-[2]"
+          />
         </div>
 
         <h4 style={{ marginTop: "1.5rem", marginBottom: "1rem" }}>بنود السند</h4>

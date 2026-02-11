@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Dialog, showToast, Button, SearchableSelect } from "@/components/ui";
+import { ActionButtons, Table, Column, Dialog, showToast, Button, SearchableSelect, Label } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { LeaveRequest, Employee } from "../types";
 import { formatDate } from "@/lib/utils";
+import { PageSubHeader } from "@/components/layout";
 import { getIcon } from "@/lib/icons";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
@@ -191,43 +192,44 @@ export function LeaveRequests() {
       header: "الإجراءات",
       dataLabel: "الإجراءات",
       render: (record) => (
-        <div className="action-buttons">
-          {record.status === 'pending' && (
-            <button
-              className="icon-btn edit"
-              onClick={() => {
+        <ActionButtons
+          actions={[
+            {
+              icon: "check",
+              title: "معالجة الطلب",
+              variant: "edit",
+              onClick: () => {
                 setSelectedRequest(record);
                 setApprovalData({ action: "approved", reason: "" });
                 setShowApproveDialog(true);
-              }}
-              title="معالجة الطلب"
-            >
-              {getIcon("check-circle")}
-            </button>
-          )}
-        </div>
+              },
+              hidden: record.status !== 'pending'
+            }
+          ]}
+        />
       )
     }
   ];
 
   return (
     <div className="sales-card animate-fade">
-      <div className="card-header-flex">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h3 style={{ margin: 0 }}>{getIcon("calendar")} طلبات الإجازة</h3>
-        </div>
-        <Button
-          variant="primary"
-          onClick={() => setShowRequestDialog(true)}
-          icon="plus">
-          طلب إجازة جديد
-        </Button>
-      </div>
+      <PageSubHeader
+        title="طلبات الإجازة"
+        titleIcon="calendar"
+        actions={
+          <Button
+            variant="primary"
+            onClick={() => setShowRequestDialog(true)}
+            icon="plus">
+            طلب إجازة جديد
+          </Button>
+        }
+      />
 
       <div className="sales-card compact" style={{ marginBottom: '1.5rem' }}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الموظف</label>
+          <div className="flex flex-col gap-1">
+            <Label className="text-secondary mb-1">الموظف</Label>
             <SearchableSelect
               options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
               value={selectedEmployee?.toString() || ""}
@@ -235,22 +237,21 @@ export function LeaveRequests() {
               placeholder="جميع الموظفين"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الحالة</label>
-            <Select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="all">الكل</option>
-              <option value="pending">قيد الانتظار</option>
-              <option value="approved">موافق عليه</option>
-              <option value="rejected">مرفوض</option>
-              <option value="cancelled">ملغي</option>
-            </Select>
-          </div>
+          <Select
+            label="الحالة"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            options={[
+              { value: 'all', label: 'الكل' },
+              { value: 'pending', label: 'قيد الانتظار' },
+              { value: 'approved', label: 'موافق عليه' },
+              { value: 'rejected', label: 'مرفوض' },
+              { value: 'cancelled', label: 'ملغي' }
+            ]}
+          />
           <div className="flex items-end">
             <Button
               onClick={loadLeaveRequests}
@@ -285,8 +286,8 @@ export function LeaveRequests() {
         maxWidth="600px"
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الموظف *</label>
+          <div className="flex flex-col gap-1">
+            <Label className="text-secondary mb-1">الموظف *</Label>
             <SearchableSelect
               options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
               value={newRequest.employee_id}
@@ -294,44 +295,37 @@ export function LeaveRequests() {
               placeholder="اختر الموظف"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>نوع الإجازة *</label>
-            <Select
-              value={newRequest.leave_type}
-              onChange={(e) => setNewRequest({ ...newRequest, leave_type: e.target.value as any })}
-            >
-              <option value="vacation">إجازة سنوية</option>
-              <option value="sick">إجازة مرضية</option>
-              <option value="emergency">إجازة طارئة</option>
-              <option value="unpaid">إجازة بدون راتب</option>
-              <option value="other">أخرى</option>
-            </Select>
-          </div>
+          <Select
+            label="نوع الإجازة *"
+            value={newRequest.leave_type}
+            onChange={(e) => setNewRequest({ ...newRequest, leave_type: e.target.value as any })}
+            options={[
+              { value: 'vacation', label: 'إجازة سنوية' },
+              { value: 'sick', label: 'إجازة مرضية' },
+              { value: 'emergency', label: 'إجازة طارئة' },
+              { value: 'unpaid', label: 'إجازة بدون راتب' },
+              { value: 'other', label: 'أخرى' }
+            ]}
+          />
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>من تاريخ *</label>
-              <TextInput
-                type="date"
-                value={newRequest.start_date}
-                onChange={(e) => setNewRequest({ ...newRequest, start_date: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>إلى تاريخ *</label>
-              <TextInput
-                type="date"
-                value={newRequest.end_date}
-                onChange={(e) => setNewRequest({ ...newRequest, end_date: e.target.value })}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>السبب</label>
-            <Textarea
-              value={newRequest.reason}
-              onChange={(e) => setNewRequest({ ...newRequest, reason: e.target.value })}
+            <TextInput
+              label="من تاريخ *"
+              type="date"
+              value={newRequest.start_date}
+              onChange={(e) => setNewRequest({ ...newRequest, start_date: e.target.value })}
+            />
+            <TextInput
+              label="إلى تاريخ *"
+              type="date"
+              value={newRequest.end_date}
+              onChange={(e) => setNewRequest({ ...newRequest, end_date: e.target.value })}
             />
           </div>
+          <Textarea
+            label="السبب"
+            value={newRequest.reason}
+            onChange={(e) => setNewRequest({ ...newRequest, reason: e.target.value })}
+          />
           <div className="flex justify-end gap-2" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
             <Button variant="secondary" onClick={() => setShowRequestDialog(false)}>
               إلغاء
@@ -350,25 +344,22 @@ export function LeaveRequests() {
         maxWidth="500px"
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>الإجراء *</label>
-            <Select
-              value={approvalData.action}
-              onChange={(e) => setApprovalData({ ...approvalData, action: e.target.value as any })}
-            >
-              <option value="approved">موافقة</option>
-              <option value="rejected">رفض</option>
-            </Select>
-          </div>
+          <Select
+            label="الإجراء *"
+            value={approvalData.action}
+            onChange={(e) => setApprovalData({ ...approvalData, action: e.target.value as any })}
+            options={[
+              { value: 'approved', label: 'موافقة' },
+              { value: 'rejected', label: 'رفض' }
+            ]}
+          />
           {approvalData.action === 'rejected' && (
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>سبب الرفض *</label>
-              <Textarea
-                value={approvalData.reason}
-                onChange={(e) => setApprovalData({ ...approvalData, reason: e.target.value })}
-                required
-              />
-            </div>
+            <Textarea
+              label="سبب الرفض *"
+              value={approvalData.reason}
+              onChange={(e) => setApprovalData({ ...approvalData, reason: e.target.value })}
+              required
+            />
           )}
           <div className="flex justify-end gap-2" style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
             <Button variant="secondary" onClick={() => setShowApproveDialog(false)}>

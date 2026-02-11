@@ -26,10 +26,10 @@ export function Button({
     disabled,
     ...props
 }: ButtonProps) {
-    const baseClasses = "btn";
+    const baseClasses = "btn whitespace-nowrap";
     const variantClasses = `btn-${variant}`;
     const sizeClasses = size === "sm" ? "btn-sm" : size === "lg" ? "btn-lg" : "";
-    
+
     const combinedClasses = `${baseClasses} ${variantClasses} ${sizeClasses} ${className}`.trim();
 
     const iconElement = typeof icon === "string" ? <Icon name={icon as IconName} /> : icon;
@@ -47,7 +47,7 @@ export function Button({
         // If it's an external link or a specific case where we want <a>, 
         // but for app routing we use Link.
         const isExternal = href.startsWith("http") || href.startsWith("mailto:") || href.startsWith("tel:");
-        
+
         if (isExternal) {
             return (
                 <a href={href} className={combinedClasses} target="_blank" rel="noopener noreferrer">
