@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ActionButtons, Table, Column, Dialog, showToast, Button, Label } from "@/components/ui";
-import { fetchAPI } from "@/lib/api";
-import { API_ENDPOINTS } from "@/lib/endpoints";
-import { PayrollCycle, PayrollItem, Employee } from "../types";
+import { PayrollCycle, Employee } from "../types";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { getIcon } from "@/lib/icons";
@@ -13,39 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/RadioGroup";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEmployeeStore } from "@/stores/useEmployeeStore";
 import { useAuthStore } from "@/stores/useAuthStore";
-
-/**
- * Extended PayrollItem interface with calculated fields for UI display.
- */
-interface PayrollItemExtended extends PayrollItem {
-  employee_name?: string;
-  paid_amount?: number;
-  remaining_balance?: number;
-  advance_amount?: number;
-  net_after_advance?: number;
-  status: 'active' | 'on_hold';
-}
-
-/**
- * Represents a payroll payment or advance transaction.
- */
-interface PayrollTransaction {
-  id: number;
-  amount: number;
-  transaction_type: 'payment' | 'advance';
-  transaction_date: string;
-  notes: string;
-}
-
-/**
- * Chart of Account for payment method selection.
- */
-interface Account {
-  id: number;
-  code: string;
-  name: string;
-  type: string;
-}
+import { usePayrollStore, PayrollItemExtended, PayrollTransaction } from "@/stores/usePayrollStore";
 
 /**
  * Payroll Management Component.
@@ -58,14 +24,29 @@ interface Account {
  * Integrates with PayrollController API for all operations.
  */
 export function Payroll() {
-  const [payrollCycles, setPayrollCycles] = useState<PayrollCycle[]>([]);
-  const [selectedCycle, setSelectedCycle] = useState<PayrollCycle | null>(null);
-  const [payrollItems, setPayrollItems] = useState<PayrollItemExtended[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  // ─── Stores ──────────────────────────────────────────────
+  const {
+    cycles: payrollCycles,
+    cyclesLoading: isLoading,
+    selectedCycle,
+    items: payrollItems,
+    accounts,
+    defaultAccountId,
+    transactions,
+    loadCycles: loadPayrollCycles,
+    loadCycleDetails,
+    loadAccounts,
+    loadItemHistory,
+    createCycle,
+    approveCycle: handleApproveAction,
+    bulkPayment,
+    toggleItemStatus: toggleStopSalary,
+    updateItem,
+    individualPayment,
+    setSelectedCycle,
+  } = usePayrollStore();
   const { allEmployees, loadAllEmployees } = useEmployeeStore();
-  const { canAccess } = useAuthStore();
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { canAccess, user: currentUser } = useAuthStore();
 
   // Dialog States
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -75,9 +56,7 @@ export function Payroll() {
   const [showCreateCycleDialog, setShowCreateCycleDialog] = useState(false);
   const [showEditItemDialog, setShowEditItemDialog] = useState(false);
 
-  // Selection States
   const [selectedItem, setSelectedItem] = useState<PayrollItemExtended | null>(null);
-  const [transactions, setTransactions] = useState<PayrollTransaction[]>([]);
 
   // Create Cycle Form State
   const [newCycle, setNewCycle] = useState({
@@ -112,86 +91,29 @@ export function Payroll() {
   const [cycleSearch] = useState("");
 
   useEffect(() => {
-    loadUser();
     loadPayrollCycles();
     loadAccounts();
     loadAllEmployees();
-  }, [loadAllEmployees]);
+  }, [loadPayrollCycles, loadAccounts, loadAllEmployees]);
 
-  const loadUser = async () => {
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.AUTH.CHECK);
-      setCurrentUser(res.user || res);
-    } catch (e) {
-      console.error(e);
+  // Set default account ID when loaded
+  useEffect(() => {
+    if (defaultAccountId && !selectedAccountId) {
+      setSelectedAccountId(defaultAccountId);
     }
+  }, [defaultAccountId]);
+
+  // Wrapper: load cycle details + open dialog
+  const handleLoadCycleDetails = async (cycleId: number) => {
+    await loadCycleDetails(cycleId);
+    setShowDetailsDialog(true);
   };
 
-  const loadAccounts = async () => {
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.FINANCE.ACCOUNTS.BASE);
-      const data = res.accounts || (Array.isArray(res) ? res : []);
-
-      // Filter for Asset accounts (banks, cash, etc.)
-      // Note: account_type from controller is lowercase 'asset'
-      const assetAccounts = data.filter((acc: Account) =>
-        acc.type === 'asset' ||
-        acc.code.startsWith('1')
-      );
-
-      setAccounts(assetAccounts);
-
-      const cashAcc = assetAccounts.find((a: Account) => a.code === '1110')
-        || assetAccounts.find((a: Account) => a.name.toLowerCase().includes('cash'))
-        || assetAccounts[0]; // Fallback to first asset
-
-      if (cashAcc) setSelectedAccountId(cashAcc.id.toString());
-    } catch (e) {
-      console.error("Failed to load accounts", e);
-    }
-  };
-
-  const loadPayrollCycles = async () => {
-    setIsLoading(true);
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.CYCLES);
-      const data = res.data?.data || res.data || res || [];
-      setPayrollCycles(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error(error);
-      showToast("خطأ في تحميل دورات الرواتب", "error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadCycleDetails = async (cycleId: number) => {
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.CYCLE_ITEMS(cycleId));
-      const items = res.data || (Array.isArray(res) ? res : []);
-      setPayrollItems(items as PayrollItemExtended[]);
-
-      if (res.cycle) {
-        setSelectedCycle(res.cycle as PayrollCycle);
-      }
-
-      setShowDetailsDialog(true);
-    } catch (error) {
-      console.error(error);
-      showToast("خطأ في تحميل تفاصيل الدورة", "error");
-    }
-  };
-
-  const loadItemHistory = async (item: PayrollItemExtended) => {
-    try {
-      setSelectedItem(item);
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.ITEM_TRANSACTIONS(item.id));
-      setTransactions(res.data as PayrollTransaction[] || []);
-      setShowHistoryDialog(true);
-    } catch (error) {
-      console.error(error);
-      showToast("خطأ في تحميل سجل التحويلات", "error");
-    }
+  // Wrapper: load item history + open dialog
+  const handleLoadItemHistory = async (item: PayrollItemExtended) => {
+    setSelectedItem(item);
+    await loadItemHistory(item.id);
+    setShowHistoryDialog(true);
   };
 
   const handleCreateCycle = async () => {
@@ -199,46 +121,19 @@ export function Payroll() {
       showToast("يرجى إدخال اسم المسير", "error");
       return;
     }
-
     setIsSubmitting(true);
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.GENERATE, {
-        method: 'POST',
-        body: JSON.stringify({
-          ...newCycle,
-          base_amount: parseFloat(newCycle.base_amount) || 0
-        })
-      });
-      if (res.success !== false) {
-        showToast("تم إنشاء المسير بنجاح", "success");
-        setShowCreateCycleDialog(false);
-        loadPayrollCycles();
-      } else {
-        showToast("فشل إنشاء المسير: " + res.message, "error");
-      }
-    } catch (e) {
-      console.error(e);
-      showToast("حدث خطأ غير متوقع", "error");
-    } finally {
-      setIsSubmitting(false);
-    }
+    const success = await createCycle({
+      ...newCycle,
+      base_amount: parseFloat(newCycle.base_amount) || 0,
+    });
+    if (success) setShowCreateCycleDialog(false);
+    setIsSubmitting(false);
   };
 
   const handleApprove = async (id: number) => {
     if (!confirm("هل أنت متأكد من الموافقة على مسير الرواتب ونقله للمرحلة التالية؟")) return;
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.APPROVE(id), { method: 'POST' });
-      if (res.success !== false) {
-        showToast("تمت الموافقة بنجاح", "success");
-        loadPayrollCycles();
-        setShowDetailsDialog(false);
-      } else {
-        showToast("فشل الموافقة: " + res.message, "error");
-      }
-    } catch (e) {
-      console.error(e);
-      showToast("حدث خطأ", "error");
-    }
+    const success = await handleApproveAction(id);
+    if (success) setShowDetailsDialog(false);
   };
 
   const handleBulkPayment = async () => {
@@ -246,64 +141,25 @@ export function Payroll() {
       showToast("يرجى اختيار حساب الصرف", "error");
       return;
     }
-
     if (!confirm("هل أنت متأكد من صرف جميع الرواتب لهذا المسير؟ سيتم إنشاء قيود الصرف المحاسبية.")) return;
-
     setIsSubmitting(true);
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.PROCESS_PAYMENT(selectedCycle.id), {
-        method: 'POST',
-        body: JSON.stringify({ account_id: selectedAccountId })
-      });
-      if (res.success !== false) {
-        showToast("تم ترحيل وصرف الرواتب بنجاح", "success");
-        setShowBulkPaymentDialog(false);
-        loadPayrollCycles();
-        if (showDetailsDialog) loadCycleDetails(selectedCycle.id);
-      } else {
-        showToast("فشل الصرف: " + res.message, "error");
-      }
-    } catch (e) {
-      console.error(e);
-      showToast("حدث خطأ", "error");
-    } finally {
-      setIsSubmitting(false);
+    const success = await bulkPayment(selectedCycle.id, selectedAccountId);
+    if (success) {
+      setShowBulkPaymentDialog(false);
+      if (showDetailsDialog) loadCycleDetails(selectedCycle.id);
     }
-  };
-
-  const toggleStopSalary = async (item: PayrollItemExtended) => {
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.TOGGLE_ITEM(item.id), { method: 'POST' });
-      if (res) {
-        showToast(res.status === 'on_hold' ? "تم إيقاف صرف الراتب مؤقتاً" : "تم تفعيل صرف الراتب", "info");
-        loadCycleDetails(item.payroll_cycle_id);
-      }
-    } catch (e) {
-      console.error(e);
-      showToast("حدث خطأ", "error");
-    }
+    setIsSubmitting(false);
   };
 
   const handleUpdateItem = async () => {
     if (!selectedItem) return;
     setIsSubmitting(true);
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.UPDATE_ITEM(selectedItem.id), {
-        method: 'PUT',
-        body: JSON.stringify(editItemData)
-      });
-      if (res.id) {
-        showToast("تم تحديث بيانات الموظف بنجاح", "success");
-        setShowEditItemDialog(false);
-        loadCycleDetails(selectedItem.payroll_cycle_id);
-        // Refresh cycles list for totals
-        loadPayrollCycles();
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsSubmitting(false);
+    const success = await updateItem(selectedItem.id, editItemData);
+    if (success) {
+      setShowEditItemDialog(false);
+      loadCycleDetails(selectedItem.payroll_cycle_id);
     }
+    setIsSubmitting(false);
   };
 
   const openPaymentDialog = (item: PayrollItemExtended) => {
@@ -322,33 +178,17 @@ export function Payroll() {
       showToast("يرجى إدخال المبلغ", "error");
       return;
     }
-
     setIsSubmitting(true);
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.PAYROLL.PAY_ITEM(selectedItem.id), {
-        method: 'POST',
-        body: JSON.stringify({
-          amount: parseFloat(paymentAmount),
-          notes: paymentNotes,
-          account_id: selectedAccountId
-        })
-      });
-
-      if (res.success !== false) {
-        showToast("تم تسجيل عملية التحويل بنجاح", "success");
-        setShowPaymentDialog(false);
-        if (selectedCycle) {
-          loadCycleDetails(selectedCycle.id);
-        }
-      } else {
-        showToast(res.message || res.error || "فشل تسجيل التحويل", "error");
-      }
-    } catch (e) {
-      console.error(e);
-      showToast("حدث خطأ", "error");
-    } finally {
-      setIsSubmitting(false);
+    const success = await individualPayment(selectedItem.id, {
+      amount: parseFloat(paymentAmount),
+      notes: paymentNotes,
+      account_id: selectedAccountId,
+    });
+    if (success) {
+      setShowPaymentDialog(false);
+      if (selectedCycle) loadCycleDetails(selectedCycle.id);
     }
+    setIsSubmitting(false);
   };
 
   const cycleColumns: Column<PayrollCycle>[] = [
@@ -387,7 +227,7 @@ export function Payroll() {
               icon: "eye",
               title: "التفاصيل والمراجعة",
               variant: "view",
-              onClick: () => { setSelectedCycle(item); loadCycleDetails(item.id); }
+              onClick: () => { setSelectedCycle(item); handleLoadCycleDetails(item.id); }
             },
             ...(canAccess("payroll", "edit") ? [{
               icon: "send" as const,
@@ -462,7 +302,7 @@ export function Payroll() {
     },
     {
       key: "paid_amount", header: "المحول", dataLabel: "المحول", render: (item) => (
-        <button className="text-link" onClick={() => loadItemHistory(item)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary-color)', cursor: 'pointer', textDecoration: 'underline' }}>
+        <button className="text-link" onClick={() => handleLoadItemHistory(item)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary-color)', cursor: 'pointer', textDecoration: 'underline' }}>
           {formatCurrency(item.paid_amount || 0)}
         </button>
       )
@@ -500,7 +340,7 @@ export function Payroll() {
                 icon: "history",
                 title: "سجل التحويلات",
                 variant: "view",
-                onClick: () => loadItemHistory(item)
+                onClick: () => handleLoadItemHistory(item)
               }
             ]}
           />

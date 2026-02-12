@@ -12,7 +12,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
 import { Product, Category } from "./types";
-import { useProducts } from "./useProducts";
+import { useProductStore } from "@/stores/useProductStore";
 
 export default function ProductsPage() {
     const [user, setUser] = useState<User | null>(null);
@@ -20,16 +20,27 @@ export default function ProductsPage() {
     const [searchTerm, setSearchTerm] = useState("");
 
     const {
-        products,
-        categories,
+        items: products,
         currentPage,
         totalPages,
         isLoading,
-        loadProducts,
-        loadCategories,
-        saveProduct,
-        deleteProduct
-    } = useProducts();
+        load: loadProducts,
+        save: saveProduct,
+        remove: deleteProduct,
+    } = useProductStore();
+
+    // Categories are page-specific; keep as local state
+    const [categories, setCategories] = useState<Category[]>([]);
+    const loadCategories = useCallback(async () => {
+        try {
+            const response = await fetchAPI(API_ENDPOINTS.INVENTORY.CATEGORIES);
+            if (response.success) {
+                setCategories((response.data as Category[]) || []);
+            }
+        } catch (e) {
+            console.error("Error loading categories", e);
+        }
+    }, []);
 
     // Dialogs
     const [productDialog, setProductDialog] = useState(false);
@@ -149,7 +160,7 @@ export default function ProductsPage() {
         const success = await saveProduct(payload, selectedProduct?.id);
         if (success) {
             setProductDialog(false);
-            loadProducts(currentPage, searchTerm);
+            await loadProducts(currentPage, searchTerm);
         }
     };
 
@@ -179,7 +190,6 @@ export default function ProductsPage() {
         const success = await deleteProduct(deleteId);
         if (success) {
             setConfirmDialog(false);
-            loadProducts(currentPage, searchTerm);
         }
     };
 

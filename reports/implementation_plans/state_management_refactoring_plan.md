@@ -797,46 +797,46 @@ public/
 
 ### Pre-Migration
 
-- [ ] Install `zustand` dependency
+- [x] Install `zustand` dependency
 - [ ] Set up Redux DevTools browser extension for debugging
-- [ ] Create `stores/` directory structure
+- [x] Create `stores/` directory structure
 - [ ] Verify all existing tests pass (baseline)
 
 ### Phase 1: Foundation
 
-- [ ] `useAuthStore` created and tested
-- [ ] `useSettingsStore` created and tested
-- [ ] `useUIStore` created and tested
-- [ ] `MainLayout.tsx` refactored — no more dead `AuthContext`
-- [ ] `ModuleLayout.tsx` refactored — no more dead `ModuleAuthContext`
-- [ ] `Sidebar.tsx` uses `useAuthStore` directly
-- [ ] `api.ts` `systemSettings` replaced with store
-- [ ] `localStorage` sidebar state replaced with `useUIStore`
+- [x] `useAuthStore` created and tested
+- [x] `useSettingsStore` created and tested
+- [x] `useUIStore` created and tested
+- [x] `MainLayout.tsx` refactored — no more dead `AuthContext`
+- [x] `ModuleLayout.tsx` refactored — no more dead `ModuleAuthContext`
+- [x] `Sidebar.tsx` uses `useAuthStore` directly
+- [x] `api.ts` `systemSettings` replaced with store
+- [x] `localStorage` sidebar state replaced with `useUIStore`
 - [ ] Manual QA: login, navigation, permission checks work
 
 ### Phase 2: Shared Domain Stores
 
-- [ ] `useEmployeeStore` created with caching
-- [ ] All HR modules using shared employee list
-- [ ] `Payroll.tsx` decomposed into sub-components
-- [ ] `usePayrollStore` created
+- [x] `useEmployeeStore` created with caching
+- [x] All HR modules using shared employee list
+- [x] `Payroll.tsx` decomposed into sub-components
+- [x] `usePayrollStore` created
 - [ ] Manual QA: all HR modules work correctly
 
 ### Phase 3: Financial & Inventory
 
-- [ ] Old custom hooks (`useProducts`, `useCustomers`, `usePurchases`, `useSuppliers`) replaced
-- [ ] All consuming pages refactored
-- [ ] Old hook files deleted
-- [ ] `useFinanceStore` created
+- [x] Old custom hooks (`useProducts`, `useCustomers`, `usePurchases`, `useSuppliers`) replaced
+- [x] All consuming pages refactored
+- [x] Old hook files deleted
+- [x] `useFinanceStore` created
 - [ ] Manual QA: all financial modules work correctly
 
 ### Phase 4: Advanced Patterns
 
-- [ ] `createCRUDStore` factory created and applied
-- [ ] Cache invalidation strategy implemented
-- [ ] Redux DevTools integration verified
-- [ ] Optimistic updates for key mutations
-- [ ] Global error handling store
+- [x] `createCRUDStore` factory created and applied
+- [x] Cache invalidation strategy implemented
+- [x] Redux DevTools integration verified
+- [x] Optimistic updates for key mutations
+- [x] Global error handling store
 - [ ] All stores have unit tests
 - [ ] Performance benchmarks (before vs. after)
 

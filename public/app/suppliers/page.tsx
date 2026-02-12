@@ -8,7 +8,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
 import { Supplier } from "./types";
-import { useSuppliers } from "./useSuppliers";
+import { useSupplierStore } from "@/stores/useSupplierStore";
 
 export default function SuppliersPage() {
     const router = useRouter();
@@ -17,14 +17,14 @@ export default function SuppliersPage() {
     const [searchTerm, setSearchTerm] = useState("");
 
     const {
-        suppliers,
+        items: suppliers,
         currentPage,
         totalPages,
         isLoading,
-        loadSuppliers,
-        saveSupplier,
-        deleteSupplier
-    } = useSuppliers();
+        load: loadSuppliers,
+        save: saveSupplier,
+        remove: deleteSupplier,
+    } = useSupplierStore();
 
     // Dialogs
     const [formDialog, setFormDialog] = useState(false);
@@ -99,7 +99,6 @@ export default function SuppliersPage() {
         const success = await deleteSupplier(deleteId);
         if (success) {
             setConfirmDialog(false);
-            loadSuppliers(currentPage, searchTerm);
         }
     };
 
@@ -123,16 +122,16 @@ export default function SuppliersPage() {
             dataLabel: "الإجراءات",
             render: (it) => (
                 <div className="action-buttons">
-                    <button 
-                        className="icon-btn view" 
-                        onClick={() => router.push(`/finance/ap_ledger?supplier_id=${it.id}`)} 
+                    <button
+                        className="icon-btn view"
+                        onClick={() => router.push(`/finance/ap_ledger?supplier_id=${it.id}`)}
                         title="كشف الحساب"
                     >
                         <Icon name="clipboard-list" />
                     </button>
-                    <button 
-                        className="icon-btn info" 
-                        onClick={() => { setSelectedSupplier(it); setViewDialog(true); }} 
+                    <button
+                        className="icon-btn info"
+                        onClick={() => { setSelectedSupplier(it); setViewDialog(true); }}
                         title="تفاصيل"
                     >
                         <Icon name="eye" />
@@ -281,7 +280,7 @@ export default function SuppliersPage() {
                         </div>
 
                         <div className="mt-4 flex justify-end">
-                            <Button 
+                            <Button
                                 variant="primary"
                                 icon="list"
                                 onClick={() => router.push(`/finance/ap_ledger?supplier_id=${selectedSupplier.id}`)}

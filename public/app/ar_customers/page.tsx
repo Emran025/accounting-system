@@ -8,7 +8,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
 import { Icon, getIcon } from "@/lib/icons";
 import { Customer } from "./types";
-import { useCustomers } from "./useCustomers";
+import { useCustomerStore } from "@/stores/useCustomerStore";
 
 export default function ARCustomersPage() {
     const router = useRouter();
@@ -17,14 +17,14 @@ export default function ARCustomersPage() {
     const [searchTerm, setSearchTerm] = useState("");
 
     const {
-        customers,
+        items: customers,
         currentPage,
         totalPages,
         isLoading,
-        loadCustomers,
-        saveCustomer,
-        deleteCustomer
-    } = useCustomers();
+        load: loadCustomers,
+        save: saveCustomer,
+        remove: deleteCustomer,
+    } = useCustomerStore();
 
     // Dialogs
     const [formDialog, setFormDialog] = useState(false);
@@ -95,7 +95,6 @@ export default function ARCustomersPage() {
         const success = await deleteCustomer(deleteId);
         if (success) {
             setConfirmDialog(false);
-            loadCustomers(currentPage, searchTerm);
         }
     };
 
@@ -130,16 +129,16 @@ export default function ARCustomersPage() {
             dataLabel: "الإجراءات",
             render: (it) => (
                 <div className="action-buttons">
-                    <button 
-                        className="icon-btn view" 
-                        onClick={() => router.push(`/finance/ar_ledger?customer_id=${it.id}`)} 
+                    <button
+                        className="icon-btn view"
+                        onClick={() => router.push(`/finance/ar_ledger?customer_id=${it.id}`)}
                         title="كشف الحساب"
                     >
                         <Icon name="clipboard-list" />
                     </button>
-                    <button 
-                        className="icon-btn info" 
-                        onClick={() => { setSelectedCustomer(it); setViewDialog(true); }} 
+                    <button
+                        className="icon-btn info"
+                        onClick={() => { setSelectedCustomer(it); setViewDialog(true); }}
                         title="تفاصيل"
                     >
                         <Icon name="eye" />
@@ -237,10 +236,10 @@ export default function ARCustomersPage() {
             </Dialog>
 
             {/* View Dialog */}
-            <Dialog 
-                isOpen={viewDialog} 
-                onClose={() => setViewDialog(false)} 
-                title="ملف العميل" 
+            <Dialog
+                isOpen={viewDialog}
+                onClose={() => setViewDialog(false)}
+                title="ملف العميل"
                 maxWidth="600px"
             >
                 {selectedCustomer && (
@@ -310,9 +309,9 @@ export default function ARCustomersPage() {
                         </div>
 
                         <div className="dialog-actions-alt mt-6" style={{ marginTop: "2rem", display: "flex", justifyContent: "flex-end" }}>
-                            <Button 
-                                variant="primary" 
-                                icon="clipboard-list" 
+                            <Button
+                                variant="primary"
+                                icon="clipboard-list"
                                 onClick={() => router.push(`/finance/ar_ledger?customer_id=${selectedCustomer.id}`)}
                             >
                                 عرض كشف الحساب الكامل

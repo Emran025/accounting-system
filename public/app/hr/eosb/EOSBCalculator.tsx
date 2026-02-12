@@ -7,7 +7,6 @@ import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Employee, EOSBCalculation } from "../types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
-import { getIcon } from "@/lib/icons";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
 import { useEmployeeStore } from "@/stores/useEmployeeStore";

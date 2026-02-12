@@ -125,7 +125,6 @@ export function MainLayout({
   return (
     <div className="main-container">
       <Sidebar
-        permissions={permissions}
         onCollapsedChange={setSidebarCollapsed}
       />
       <main className={`content ${sidebarCollapsed ? "expanded" : ""}`}>

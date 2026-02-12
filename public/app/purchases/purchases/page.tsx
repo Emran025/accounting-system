@@ -9,7 +9,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
 import { Product, Purchase, PurchaseRequest, Supplier } from "./types";
-import { usePurchases } from "./usePurchases";
+import { usePurchaseStore } from "@/stores/usePurchaseStore";
 
 /**
  * Purchases Management Page.
@@ -30,14 +30,14 @@ export default function PurchasesPage() {
     const [searchTerm, setSearchTerm] = useState("");
 
     const {
-        purchases,
+        items: purchases,
         currentPage,
         totalPages,
         isLoading,
-        loadPurchases,
-        savePurchase,
-        deletePurchase
-    } = usePurchases();
+        load: loadPurchases,
+        save: savePurchase,
+        remove: deletePurchase,
+    } = usePurchaseStore();
 
     // Dialogs
     const [purchaseDialog, setPurchaseDialog] = useState(false);
@@ -205,7 +205,6 @@ export default function PurchasesPage() {
         const success = await deletePurchase(deleteId);
         if (success) {
             setConfirmDialog(false);
-            loadPurchases(currentPage, searchTerm);
             loadProducts();
         }
     };
@@ -355,7 +354,7 @@ export default function PurchasesPage() {
                                 icon="plus"
                                 onClick={openAddDialog}
                             >
-                               إضافة مشترى
+                                إضافة مشترى
                             </Button>
                         )}
                     </>

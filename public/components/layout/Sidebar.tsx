@@ -10,14 +10,13 @@ import { useUIStore } from "@/stores/useUIStore";
 import { FullLogo } from "@/components/ui/Logo";
 
 interface SidebarProps {
-  permissions: Permission[];
   onCollapsedChange?: (collapsed: boolean) => void;
 }
 
-export function Sidebar({ permissions, onCollapsedChange }: SidebarProps) {
+export function Sidebar({ onCollapsedChange }: SidebarProps) {
   // Use UI Store for sidebar state
   const { sidebarCollapsed, setSidebarCollapsed } = useUIStore();
-  const logoutAction = useAuthStore(state => state.logout);
+  const { permissions, logout: logoutAction } = useAuthStore();
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
