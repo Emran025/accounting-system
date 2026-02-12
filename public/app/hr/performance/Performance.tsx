@@ -10,6 +10,7 @@ import { fetchAPI } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useEmployeeStore } from "@/stores/useEmployeeStore";
 import { Employee } from "../types";
 
@@ -33,6 +34,7 @@ const statusBadges: Record<string, string> = { not_started: "badge-secondary", i
 const appraisalTypeLabels: Record<string, string> = { self: "ذاتي", manager: "المدير", peer: "الأقران", "360": "360 درجة", annual: "سنوي", mid_year: "نصف سنوي" };
 
 export function Performance() {
+  const { canAccess } = useAuthStore();
   const [activeTab, setActiveTab] = useState("goals");
   const [goals, setGoals] = useState<Goal[]>([]);
   const [appraisals, setAppraisals] = useState<Appraisal[]>([]);
@@ -149,13 +151,13 @@ export function Performance() {
               variant: "view",
               onClick: () => { setSelectedGoal(i); setShowGoalDetail(true); }
             },
-            {
-              icon: "edit",
+            ...(canAccess("performance", "edit") ? [{
+              icon: "edit" as const,
               title: "تحديث",
-              variant: "edit",
+              variant: "edit" as const,
               onClick: () => { setSelectedGoal(i); setUpdateForm({ current_value: String(i.current_value || 0), progress_percentage: String(i.progress_percentage), status: i.status, notes: "" }); setShowUpdateGoal(true); },
               hidden: ["completed", "cancelled"].includes(i.status)
-            }
+            }] : [])
           ]}
         />
       )
@@ -190,27 +192,27 @@ export function Performance() {
               variant: "view",
               onClick: () => { setSelectedApp(i); setShowAppDetail(true); }
             },
-            {
-              icon: "play",
+            ...(canAccess("performance", "edit") ? [{
+              icon: "play" as const,
               title: "بدء المراجعة",
-              variant: "view",
+              variant: "view" as const,
               onClick: () => handleUpdateAppraisalStatus(i.id, "self_review"),
               hidden: i.status !== "draft"
-            },
-            {
-              icon: "send",
+            }] : []),
+            ...(canAccess("performance", "edit") ? [{
+              icon: "send" as const,
               title: "إرسال للمدير",
-              variant: "view",
+              variant: "view" as const,
               onClick: () => handleUpdateAppraisalStatus(i.id, "manager_review"),
               hidden: i.status !== "self_review"
-            },
-            {
-              icon: "check",
+            }] : []),
+            ...(canAccess("performance", "edit") ? [{
+              icon: "check" as const,
               title: "إكمال",
-              variant: "success",
+              variant: "success" as const,
               onClick: () => handleUpdateAppraisalStatus(i.id, "completed"),
               hidden: i.status !== "manager_review"
-            }
+            }] : [])
           ]}
         />
       )
@@ -226,21 +228,25 @@ export function Performance() {
         actions={
           <div style={{ display: "flex", gap: "1rem" }}>
             {activeTab === "goals" ? (
-              <Button
-                onClick={() => { setGoalForm({ employee_id: "", goal_title: "", goal_description: "", goal_type: "kpi", target_value: "", current_value: "0", unit: "", start_date: new Date().toISOString().split("T")[0], target_date: "", notes: "" }); setShowGoalDialog(true); }}
-                variant="primary"
-                icon="plus"
-              >
-                إضافة هدف جديد
-              </Button>
+              canAccess("performance", "create") && (
+                <Button
+                  onClick={() => { setGoalForm({ employee_id: "", goal_title: "", goal_description: "", goal_type: "kpi", target_value: "", current_value: "0", unit: "", start_date: new Date().toISOString().split("T")[0], target_date: "", notes: "" }); setShowGoalDialog(true); }}
+                  variant="primary"
+                  icon="plus"
+                >
+                  إضافة هدف جديد
+                </Button>
+              )
             ) : (
-              <Button
-                onClick={() => { setAppForm({ employee_id: "", appraisal_type: "annual", appraisal_period: "", appraisal_date: new Date().toISOString().split("T")[0], notes: "" }); setShowAppDialog(true); }}
-                variant="primary"
-                icon="plus"
-              >
-                تقييم جديد
-              </Button>
+              canAccess("performance", "create") && (
+                <Button
+                  onClick={() => { setAppForm({ employee_id: "", appraisal_type: "annual", appraisal_period: "", appraisal_date: new Date().toISOString().split("T")[0], notes: "" }); setShowAppDialog(true); }}
+                  variant="primary"
+                  icon="plus"
+                >
+                  تقييم جديد
+                </Button>
+              )
             )}
           </div>
         }

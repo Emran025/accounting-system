@@ -8,6 +8,7 @@ import { fetchAPI } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
+import { useAuthStore } from "@/stores/useAuthStore";
 import type { Schedule } from "../types";
 
 
@@ -25,6 +26,7 @@ const statusBadges: Record<string, string> = {
 
 export function WorkforceScheduling() {
   const router = useRouter();
+  const { canAccess } = useAuthStore();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -97,12 +99,12 @@ export function WorkforceScheduling() {
               variant: "view",
               onClick: () => router.push(`/hr/scheduling/${item.id}`)
             },
-            {
-              icon: "edit",
+            ...(canAccess("scheduling", "edit") ? [{
+              icon: "edit" as const,
               title: "تعديل",
-              variant: "edit",
+              variant: "edit" as const,
               onClick: () => router.push(`/hr/scheduling/edit/${item.id}`)
-            }
+            }] : [])
           ]}
         />
       ),
@@ -115,13 +117,15 @@ export function WorkforceScheduling() {
         title="جدولة القوى العاملة"
         titleIcon="calendar-days"
         actions={
-          <Button
-            onClick={() => router.push("/hr/scheduling/add")}
-            variant="primary"
-            icon="plus"
-          >
-            إنشاء جدول جديد
-          </Button>
+          canAccess("scheduling", "create") && (
+            <Button
+              onClick={() => router.push("/hr/scheduling/add")}
+              variant="primary"
+              icon="plus"
+            >
+              إنشاء جدول جديد
+            </Button>
+          )
         }
       />
 

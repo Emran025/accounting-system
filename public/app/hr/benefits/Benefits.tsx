@@ -7,6 +7,7 @@ import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { getIcon } from "@/lib/icons";
 
 interface BenefitsPlan {
@@ -66,6 +67,7 @@ const statusBadges: Record<string, string> = {
 
 export function Benefits() {
   const router = useRouter();
+  const { canAccess } = useAuthStore();
   const [activeTab, setActiveTab] = useState("plans");
   const [plans, setPlans] = useState<BenefitsPlan[]>([]);
   const [enrollments, setEnrollments] = useState<BenefitsEnrollment[]>([]);
@@ -169,7 +171,13 @@ export function Benefits() {
               title: "عرض التفاصيل",
               variant: "view",
               onClick: () => router.push(`/hr/benefits/plans/${item.id}`)
-            }
+            },
+            ...(canAccess("benefits", "edit") ? [{
+              icon: "edit" as const,
+              title: "تعديل",
+              variant: "edit" as const,
+              onClick: () => router.push(`/hr/benefits/plans/edit/${item.id}`)
+            }] : [])
           ]}
         />
       ),
@@ -229,7 +237,13 @@ export function Benefits() {
               title: "عرض التفاصيل",
               variant: "view",
               onClick: () => router.push(`/hr/benefits/enrollments/${item.id}`)
-            }
+            },
+            ...(canAccess("benefits", "edit") ? [{
+              icon: "edit" as const,
+              title: "تعديل",
+              variant: "edit" as const,
+              onClick: () => router.push(`/hr/benefits/enrollments/edit/${item.id}`)
+            }] : [])
           ]}
         />
       ),
@@ -243,13 +257,22 @@ export function Benefits() {
         titleIcon="heart"
         actions={
           <>
-            {activeTab === "plans" && (
+            {activeTab === "plans" && canAccess("benefits", "create") && (
               <Button
                 onClick={() => router.push('/hr/benefits/plans/add')}
                 variant="primary"
                 icon="plus"
               >
                 خطة مزايا جديدة
+              </Button>
+            )}
+            {activeTab === "enrollments" && canAccess("benefits", "create") && (
+              <Button
+                onClick={() => router.push('/hr/benefits/enrollments/add')}
+                variant="primary"
+                icon="plus"
+              >
+                تسجيل جديد
               </Button>
             )}
           </>

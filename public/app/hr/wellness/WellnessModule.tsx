@@ -11,6 +11,7 @@ import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { getIcon } from "@/lib/icons";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useEmployeeStore } from "@/stores/useEmployeeStore";
 
 import type { Employee, WellnessProgram, WellnessParticipation } from "../types";
@@ -20,6 +21,7 @@ const participationStatusLabels: Record<string, string> = { enrolled: "مسجل"
 const participationStatusBadges: Record<string, string> = { enrolled: "badge-info", active: "badge-success", completed: "badge-secondary", dropped: "badge-danger" };
 
 export function WellnessModule() {
+    const { canAccess } = useAuthStore();
     const [activeTab, setActiveTab] = useState("programs");
     const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
     const [programs, setPrograms] = useState<WellnessProgram[]>([]);
@@ -110,20 +112,20 @@ export function WellnessModule() {
             key: "id", header: "إجراءات", dataLabel: "إجراءات", render: (i) => (
                 <ActionButtons
                     actions={[
-                        {
-                            icon: "play",
+                        ...(canAccess("wellness", "edit") ? [{
+                            icon: "play" as const,
                             title: "تفعيل",
-                            variant: "success",
+                            variant: "success" as const,
                             onClick: () => handleUpdateParticipation(i.id, "active"),
                             hidden: i.status !== "enrolled"
-                        },
-                        {
-                            icon: "check",
+                        }] : []),
+                        ...(canAccess("wellness", "edit") ? [{
+                            icon: "check" as const,
                             title: "إكمال",
-                            variant: "view",
+                            variant: "view" as const,
                             onClick: () => handleUpdateParticipation(i.id, "completed"),
                             hidden: i.status !== "active"
-                        }
+                        }] : [])
                     ]}
                 />
             )
@@ -142,26 +144,30 @@ export function WellnessModule() {
 
             {activeTab === "programs" && <>
                 <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}>
-                    <Button
-                        onClick={() => { setProgForm({ program_name: "", description: "", program_type: "fitness", start_date: new Date().toISOString().split("T")[0], end_date: "", notes: "" }); setShowProgDialog(true); }}
-                        variant="primary"
-                        icon="plus"
-                    >
-                        برنامج جديد
-                    </Button>
+                    {canAccess("wellness", "create") && (
+                        <Button
+                            onClick={() => { setProgForm({ program_name: "", description: "", program_type: "fitness", start_date: new Date().toISOString().split("T")[0], end_date: "", notes: "" }); setShowProgDialog(true); }}
+                            variant="primary"
+                            icon="plus"
+                        >
+                            برنامج جديد
+                        </Button>
+                    )}
                 </div>
                 <Table columns={progColumns} data={programs} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد برامج" isLoading={progLoading} pagination={{ currentPage: progPage, totalPages: progTotal, onPageChange: setProgPage }} />
             </>}
 
             {activeTab === "participations" && <>
                 <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}>
-                    <Button
-                        onClick={() => { setPartForm({ program_id: "", employee_id: "", notes: "" }); setShowPartDialog(true); }}
-                        variant="primary"
-                        icon="plus"
-                    >
-                        تسجيل مشارك
-                    </Button>
+                    {canAccess("wellness", "create") && (
+                        <Button
+                            onClick={() => { setPartForm({ program_id: "", employee_id: "", notes: "" }); setShowPartDialog(true); }}
+                            variant="primary"
+                            icon="plus"
+                        >
+                            تسجيل مشارك
+                        </Button>
+                    )}
                 </div>
                 <Table columns={partColumns} data={participations} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد مشاركات" isLoading={partLoading} pagination={{ currentPage: partPage, totalPages: partTotal, onPageChange: setPartPage }} />
             </>}

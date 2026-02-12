@@ -6,6 +6,7 @@ import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { LeaveRequest, Employee } from "../types";
 import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { TextInput } from "@/components/ui/TextInput";
@@ -26,6 +27,7 @@ import { Textarea } from "@/components/ui/Textarea";
  */
 export function LeaveRequests() {
   const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
+  const { canAccess } = useAuthStore();
   const [selectedEmployee, setSelectedEmployee] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
@@ -185,17 +187,17 @@ export function LeaveRequests() {
       render: (record) => (
         <ActionButtons
           actions={[
-            {
-              icon: "check",
+            ...(canAccess("leave", "edit") ? [{
+              icon: "check" as const,
               title: "معالجة الطلب",
-              variant: "edit",
+              variant: "edit" as const,
               onClick: () => {
                 setSelectedRequest(record);
                 setApprovalData({ action: "approved", reason: "" });
                 setShowApproveDialog(true);
               },
               hidden: record.status !== 'pending'
-            }
+            }] : [])
           ]}
         />
       )
@@ -208,12 +210,14 @@ export function LeaveRequests() {
         title="طلبات الإجازة"
         titleIcon="calendar"
         actions={
-          <Button
-            variant="primary"
-            onClick={() => setShowRequestDialog(true)}
-            icon="plus">
-            طلب إجازة جديد
-          </Button>
+          canAccess("leave", "create") && (
+            <Button
+              variant="primary"
+              onClick={() => setShowRequestDialog(true)}
+              icon="plus">
+              طلب إجازة جديد
+            </Button>
+          )
         }
       />
 

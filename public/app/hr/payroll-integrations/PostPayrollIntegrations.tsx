@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ActionButtons, Table, Column, Dialog, Button, showToast } from "@/components/ui";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/Textarea";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate, formatCurrency } from "@/lib/utils";
@@ -15,6 +16,7 @@ const statusLabels: Record<string, string> = { pending: "معلق", processing: 
 const statusBadges: Record<string, string> = { pending: "badge-warning", processing: "badge-info", completed: "badge-success", failed: "badge-danger", reconciled: "badge-primary" };
 
 export function PostPayrollIntegrations() {
+    const { canAccess } = useAuthStore();
     const [integrations, setIntegrations] = useState<PostPayrollIntegration[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -85,20 +87,20 @@ export function PostPayrollIntegrations() {
                             variant: "view",
                             onClick: () => { setSelectedItem(i); setShowDetailDialog(true); }
                         },
-                        {
-                            icon: "settings",
+                        ...(canAccess("payroll", "edit") ? [{
+                            icon: "settings" as const,
                             title: "معالجة",
-                            variant: "view",
+                            variant: "view" as const,
                             onClick: () => handleProcess(i.id),
                             hidden: i.status !== "pending"
-                        },
-                        {
-                            icon: "check-check",
+                        }] : []),
+                        ...(canAccess("payroll", "edit") ? [{
+                            icon: "check-check" as const,
                             title: "مطابقة",
-                            variant: "success",
+                            variant: "success" as const,
                             onClick: () => handleReconcile(i.id),
                             hidden: i.status !== "completed"
-                        }
+                        }] : [])
                     ]}
                 />
             )
@@ -126,13 +128,15 @@ export function PostPayrollIntegrations() {
                             placeholder="جميع الحالات"
                             options={Object.entries(statusLabels).map(([value, label]) => ({ value, label })).filter(o => ["pending", "completed", "reconciled", "failed"].includes(o.value))}
                         />
-                        <Button
-                            onClick={() => { setForm({ payroll_cycle_id: "", integration_type: "bank_file", file_format: "", notes: "" }); setShowCreateDialog(true); }}
-                            variant="primary"
-                            icon="plus"
-                        >
-                            تكامل جديد
-                        </Button>
+                        {canAccess("payroll", "create") && (
+                            <Button
+                                onClick={() => { setForm({ payroll_cycle_id: "", integration_type: "bank_file", file_format: "", notes: "" }); setShowCreateDialog(true); }}
+                                variant="primary"
+                                icon="plus"
+                            >
+                                تكامل جديد
+                            </Button>
+                        )}
                     </>
                 }
             />

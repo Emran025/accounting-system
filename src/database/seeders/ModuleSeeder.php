@@ -58,6 +58,7 @@ class ModuleSeeder extends Seeder
             ['module_key' => 'expertise', 'module_name_ar' => 'دليل الخبراء', 'module_name_en' => 'Expertise Directory', 'category' => 'hr', 'icon' => 'users-gear', 'sort_order' => 102],
             ['module_key' => 'portal', 'module_name_ar' => 'البوابة الذاتية', 'module_name_en' => 'Employee Self-Service Portal', 'category' => 'hr', 'icon' => 'user-cog', 'sort_order' => 103],
             ['module_key' => 'eosb', 'module_name_ar' => 'مكافأة نهاية الخدمة', 'module_name_en' => 'End of Service Benefits (EOSB)', 'category' => 'hr', 'icon' => 'calculator', 'sort_order' => 104],
+            ['module_key' => 'expat_management', 'module_name_ar' => 'إدارة المغتربين', 'module_name_en' => 'Expat Management', 'category' => 'hr', 'icon' => 'globe', 'sort_order' => 105],
         ];
 
         foreach ($modules as $module) {

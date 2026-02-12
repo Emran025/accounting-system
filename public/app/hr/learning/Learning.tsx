@@ -9,8 +9,9 @@ import { fetchAPI } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { getIcon } from "@/lib/icons";
-import type { Course, Enrollment } from "../types";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import type { Course, Enrollment, Employee } from "../types";
 
 
 
@@ -21,10 +22,11 @@ const statusBadges: Record<string, string> = { enrolled: "badge-info", in_progre
 const enrollTypeLabels: Record<string, string> = { assigned: "معين", self_enrolled: "ذاتي", mandatory: "إلزامي" };
 
 export function Learning() {
+  const { canAccess } = useAuthStore();
   const [activeTab, setActiveTab] = useState("courses");
   const [courses, setCourses] = useState<Course[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
+  const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -39,11 +41,9 @@ export function Learning() {
   const [courseForm, setCourseForm] = useState({ course_code: "", course_name: "", description: "", delivery_method: "in_person", course_type: "optional", duration_hours: "", requires_assessment: false, passing_score: "", video_url: "", is_recurring: false, recurrence_months: "", notes: "" });
   const [enrollForm, setEnrollForm] = useState({ course_id: "", employee_id: "", enrollment_type: "assigned", due_date: "", notes: "" });
 
-  useEffect(() => { loadEmployees(); }, []);
+  useEffect(() => { loadAllEmployees(); }, [loadAllEmployees]);
   useEffect(() => { setCurrentPage(1); }, [activeTab]);
   useEffect(() => { activeTab === "courses" ? loadCourses() : loadEnrollments(); }, [activeTab, currentPage]);
-
-  const loadEmployees = async () => { try { const r: any = await fetchAPI(`${API_ENDPOINTS.HR.EMPLOYEES.BASE}?per_page=500`); setEmployees(r.data || []); } catch { } };
 
   const loadCourses = async () => {
     setIsLoading(true);
@@ -133,18 +133,18 @@ export function Learning() {
               variant: "view",
               onClick: () => viewCourseDetail(i.id)
             },
-            {
-              icon: i.is_published ? "eye-off" : "send",
+            ...(canAccess("learning", "edit") ? [{
+              icon: (i.is_published ? "eye-off" : "send") as any,
               title: i.is_published ? "إلغاء النشر" : "نشر",
-              variant: i.is_published ? "delete" : "success",
+              variant: (i.is_published ? "delete" : "success") as any,
               onClick: () => handlePublishCourse(i.id, !i.is_published)
-            },
-            {
-              icon: "user-plus",
+            }] : []),
+            ...(canAccess("learning", "create") ? [{
+              icon: "user-plus" as const,
               title: "تسجيل موظف",
-              variant: "view",
+              variant: "view" as const,
               onClick: () => { setEnrollForm({ course_id: String(i.id), employee_id: "", enrollment_type: "assigned", due_date: "", notes: "" }); setShowEnrollDialog(true); }
-            }
+            }] : [])
           ]}
         />
       )
@@ -168,20 +168,20 @@ export function Learning() {
               variant: "view",
               onClick: () => { setSelectedEnroll(i); setShowEnrollDetail(true); }
             },
-            {
-              icon: "play",
+            ...(canAccess("learning", "edit") ? [{
+              icon: "play" as const,
               title: "بدء",
-              variant: "view",
+              variant: "view" as const,
               onClick: () => handleUpdateEnrollment(i.id, { status: "in_progress", progress_percentage: 10 }),
               hidden: i.status !== "enrolled"
-            },
-            {
-              icon: "check",
+            }] : []),
+            ...(canAccess("learning", "edit") ? [{
+              icon: "check" as const,
               title: "إكمال",
-              variant: "success",
+              variant: "success" as const,
               onClick: () => handleUpdateEnrollment(i.id, { status: "completed" }),
               hidden: i.status !== "in_progress"
-            }
+            }] : [])
           ]}
         />
       )
@@ -197,7 +197,7 @@ export function Learning() {
         titleIcon="graduation-cap"
         actions={
           <div style={{ display: "flex", gap: "1rem" }}>
-            {activeTab === "courses" &&
+            {activeTab === "courses" && canAccess("learning", "create") &&
               <Button
                 onClick={() => { setCourseForm({ course_code: "", course_name: "", description: "", delivery_method: "in_person", course_type: "optional", duration_hours: "", requires_assessment: false, passing_score: "", video_url: "", is_recurring: false, recurrence_months: "", notes: "" }); setShowCourseDialog(true); }}
                 variant="primary"
@@ -205,7 +205,7 @@ export function Learning() {
               >
                 إضافة دورة جديدة
               </Button>}
-            {activeTab === "enrollments" &&
+            {activeTab === "enrollments" && canAccess("learning", "create") &&
               <Button
                 onClick={() => { setEnrollForm({ course_id: "", employee_id: "", enrollment_type: "assigned", due_date: "", notes: "" }); setShowEnrollDialog(true); }}
                 variant="primary"
@@ -306,7 +306,7 @@ export function Learning() {
             value={enrollForm.employee_id}
             onChange={(e) => setEnrollForm({ ...enrollForm, employee_id: e.target.value })}
             placeholder="اختر الموظف"
-            options={employees.map((e: any) => ({ value: e.id, label: e.full_name }))}
+            options={employees.map((e: Employee) => ({ value: e.id, label: e.full_name }))}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select

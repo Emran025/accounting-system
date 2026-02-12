@@ -13,6 +13,8 @@ class RoleSeeder extends Seeder
             ['role_key' => 'admin', 'role_name_ar' => 'مدير النظام', 'role_name_en' => 'System Administrator', 'description' => 'Full system access with all permissions', 'is_system' => true],
             ['role_key' => 'manager', 'role_name_ar' => 'مدير', 'role_name_en' => 'Manager', 'description' => 'Business manager with most operational permissions', 'is_system' => true],
             ['role_key' => 'accountant', 'role_name_ar' => 'محاسب', 'role_name_en' => 'Accountant', 'description' => 'Financial operations and reporting', 'is_system' => true],
+            ['role_key' => 'hr_manager', 'role_name_ar' => 'مدير موارد بشرية', 'role_name_en' => 'HR Manager', 'description' => 'Human resources management and administration', 'is_system' => true],
+            ['role_key' => 'employee', 'role_name_ar' => 'موظف', 'role_name_en' => 'Employee', 'description' => 'Standard employee with self-service access', 'is_system' => true],
             ['role_key' => 'cashier', 'role_name_ar' => 'كاشير', 'role_name_en' => 'Cashier', 'description' => 'Point-of-sale operations only', 'is_system' => true],
         ];
 

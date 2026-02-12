@@ -8,6 +8,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 interface ContingentWorker {
   id: number;
@@ -47,6 +48,7 @@ const statusBadges: Record<string, string> = {
 
 export function ContingentWorkers() {
   const router = useRouter();
+  const { canAccess } = useAuthStore();
   const [workers, setWorkers] = useState<ContingentWorker[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -144,12 +146,12 @@ export function ContingentWorkers() {
               variant: "view",
               onClick: () => router.push(`/hr/contingent-workers/${item.id}`)
             },
-            {
-              icon: "edit",
+            ...(canAccess("contingent", "edit") ? [{
+              icon: "edit" as const,
               title: "تعديل",
-              variant: "edit",
+              variant: "edit" as const,
               onClick: () => router.push(`/hr/contingent-workers/edit/${item.id}`)
-            }
+            }] : [])
           ]}
         />
       ),
@@ -190,13 +192,15 @@ export function ContingentWorkers() {
                 { value: 'terminated', label: 'منهي' }
               ]}
             />
-            <Button
-              onClick={() => router.push('/hr/contingent-workers/add')}
-              variant="primary"
-              icon="plus"
-            >
-              إضافة عامل مؤقت
-            </Button>
+            {canAccess("contingent", "create") && (
+              <Button
+                onClick={() => router.push('/hr/contingent-workers/add')}
+                variant="primary"
+                icon="plus"
+              >
+                إضافة عامل مؤقت
+              </Button>
+            )}
           </>
         }
       />

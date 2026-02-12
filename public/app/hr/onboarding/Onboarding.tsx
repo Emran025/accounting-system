@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useEmployeeStore } from "@/stores/useEmployeeStore";
 import { Employee, Workflow } from "../types";
 
@@ -20,6 +21,7 @@ const taskTypeLabels: Record<string, string> = { system_id: "معرف النظا
 const deptLabels: Record<string, string> = { it: "تقنية المعلومات", security: "الأمن", hr: "الموارد البشرية", facilities: "المرافق" };
 
 export function Onboarding() {
+  const { canAccess } = useAuthStore();
   const [activeTab, setActiveTab] = useState("onboarding");
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
@@ -118,13 +120,15 @@ export function Onboarding() {
         title="التوظيف والإنهاء"
         titleIcon="user-check"
         actions={
-          <Button
-            variant="primary"
-            icon="plus"
-            onClick={() => { setForm({ employee_id: "", start_date: new Date().toISOString().split("T")[0], target_completion_date: "", notes: "" }); setShowCreateDialog(true); }}
-          >
-            إضافة عملية جديدة
-          </Button>
+          canAccess("onboarding", "create") && (
+            <Button
+              variant="primary"
+              icon="plus"
+              onClick={() => { setForm({ employee_id: "", start_date: new Date().toISOString().split("T")[0], target_completion_date: "", notes: "" }); setShowCreateDialog(true); }}
+            >
+              إضافة عملية جديدة
+            </Button>
+          )
         }
       />
 
@@ -171,8 +175,8 @@ export function Onboarding() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                     <span className={`badge ${statusBadges[task.status]}`}>{statusLabels[task.status] || task.status}</span>
-                    {task.status === "pending" && <button className="icon-btn" onClick={() => handleUpdateTask(selectedWorkflow.id, task.id, "in_progress")} title="بدء" style={{ color: "var(--warning-color)" }}>{getIcon("play")}</button>}
-                    {task.status === "in_progress" && <button className="icon-btn" onClick={() => handleUpdateTask(selectedWorkflow.id, task.id, "completed")} title="إتمام" style={{ color: "var(--success-color)" }}>{getIcon("check")}</button>}
+                    {canAccess("onboarding", "edit") && task.status === "pending" && <button className="icon-btn" onClick={() => handleUpdateTask(selectedWorkflow.id, task.id, "in_progress")} title="بدء" style={{ color: "var(--warning-color)" }}>{getIcon("play")}</button>}
+                    {canAccess("onboarding", "edit") && task.status === "in_progress" && <button className="icon-btn" onClick={() => handleUpdateTask(selectedWorkflow.id, task.id, "completed")} title="إتمام" style={{ color: "var(--success-color)" }}>{getIcon("check")}</button>}
                   </div>
                 </div>
               ))}

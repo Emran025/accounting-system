@@ -9,6 +9,8 @@ import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { ExpatRecord } from "@/app/hr/types";
 import { PageSubHeader } from "@/components/layout";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import { Employee } from "@/app/hr/types";
 
 interface ExpatFormProps {
     record?: ExpatRecord;
@@ -17,7 +19,7 @@ interface ExpatFormProps {
 export function ExpatForm({ record }: ExpatFormProps) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [employees, setEmployees] = useState<any[]>([]);
+    const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
 
     // Get valid property type from the record or default
     const [form, setForm] = useState({
@@ -46,7 +48,7 @@ export function ExpatForm({ record }: ExpatFormProps) {
     });
 
     useEffect(() => {
-        loadEmployees();
+        loadAllEmployees();
         if (record) {
             setForm({
                 employee_id: record.employee_id.toString(),
@@ -71,16 +73,7 @@ export function ExpatForm({ record }: ExpatFormProps) {
                 notes: record.notes || ""
             });
         }
-    }, [record]);
-
-    const loadEmployees = async () => {
-        try {
-            const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
-            setEmployees(res.data || res || []);
-        } catch (error) {
-            console.error("Failed to load employees", error);
-        }
-    };
+    }, [record, loadAllEmployees]);
 
     const handleSubmit = async () => {
         if (!form.employee_id || !form.host_country) {
@@ -141,7 +134,7 @@ export function ExpatForm({ record }: ExpatFormProps) {
                     <div className="flex flex-col gap-1">
                         <Label className="text-secondary mb-1">الموظف *</Label>
                         <SearchableSelect
-                            options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))}
+                            options={employees.map((e: Employee) => ({ value: e.id.toString(), label: e.full_name }))}
                             value={form.employee_id}
                             onChange={(val) => setForm({ ...form, employee_id: val?.toString() || "" })}
                             placeholder="اختر الموظف"

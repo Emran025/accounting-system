@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ActionButtons, Table, Column, Dialog, Button, TabNavigation, showToast, Label, Select } from "@/components/ui";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { PageSubHeader } from "@/components/layout";
 import { TextInput } from "@/components/ui/TextInput";
 import { Textarea } from "@/components/ui/Textarea";
@@ -30,6 +31,7 @@ const statusBadges: Record<string, string> = { draft: "badge-secondary", pending
 const empTypeLabels: Record<string, string> = { full_time: "دوام كامل", part_time: "دوام جزئي", contract: "عقد", temporary: "مؤقت" };
 
 export function Recruitment() {
+  const { canAccess } = useAuthStore();
   const [activeTab, setActiveTab] = useState("requisitions");
   const [requisitions, setRequisitions] = useState<Requisition[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
@@ -150,20 +152,20 @@ export function Recruitment() {
               variant: "view",
               onClick: () => viewReqDetail(i.id)
             },
-            {
-              icon: "send",
+            ...(canAccess("recruitment", "edit") ? [{
+              icon: "send" as const,
               title: "إرسال للموافقة",
-              variant: "view",
+              variant: "view" as const,
               onClick: () => handleUpdateReqStatus(i.id, "pending_approval"),
               hidden: i.status !== "draft"
-            },
-            {
-              icon: "check",
+            }] : []),
+            ...(canAccess("recruitment", "edit") ? [{
+              icon: "check" as const,
               title: "موافقة",
-              variant: "success",
+              variant: "success" as const,
               onClick: () => handleUpdateReqStatus(i.id, "approved"),
               hidden: i.status !== "pending_approval"
-            }
+            }] : [])
           ]}
         />
       )
@@ -187,34 +189,34 @@ export function Recruitment() {
               variant: "view",
               onClick: () => { setSelectedApp(i); setShowAppDetail(true); }
             },
-            {
-              icon: "filter",
+            ...(canAccess("recruitment", "edit") ? [{
+              icon: "filter" as const,
               title: "فحص",
-              variant: "view",
+              variant: "view" as const,
               onClick: () => handleUpdateAppStatus(i.id, "screened"),
               hidden: i.status !== "applied"
-            },
-            {
-              icon: "user-check",
+            }] : []),
+            ...(canAccess("recruitment", "edit") ? [{
+              icon: "user-check" as const,
               title: "مقابلة",
-              variant: "view",
+              variant: "view" as const,
               onClick: () => handleUpdateAppStatus(i.id, "interview"),
               hidden: i.status !== "screened"
-            },
-            {
-              icon: "handshake",
+            }] : []),
+            ...(canAccess("recruitment", "edit") ? [{
+              icon: "handshake" as const,
               title: "عرض",
-              variant: "success",
+              variant: "success" as const,
               onClick: () => handleUpdateAppStatus(i.id, "offer"),
               hidden: i.status !== "interview"
-            },
-            {
-              icon: "check-check",
+            }] : []),
+            ...(canAccess("recruitment", "edit") ? [{
+              icon: "check-check" as const,
               title: "توظيف",
-              variant: "success",
+              variant: "success" as const,
               onClick: () => handleUpdateAppStatus(i.id, "hired"),
               hidden: i.status !== "offer"
-            }
+            }] : [])
           ]}
         />
       )
@@ -254,21 +256,25 @@ export function Recruitment() {
               }
             />
             {activeTab === "requisitions" ? (
-              <Button
-                onClick={() => { setReqForm({ job_title: "", job_description: "", department_id: "", number_of_positions: "1", employment_type: "full_time", budgeted_salary_min: "", budgeted_salary_max: "", target_start_date: "", required_qualifications: "", preferred_qualifications: "", notes: "" }); setShowReqDialog(true); }}
-                variant="primary"
-                icon="plus"
-              >
-                طلب توظيف جديد
-              </Button>
+              canAccess("recruitment", "create") && (
+                <Button
+                  onClick={() => { setReqForm({ job_title: "", job_description: "", department_id: "", number_of_positions: "1", employment_type: "full_time", budgeted_salary_min: "", budgeted_salary_max: "", target_start_date: "", required_qualifications: "", preferred_qualifications: "", notes: "" }); setShowReqDialog(true); }}
+                  variant="primary"
+                  icon="plus"
+                >
+                  طلب توظيف جديد
+                </Button>
+              )
             ) : (
-              <Button
-                onClick={() => { setAppForm({ requisition_id: "", first_name: "", last_name: "", email: "", phone: "", notes: "" }); setShowAppDialog(true); }}
-                variant="primary"
-                icon="plus"
-              >
-                إضافة مرشح
-              </Button>
+              canAccess("recruitment", "create") && (
+                <Button
+                  onClick={() => { setAppForm({ requisition_id: "", first_name: "", last_name: "", email: "", phone: "", notes: "" }); setShowAppDialog(true); }}
+                  variant="primary"
+                  icon="plus"
+                >
+                  إضافة مرشح
+                </Button>
+              )
             )}
           </>
         }
@@ -369,11 +375,15 @@ export function Recruitment() {
           {selectedApp.screening_notes && <div><strong>ملاحظات الفحص:</strong><p>{selectedApp.screening_notes}</p></div>}
           {selectedApp.interview_notes && <div><strong>ملاحظات المقابلة:</strong><p>{selectedApp.interview_notes}</p></div>}
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            {selectedApp.status === "applied" && <Button variant="primary" onClick={() => { handleUpdateAppStatus(selectedApp.id, "screened"); setShowAppDetail(false); }}>فحص</Button>}
-            {selectedApp.status === "screened" && <Button variant="primary" onClick={() => { handleUpdateAppStatus(selectedApp.id, "interview"); setShowAppDetail(false); }}>جدولة مقابلة</Button>}
-            {selectedApp.status === "interview" && <Button variant="primary" onClick={() => { handleUpdateAppStatus(selectedApp.id, "offer"); setShowAppDetail(false); }}>تقديم عرض</Button>}
-            {selectedApp.status === "offer" && <Button variant="primary" onClick={() => { handleUpdateAppStatus(selectedApp.id, "hired"); setShowAppDetail(false); }}>تأكيد التوظيف</Button>}
-            {!["hired", "rejected", "withdrawn"].includes(selectedApp.status) && <Button variant="danger" onClick={() => { handleUpdateAppStatus(selectedApp.id, "rejected"); setShowAppDetail(false); }}>رفض</Button>}
+            {canAccess("recruitment", "edit") && (
+              <>
+                {selectedApp.status === "applied" && <Button variant="primary" onClick={() => { handleUpdateAppStatus(selectedApp.id, "screened"); setShowAppDetail(false); }}>فحص</Button>}
+                {selectedApp.status === "screened" && <Button variant="primary" onClick={() => { handleUpdateAppStatus(selectedApp.id, "interview"); setShowAppDetail(false); }}>جدولة مقابلة</Button>}
+                {selectedApp.status === "interview" && <Button variant="primary" onClick={() => { handleUpdateAppStatus(selectedApp.id, "offer"); setShowAppDetail(false); }}>تقديم عرض</Button>}
+                {selectedApp.status === "offer" && <Button variant="primary" onClick={() => { handleUpdateAppStatus(selectedApp.id, "hired"); setShowAppDetail(false); }}>تأكيد التوظيف</Button>}
+                {!["hired", "rejected", "withdrawn"].includes(selectedApp.status) && <Button variant="danger" onClick={() => { handleUpdateAppStatus(selectedApp.id, "rejected"); setShowAppDetail(false); }}>رفض</Button>}
+              </>
+            )}
           </div>
         </div>}
       </Dialog>

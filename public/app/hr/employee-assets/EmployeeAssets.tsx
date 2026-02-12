@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButtons, Table, Column, Button, SearchableSelect, Select } from "@/components/ui";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { fetchAPI } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
@@ -36,6 +37,7 @@ const statusBadges: Record<string, string> = {
 
 export function EmployeeAssets() {
   const router = useRouter();
+  const { canAccess } = useAuthStore();
   const [assets, setAssets] = useState<EmployeeAsset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -128,12 +130,12 @@ export function EmployeeAssets() {
               variant: "view",
               onClick: () => router.push(`/hr/employee-assets/view/${item.id}`)
             },
-            {
-              icon: "edit",
+            ...(canAccess("employees", "edit") ? [{
+              icon: "edit" as const,
               title: "تعديل",
-              variant: "edit",
+              variant: "edit" as const,
               onClick: () => router.push(`/hr/employee-assets/edit/${item.id}`)
-            }
+            }] : [])
           ]}
         />
       ),
@@ -170,13 +172,15 @@ export function EmployeeAssets() {
               placeholder="جميع الحالات"
               options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))}
             />
-            <Button
-              onClick={() => router.push('/hr/employee-assets/add')}
-              variant="primary"
-              icon="plus"
-            >
-              إضافة أصل
-            </Button>
+            {canAccess("employees", "create") && (
+              <Button
+                onClick={() => router.push('/hr/employee-assets/add')}
+                variant="primary"
+                icon="plus"
+              >
+                إضافة أصل
+              </Button>
+            )}
           </>
         }
       />

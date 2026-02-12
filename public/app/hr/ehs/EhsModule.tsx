@@ -9,7 +9,8 @@ import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
-import { getIcon } from "@/lib/icons";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 import type { Employee, EhsIncident, EmployeeHealthRecord, PpeRecord } from "../types";
 
 const incidentTypeLabels: Record<string, string> = { accident: "حادث", near_miss: "شبه حادث", injury: "إصابة", illness: "مرض", property_damage: "ضرر ممتلكات", environmental: "بيئي", other: "أخرى" };
@@ -22,7 +23,8 @@ const ppeTypeLabels: Record<string, string> = { helmet: "خوذة", safety_shoes
 
 export function EhsModule() {
     const [activeTab, setActiveTab] = useState("incidents");
-    const [employees, setEmployees] = useState<Employee[]>([]);
+    const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
+    const { canAccess } = useAuthStore();
     // Incidents
     const [incidents, setIncidents] = useState<EhsIncident[]>([]);
     const [incLoading, setIncLoading] = useState(false);
@@ -47,12 +49,10 @@ export function EhsModule() {
     const [showPpeDialog, setShowPpeDialog] = useState(false);
     const [ppeForm, setPpeForm] = useState({ employee_id: "", ppe_item: "", ppe_type: "helmet", issue_date: new Date().toISOString().split("T")[0], expiry_date: "", notes: "" });
 
-    useEffect(() => { loadEmployees(); }, []);
+    useEffect(() => { loadAllEmployees(); }, [loadAllEmployees]);
     useEffect(() => { loadIncidents(); }, [incPage]);
     useEffect(() => { loadHealthRecords(); }, [hrPage]);
     useEffect(() => { loadPpeRecords(); }, [ppePage]);
-
-    const loadEmployees = async () => { try { const r: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE); setEmployees(r.data || (Array.isArray(r) ? r : [])); } catch { } };
 
     const loadIncidents = async () => {
         setIncLoading(true);
@@ -116,20 +116,20 @@ export function EhsModule() {
                             variant: "view",
                             onClick: () => { setSelectedIncident(i); setShowIncDetails(true); }
                         },
-                        {
-                            icon: "search",
+                        ...(canAccess("ehs", "edit") ? [{
+                            icon: "search" as const,
                             title: "بدء التحقيق",
-                            variant: "primary",
+                            variant: "primary" as const,
                             onClick: () => handleUpdateIncident(i.id, { status: "under_investigation" }),
                             hidden: i.status !== "reported"
-                        },
-                        {
-                            icon: "check",
+                        }] : []),
+                        ...(canAccess("ehs", "edit") ? [{
+                            icon: "check" as const,
                             title: "تم الحل",
-                            variant: "success",
+                            variant: "success" as const,
                             onClick: () => handleUpdateIncident(i.id, { status: "resolved" }),
                             hidden: i.status !== "under_investigation"
-                        }
+                        }] : [])
                     ]}
                 />
             )
@@ -164,17 +164,29 @@ export function EhsModule() {
             <TabNavigation tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
             {activeTab === "incidents" && <>
-                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}><Button onClick={() => { setIncForm({ employee_id: "", incident_type: "accident", incident_date: new Date().toISOString().split("T")[0], incident_time: "", location: "", description: "", severity: "minor", immediate_action_taken: "", osha_reportable: false, notes: "" }); setShowIncDialog(true); }} variant="primary" icon="plus">تسجيل حادث</Button></div>
+                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}>
+                    {canAccess("ehs", "create") && (
+                        <Button onClick={() => { setIncForm({ employee_id: "", incident_type: "accident", incident_date: new Date().toISOString().split("T")[0], incident_time: "", location: "", description: "", severity: "minor", immediate_action_taken: "", osha_reportable: false, notes: "" }); setShowIncDialog(true); }} variant="primary" icon="plus">تسجيل حادث</Button>
+                    )}
+                </div>
                 <Table columns={incColumns} data={incidents} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد حوادث" isLoading={incLoading} pagination={{ currentPage: incPage, totalPages: incTotal, onPageChange: setIncPage }} />
             </>}
 
             {activeTab === "health" && <>
-                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}><Button onClick={() => { setHrForm({ employee_id: "", record_type: "medical_exam", record_date: new Date().toISOString().split("T")[0], expiry_date: "", provider_name: "", results: "", notes: "" }); setShowHrDialog(true); }} variant="primary" icon="plus">إضافة سجل</Button></div>
+                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}>
+                    {canAccess("ehs", "create") && (
+                        <Button onClick={() => { setHrForm({ employee_id: "", record_type: "medical_exam", record_date: new Date().toISOString().split("T")[0], expiry_date: "", provider_name: "", results: "", notes: "" }); setShowHrDialog(true); }} variant="primary" icon="plus">إضافة سجل</Button>
+                    )}
+                </div>
                 <Table columns={hrColumns} data={healthRecords} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد سجلات" isLoading={hrLoading} pagination={{ currentPage: hrPage, totalPages: hrTotal, onPageChange: setHrPage }} />
             </>}
 
             {activeTab === "ppe" && <>
-                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}><Button onClick={() => { setPpeForm({ employee_id: "", ppe_item: "", ppe_type: "helmet", issue_date: new Date().toISOString().split("T")[0], expiry_date: "", notes: "" }); setShowPpeDialog(true); }} variant="primary" icon="plus">تسجيل معدة</Button></div>
+                <div style={{ display: "flex", justifyContent: "flex-end", margin: "1rem 0" }}>
+                    {canAccess("ehs", "create") && (
+                        <Button onClick={() => { setPpeForm({ employee_id: "", ppe_item: "", ppe_type: "helmet", issue_date: new Date().toISOString().split("T")[0], expiry_date: "", notes: "" }); setShowPpeDialog(true); }} variant="primary" icon="plus">تسجيل معدة</Button>
+                    )}
+                </div>
                 <Table columns={ppeColumns} data={ppeRecords} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد معدات" isLoading={ppeLoading} pagination={{ currentPage: ppePage, totalPages: ppeTotal, onPageChange: setPpePage }} />
             </>}
 
@@ -184,7 +196,7 @@ export function EhsModule() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1">
                             <Label className="text-secondary mb-1">الموظف</Label>
-                            <SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={incForm.employee_id} onChange={(v) => setIncForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختياري" />
+                            <SearchableSelect options={employees.map((e: Employee) => ({ value: e.id.toString(), label: e.full_name }))} value={incForm.employee_id} onChange={(v) => setIncForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختياري" />
                         </div>
                         <Select
                             label="نوع الحادث"
@@ -238,7 +250,7 @@ export function EhsModule() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1">
                             <Label className="text-secondary mb-1">الموظف *</Label>
-                            <SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={hrForm.employee_id} onChange={(v) => setHrForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر" />
+                            <SearchableSelect options={employees.map((e: Employee) => ({ value: e.id.toString(), label: e.full_name }))} value={hrForm.employee_id} onChange={(v) => setHrForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر" />
                         </div>
                         <Select
                             label="النوع"
@@ -263,7 +275,7 @@ export function EhsModule() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1">
                             <Label className="text-secondary mb-1">الموظف *</Label>
-                            <SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={ppeForm.employee_id} onChange={(v) => setPpeForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر" />
+                            <SearchableSelect options={employees.map((e: Employee) => ({ value: e.id.toString(), label: e.full_name }))} value={ppeForm.employee_id} onChange={(v) => setPpeForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر" />
                         </div>
                         <Select
                             label="النوع"

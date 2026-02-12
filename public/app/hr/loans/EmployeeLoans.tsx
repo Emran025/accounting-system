@@ -11,6 +11,7 @@ import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 import type { Employee, EmployeeLoan } from "../types";
 
 const loanTypeLabels: Record<string, string> = {
@@ -29,6 +30,7 @@ const statusBadges: Record<string, string> = {
 export function EmployeeLoans() {
     const [loans, setLoans] = useState<EmployeeLoan[]>([]);
     const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
+    const { canAccess } = useAuthStore();
     const [isLoading, setIsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -119,20 +121,20 @@ export function EmployeeLoans() {
                             variant: "view",
                             onClick: () => openDetail(item)
                         },
-                        {
-                            icon: "check",
+                        ...(canAccess("loans", "edit") ? [{
+                            icon: "check" as const,
                             title: "موافقة",
-                            variant: "success",
+                            variant: "success" as const,
                             onClick: () => handleStatusUpdate(item.id, "approved"),
                             hidden: item.status !== "pending"
-                        },
-                        {
-                            icon: "x",
+                        }] : []),
+                        ...(canAccess("loans", "edit") ? [{
+                            icon: "x" as const,
                             title: "رفض",
-                            variant: "delete",
+                            variant: "delete" as const,
                             onClick: () => handleStatusUpdate(item.id, "cancelled"),
                             hidden: item.status !== "pending"
-                        }
+                        }] : [])
                     ]}
                 />
             )
@@ -153,13 +155,15 @@ export function EmployeeLoans() {
                             placeholder="جميع الحالات"
                             options={Object.entries(statusLabels).map(([value, label]) => ({ value, label })).filter(o => ["pending", "active", "completed"].includes(o.value))}
                         />
-                        <Button
-                            variant="primary"
-                            icon="plus"
-                            onClick={openCreate}
-                        >
-                            طلب قرض
-                        </Button>
+                        {canAccess("loans", "create") && (
+                            <Button
+                                variant="primary"
+                                icon="plus"
+                                onClick={openCreate}
+                            >
+                                طلب قرض
+                            </Button>
+                        )}
                     </>
                 }
             />
@@ -211,7 +215,7 @@ export function EmployeeLoans() {
                         <div><strong>الحالة:</strong> <span className={`badge ${statusBadges[selectedLoan.status]}`}>{statusLabels[selectedLoan.status]}</span></div>
                         <div><strong>البدء:</strong> {formatDate(selectedLoan.start_date)}</div><div><strong>الانتهاء:</strong> {formatDate(selectedLoan.end_date)}</div>
                     </div>
-                    {selectedLoan.status === "pending" && (
+                    {selectedLoan.status === "pending" && canAccess("loans", "edit") && (
                         <div style={{ display: "flex", gap: "0.5rem" }}>
                             <Button variant="primary" icon="check" onClick={() => handleStatusUpdate(selectedLoan.id, "approved")}>موافقة</Button>
                             <Button variant="secondary" icon="x" onClick={() => handleStatusUpdate(selectedLoan.id, "cancelled")}>رفض</Button>
@@ -219,13 +223,13 @@ export function EmployeeLoans() {
                     )}
                     <div><h4 style={{ marginBottom: "0.5rem" }}>جدول السداد</h4>
                         {selectedLoan.repayments && selectedLoan.repayments.length > 0 ? <div style={{ maxHeight: "300px", overflowY: "auto" }}><table className="table" style={{ width: "100%", fontSize: "0.9rem" }}><thead><tr><th>#</th><th>الاستحقاق</th><th>المبلغ</th><th>أصل</th><th>فائدة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody>
-                            {selectedLoan.repayments.map(r => <tr key={r.id}><td>{r.installment_number}</td><td>{formatDate(r.due_date)}</td><td>{formatCurrency(r.amount)}</td><td>{formatCurrency(r.principal)}</td><td>{formatCurrency(r.interest)}</td><td><span className={`badge ${r.status === "paid" ? "badge-success" : "badge-warning"}`}>{r.status === "paid" ? "مدفوع" : "معلق"}</span></td><td>{r.status === "pending" && selectedLoan.status === "active" && (
+                            {selectedLoan.repayments.map(r => <tr key={r.id}><td>{r.installment_number}</td><td>{formatDate(r.due_date)}</td><td>{formatCurrency(r.amount)}</td><td>{formatCurrency(r.principal)}</td><td>{formatCurrency(r.interest)}</td><td><span className={`badge ${r.status === "paid" ? "badge-success" : "badge-warning"}`}>{r.status === "paid" ? "مدفوع" : "معلق"}</span></td><td>{r.status === "pending" && selectedLoan.status === "active" && canAccess("loans", "edit") && (
                                 <ActionButtons
                                     actions={[
                                         {
-                                            icon: "check-circle",
+                                            icon: "check-circle" as const,
                                             title: "تسجيل الدفعة",
-                                            variant: "success",
+                                            variant: "success" as const,
                                             onClick: () => handleRecordRepayment(selectedLoan.id, r.id)
                                         }
                                     ]}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Table, Column, Button, SearchableSelect, ActionButtons } from "@/components/ui";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
@@ -11,6 +12,7 @@ import { ExpatRecord } from "@/app/hr/types";
 
 export function ExpatManagement() {
   const router = useRouter();
+  const { canAccess } = useAuthStore();
   const [records, setRecords] = useState<ExpatRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -125,12 +127,12 @@ export function ExpatManagement() {
               variant: "view",
               onClick: () => router.push(`/hr/expat-management/view/${item.id}`)
             },
-            {
-              icon: "edit",
+            ...(canAccess("expat_management", "edit") ? [{
+              icon: "edit" as const,
               title: "تعديل",
-              variant: "edit",
+              variant: "edit" as const,
               onClick: () => router.push(`/hr/expat-management/edit/${item.id}`)
-            }
+            }] : [])
           ]}
         />
       ),
@@ -156,14 +158,15 @@ export function ExpatManagement() {
           />
         }
         actions={
-          <Button
-            onClick={() => router.push('/hr/expat-management/add')}
-            variant="primary"
-            icon="plus"
-          >
-            إضافة سجل
-          </Button>
-
+          canAccess("expat_management", "create") && (
+            <Button
+              onClick={() => router.push('/hr/expat-management/add')}
+              variant="primary"
+              icon="plus"
+            >
+              إضافة سجل
+            </Button>
+          )
         }
       />
 

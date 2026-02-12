@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/select";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { formatDate } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
 import type { CorporateAnnouncement, PulseSurvey } from "../types";
@@ -18,6 +19,7 @@ const audienceLabels: Record<string, string> = { all: "الجميع", department
 const surveyTypeLabels: Record<string, string> = { sentiment: "قياس المشاعر", burnout: "الإرهاق", engagement: "المشاركة", custom: "مخصص" };
 
 export function CorporateCommunications() {
+    const { canAccess } = useAuthStore();
     const [activeTab, setActiveTab] = useState("announcements");
     // Announcements
     const [announcements, setAnnouncements] = useState<CorporateAnnouncement[]>([]);
@@ -96,12 +98,12 @@ export function CorporateCommunications() {
             key: "id", header: "إجراءات", dataLabel: "إجراءات", render: (i) => (
                 <ActionButtons
                     actions={[
-                        {
-                            icon: i.is_published ? "eye-off" : "eye",
+                        ...(canAccess("communications", "edit") ? [{
+                            icon: (i.is_published ? "eye-off" : "eye") as any,
                             title: i.is_published ? "إلغاء النشر" : "نشر",
-                            variant: i.is_published ? "delete" : "success",
+                            variant: (i.is_published ? "delete" : "success") as any,
                             onClick: () => togglePublish(i)
-                        }
+                        }] : [])
                     ]}
                 />
             )
@@ -141,32 +143,36 @@ export function CorporateCommunications() {
                 actions={
                     <>
                         {activeTab === "announcements" ? (
-                            <Button onClick={() => { setAnnForm({ title: "", content: "", priority: "normal", target_audience: "all", publish_date: new Date().toISOString().split("T")[0], expiry_date: "", is_published: false }); setShowAnnDialog(true); }}
-                                variant="primary"
-                                icon="plus"
-                            >
-                                إعلان جديد
-                            </Button>
+                            canAccess("communications", "create") && (
+                                <Button onClick={() => { setAnnForm({ title: "", content: "", priority: "normal", target_audience: "all", publish_date: new Date().toISOString().split("T")[0], expiry_date: "", is_published: false }); setShowAnnDialog(true); }}
+                                    variant="primary"
+                                    icon="plus"
+                                >
+                                    إعلان جديد
+                                </Button>
+                            )
                         ) : (
-                            <Button
-                                onClick={() => {
-                                    setSurvForm({
-                                        survey_name: "",
-                                        description: "",
-                                        survey_type: "engagement",
-                                        questions: "[]",
-                                        start_date: new Date().toISOString().split("T")[0],
-                                        end_date: "",
-                                        is_anonymous: true,
-                                        target_audience: "all"
-                                    });
-                                    setShowSurvDialog(true);
-                                }}
-                                variant="primary"
-                                icon="plus"
-                            >
-                                استبيان جديد
-                            </Button>
+                            canAccess("communications", "create") && (
+                                <Button
+                                    onClick={() => {
+                                        setSurvForm({
+                                            survey_name: "",
+                                            description: "",
+                                            survey_type: "engagement",
+                                            questions: "[]",
+                                            start_date: new Date().toISOString().split("T")[0],
+                                            end_date: "",
+                                            is_anonymous: true,
+                                            target_audience: "all"
+                                        });
+                                        setShowSurvDialog(true);
+                                    }}
+                                    variant="primary"
+                                    icon="plus"
+                                >
+                                    استبيان جديد
+                                </Button>
+                            )
                         )}
                     </>
                 }

@@ -6,6 +6,7 @@ import { ActionButtons, Table, Column, SearchableSelect, Button } from "@/compon
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Employee } from "../types";
@@ -13,6 +14,7 @@ import { getIcon } from "@/lib/icons";
 
 export function Employees() {
   const router = useRouter();
+  const { canAccess } = useAuthStore();
 
   // Use Employee Store
   const {
@@ -75,12 +77,12 @@ export function Employees() {
               variant: "view",
               onClick: () => router.push(`/hr/employees/view/${item.id}`)
             },
-            {
-              icon: "edit",
+            ...(canAccess("employees", "edit") ? [{
+              icon: "edit" as const,
               title: "تعديل",
-              variant: "edit",
+              variant: "edit" as const,
               onClick: () => router.push(`/hr/employees/edit/${item.id}`)
-            }
+            }] : [])
           ]}
         />
       )
@@ -106,13 +108,15 @@ export function Employees() {
           />
         }
         actions={
-          <Button
-            variant="primary"
-            onClick={() => router.push('/hr/employees/add')}
-            icon="plus"
-          >
-            إضافة موظف
-          </Button>
+          canAccess("employees", "create") && (
+            <Button
+              variant="primary"
+              onClick={() => router.push('/hr/employees/add')}
+              icon="plus"
+            >
+              إضافة موظف
+            </Button>
+          )
         }
       />
 

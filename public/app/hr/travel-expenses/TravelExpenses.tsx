@@ -10,6 +10,7 @@ import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useEmployeeStore } from "@/stores/useEmployeeStore";
 import type { Employee, TravelRequest, TravelExpense } from "../types";
 
@@ -59,6 +60,8 @@ export function TravelExpenses() {
     const [activeTab, setActiveTab] = useState("requests");
     const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
 
+    const { canAccess } = useAuthStore();
+    
     // Travel Requests state
     const [requests, setRequests] = useState<TravelRequest[]>([]);
     const [reqLoading, setReqLoading] = useState(false);
@@ -263,27 +266,27 @@ export function TravelExpenses() {
                             variant: "view",
                             onClick: () => { setSelectedRequest(item); setShowReqDetails(true); }
                         },
-                        {
-                            icon: "send",
+                        ...(canAccess("travel", "edit") ? [{
+                            icon: "send" as const,
                             title: "إرسال للموافقة",
-                            variant: "edit",
+                            variant: "edit" as const,
                             onClick: () => handleUpdateRequestStatus(item.id, "pending_approval"),
                             hidden: item.status !== "draft"
-                        },
-                        {
-                            icon: "check",
+                        }] : []),
+                        ...(canAccess("travel", "edit") ? [{
+                            icon: "check" as const,
                             title: "موافقة",
-                            variant: "success",
+                            variant: "success" as const,
                             onClick: () => handleUpdateRequestStatus(item.id, "approved"),
                             hidden: item.status !== "pending_approval"
-                        },
-                        {
-                            icon: "x",
+                        }] : []),
+                        ...(canAccess("travel", "edit") ? [{
+                            icon: "x" as const,
                             title: "رفض",
-                            variant: "delete",
+                            variant: "delete" as const,
                             onClick: () => handleUpdateRequestStatus(item.id, "rejected"),
                             hidden: item.status !== "pending_approval"
-                        }
+                        }] : [])
                     ]}
                 />
             ),
@@ -318,34 +321,34 @@ export function TravelExpenses() {
             render: (item) => (
                 <ActionButtons
                     actions={[
-                        {
-                            icon: "send",
+                        ...(canAccess("travel", "edit") ? [{
+                            icon: "send" as const,
                             title: "تقديم",
-                            variant: "edit",
+                            variant: "edit" as const,
                             onClick: () => handleUpdateExpenseStatus(item.id, "submitted"),
                             hidden: item.status !== "pending"
-                        },
-                        {
-                            icon: "check",
+                        }] : []),
+                        ...(canAccess("travel", "edit") ? [{
+                            icon: "check" as const,
                             title: "موافقة",
-                            variant: "success",
+                            variant: "success" as const,
                             onClick: () => handleUpdateExpenseStatus(item.id, "approved"),
                             hidden: item.status !== "submitted"
-                        },
-                        {
-                            icon: "x",
+                        }] : []),
+                        ...(canAccess("travel", "edit") ? [{
+                            icon: "x" as const,
                             title: "رفض",
-                            variant: "delete",
+                            variant: "delete" as const,
                             onClick: () => handleUpdateExpenseStatus(item.id, "rejected"),
                             hidden: item.status !== "submitted"
-                        },
-                        {
-                            icon: "banknote",
+                        }] : []),
+                        ...(canAccess("travel", "edit") ? [{
+                            icon: "banknote" as const,
                             title: "تسديد",
-                            variant: "view",
+                            variant: "view" as const,
                             onClick: () => handleUpdateExpenseStatus(item.id, "reimbursed"),
                             hidden: item.status !== "approved"
-                        }
+                        }] : [])
                     ]}
                 />
             ),
@@ -387,13 +390,15 @@ export function TravelExpenses() {
                             placeholder="جميع الحالات"
                             options={Object.entries(requestStatusLabels).map(([value, label]) => ({ value, label }))}
                         />
-                        <Button
-                            onClick={openNewRequest}
-                            variant="primary"
-                            icon="plus"
-                        >
-                            طلب سفر جديد
-                        </Button>
+                        {canAccess("travel", "create") && (
+                            <Button
+                                onClick={openNewRequest}
+                                variant="primary"
+                                icon="plus"
+                            >
+                                طلب سفر جديد
+                            </Button>
+                        )}
                     </div>
 
                     <Table columns={requestColumns} data={requests} keyExtractor={(item) => item.id.toString()} emptyMessage="لا توجد طلبات سفر مسجلة" isLoading={reqLoading}
@@ -419,7 +424,7 @@ export function TravelExpenses() {
                             placeholder="جميع الحالات"
                             options={Object.entries(expenseStatusLabels).map(([value, label]) => ({ value, label }))}
                         />
-                        <Button onClick={openNewExpense} className="btn-primary"><i className="fas fa-plus"></i> تسجيل مصروف</Button>
+                        {canAccess("travel", "create") && <Button onClick={openNewExpense} className="btn-primary"><i className="fas fa-plus"></i> تسجيل مصروف</Button>}
                     </div>
 
                     <Table columns={expenseColumns} data={expenses} keyExtractor={(item) => item.id.toString()} emptyMessage="لا توجد مصروفات مسجلة" isLoading={expLoading}

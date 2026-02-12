@@ -10,6 +10,8 @@ import { PageSubHeader } from "@/components/layout";
 import { getIcon } from "@/lib/icons";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 /**
  * End of Service Benefit (EOSB) Calculation result.
@@ -28,7 +30,8 @@ import { Select } from "@/components/ui/select";
  * @returns The EOSBCalculator component
  */
 export function EOSBCalculator() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
+  const { canAccess } = useAuthStore();
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [calculation, setCalculation] = useState<EOSBCalculation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,18 +44,8 @@ export function EOSBCalculator() {
   });
 
   useEffect(() => {
-    loadEmployees();
-  }, []);
-
-  const loadEmployees = async () => {
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
-      const data = res.data || (Array.isArray(res) ? res : []);
-      setEmployees(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
+    loadAllEmployees();
+  }, [loadAllEmployees]);
 
   const handleCalculate = async () => {
     if (!formData.employee_id) {
@@ -93,7 +86,7 @@ export function EOSBCalculator() {
           <div className="flex flex-col gap-1">
             <Label className="text-secondary mb-1">الموظف *</Label>
             <SearchableSelect
-              options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
+              options={employees.map((emp: Employee) => ({ value: emp.id.toString(), label: emp.full_name }))}
               value={formData.employee_id}
               onChange={(value) => {
                 setFormData({ ...formData, employee_id: String(value || "") });
@@ -148,13 +141,15 @@ export function EOSBCalculator() {
         )}
 
         <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
-          <Button
-            onClick={handleCalculate}
-            disabled={isLoading || !formData.employee_id}
-            variant="primary"
-            icon="calculator">
-            حساب مكافأة نهاية الخدمة
-          </Button>
+          {canAccess("eosb", "create") && (
+            <Button
+              onClick={handleCalculate}
+              disabled={isLoading || !formData.employee_id}
+              variant="primary"
+              icon="calculator">
+              حساب مكافأة نهاية الخدمة
+            </Button>
+          )}
         </div>
       </div>
 

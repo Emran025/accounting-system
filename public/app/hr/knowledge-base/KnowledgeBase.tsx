@@ -11,6 +11,9 @@ import { formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import type { Employee } from "../types";
 
 interface KnowledgeArticle {
   id: number; title: string; content?: string; category: string;
@@ -30,10 +33,11 @@ const profLabels: Record<string, string> = { beginner: "مبتدئ", intermediat
 const profBadges: Record<string, string> = { beginner: "badge-secondary", intermediate: "badge-info", advanced: "badge-warning", expert: "badge-success" };
 
 export function KnowledgeBase() {
+  const { canAccess } = useAuthStore();
   const [activeTab, setActiveTab] = useState("knowledge");
   const [articles, setArticles] = useState<KnowledgeArticle[]>([]);
   const [expertise, setExpertise] = useState<Expertise[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
+  const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -49,11 +53,9 @@ export function KnowledgeBase() {
   const [articleForm, setArticleForm] = useState({ title: "", content: "", category: "policy", tags: "", is_published: false });
   const [expertForm, setExpertForm] = useState({ employee_id: "", skill_name: "", proficiency_level: "beginner", years_of_experience: "", description: "", is_available_for_projects: true });
 
-  useEffect(() => { loadEmployees(); }, []);
+  useEffect(() => { loadAllEmployees(); }, [loadAllEmployees]);
   useEffect(() => { setCurrentPage(1); }, [activeTab]);
   useEffect(() => { activeTab === "knowledge" ? loadArticles() : loadExpertise(); }, [activeTab, currentPage, searchTerm]);
-
-  const loadEmployees = async () => { try { const r: any = await fetchAPI(`${API_ENDPOINTS.HR.EMPLOYEES.BASE}?per_page=500`); setEmployees(r.data || []); } catch { } };
 
   const loadArticles = async () => {
     setIsLoading(true);
@@ -144,12 +146,12 @@ export function KnowledgeBase() {
               variant: "view",
               onClick: () => viewArticleDetail(i.id)
             },
-            {
-              icon: i.is_published ? "eye-off" : "upload",
+            ...(canAccess("knowledge", "edit") ? [{
+              icon: (i.is_published ? "eye-off" : "upload") as any,
               title: i.is_published ? "إلغاء النشر" : "نشر",
-              variant: i.is_published ? "secondary" : "success",
+              variant: (i.is_published ? "secondary" : "success") as any,
               onClick: () => handlePublishArticle(i.id, !i.is_published)
-            }
+            }] : [])
           ]}
         />
       )
@@ -178,7 +180,10 @@ export function KnowledgeBase() {
     },
   ];
 
-  const tabs = [{ key: "knowledge", label: "قاعدة المعرفة", icon: "book" }, { key: "expertise", label: "دليل الخبراء", icon: "users-gear" }]
+  const tabs = [
+    ...(canAccess("knowledge", "view") ? [{ key: "knowledge", label: "قاعدة المعرفة", icon: "book" }] : []),
+    ...(canAccess("expertise", "view") ? [{ key: "expertise", label: "دليل الخبراء", icon: "users-gear" }] : [])
+  ];
 
   return (
     <div className="sales-card animate-fade">
@@ -199,7 +204,7 @@ export function KnowledgeBase() {
         }
         actions={
           <>
-            {activeTab === "knowledge" && <>
+            {activeTab === "knowledge" && canAccess("knowledge", "create") && <>
               <Button
                 onClick={() => { setArticleForm({ title: "", content: "", category: "policy", tags: "", is_published: false }); setShowArticleDialog(true); }}
                 variant="primary"
@@ -208,7 +213,7 @@ export function KnowledgeBase() {
                 إضافة مقال
               </Button>
             </>}
-            {activeTab === "expertise" &&
+            {activeTab === "expertise" && canAccess("expertise", "create") &&
               <Button
                 onClick={() => { setExpertForm({ employee_id: "", skill_name: "", proficiency_level: "beginner", years_of_experience: "", description: "", is_available_for_projects: true }); setShowExpertDialog(true); }}
                 variant="primary"
@@ -278,7 +283,7 @@ export function KnowledgeBase() {
             value={expertForm.employee_id}
             onChange={(e) => setExpertForm({ ...expertForm, employee_id: e.target.value })}
             placeholder="اختر"
-            options={employees.map((e: any) => ({ value: e.id.toString(), label: e.full_name }))}
+            options={employees.map((e: Employee) => ({ value: e.id.toString(), label: e.full_name }))}
           />
           <TextInput label="المهارة *" value={expertForm.skill_name} onChange={(e) => setExpertForm({ ...expertForm, skill_name: e.target.value })} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

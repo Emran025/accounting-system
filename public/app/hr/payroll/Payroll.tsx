@@ -12,6 +12,7 @@ import { TextInput, Select, Textarea } from "@/components/ui";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/RadioGroup";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 /**
  * Extended PayrollItem interface with calculated fields for UI display.
@@ -62,6 +63,7 @@ export function Payroll() {
   const [payrollItems, setPayrollItems] = useState<PayrollItemExtended[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const { allEmployees, loadAllEmployees } = useEmployeeStore();
+  const { canAccess } = useAuthStore();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -387,27 +389,27 @@ export function Payroll() {
               variant: "view",
               onClick: () => { setSelectedCycle(item); loadCycleDetails(item.id); }
             },
-            {
-              icon: "send",
+            ...(canAccess("payroll", "edit") ? [{
+              icon: "send" as const,
               title: "بدأ مسار الاعتماد",
-              variant: "success",
+              variant: "success" as const,
               onClick: () => handleApprove(item.id),
               hidden: !(item.status === 'draft' && item.created_by == currentUser?.id)
-            },
-            {
-              icon: "check",
+            }] : []),
+            ...(canAccess("payroll", "edit") ? [{
+              icon: "check" as const,
               title: "موافقة وتمرير",
-              variant: "success",
+              variant: "success" as const,
               onClick: () => handleApprove(item.id),
               hidden: !(item.status === 'pending_approval' && item.current_approver_id == currentUser?.id)
-            },
-            {
-              icon: "dollar",
+            }] : []),
+            ...(canAccess("payroll", "edit") ? [{
+              icon: "dollar" as const,
               title: "صرف الكل",
-              variant: "primary",
+              variant: "primary" as const,
               onClick: () => { setSelectedCycle(item); setShowBulkPaymentDialog(true); },
               hidden: item.status !== 'approved'
-            }
+            }] : [])
           ]}
         />
       )
@@ -446,7 +448,7 @@ export function Payroll() {
           <span className={`badge ${item.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
             {item.status === 'active' ? 'نشط' : 'موقوف'}
           </span>
-          {(isUserApprover || isDraftCreator) && (
+          {(isUserApprover || isDraftCreator) && canAccess("payroll", "edit") && (
             <button
               onClick={() => toggleStopSalary(item)}
               className={`btn btn-xs ${item.status === 'active' ? 'btn-outline-danger' : 'btn-outline-success'}`}
@@ -471,10 +473,10 @@ export function Payroll() {
         return (
           <ActionButtons
             actions={[
-              {
-                icon: "edit",
+              ...(canAccess("payroll", "edit") ? [{
+                icon: "edit" as const,
                 title: "تعديل المبالغ",
-                variant: "edit",
+                variant: "edit" as const,
                 onClick: () => {
                   setSelectedItem(item);
                   setEditItemData({
@@ -486,14 +488,14 @@ export function Payroll() {
                   setShowEditItemDialog(true);
                 },
                 hidden: !(isUserApprover || isDraftCreator)
-              },
-              {
-                icon: "dollar",
+              }] : []),
+              ...(canAccess("payroll", "edit") ? [{
+                icon: "dollar" as const,
                 title: "تحويل",
-                variant: "primary",
+                variant: "primary" as const,
                 onClick: () => openPaymentDialog(item),
                 hidden: !(remaining > 0 && selectedCycle?.status === 'approved' && item.status === 'active')
-              },
+              }] : []),
               {
                 icon: "history",
                 title: "سجل التحويلات",
@@ -530,12 +532,14 @@ export function Payroll() {
           title="إدارة الرواتب واعتمادات الصرف"
           titleIcon="dollar"
           actions={
-            <Button
-              variant="primary"
-              onClick={() => setShowCreateCycleDialog(true)}
-              icon="plus">
-              صرف جديد (مكافأة/حافز/راتب)
-            </Button>
+            canAccess("payroll", "create") && (
+              <Button
+                variant="primary"
+                onClick={() => setShowCreateCycleDialog(true)}
+                icon="plus">
+                صرف جديد (مكافأة/حافز/راتب)
+              </Button>
+            )
           }
         />
 

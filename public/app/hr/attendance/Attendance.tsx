@@ -11,10 +11,13 @@ import { getIcon } from "@/lib/icons";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/Textarea";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 export function Attendance() {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
+  const { canAccess } = useAuthStore();
   const [selectedEmployee, setSelectedEmployee] = useState<number | null>(null);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
@@ -34,24 +37,14 @@ export function Attendance() {
   });
 
   useEffect(() => {
-    loadEmployees();
-  }, []);
+    loadAllEmployees();
+  }, [loadAllEmployees]);
 
   useEffect(() => {
     if (selectedEmployee) {
       loadAttendance();
     }
   }, [selectedEmployee, startDate, endDate, currentPage]);
-
-  const loadEmployees = async () => {
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
-      const data = res.data || (Array.isArray(res) ? res : []);
-      setEmployees(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const loadAttendance = async () => {
     if (!selectedEmployee) return;
@@ -170,12 +163,14 @@ export function Attendance() {
         title="سجلات الحضور والانصراف"
         titleIcon="clock"
         actions={
-          <Button
-            variant="primary"
-            onClick={() => setShowRecordDialog(true)}
-            icon="plus">
-            تسجيل حضور جديد
-          </Button>
+          canAccess("attendance", "create") && (
+            <Button
+              variant="primary"
+              onClick={() => setShowRecordDialog(true)}
+              icon="plus">
+              تسجيل حضور جديد
+            </Button>
+          )
         }
       />
 
@@ -184,7 +179,7 @@ export function Attendance() {
           <div className="flex flex-col gap-1">
             <Label className="text-secondary mb-1">الموظف</Label>
             <SearchableSelect
-              options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
+              options={employees.map((emp: Employee) => ({ value: emp.id.toString(), label: emp.full_name }))}
               value={selectedEmployee?.toString() || ""}
               onChange={(value) => setSelectedEmployee(value ? Number(value) : null)}
               placeholder="اختر الموظف"
@@ -269,7 +264,7 @@ export function Attendance() {
           <div className="flex flex-col gap-1">
             <Label className="text-secondary mb-1">الموظف *</Label>
             <SearchableSelect
-              options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
+              options={employees.map((emp: Employee) => ({ value: emp.id.toString(), label: emp.full_name }))}
               value={newRecord.employee_id}
               onChange={(value) => setNewRecord({ ...newRecord, employee_id: value ? String(value) : "" })}
               placeholder="اختر الموظف"

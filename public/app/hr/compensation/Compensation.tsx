@@ -7,6 +7,7 @@ import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { getIcon } from "@/lib/icons";
 
 interface CompensationPlan {
@@ -63,6 +64,7 @@ const statusBadges: Record<string, string> = {
 
 export function Compensation() {
     const router = useRouter();
+    const { canAccess } = useAuthStore();
     const [activeTab, setActiveTab] = useState("plans");
     const [plans, setPlans] = useState<CompensationPlan[]>([]);
     const [entries, setEntries] = useState<CompensationEntry[]>([]);
@@ -161,7 +163,13 @@ export function Compensation() {
                             title: "عرض التفاصيل",
                             variant: "view",
                             onClick: () => router.push(`/hr/compensation/plans/${item.id}`)
-                        }
+                        },
+                        ...(canAccess("compensation", "edit") ? [{
+                            icon: "edit" as const,
+                            title: "تعديل",
+                            variant: "edit" as const,
+                            onClick: () => router.push(`/hr/compensation/plans/edit/${item.id}`)
+                        }] : [])
                     ]}
                 />
             ),
@@ -231,7 +239,13 @@ export function Compensation() {
                             title: "عرض التفاصيل",
                             variant: "view",
                             onClick: () => router.push(`/hr/compensation/entries/${item.id}`)
-                        }
+                        },
+                        ...(canAccess("compensation", "edit") ? [{
+                            icon: "edit" as const,
+                            title: "تعديل",
+                            variant: "edit" as const,
+                            onClick: () => router.push(`/hr/compensation/entries/edit/${item.id}`)
+                        }] : [])
                     ]}
                 />
             ),
@@ -245,13 +259,22 @@ export function Compensation() {
                 titleIcon="money-bill-wave"
                 actions={
                     <>
-                        {activeTab === "plans" && (
+                        {activeTab === "plans" && canAccess("compensation", "create") && (
                             <Button
                                 onClick={() => router.push('/hr/compensation/plans/add')}
                                 variant="primary"
                                 icon="plus"
                             >
                                 خطة تعويضات جديدة
+                            </Button>
+                        )}
+                        {activeTab === "entries" && canAccess("compensation", "create") && (
+                            <Button
+                                onClick={() => router.push('/hr/compensation/entries/add')}
+                                variant="primary"
+                                icon="plus"
+                            >
+                                إدخال تعويض جديد
                             </Button>
                         )}
                     </>

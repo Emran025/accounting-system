@@ -10,6 +10,8 @@ import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { EmployeeAsset } from "@/app/hr/types";
 import { PageSubHeader } from "@/components/layout";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import { Employee } from "@/app/hr/types";
 
 interface AssetFormProps {
     asset?: EmployeeAsset;
@@ -18,7 +20,7 @@ interface AssetFormProps {
 export function AssetForm({ asset }: AssetFormProps) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [employees, setEmployees] = useState<any[]>([]);
+    const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
 
     const [form, setForm] = useState({
         employee_id: "",
@@ -35,7 +37,7 @@ export function AssetForm({ asset }: AssetFormProps) {
     });
 
     useEffect(() => {
-        loadEmployees();
+        loadAllEmployees();
         if (asset) {
             setForm({
                 employee_id: asset.employee_id.toString(),
@@ -57,16 +59,7 @@ export function AssetForm({ asset }: AssetFormProps) {
                 asset_code: `AST-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`
             }));
         }
-    }, [asset]);
-
-    const loadEmployees = async () => {
-        try {
-            const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
-            setEmployees(res.data || res || []);
-        } catch (error) {
-            console.error("Failed to load employees", error);
-        }
-    };
+    }, [asset, loadAllEmployees]);
 
     const handleSubmit = async () => {
         if (!form.employee_id || !form.asset_code || !form.asset_name || !form.allocation_date) {
@@ -122,7 +115,7 @@ export function AssetForm({ asset }: AssetFormProps) {
                     <div className="flex flex-col gap-1">
                         <Label className="text-secondary mb-1">الموظف *</Label>
                         <SearchableSelect
-                            options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))}
+                            options={employees.map((e: Employee) => ({ value: e.id.toString(), label: e.full_name }))}
                             value={form.employee_id}
                             onChange={(val) => setForm({ ...form, employee_id: val?.toString() || "" })}
                             placeholder="اختر الموظف"

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useEmployeeStore } from "@/stores/useEmployeeStore";
 import { Employee } from "@/app/hr/types";
 
@@ -30,6 +31,7 @@ const statusLabels: Record<string, string> = { active: "نشط", inactive: "غي
 const statusBadges: Record<string, string> = { active: "badge-success", inactive: "badge-secondary", filled: "badge-info" };
 
 export function Succession() {
+  const { canAccess } = useAuthStore();
   const [plans, setPlans] = useState<SuccessionPlan[]>([]);
   const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
   const [isLoading, setIsLoading] = useState(true);
@@ -116,20 +118,20 @@ export function Succession() {
               variant: "view",
               onClick: () => viewDetail(i.id)
             },
-            {
-              icon: "pause",
+            ...(canAccess("succession", "edit") ? [{
+              icon: "pause" as const,
               title: "تعطيل",
-              variant: "edit",
+              variant: "edit" as const,
               onClick: () => handleUpdatePlanStatus(i.id, "inactive"),
               hidden: i.status !== "active"
-            },
-            {
-              icon: "play",
+            }] : []),
+            ...(canAccess("succession", "edit") ? [{
+              icon: "play" as const,
               title: "تفعيل",
-              variant: "success",
+              variant: "success" as const,
               onClick: () => handleUpdatePlanStatus(i.id, "active"),
               hidden: i.status !== "inactive"
-            }
+            }] : [])
           ]}
         />
       )
@@ -147,13 +149,15 @@ export function Succession() {
         title="التخطيط للخلافة"
         titleIcon="sitemap"
         actions={
-          <Button
-            onClick={() => { setPlanForm({ position_title: "", incumbent_id: "", readiness_level: "not_ready", notes: "" }); setShowPlanDialog(true); }}
-            variant="primary"
-            icon="plus"
-          >
-            خطة خلافة جديدة
-          </Button>
+          canAccess("succession", "create") && (
+            <Button
+              onClick={() => { setPlanForm({ position_title: "", incumbent_id: "", readiness_level: "not_ready", notes: "" }); setShowPlanDialog(true); }}
+              variant="primary"
+              icon="plus"
+            >
+              خطة خلافة جديدة
+            </Button>
+          )
         }
       />
 
@@ -195,14 +199,15 @@ export function Succession() {
           <div style={{ marginTop: "1rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
               <h4 style={{ margin: 0 }}>المرشحون ({selectedPlan.candidates?.length || 0})</h4>
-              <Button
-
-                onClick={() => { setCandForm({ employee_id: "", readiness_level: "not_ready", performance_rating: "", potential_rating: "", development_plan: "", notes: "" }); setShowCandidateDialog(true); }}
-                variant="primary"
-                icon="plus"
-              >
-                إضافة مرشح
-              </Button>
+              {canAccess("succession", "edit") && (
+                <Button
+                  onClick={() => { setCandForm({ employee_id: "", readiness_level: "not_ready", performance_rating: "", potential_rating: "", development_plan: "", notes: "" }); setShowCandidateDialog(true); }}
+                  variant="primary"
+                  icon="plus"
+                >
+                  إضافة مرشح
+                </Button>
+              )}
             </div>
             {selectedPlan.candidates && selectedPlan.candidates.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>

@@ -61,6 +61,48 @@ class PermissionSeeder extends Seeder
                 );
             });
         }
+        
+        // HR Manager permissions
+        $hrManager = Role::where('role_key', 'hr_manager')->first();
+        if ($hrManager) {
+            Module::where('category', 'hr')->orWhereIn('module_key', ['dashboard', 'users'])->each(function ($module) use ($hrManager) {
+                RolePermission::updateOrCreate(
+                    ['role_id' => $hrManager->id, 'module_id' => $module->id],
+                    [
+                        'can_view' => true,
+                        'can_create' => true,
+                        'can_edit' => true,
+                        'can_delete' => !in_array($module->module_key, ['dashboard', 'users']),
+                    ]
+                );
+            });
+        }
+
+        // Employee permissions (Self-Service)
+        $employee = Role::where('role_key', 'employee')->first();
+        if ($employee) {
+            // Employee can view/create requests in these modules (permissions restricted by policy to own data)
+            $employeeModules = [
+                'portal', 'leave', 'attendance', 'travel', 'loans', 
+                'communications', 'performance', 'learning', 'benefits', 
+                'ehs', 'wellness', 'knowledge', 'expertise', 'eosb'
+            ];
+            
+            Module::whereIn('module_key', $employeeModules)->each(function ($module) use ($employee) {
+                // Determine if module allows creation by employee (e.g. requests)
+                $canCreate = in_array($module->module_key, ['leave', 'travel', 'loans', 'ehs', 'wellness', 'portal']);
+                
+                RolePermission::updateOrCreate(
+                    ['role_id' => $employee->id, 'module_id' => $module->id],
+                    [
+                        'can_view' => true,
+                        'can_create' => $canCreate,
+                        'can_edit' => false, // Editing own requests handled by specific logic/policy, not global edit
+                        'can_delete' => false,
+                    ]
+                );
+            });
+        }
 
         // Cashier permissions
         $cashier = Role::where('role_key', 'cashier')->first();

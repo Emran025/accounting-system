@@ -9,7 +9,8 @@ import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
-import { getIcon } from "@/lib/icons";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 import type { Employee, EmployeeRelationsCase, DisciplinaryAction } from "../types";
 
 
@@ -47,7 +48,8 @@ const statusBadges: Record<string, string> = {
 
 export function EmployeeRelations() {
   const [cases, setCases] = useState<EmployeeRelationsCase[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
+  const { canAccess } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -80,22 +82,12 @@ export function EmployeeRelations() {
   });
 
   useEffect(() => {
-    loadEmployees();
-  }, []);
+    loadAllEmployees();
+  }, [loadAllEmployees]);
 
   useEffect(() => {
     loadCases();
   }, [currentPage, statusFilter]);
-
-  const loadEmployees = async () => {
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
-      const data = res.data || (Array.isArray(res) ? res : []);
-      setEmployees(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const loadCases = async () => {
     setIsLoading(true);
@@ -284,18 +276,18 @@ export function EmployeeRelations() {
               variant: "view",
               onClick: () => openCaseDetails(item)
             },
-            {
-              icon: "edit",
+            ...(canAccess("relations", "edit") ? [{
+              icon: "edit" as const,
               title: "تعديل القضية",
-              variant: "edit",
+              variant: "edit" as const,
               onClick: () => openEditCase(item)
-            },
-            {
-              icon: "gavel",
+            }] : []),
+            ...(canAccess("relations", "edit") ? [{
+              icon: "gavel" as const,
               title: "إضافة إجراء تأديبي",
-              variant: "secondary",
+              variant: "secondary" as const,
               onClick: () => openDisciplinaryDialog(item)
-            }
+            }] : [])
           ]}
         />
       ),
@@ -333,12 +325,14 @@ export function EmployeeRelations() {
                 { value: 'closed', label: 'مغلق' }
               ]}
             />
-            <Button onClick={openNewCaseDialog}
-              variant="primary"
-              icon="plus"
-            >
-              فتح قضية جديدة
-            </Button>
+            {canAccess("relations", "create") && (
+              <Button onClick={openNewCaseDialog}
+                variant="primary"
+                icon="plus"
+              >
+                فتح قضية جديدة
+              </Button>
+            )}
           </>
         }
       />
@@ -403,7 +397,7 @@ export function EmployeeRelations() {
               <div className="flex flex-col gap-1">
                 <Label className="text-secondary mb-1">الموظف *</Label>
                 <SearchableSelect
-                  options={employees.map((emp) => ({ value: emp.id.toString(), label: emp.full_name }))}
+                  options={employees.map((emp: Employee) => ({ value: emp.id.toString(), label: emp.full_name }))}
                   value={caseForm.employee_id}
                   onChange={(val) => setCaseForm(prev => ({ ...prev, employee_id: val?.toString() || "" }))}
                   placeholder="اختر الموظف"
@@ -542,9 +536,11 @@ export function EmployeeRelations() {
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <strong>الإجراءات التأديبية</strong>
-                <Button size="sm" onClick={() => openDisciplinaryDialog(selectedCase)} variant="secondary" icon="gavel">
-                  إضافة إجراء
-                </Button>
+                {canAccess("relations", "edit") && (
+                  <Button size="sm" onClick={() => openDisciplinaryDialog(selectedCase)} variant="secondary" icon="gavel">
+                    إضافة إجراء
+                  </Button>
+                )}
               </div>
               {selectedCase.disciplinary_actions && selectedCase.disciplinary_actions.length > 0 ? (
                 <ul className="list-disc pr-5 space-y-1">

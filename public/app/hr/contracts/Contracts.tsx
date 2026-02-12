@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Table, Column, Button, SearchableSelect, ActionButtons } from "@/components/ui";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
@@ -11,6 +12,7 @@ import { EmployeeContract } from "@/app/hr/types";
 
 export function Contracts() {
     const router = useRouter();
+    const { canAccess } = useAuthStore();
     const [contracts, setContracts] = useState<EmployeeContract[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
@@ -117,12 +119,12 @@ export function Contracts() {
                             variant: "view",
                             onClick: () => router.push(`/hr/contracts/view/${item.id}`)
                         },
-                        {
-                            icon: "edit",
+                        ...(canAccess("employees", "edit") ? [{
+                            icon: "edit" as const,
                             title: "تعديل",
-                            variant: "edit",
+                            variant: "edit" as const,
                             onClick: () => router.push(`/hr/contracts/edit/${item.id}`)
-                        }
+                        }] : [])
                     ]}
                 />
             ),
@@ -148,13 +150,15 @@ export function Contracts() {
                     />
                 }
                 actions={
-                    <Button
-                        onClick={() => router.push('/hr/contracts/add')}
-                        variant="primary"
-                        icon="plus"
-                    >
-                        إضافة عقد
-                    </Button>
+                    canAccess("employees", "create") && (
+                        <Button
+                            onClick={() => router.push('/hr/contracts/add')}
+                            variant="primary"
+                            icon="plus"
+                        >
+                            إضافة عقد
+                        </Button>
+                    )
                 }
             />
 
