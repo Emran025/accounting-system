@@ -9,7 +9,8 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/Textarea";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { EmployeeContract } from "@/app/hr/types";
+import { EmployeeContract, Employee } from "@/app/hr/types";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
 import { PageSubHeader } from "@/components/layout";
 
 interface ContractFormProps {
@@ -19,7 +20,7 @@ interface ContractFormProps {
 export function ContractForm({ contract }: ContractFormProps) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [employees, setEmployees] = useState<any[]>([]);
+    const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
 
     const [form, setForm] = useState({
         employee_id: "",
@@ -34,7 +35,7 @@ export function ContractForm({ contract }: ContractFormProps) {
     });
 
     useEffect(() => {
-        loadEmployees();
+        loadAllEmployees();
         if (contract) {
             setForm({
                 employee_id: contract.employee_id.toString(),
@@ -54,16 +55,7 @@ export function ContractForm({ contract }: ContractFormProps) {
                 contract_number: `CNT-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`
             }));
         }
-    }, [contract]);
-
-    const loadEmployees = async () => {
-        try {
-            const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
-            setEmployees(res.data || res || []);
-        } catch (error) {
-            console.error("Failed to load employees", error);
-        }
-    };
+    }, [contract, loadAllEmployees]);
 
     const handleSubmit = async () => {
         if (!form.employee_id || !form.contract_number || !form.contract_start_date || !form.base_salary) {
@@ -118,7 +110,7 @@ export function ContractForm({ contract }: ContractFormProps) {
                     <div className="flex flex-col gap-1">
                         <Label className="text-secondary mb-1">الموظف *</Label>
                         <SearchableSelect
-                            options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))}
+                            options={employees.map((e: Employee) => ({ value: e.id.toString(), label: e.full_name }))}
                             value={form.employee_id}
                             onChange={(val) => setForm({ ...form, employee_id: val?.toString() || "" })}
                             placeholder="اختر الموظف"

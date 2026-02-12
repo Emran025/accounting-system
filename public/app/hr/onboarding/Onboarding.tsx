@@ -10,7 +10,8 @@ import { formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
-import type { Workflow } from "../types";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import { Employee, Workflow } from "../types";
 
 const workflowTypeLabels: Record<string, string> = { onboarding: "توظيف", offboarding: "إنهاء خدمة" };
 const statusLabels: Record<string, string> = { not_started: "لم يبدأ", in_progress: "قيد التنفيذ", completed: "مكتمل", cancelled: "ملغي", pending: "قيد الانتظار", blocked: "محظور" };
@@ -21,7 +22,7 @@ const deptLabels: Record<string, string> = { it: "تقنية المعلومات"
 export function Onboarding() {
   const [activeTab, setActiveTab] = useState("onboarding");
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
+  const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -32,11 +33,9 @@ export function Onboarding() {
   // Form
   const [form, setForm] = useState({ employee_id: "", start_date: "", target_completion_date: "", notes: "" });
 
-  useEffect(() => { loadEmployees(); }, []);
+  useEffect(() => { loadAllEmployees(); }, [loadAllEmployees]);
   useEffect(() => { setCurrentPage(1); }, [activeTab]);
   useEffect(() => { loadWorkflows(); }, [activeTab, currentPage]);
-
-  const loadEmployees = async () => { try { const r: any = await fetchAPI(`${API_ENDPOINTS.HR.EMPLOYEES.BASE}?per_page=500`); setEmployees(r.data || []); } catch { } };
 
   const loadWorkflows = async () => {
     setIsLoading(true);
@@ -135,7 +134,7 @@ export function Onboarding() {
       {/* Create Dialog */}
       <Dialog isOpen={showCreateDialog} onClose={() => setShowCreateDialog(false)} title={`إضافة عملية ${workflowTypeLabels[activeTab]}`} maxWidth="550px">
         <div className="space-y-4">
-          <Select label="الموظف *" value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} placeholder="اختر الموظف" options={employees.map((emp: any) => ({ value: emp.id.toString(), label: `${emp.full_name} (${emp.employee_code})` }))} />
+          <Select label="الموظف *" value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} placeholder="اختر الموظف" options={employees.map((emp: Employee) => ({ value: emp.id.toString(), label: `${emp.full_name} (${emp.employee_code})` }))} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <TextInput label="تاريخ البدء *" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
             <TextInput label="الإنجاز المستهدف" type="date" value={form.target_completion_date} onChange={(e) => setForm({ ...form, target_completion_date: e.target.value })} />

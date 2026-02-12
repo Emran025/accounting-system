@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ActionButtons, Table, Column, SearchableSelect, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
 import { PageSubHeader } from "@/components/layout";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Employee } from "../types";
@@ -12,33 +13,25 @@ import { getIcon } from "@/lib/icons";
 
 export function Employees() {
   const router = useRouter();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterDepartment, setFilterDepartment] = useState("");
+
+  // Use Employee Store
+  const {
+    employees,
+    isLoading,
+    currentPage,
+    totalPages,
+    loadEmployees,
+    searchTerm,
+    setSearchTerm,
+    departmentFilter
+  } = useEmployeeStore();
 
   useEffect(() => {
-    loadEmployees();
-  }, [currentPage, searchTerm, filterDepartment]);
+    loadEmployees(currentPage, searchTerm, departmentFilter);
+  }, [loadEmployees, currentPage, searchTerm, departmentFilter]);
 
-  const loadEmployees = async () => {
-    setIsLoading(true);
-    try {
-      const query = new URLSearchParams({
-        page: currentPage.toString(),
-        search: searchTerm,
-        department_id: filterDepartment
-      });
-      const res = await fetchAPI(`${API_ENDPOINTS.HR.EMPLOYEES.BASE}?${query}`);
-      setEmployees(res.data as Employee[] || []);
-      setTotalPages(Number(res.last_page) || 1);
-    } catch (error) {
-      console.error("Failed to load employees", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handlePageChange = (page: number) => {
+    loadEmployees(page, searchTerm, departmentFilter);
   };
 
   const getStatusBadgeClass = (status: string) => {
@@ -106,6 +99,7 @@ export function Employees() {
             onChange={() => { }}
             onSearch={(val) => {
               setSearchTerm(val);
+              loadEmployees(1, val, departmentFilter); // Reset to page 1 on search
             }}
             placeholder="بحث سريع..."
             className="header-search-bar"
@@ -131,7 +125,7 @@ export function Employees() {
         pagination={{
           currentPage: currentPage,
           totalPages: totalPages,
-          onPageChange: setCurrentPage
+          onPageChange: handlePageChange
         }}
       />
     </div>

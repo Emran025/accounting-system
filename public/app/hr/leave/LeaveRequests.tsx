@@ -5,9 +5,9 @@ import { ActionButtons, Table, Column, Dialog, showToast, Button, SearchableSele
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { LeaveRequest, Employee } from "../types";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
 import { formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
-import { getIcon } from "@/lib/icons";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/Textarea";
@@ -25,10 +25,10 @@ import { Textarea } from "@/components/ui/Textarea";
  * @returns The LeaveRequests component
  */
 export function LeaveRequests() {
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
   const [selectedEmployee, setSelectedEmployee] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showRequestDialog, setShowRequestDialog] = useState(false);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
@@ -50,21 +50,12 @@ export function LeaveRequests() {
   });
 
   useEffect(() => {
-    loadEmployees();
-  }, []);
+    loadAllEmployees();
+  }, [loadAllEmployees]);
 
   useEffect(() => {
     loadLeaveRequests();
   }, [selectedEmployee, statusFilter, currentPage]);
-
-  const loadEmployees = async () => {
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
-      setEmployees(res.data || res || []);
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const loadLeaveRequests = async () => {
     setIsLoading(true);
@@ -231,7 +222,7 @@ export function LeaveRequests() {
           <div className="flex flex-col gap-1">
             <Label className="text-secondary mb-1">الموظف</Label>
             <SearchableSelect
-              options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
+              options={employees.map((emp: Employee) => ({ value: emp.id.toString(), label: emp.full_name }))}
               value={selectedEmployee?.toString() || ""}
               onChange={(value) => setSelectedEmployee(value ? Number(value) : null)}
               placeholder="جميع الموظفين"
@@ -289,7 +280,7 @@ export function LeaveRequests() {
           <div className="flex flex-col gap-1">
             <Label className="text-secondary mb-1">الموظف *</Label>
             <SearchableSelect
-              options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
+              options={employees.map((emp: Employee) => ({ value: emp.id.toString(), label: emp.full_name }))}
               value={newRequest.employee_id}
               onChange={(value) => setNewRequest({ ...newRequest, employee_id: value ? String(value) : "" })}
               placeholder="اختر الموظف"

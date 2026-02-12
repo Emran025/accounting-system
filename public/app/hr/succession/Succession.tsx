@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/Textarea";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import { Employee } from "@/app/hr/types";
 
 interface SuccessionPlan {
   id: number; position_title: string; incumbent_id?: number;
@@ -29,7 +31,7 @@ const statusBadges: Record<string, string> = { active: "badge-success", inactive
 
 export function Succession() {
   const [plans, setPlans] = useState<SuccessionPlan[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
+  const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -42,10 +44,8 @@ export function Succession() {
   const [planForm, setPlanForm] = useState({ position_title: "", incumbent_id: "", readiness_level: "not_ready", notes: "" });
   const [candForm, setCandForm] = useState({ employee_id: "", readiness_level: "not_ready", performance_rating: "", potential_rating: "", development_plan: "", notes: "" });
 
-  useEffect(() => { loadEmployees(); }, []);
+  useEffect(() => { loadAllEmployees(); }, [loadAllEmployees]);
   useEffect(() => { loadPlans(); }, [currentPage]);
-
-  const loadEmployees = async () => { try { const r: any = await fetchAPI(`${API_ENDPOINTS.HR.EMPLOYEES.BASE}?per_page=500`); setEmployees(r.data || []); } catch { } };
 
   const loadPlans = async () => {
     setIsLoading(true);
@@ -168,7 +168,7 @@ export function Succession() {
               value={planForm.incumbent_id}
               onChange={(e) => setPlanForm({ ...planForm, incumbent_id: e.target.value })}
               placeholder="اختر"
-              options={employees.map((e: any) => ({ value: e.id.toString(), label: e.full_name }))}
+              options={employees.map((e: Employee) => ({ value: e.id.toString(), label: e.full_name }))}
             /></div>
           <div><Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>مستوى الجاهزية</Label>
             <Select
@@ -233,7 +233,7 @@ export function Succession() {
               value={candForm.employee_id}
               onChange={(e) => setCandForm({ ...candForm, employee_id: e.target.value })}
               placeholder="اختر"
-              options={employees.map((e: any) => ({ value: e.id.toString(), label: e.full_name }))}
+              options={employees.map((e: Employee) => ({ value: e.id.toString(), label: e.full_name }))}
             /></div>
           <div><Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>مستوى الجاهزية</Label>
             <Select

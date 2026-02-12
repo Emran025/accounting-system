@@ -10,6 +10,7 @@ import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { getIcon } from "@/lib/icons";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
 import type { Employee, TravelRequest, TravelExpense } from "../types";
 
 const requestStatusLabels: Record<string, string> = {
@@ -56,7 +57,7 @@ const expenseStatusBadges: Record<string, string> = {
 
 export function TravelExpenses() {
     const [activeTab, setActiveTab] = useState("requests");
-    const [employees, setEmployees] = useState<Employee[]>([]);
+    const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
 
     // Travel Requests state
     const [requests, setRequests] = useState<TravelRequest[]>([]);
@@ -98,16 +99,9 @@ export function TravelExpenses() {
         notes: "",
     });
 
-    useEffect(() => { loadEmployees(); }, []);
+    useEffect(() => { loadAllEmployees(); }, [loadAllEmployees]);
     useEffect(() => { loadRequests(); }, [reqPage, reqStatusFilter]);
     useEffect(() => { loadExpenses(); }, [expPage, expStatusFilter]);
-
-    const loadEmployees = async () => {
-        try {
-            const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
-            setEmployees(res.data || (Array.isArray(res) ? res : []));
-        } catch (e) { console.error(e); }
-    };
 
     const loadRequests = async () => {
         setReqLoading(true);
@@ -439,7 +433,7 @@ export function TravelExpenses() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>الموظف *</Label>
-                            <SearchableSelect options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
+                            <SearchableSelect options={employees.map((emp: Employee) => ({ value: emp.id.toString(), label: emp.full_name }))}
                                 value={reqForm.employee_id} onChange={(val) => setReqForm(prev => ({ ...prev, employee_id: val?.toString() || "" }))} placeholder="اختر الموظف" />
                         </div>
                         <div>
@@ -506,7 +500,7 @@ export function TravelExpenses() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <Label className="block mb-1" style={{ color: "var(--text-secondary)" }}>الموظف *</Label>
-                            <SearchableSelect options={employees.map(emp => ({ value: emp.id.toString(), label: emp.full_name }))}
+                            <SearchableSelect options={employees.map((emp: Employee) => ({ value: emp.id.toString(), label: emp.full_name }))}
                                 value={expForm.employee_id} onChange={(val) => setExpForm(prev => ({ ...prev, employee_id: val?.toString() || "" }))} placeholder="اختر الموظف" />
                         </div>
                         <div>

@@ -10,6 +10,7 @@ import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
 import type { Employee, EmployeeLoan } from "../types";
 
 const loanTypeLabels: Record<string, string> = {
@@ -27,7 +28,7 @@ const statusBadges: Record<string, string> = {
 
 export function EmployeeLoans() {
     const [loans, setLoans] = useState<EmployeeLoan[]>([]);
-    const [employees, setEmployees] = useState<Employee[]>([]);
+    const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
     const [isLoading, setIsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -42,15 +43,8 @@ export function EmployeeLoans() {
         auto_deduction: true, notes: "",
     });
 
-    useEffect(() => { loadEmployees(); }, []);
+    useEffect(() => { loadAllEmployees(); }, [loadAllEmployees]);
     useEffect(() => { loadLoans(); }, [currentPage, statusFilter]);
-
-    const loadEmployees = async () => {
-        try {
-            const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
-            setEmployees(res.data || (Array.isArray(res) ? res : []));
-        } catch (e) { console.error(e); }
-    };
 
     const loadLoans = async () => {
         setIsLoading(true);
@@ -185,7 +179,7 @@ export function EmployeeLoans() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1">
                             <Label className="text-secondary mb-1">الموظف *</Label>
-                            <SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={form.employee_id} onChange={(v) => setForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر الموظف" />
+                            <SearchableSelect options={employees.map((e: Employee) => ({ value: e.id.toString(), label: e.full_name }))} value={form.employee_id} onChange={(v) => setForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر الموظف" />
                         </div>
                         <Select label="نوع القرض" value={form.loan_type} onChange={(e) => setForm({ ...form, loan_type: e.target.value })} options={Object.entries(loanTypeLabels).map(([value, label]) => ({ value, label }))} />
                     </div>

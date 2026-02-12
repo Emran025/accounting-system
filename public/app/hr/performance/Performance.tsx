@@ -10,6 +10,8 @@ import { fetchAPI } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
+import { Employee } from "../types";
 
 interface Goal {
   id: number; employee_id: number; employee?: { full_name: string };
@@ -34,7 +36,7 @@ export function Performance() {
   const [activeTab, setActiveTab] = useState("goals");
   const [goals, setGoals] = useState<Goal[]>([]);
   const [appraisals, setAppraisals] = useState<Appraisal[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
+  const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -51,11 +53,9 @@ export function Performance() {
   const [appForm, setAppForm] = useState({ employee_id: "", appraisal_type: "annual", appraisal_period: "", appraisal_date: "", notes: "" });
   const [updateForm, setUpdateForm] = useState({ current_value: "", progress_percentage: "", status: "", notes: "" });
 
-  useEffect(() => { loadEmployees(); }, []);
+  useEffect(() => { loadAllEmployees(); }, [loadAllEmployees]);
   useEffect(() => { setCurrentPage(1); }, [activeTab]);
   useEffect(() => { activeTab === "goals" ? loadGoals() : loadAppraisals(); }, [activeTab, currentPage]);
-
-  const loadEmployees = async () => { try { const r: any = await fetchAPI(`${API_ENDPOINTS.HR.EMPLOYEES.BASE}?per_page=500`); setEmployees(r.data || []); } catch { } };
 
   const loadGoals = async () => {
     setIsLoading(true);
@@ -258,7 +258,7 @@ export function Performance() {
       <Dialog isOpen={showGoalDialog} onClose={() => setShowGoalDialog(false)} title="إضافة هدف جديد" maxWidth="700px">
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Select label="الموظف *" value={goalForm.employee_id} onChange={(e) => setGoalForm({ ...goalForm, employee_id: e.target.value })} placeholder="اختر" options={employees.map((e: any) => ({ value: e.id.toString(), label: e.full_name }))} />
+            <Select label="الموظف *" value={goalForm.employee_id} onChange={(e) => setGoalForm({ ...goalForm, employee_id: e.target.value })} placeholder="اختر" options={employees.map((e: Employee) => ({ value: e.id.toString(), label: e.full_name }))} />
             <Select label="النوع" value={goalForm.goal_type} onChange={(e) => setGoalForm({ ...goalForm, goal_type: e.target.value })} options={Object.entries(goalTypeLabels).map(([value, label]) => ({ value, label }))} />
           </div>
           <TextInput label="عنوان الهدف *" value={goalForm.goal_title} onChange={(e) => setGoalForm({ ...goalForm, goal_title: e.target.value })} />
@@ -306,7 +306,7 @@ export function Performance() {
       {/* Create Appraisal Dialog */}
       <Dialog isOpen={showAppDialog} onClose={() => setShowAppDialog(false)} title="تقييم جديد" maxWidth="600px">
         <div className="space-y-4">
-          <Select label="الموظف *" value={appForm.employee_id} onChange={(e) => setAppForm({ ...appForm, employee_id: e.target.value })} placeholder="اختر" options={employees.map((e: any) => ({ value: e.id.toString(), label: e.full_name }))} />
+          <Select label="الموظف *" value={appForm.employee_id} onChange={(e) => setAppForm({ ...appForm, employee_id: e.target.value })} placeholder="اختر" options={employees.map((e: Employee) => ({ value: e.id.toString(), label: e.full_name }))} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select label="النوع" value={appForm.appraisal_type} onChange={(e) => setAppForm({ ...appForm, appraisal_type: e.target.value })} options={Object.entries(appraisalTypeLabels).map(([value, label]) => ({ value, label }))} />
             <TextInput label="الفترة *" value={appForm.appraisal_period} onChange={(e) => setAppForm({ ...appForm, appraisal_period: e.target.value })} placeholder="مثال: Q1 2026" />

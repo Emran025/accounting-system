@@ -11,6 +11,7 @@ import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate } from "@/lib/utils";
 import { PageSubHeader } from "@/components/layout";
 import { getIcon } from "@/lib/icons";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
 
 import type { Employee, WellnessProgram, WellnessParticipation } from "../types";
 
@@ -20,7 +21,7 @@ const participationStatusBadges: Record<string, string> = { enrolled: "badge-inf
 
 export function WellnessModule() {
     const [activeTab, setActiveTab] = useState("programs");
-    const [employees, setEmployees] = useState<Employee[]>([]);
+    const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
     const [programs, setPrograms] = useState<WellnessProgram[]>([]);
     const [progLoading, setProgLoading] = useState(false);
     const [progPage, setProgPage] = useState(1);
@@ -37,11 +38,9 @@ export function WellnessModule() {
     const [showPartDialog, setShowPartDialog] = useState(false);
     const [partForm, setPartForm] = useState({ program_id: "", employee_id: "", notes: "" });
 
-    useEffect(() => { loadEmployees(); }, []);
+    useEffect(() => { loadAllEmployees(); }, [loadAllEmployees]);
     useEffect(() => { loadPrograms(); }, [progPage]);
     useEffect(() => { loadParticipations(); }, [partPage]);
-
-    const loadEmployees = async () => { try { const r: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE); setEmployees(r.data || (Array.isArray(r) ? r : [])); } catch { } };
 
     const loadPrograms = async () => {
         setProgLoading(true);
@@ -202,7 +201,7 @@ export function WellnessModule() {
                     <Select label="البرنامج *" value={partForm.program_id} onChange={(e) => setPartForm({ ...partForm, program_id: e.target.value })} placeholder="اختر البرنامج" options={programs.filter(p => p.is_active).map(p => ({ value: p.id.toString(), label: p.program_name }))} />
                     <div className="flex flex-col gap-1">
                         <Label className="text-secondary mb-1">الموظف *</Label>
-                        <SearchableSelect options={employees.map(e => ({ value: e.id.toString(), label: e.full_name }))} value={partForm.employee_id} onChange={(v) => setPartForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر الموظف" />
+                        <SearchableSelect options={employees.map((e: Employee) => ({ value: e.id.toString(), label: e.full_name }))} value={partForm.employee_id} onChange={(v) => setPartForm(p => ({ ...p, employee_id: v?.toString() || "" }))} placeholder="اختر الموظف" />
                     </div>
                     <Textarea label="ملاحظات" value={partForm.notes} onChange={(e) => setPartForm({ ...partForm, notes: e.target.value })} rows={2} />
                     <div className="flex justify-end gap-2" style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-color)" }}><Button variant="secondary" onClick={() => setShowPartDialog(false)}>إلغاء</Button><Button variant="primary" onClick={handleEnroll} icon="save">تسجيل</Button></div>

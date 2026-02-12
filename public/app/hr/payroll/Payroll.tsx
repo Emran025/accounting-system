@@ -11,6 +11,7 @@ import { getIcon } from "@/lib/icons";
 import { TextInput, Select, Textarea } from "@/components/ui";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/RadioGroup";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useEmployeeStore } from "@/stores/useEmployeeStore";
 
 /**
  * Extended PayrollItem interface with calculated fields for UI display.
@@ -60,7 +61,7 @@ export function Payroll() {
   const [selectedCycle, setSelectedCycle] = useState<PayrollCycle | null>(null);
   const [payrollItems, setPayrollItems] = useState<PayrollItemExtended[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const { allEmployees, loadAllEmployees } = useEmployeeStore();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -113,22 +114,12 @@ export function Payroll() {
     loadPayrollCycles();
     loadAccounts();
     loadAllEmployees();
-  }, []);
+  }, [loadAllEmployees]);
 
   const loadUser = async () => {
     try {
       const res: any = await fetchAPI(API_ENDPOINTS.AUTH.CHECK);
       setCurrentUser(res.user || res);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const loadAllEmployees = async () => {
-    try {
-      const res: any = await fetchAPI(API_ENDPOINTS.HR.EMPLOYEES.BASE);
-      const data = res.data || (Array.isArray(res) ? res : []);
-      setAllEmployees(data);
     } catch (e) {
       console.error(e);
     }
@@ -626,7 +617,7 @@ export function Payroll() {
 
               {(newCycle.target_type === 'selected' || newCycle.target_type === 'excluded') && (
                 <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #eee', padding: '10px', borderRadius: '4px' }}>
-                  {allEmployees.map(emp => (
+                  {allEmployees.map((emp: Employee) => (
                     <div key={emp.id} style={{ marginBottom: '8px' }}>
                       <Checkbox
                         label={emp.full_name}
