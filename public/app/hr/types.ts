@@ -49,7 +49,7 @@ export interface Department {
 export interface EmployeeDocument {
   id: number;
   employee_id: number;
-  document_type: 'cv' | 'contract' | 'certificate' | 'other';
+  document_type: 'cv' | 'contract' | 'certificate' | 'guarantee' | 'id_copy' | 'passport' | 'medical' | 'other';
   document_name: string;
   file_path: string;
   notes?: string;
@@ -506,9 +506,16 @@ export interface EmployeeContract {
 export interface EmployeeAsset {
   id: number;
   employee_id: number;
+  inventory_asset_id?: number;
   employee?: {
     full_name: string;
     employee_code: string;
+  };
+  inventory_asset?: {
+    id: number;
+    name: string;
+    status: string;
+    purchase_value: number;
   };
   asset_code: string;
   asset_name: string;
@@ -518,6 +525,8 @@ export interface EmployeeAsset {
   allocation_date: string;
   return_date?: string;
   status: string;
+  condition_on_return?: 'good' | 'damaged' | 'needs_repair';
+  condition_notes?: string;
   next_maintenance_date?: string;
   notes?: string;
 }
@@ -546,3 +555,80 @@ export interface ExpatRecord {
   repatriation_date?: string;
   notes?: string;
 }
+
+// ── Phase 2: Document Templates ──
+export interface DocumentTemplate {
+  id: number;
+  template_key: string;
+  template_name_ar: string;
+  template_name_en?: string;
+  template_type: 'contract' | 'clearance' | 'warning' | 'id_card' | 'handover' | 'certificate' | 'memo' | 'other';
+  body_html: string;
+  editable_fields?: string[];
+  description?: string;
+  is_active: boolean;
+  created_at?: string;
+}
+
+// ── Phase 2: Biometric Devices ──
+export interface BiometricDevice {
+  id: number;
+  device_name: string;
+  device_ip?: string;
+  device_port: number;
+  serial_number?: string;
+  location?: string;
+  status: 'online' | 'offline' | 'maintenance' | 'error';
+  last_sync_at?: string;
+  total_records_synced: number;
+  is_active: boolean;
+  latest_sync?: BiometricSyncLog;
+  created_at?: string;
+}
+
+export interface BiometricSyncLog {
+  id: number;
+  device_id: number;
+  device?: { device_name: string };
+  sync_type: 'auto' | 'manual' | 'import';
+  records_imported: number;
+  records_failed: number;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  error_message?: string;
+  initiated_by?: number;
+  initiator?: { full_name: string };
+  started_at?: string;
+  completed_at?: string;
+  created_at?: string;
+}
+
+// ── Phase 2: Job Titles & Capacity Planning ──
+export interface JobTitle {
+  id: number;
+  title_ar: string;
+  title_en?: string;
+  department_id?: number;
+  department?: { id: number; name_ar: string };
+  max_headcount: number;
+  current_headcount: number;
+  vacancy_count?: number;
+  description?: string;
+  is_active: boolean;
+}
+
+// ── Phase 2: Permission Templates ──
+export interface PermissionTemplate {
+  id: number;
+  template_name: string;
+  template_key: string;
+  description?: string;
+  permissions: Array<{
+    module_key: string;
+    can_view: boolean;
+    can_create: boolean;
+    can_edit: boolean;
+    can_delete: boolean;
+  }>;
+  is_active: boolean;
+}
+

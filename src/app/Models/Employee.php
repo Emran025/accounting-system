@@ -42,7 +42,7 @@ class Employee extends Authenticatable
     protected $fillable = [
         'employee_code', 'full_name', 'email', 'password', 'phone',
         'national_id', 'gosi_number', 'date_of_birth', 'gender', 'address',
-        'role_id', 'department_id', 'hire_date', 'termination_date',
+        'role_id', 'job_title_id', 'department_id', 'hire_date', 'termination_date',
         'employment_status', 'contract_type', 'vacation_days_balance',
         'base_salary', 'iban', 'bank_name', 'account_id', 'is_active', 'created_by', 'user_id', 'manager_id'
     ];
@@ -74,6 +74,20 @@ class Employee extends Authenticatable
      */
     public function department() {
         return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * Get the job title assigned to this employee.
+     */
+    public function jobTitle() {
+        return $this->belongsTo(JobTitle::class);
+    }
+
+    /**
+     * Get the linked system user account.
+     */
+    public function user() {
+        return $this->belongsTo(User::class);
     }
 
     /**

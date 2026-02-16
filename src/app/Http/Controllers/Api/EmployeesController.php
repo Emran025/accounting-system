@@ -201,4 +201,19 @@ class EmployeesController extends Controller
         $employee = Employee::findOrFail($id);
         return response()->json($employee->documents);
     }
+
+    public function downloadDocument($employeeId, $documentId)
+    {
+        $employee = Employee::findOrFail($employeeId);
+        $document = $employee->documents()->findOrFail($documentId);
+
+        if (!\Illuminate\Support\Facades\Storage::exists($document->file_path)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        return \Illuminate\Support\Facades\Storage::download(
+            $document->file_path,
+            $document->document_name
+        );
+    }
 }

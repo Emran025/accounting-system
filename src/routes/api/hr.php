@@ -236,3 +236,42 @@ Route::middleware('can:employees,edit')->post('/knowledge-base/{id}/helpful', [\
 Route::middleware('can:employees,view')->get('/expertise', [\App\Http\Controllers\Api\KnowledgeManagementController::class, 'indexExpertise']);
 Route::middleware('can:employees,create')->post('/expertise', [\App\Http\Controllers\Api\KnowledgeManagementController::class, 'storeExpertise']);
 Route::middleware('can:employees,edit')->put('/expertise/{id}', [\App\Http\Controllers\Api\KnowledgeManagementController::class, 'updateExpertise']);
+
+// Document Templates
+Route::middleware('can:employees,view')->get('/document-templates', [\App\Http\Controllers\Api\DocumentTemplateController::class, 'index']);
+Route::middleware('can:employees,create')->post('/document-templates', [\App\Http\Controllers\Api\DocumentTemplateController::class, 'store']);
+Route::middleware('can:employees,view')->get('/document-templates/{id}', [\App\Http\Controllers\Api\DocumentTemplateController::class, 'show']);
+Route::middleware('can:employees,edit')->put('/document-templates/{id}', [\App\Http\Controllers\Api\DocumentTemplateController::class, 'update']);
+Route::middleware('can:employees,delete')->delete('/document-templates/{id}', [\App\Http\Controllers\Api\DocumentTemplateController::class, 'destroy']);
+Route::middleware('can:employees,view')->post('/document-templates/{id}/render', [\App\Http\Controllers\Api\DocumentTemplateController::class, 'render']);
+
+// Biometric Device Management
+Route::middleware('can:attendance,view')->get('/biometric/devices', [\App\Http\Controllers\Api\BiometricController::class, 'indexDevices']);
+Route::middleware('can:attendance,create')->post('/biometric/devices', [\App\Http\Controllers\Api\BiometricController::class, 'storeDevice']);
+Route::middleware('can:attendance,edit')->put('/biometric/devices/{id}', [\App\Http\Controllers\Api\BiometricController::class, 'updateDevice']);
+Route::middleware('can:attendance,delete')->delete('/biometric/devices/{id}', [\App\Http\Controllers\Api\BiometricController::class, 'destroyDevice']);
+Route::middleware('can:attendance,edit')->post('/biometric/devices/{id}/sync', [\App\Http\Controllers\Api\BiometricController::class, 'syncDevice']);
+Route::middleware('can:attendance,view')->get('/biometric/sync-logs', [\App\Http\Controllers\Api\BiometricController::class, 'syncLogs']);
+Route::middleware('can:attendance,create')->post('/biometric/import', [\App\Http\Controllers\Api\BiometricController::class, 'importFromFile']);
+
+// HR Administration - Job Titles & Capacity Planning
+Route::middleware('can:employees,view')->get('/job-titles', [\App\Http\Controllers\Api\HrAdministrationController::class, 'indexJobTitles']);
+Route::middleware('can:employees,create')->post('/job-titles', [\App\Http\Controllers\Api\HrAdministrationController::class, 'storeJobTitle']);
+Route::middleware('can:employees,edit')->put('/job-titles/{id}', [\App\Http\Controllers\Api\HrAdministrationController::class, 'updateJobTitle']);
+Route::middleware('can:employees,delete')->delete('/job-titles/{id}', [\App\Http\Controllers\Api\HrAdministrationController::class, 'destroyJobTitle']);
+Route::middleware('can:employees,view')->get('/capacity-overview', [\App\Http\Controllers\Api\HrAdministrationController::class, 'capacityOverview']);
+
+// HR Administration - Employee-User Linking
+Route::middleware('can:employees,edit')->post('/employee-user-link', [\App\Http\Controllers\Api\HrAdministrationController::class, 'linkEmployeeToUser']);
+Route::middleware('can:employees,edit')->delete('/employee-user-link/{employeeId}', [\App\Http\Controllers\Api\HrAdministrationController::class, 'unlinkEmployee']);
+
+// HR Administration - Permission Templates
+Route::middleware('can:employees,view')->get('/permission-templates', [\App\Http\Controllers\Api\HrAdministrationController::class, 'indexTemplates']);
+Route::middleware('can:employees,create')->post('/permission-templates', [\App\Http\Controllers\Api\HrAdministrationController::class, 'storeTemplate']);
+Route::middleware('can:employees,edit')->put('/permission-templates/{id}', [\App\Http\Controllers\Api\HrAdministrationController::class, 'updateTemplate']);
+Route::middleware('can:employees,edit')->post('/permission-templates/apply', [\App\Http\Controllers\Api\HrAdministrationController::class, 'applyTemplateToRole']);
+
+// Employee File Management (enhanced)
+Route::middleware('can:employees,view')->get('/employee-files/{employeeId}', [\App\Http\Controllers\Api\EmployeesController::class, 'getDocuments']);
+Route::middleware('can:employees,create')->post('/employee-files/{employeeId}', [\App\Http\Controllers\Api\EmployeesController::class, 'uploadDocument']);
+Route::middleware('can:employees,view')->get('/employee-files/{employeeId}/download/{documentId}', [\App\Http\Controllers\Api\EmployeesController::class, 'downloadDocument']);
