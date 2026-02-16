@@ -31,7 +31,7 @@ export function PageHeader({
   return (
     <header className="page-header">
       <div>
-        <h1>{title}</h1>
+        <h2>{title}</h2>
         {showDate && (
           <span style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
             {getCurrentDateTime()}

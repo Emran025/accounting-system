@@ -35,7 +35,7 @@ export function Table<T>({
   if (isLoading) {
     return (
       <div className="table-container">
-        <div className="empty-state"  style={{ textAlign: "center", padding: "1rem" }}>
+        <div className="empty-state" style={{ textAlign: "center", padding: "1rem" }}>
           <i className="fas fa-spinner fa-spin" style={{ fontSize: "2rem", marginBottom: "1rem" }}></i>
           <div>جاري التحميل...</div>
         </div>

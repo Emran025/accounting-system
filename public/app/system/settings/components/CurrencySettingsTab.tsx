@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { showToast, Dialog, Table, Column } from "@/components/ui";
+import { showToast, Dialog, Table, Column, ActionButtons } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ui/Dialog";
 import { Alert } from "@/components/ui/Alert";
 import { Currency, CurrencyDenomination, CurrencyPolicy, PolicyStatus } from "../types";
@@ -169,20 +169,29 @@ export function CurrencySettingsTab() {
     },
     {
       key: "actions",
-      header: "إجراءات",
+      header: "الإجراءات",
+      dataLabel: "الإجراءات",
       render: (curr) => (
-        <div className="action-buttons">
-          <button className="icon-btn edit" onClick={() => handleEdit(curr)} title="تعديل">
-            {getIcon("edit")}
-          </button>
-          {!curr.is_primary && (
-            <button className="icon-btn delete" onClick={() => handleDelete(curr.id)} title="حذف">
-              {getIcon("trash")}
-            </button>
-          )}
-        </div>
-      )
-    }
+        <ActionButtons
+          actions={[
+            {
+              icon: "edit",
+              title: "تعديل",
+              variant: "edit",
+              onClick: () => handleEdit(curr),
+              // hidden: !canAccess(permissions, "chart_of_accounts", "edit")
+            },
+            {
+              icon: "trash",
+              title: "حذف",
+              variant: "delete",
+              onClick: () => handleDelete(curr.id),
+              // hidden: !canAccess(permissions, "chart_of_accounts", "delete")
+            }
+          ]}
+        />
+      ),
+    },
   ];
 
   const denominationColumns: Column<CurrencyDenomination>[] = [

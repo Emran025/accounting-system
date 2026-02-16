@@ -3,7 +3,7 @@
  * Provides formatting, validation, and helper utilities used across all modules.
  */
 
-import { getSetting } from "./api";
+import { getSetting } from "./settings";
 import QRCode from "qrcode";
 
 /**

@@ -3,12 +3,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { showToast, Dialog, ConfirmDialog, Table, Column } from "@/components/ui";
+import { showToast, Dialog, ConfirmDialog, Table, Column, ActionButtons, Button } from "@/components/ui";
 import { getIcon } from "@/lib/icons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { ZatcaSettingsTab } from "./ZatcaSettingsTab";
+import { PageSubHeader } from "@/components/layout";
+
 
 interface GovernmentFee {
     id: number;
@@ -33,6 +36,7 @@ interface Account {
 }
 
 export function GovernmentFeesTab() {
+    const { canAccess } = useAuthStore();
     const [fees, setFees] = useState<GovernmentFee[]>([]);
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -194,62 +198,74 @@ export function GovernmentFeesTab() {
             ),
         },
         {
-            key: "actions",
-            header: "إجراءات",
-            className: "text-right",
-            render: (fee) => (
-                <div className="btn-group">
-                    <button className="btn btn-sm btn-icon" onClick={() => handleOpenDialog(fee)} title="تعديل">
-                        <i className="fas fa-edit"></i>
-                    </button>
-                    <button className="btn btn-sm btn-icon text-danger" onClick={() => handleDeleteClick(fee.id)} title="حذف">
-                        <i className="fas fa-trash"></i>
-                    </button>
-                </div>
+            key: "id",
+            header: "الإجراءات",
+            dataLabel: "الإجراءات",
+            render: (item) => (
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "edit",
+                            title: "تعديل",
+                            variant: "edit",
+                            onClick: () => handleOpenDialog(item)
+                        },
+                        ...(canAccess("settings", "delete") ? [{
+                            icon: "trash" as const,
+                            title: "حذف",
+                            variant: "delete" as const,
+                            onClick: () => handleDeleteClick(item.id)
+                        }] : [])
+                    ]}
+                />
             ),
         },
     ];
 
     return (
-        <div className="animate-fade">
-            <div className="sub-navigation mb-4 d-flex gap-2 p-1 bg-light rounded-3" style={{ maxWidth: '400px' }}>
-                <button
-                    className={`btn btn-sm flex-fill ${subTab === 'fees' ? 'btn-primary shadow-sm' : 'btn-link text-secondary'}`}
-                    onClick={() => setSubTab('fees')}
-                >
-                    {getIcon("scale-balanced")} الرسوم والالتزامات
-                </button>
-                <button
-                    className={`btn btn-sm flex-fill ${subTab === 'zatca' ? 'btn-primary shadow-sm' : 'btn-link text-secondary'}`}
-                    onClick={() => setSubTab('zatca')}
-                >
-                    {getIcon("shield-check")} إعدادات زاتكا (ZATCA)
-                </button>
+        <div className="sales-card animate-fade">
+            <div className="card-header-flex">
+                <div className="discount-type-toggle">
+                    <button
+                        className={subTab === 'fees' ? 'active' : ''}
+                        onClick={() => setSubTab('fees')}
+                    >
+                        {getIcon("scale-balanced")} الرسوم والالتزامات
+                    </button>
+                    <button
+                        className={subTab === 'zatca' ? 'active' : ''}
+                        onClick={() => setSubTab('zatca')}
+                    >
+                        {getIcon("shield-check")} إعدادات زاتكا (ZATCA)
+                    </button>
+                </div>
             </div>
 
             {subTab === 'zatca' ? (
                 <ZatcaSettingsTab />
             ) : (
-                <div className="card shadow-sm border-0">
-                    <div className="card-header border-0 bg-white p-4" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
-                            <h3 className="mb-0" style={{ fontWeight: 700 }}>الالتزامات الحكومية (الخراج)</h3>
-                            <p className="text-muted mb-0 small">إدارة الرسوم الحكومية المضافة تلقائياً للفواتير</p>
-                        </div>
-                        <button className="btn btn-primary btn-sm px-3 shadow-sm" onClick={() => handleOpenDialog()}>
-                            {getIcon("plus")} إضافة التزام جديد
-                        </button>
-                    </div>
-                    <div className="card-body p-0">
-                        <Table
-                            columns={feesColumns}
-                            data={fees}
-                            keyExtractor={(fee) => fee.id}
-                            isLoading={isLoading}
-                            emptyMessage="لا توجد التزامات مسجلة"
-                        />
-                    </div>
-                </div>
+                <>
+                    <PageSubHeader
+                        title="الالتزامات الحكومية (الخراج)"
+                        titleIcon="money-bill-wave"
+                        actions={
+                            <Button
+                                onClick={() => handleOpenDialog()}
+                                variant="primary"
+                                icon="plus"
+                            >
+                                إضافة التزام جديد
+                            </Button>
+                        }
+                    />
+                    <Table
+                        columns={feesColumns}
+                        data={fees}
+                        keyExtractor={(fee) => fee.id}
+                        isLoading={isLoading}
+                        emptyMessage="لا توجد التزامات مسجلة"
+                    />
+                </>
             )}
 
             <Dialog

@@ -182,6 +182,11 @@ export const navigationGroups: NavigationGroup[] = [
       // Employee Portal
       { href: "/hr/employee-portal", icon: "user-cog", label: "البوابة الذاتية", description: "كشوف المرتبات وطلبات الموظف", module: "portal" },
       { href: "/hr/eosb", icon: "calculator", label: "مكافأة نهاية الخدمة", description: "حساب تسويات نهاية الخدمة", module: "eosb" },
+
+      // Phase 2: Advanced Features
+      { href: "/hr/documents", icon: "file-signature", label: "المستندات والتقارير", description: "قوالب المستندات وبطاقات الهوية والتقارير", module: "employees" },
+      { href: "/hr/biometric", icon: "clock", label: "أجهزة البصمة", description: "إدارة أجهزة الحضور البيومترية", module: "attendance" },
+      { href: "/hr/administration", icon: "settings", label: "الإدارة والأدوار", description: "المسميات الوظيفية والصلاحيات وربط المستخدمين", module: "employees" },
     ],
   },
 

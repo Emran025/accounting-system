@@ -305,6 +305,37 @@ export const API_ENDPOINTS = {
             BASE: "/expertise",
             withId: (id: string | number) => `/expertise/${id}`,
         },
+        DOCUMENT_TEMPLATES: {
+            BASE: "/document-templates",
+            withId: (id: string | number) => `/document-templates/${id}`,
+            RENDER: (id: string | number) => `/document-templates/${id}/render`,
+        },
+        BIOMETRIC: {
+            DEVICES: "/biometric/devices",
+            DEVICE_WITH_ID: (id: string | number) => `/biometric/devices/${id}`,
+            SYNC: (id: string | number) => `/biometric/devices/${id}/sync`,
+            SYNC_LOGS: "/biometric/sync-logs",
+            IMPORT: "/biometric/import",
+        },
+        ADMINISTRATION: {
+            JOB_TITLES: {
+                BASE: "/job-titles",
+                withId: (id: string | number) => `/job-titles/${id}`,
+            },
+            CAPACITY_OVERVIEW: "/capacity-overview",
+            EMPLOYEE_USER_LINK: "/employee-user-link",
+            UNLINK_EMPLOYEE: (id: string | number) => `/employee-user-link/${id}`,
+            PERMISSION_TEMPLATES: {
+                BASE: "/permission-templates",
+                withId: (id: string | number) => `/permission-templates/${id}`,
+                APPLY: "/permission-templates/apply",
+            },
+        },
+        EMPLOYEE_FILES: {
+            LIST: (employeeId: string | number) => `/employee-files/${employeeId}`,
+            UPLOAD: (employeeId: string | number) => `/employee-files/${employeeId}`,
+            DOWNLOAD: (employeeId: string | number, documentId: string | number) => `/employee-files/${employeeId}/download/${documentId}`,
+        },
     },
     INVENTORY: {
         PRODUCTS: "/products",

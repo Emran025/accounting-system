@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Table, Column, Dialog, showToast, Button, Label } from "@/components/ui";
-import { TabNavigation } from "@/components/ui/TabNavigation";
+import { TabNavigation } from "@/components/navigation/TabNavigation";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { PayrollItem, LeaveRequest, AttendanceRecord } from "../types";

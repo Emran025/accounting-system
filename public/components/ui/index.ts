@@ -13,8 +13,8 @@ export { SearchableSelect } from "./SearchableSelect";
 export type { SelectOption } from "./SearchableSelect";
 
 export { Button } from "./Button";
-export { TabNavigation } from "./TabNavigation";
-export type { Tab } from "./TabNavigation";
+export { TabNavigation } from "../navigation/TabNavigation";
+export type { Tab } from "../navigation/TabNavigation";
 export { SegmentedToggle } from "./SegmentedToggle";
 export type { ToggleOption } from "./SegmentedToggle";
 export { FilterSection, FilterGroup, DateRangePicker, FilterActions } from "./FilterSection";

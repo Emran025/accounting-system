@@ -10,7 +10,7 @@ import { User, Permission, getStoredUser, getStoredPermissions, canAccess } from
 import { getIcon } from "@/lib/icons";
 
 import { ExchangeRatesWidget } from "./components/ExchangeRatesWidget";
-import { StatsCard } from "./components/StatsCard";
+import { StatsCard } from "../../../components/ui/StatsCard";
 
 interface DashboardStats {
     daily_sales: number;

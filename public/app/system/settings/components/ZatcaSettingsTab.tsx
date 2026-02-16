@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { showToast } from "@/components/ui";
+import { showToast, Button } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ZatcaSettings } from "../types";
 import { getIcon } from "@/lib/icons";
+import { PageSubHeader } from "@/components/layout";
 
 export function ZatcaSettingsTab() {
     const [settings, setSettings] = useState<ZatcaSettings>({
@@ -74,8 +75,6 @@ export function ZatcaSettingsTab() {
 
         try {
             setIsOnboarding(true);
-            // In a real scenario, this would call an endpoint that performs CSR generation and CSID request
-            // For now, we'll simulate the process as requested "fully controlled"
             const response = await fetchAPI("/api/zatca/onboard", {
                 method: "POST",
                 body: JSON.stringify({
@@ -105,153 +104,142 @@ export function ZatcaSettingsTab() {
     };
 
     if (isLoading) {
-        return <div className="p-8 text-center text-muted">جاري تحميل الإعدادات...</div>;
+        return <div className="empty-state"><p>جاري تحميل الإعدادات...</p></div>;
     }
 
     return (
         <div className="animate-fade">
-            <div className="card shadow-sm border-0 mb-4" style={{ borderRadius: '12px', overflow: 'hidden' }}>
-                <div className="card-header bg-primary text-white p-4" style={{ borderBottom: 'none' }}>
-                    <div className="d-flex align-items-center gap-3">
-                        <div style={{ fontSize: '1.5rem', opacity: 0.9 }}>{getIcon("shield-check")}</div>
-                        <div>
-                            <h3 className="mb-0" style={{ fontWeight: 700 }}>هيئة الزكاة والضريبة والجمارك (ZATCA)</h3>
-                            <p className="mb-0 text-white-50" style={{ fontSize: '0.85rem' }}>إعدادات الربط المباشر والامتثال لمتطلبات الفوترة الإلكترونية (المرحلة الثانية)</p>
-                        </div>
+            <PageSubHeader
+                title="إعدادات هيئة الزكاة والضريبة والجمارك (ZATCA)"
+                titleIcon="shield-check"
+                actions={
+                    <div className="action-buttons">
+                        <Button variant="secondary" onClick={loadSettings} icon="undo">
+                            تراجع
+                        </Button>
+                        <Button variant="primary" onClick={handleSave} icon="save" isLoading={isSaving}>
+                            حفظ الإعدادات
+                        </Button>
                     </div>
+                }
+            />
+
+            <div className="form-group checkbox-group">
+                <Checkbox
+                    id="zatca_enabled"
+                    label="تفعيل التكامل المباشر مع زاتكا"
+                    checked={settings.zatca_enabled}
+                    onChange={(e) => setSettings({ ...settings, zatca_enabled: e.target.checked })}
+                />
+                <small className="text-muted">عند التفعيل، سيتم إرسال كل فاتورة يتم إصدارها إلى بوابة زاتكا للاعتماد أو التقرير فورياً.</small>
+            </div>
+
+            <div className="form-row">
+                <div className="form-group">
+                    <Select
+                        label="بيئة العمل (Environment)"
+                        value={settings.zatca_environment}
+                        onChange={(e) => setSettings({ ...settings, zatca_environment: e.target.value as any })}
+                        options={[
+                            { value: "sandbox", label: "بيئة المطورين (Sandbox)" },
+                            { value: "simulation", label: "بيئة المحاكاة (Simulation)" },
+                            { value: "production", label: "البيئة الإنتاجية (Production)" }
+                        ]}
+                    />
                 </div>
-                <div className="card-body p-4 bg-light">
-                    <div className="row g-4">
-                        <div className="col-12 mb-2">
-                            <div className="p-3 bg-white rounded-3 border border-success-subtle d-flex align-items-start gap-3">
-                                <Checkbox
-                                    id="zatca_enabled"
-                                    checked={settings.zatca_enabled}
-                                    onChange={(e) => setSettings({ ...settings, zatca_enabled: e.target.checked })}
-                                />
-                                <div>
-                                    <label htmlFor="zatca_enabled" style={{ fontWeight: 600, cursor: 'pointer' }}>تفعيل التكامل المباشر مع زاتكا</label>
-                                    <p className="text-muted mb-0" style={{ fontSize: '0.8rem' }}>عند التفعيل، سيتم إرسال كل فاتورة يتم إصدارها إلى بوابة زاتكا للاعتماد أو التقرير فورياً.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="col-md-6">
-                            <div className="form-group mb-4">
-                                <Select
-                                    label="بيئة العمل (Environment)"
-                                    value={settings.zatca_environment}
-                                    onChange={(e) => setSettings({ ...settings, zatca_environment: e.target.value as any })}
-                                >
-                                    <option value="sandbox">بيئة المطورين (Sandbox)</option>
-                                    <option value="simulation">بيئة المحاكاة (Simulation)</option>
-                                    <option value="production">البيئة الإنتاجية (Production)</option>
-                                </Select>
-                                <small className="text-muted d-block mt-1">يُنصح بالبدء في بيئة المطورين للاختبار.</small>
-                            </div>
-
-                            <div className="form-group mb-4">
-                                <TextInput
-                                    label="الرقم الضريبي (VAT Number) *"
-                                    value={settings.zatca_vat_number}
-                                    onChange={(e) => setSettings({ ...settings, zatca_vat_number: e.target.value })}
-                                    placeholder="300XXXXXXXXXXXX"
-                                />
-                            </div>
-
-                            <div className="form-group mb-4">
-                                <TextInput
-                                    label="اسم المنشأة بالإنجليزية (Org Name)"
-                                    value={settings.zatca_org_name}
-                                    onChange={(e) => setSettings({ ...settings, zatca_org_name: e.target.value })}
-                                    placeholder="e.g. My Company LTD"
-                                />
-                            </div>
-
-                            <div className="form-group mb-4">
-                                <TextInput
-                                    label="اسم الفرع أو الوحدة (Org Unit)"
-                                    value={settings.zatca_org_unit_name}
-                                    onChange={(e) => setSettings({ ...settings, zatca_org_unit_name: e.target.value })}
-                                    placeholder="e.g. Main Branch"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="col-md-6 border-start ps-md-4">
-                            <div className="alert alert-warning border-0 shadow-sm mb-4" style={{ borderRadius: '10px' }}>
-                                <h5 style={{ fontSize: '0.95rem', fontWeight: 700 }}>{getIcon("info-circle")} عملية الربط (Onboarding)</h5>
-                                <p className="mb-3" style={{ fontSize: '0.85rem' }}>
-                                    لإتمام عملية الربط للمرحلة الثانية، يجب الحصول على رمز OTP من بوابة (Fatoora) التابعة لزاتكا.
-                                </p>
-
-                                <div className="form-group mb-3">
-                                    <TextInput
-                                        label="رمز OTP من بوابة زاتكا"
-                                        value={settings.zatca_otp}
-                                        onChange={(e) => setSettings({ ...settings, zatca_otp: e.target.value })}
-                                        placeholder="أدخل الرمز المكون من 6 أرقام"
-                                    />
-                                </div>
-
-                                <button
-                                    className="btn btn-warning w-100"
-                                    onClick={handleOnboard}
-                                    disabled={isOnboarding || !settings.zatca_otp}
-                                >
-                                    {isOnboarding ? <i className="fas fa-spinner fa-spin me-2"></i> : getIcon("sync")}
-                                    بدء عملية الربط الفنّي
-                                </button>
-                            </div>
-
-                            {settings.zatca_request_id && (
-                                <div className="p-3 bg-white rounded-3 border border-dashed text-center">
-                                    <div className="badge bg-success mb-2">النظام مرتبط</div>
-                                    <p className="mb-1" style={{ fontSize: '0.8rem' }}>رقم الطلب: <code>{settings.zatca_request_id}</code></p>
-                                    <p className="mb-0 text-muted" style={{ fontSize: '0.75rem' }}>تم الحصول على شهادة الأمان الرقمية بنجاح.</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="col-12 mt-4 d-flex justify-content-end gap-2">
-                            <button className="btn btn-outline-secondary px-4" onClick={loadSettings}>
-                                {getIcon("undo")} تراجع
-                            </button>
-                            <button className="btn btn-primary px-4" onClick={handleSave} disabled={isSaving}>
-                                {isSaving ? <i className="fas fa-spinner fa-spin me-2"></i> : getIcon("save")}
-                                حفظ الإعدادات
-                            </button>
-                        </div>
-                    </div>
+                <div className="form-group">
+                    <TextInput
+                        label="الرقم الضريبي (VAT Number) *"
+                        value={settings.zatca_vat_number}
+                        onChange={(e) => setSettings({ ...settings, zatca_vat_number: e.target.value })}
+                        placeholder="300XXXXXXXXXXXX"
+                    />
                 </div>
             </div>
 
-            <div className="row g-4">
-                <div className="col-md-6">
-                    <div className="card h-100 shadow-sm">
-                        <div className="card-body">
-                            <h5 className="card-title fw-bold">الامتثال الفني</h5>
-                            <p className="text-secondary small">يتوافق النظام تماماً مع متطلبات المرحلة الثانية (الربط والتكامل) بما في ذلك:</p>
-                            <ul className="small text-secondary ps-3">
-                                <li>توليد الملفات بصيغة UBL 2.1 XML.</li>
-                                <li>التوقيع الرقمي باستخدام شهادات (X509).</li>
-                                <li>تشفير البيانات والتحقق من التجزئة (Hashing).</li>
-                                <li>دعم فواتير الضريبة المبسطة والضريبة القياسية.</li>
-                            </ul>
-                        </div>
-                    </div>
+            <div className="form-row">
+                <div className="form-group">
+                    <TextInput
+                        label="اسم المنشأة بالإنجليزية (Org Name) *"
+                        value={settings.zatca_org_name}
+                        onChange={(e) => setSettings({ ...settings, zatca_org_name: e.target.value })}
+                        placeholder="e.g. My Company LTD"
+                    />
                 </div>
-                <div className="col-md-6">
-                    <div className="card h-100 shadow-sm">
-                        <div className="card-body">
-                            <h5 className="card-title fw-bold">بيانات الشهادة الرقمية</h5>
-                            <div className="bg-dark text-light p-3 rounded small" style={{ fontFamily: 'monospace', maxHeight: '150px', overflowY: 'auto' }}>
-                                {settings.zatca_binary_token ? `SECURITY-TOKEN: ${settings.zatca_binary_token.substring(0, 30)}...` : 'لا توجد شهادة رقمية نشطة حالياً. يرجى إتمام عملية الربط.'}
-                            </div>
-                        </div>
-                    </div>
+                <div className="form-group">
+                    <TextInput
+                        label="اسم الفرع أو الوحدة (Org Unit)"
+                        value={settings.zatca_org_unit_name}
+                        onChange={(e) => setSettings({ ...settings, zatca_org_unit_name: e.target.value })}
+                        placeholder="e.g. Main Branch"
+                    />
                 </div>
             </div>
+
+            <div className="sales-card compact">
+                <h3>{getIcon("info-circle")} عملية الربط (Onboarding)</h3>
+                <p className="text-muted">لإتمام عملية الربط للمرحلة الثانية، يجب الحصول على رمز OTP من بوابة (Fatoora) التابعة لزاتكا.</p>
+
+                <div className="form-row">
+                    <div className="form-group">
+                        <TextInput
+                            label="رمز OTP من بوابة زاتكا"
+                            value={settings.zatca_otp}
+                            onChange={(e) => setSettings({ ...settings, zatca_otp: e.target.value })}
+                            placeholder="أدخل الرمز المكون من 6 أرقام"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <Button
+                            onClick={handleOnboard}
+                            variant="primary"
+                            icon="sync"
+                            isLoading={isOnboarding}
+                            disabled={!settings.zatca_otp}
+                        >
+                            بدء عملية الربط الفنّي
+                        </Button>
+                    </div>
+                </div>
+
+                {settings.zatca_request_id && (
+                    <div className="summary-stat-box">
+                        <div className="stat-item">
+                            <span className="stat-label">حالة الربط</span>
+                            <span className="badge badge-success">النظام مرتبط حالياً</span>
+                        </div>
+                        <div className="stat-item">
+                            <span className="stat-label">رقم الطلب</span>
+                            <code className="stat-value">{settings.zatca_request_id}</code>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="invoice-info">
+                <div className="info-row">
+                    <span className="label">الامتثال الفني</span>
+                </div>
+                <div className="info-row">
+                    <span className="badge badge-success">✓</span>
+                    <span className="value">توليد الملفات بصيغة UBL 2.1 XML</span>
+                </div>
+                <div className="info-row">
+                    <span className="badge badge-success">✓</span>
+                    <span className="value">التوقيع الرقمي باستخدام شهادات (X509)</span>
+                </div>
+                <div className="info-row">
+                    <span className="badge badge-success">✓</span>
+                    <span className="value">تشفير البيانات والتحقق من التجزئة (Hashing)</span>
+                </div>
+            </div>
+
+            {settings.zatca_binary_token && (
+                <div className="sales-card compact">
+                    <h3>{getIcon("shield-check")} بيانات شهادة الأمان</h3>
+                    <code className="text-muted">{settings.zatca_binary_token}</code>
+                </div>
+            )}
         </div>
     );
 }

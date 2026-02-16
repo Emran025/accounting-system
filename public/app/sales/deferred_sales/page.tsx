@@ -926,14 +926,12 @@ export default function DeferredSalesPage() {
             {/* Card 3: Current Invoice Items */}
             <div className="sales-card animate-slide" style={{ animationDelay: "0.1s" }}>
               <h3>عناصر الفاتورة الحالية</h3>
-              <div className="current-invoice-table">
-                <Table
-                  columns={currentInvoiceColumns}
-                  data={invoiceItems}
-                  keyExtractor={(_, index) => index}
-                  emptyMessage="لا توجد عناصر مضافة"
-                />
-              </div>
+              <Table
+                columns={currentInvoiceColumns}
+                data={invoiceItems}
+                keyExtractor={(_, index) => index}
+                emptyMessage="لا توجد عناصر مضافة"
+              />
 
               <div className="invoice-adjustments">
                 <div className="discount-section">
