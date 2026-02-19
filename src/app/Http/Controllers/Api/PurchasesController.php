@@ -69,21 +69,46 @@ class PurchasesController extends Controller
     }
 
     /**
-     * Create a new purchase.
+     * Store a new purchase or create a purchase return.
      * Delegates to PurchaseService for VAT validation and approval workflow.
      * 
-     * @param StorePurchaseRequest $request Validated purchase data
-     * @return JsonResponse Created purchase details with voucher number
+     * @param Request $request
+     * @return JsonResponse
      */
-    public function store(StorePurchaseRequest $request): JsonResponse
+    public function store(Request $request): JsonResponse
     {
-
+        $type = $request->input('type', 'purchase');
+        $userId = auth()->id() ?? session('user_id');
 
         try {
-            $userId = auth()->id() ?? session('user_id');
-            $purchase = $this->purchaseService->createPurchase($request->validated(), $userId);
+            if ($type === 'return') {
+                $validated = $request->validate([
+                    'invoice_id' => 'required|exists:purchases,id',
+                    'items' => 'required|array|min:1',
+                    'items.*.invoice_item_id' => 'required', // For purchases, this is the purchase ID itself
+                    'items.*.return_quantity' => 'required|integer|min:1',
+                    'reason' => 'nullable|string|max:500',
+                ]);
 
-            TelescopeService::logOperation('CREATE', 'purchases', $purchase->id, null, $request->validated());
+                $returnId = $this->purchaseService->createReturn(
+                    $validated['invoice_id'],
+                    $validated['items'],
+                    $validated['reason'] ?? null,
+                    $userId
+                );
+
+                TelescopeService::logOperation('CREATE', 'purchase_returns', $returnId, null, $validated);
+
+                return $this->successResponse(['id' => $returnId], 'تم تسجيل المرتجع بنجاح');
+            }
+
+            // Standard Purchase
+            $storeRequest = app(StorePurchaseRequest::class);
+            $validated = $storeRequest->validated();
+            
+            $purchase = $this->purchaseService->createPurchase($validated, $userId);
+
+            TelescopeService::logOperation('CREATE', 'purchases', $purchase->id, null, $validated);
 
             return response()->json([
                 'success' => true,
@@ -93,11 +118,51 @@ class PurchasesController extends Controller
                 'message' => $purchase->approval_status === 'pending' ? 'Purchase created and pending approval' : 'Purchase created successfully',
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            throw $e;
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-             \Illuminate\Support\Facades\Log::error('Purchase Creation Error: ' . $e->getMessage());
+             \Illuminate\Support\Facades\Log::error('Purchase Operation Error: ' . $e->getMessage());
             return $this->errorResponse($e->getMessage(), 500);
         }
+    }
+
+    /**
+     * Get a single purchase or return details.
+     * Supports fetching via ?id=...
+     */
+    public function show(Request $request): JsonResponse
+    {
+        $id = $request->input('id');
+        if (!$id) {
+            return $this->errorResponse('ID is required', 400);
+        }
+
+        $purchase = Purchase::with(['product', 'user', 'supplier'])->findOrFail($id);
+        
+        // CRITICAL FIX: Resource-level authorization
+        $this->authorize('view', $purchase);
+
+        // Map to a format compatible with SalesReturnDialog (DetailedInvoice)
+        $data = [
+            'id' => $purchase->id,
+            'invoice_number' => $purchase->voucher_number,
+            'total_amount' => (float)$purchase->invoice_price,
+            'subtotal' => (float)($purchase->invoice_price - $purchase->vat_amount),
+            'vat_amount' => (float)$purchase->vat_amount,
+            'items' => [
+                [
+                    'id' => $purchase->id, // Use purchase ID as item ID
+                    'invoice_id' => $purchase->id,
+                    'product_id' => $purchase->product_id,
+                    'product_name' => $purchase->product?->name,
+                    'quantity' => (float)$purchase->quantity,
+                    'unit_price' => $purchase->quantity > 0 ? (float)($purchase->invoice_price / $purchase->quantity) : 0,
+                    'subtotal' => (float)($purchase->invoice_price - $purchase->vat_amount),
+                    'maxQuantity' => (float)$purchase->quantity, // For return dialog validation
+                ]
+            ]
+        ];
+
+        return $this->successResponse($data);
     }
 
     public function requests(Request $request): JsonResponse

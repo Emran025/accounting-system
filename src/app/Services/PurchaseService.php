@@ -286,6 +286,98 @@ class PurchaseService
     }
 
     /**
+     * Create a purchase return for a specific purchase.
+     * Decrements inventory and handles GL/AP impact.
+     */
+    public function createReturn(int $purchaseId, array $items, ?string $reason, int $userId): int
+    {
+        return DB::transaction(function () use ($purchaseId, $items, $reason, $userId) {
+            $purchase = Purchase::with('product')->findOrFail($purchaseId);
+            
+            // For purchases, since it's single-product per record, we sum quantities
+            $totalReturnQty = 0;
+            foreach ($items as $item) {
+                $totalReturnQty += (int)$item['return_quantity'];
+            }
+
+            if ($totalReturnQty > $purchase->quantity) {
+                throw new \Exception("Cannot return more than purchased quantity (" . $purchase->quantity . ")");
+            }
+
+            $isPackage = ($purchase->unit_type === 'main' || $purchase->unit_type === 'package');
+            $itemsPerUnit = $purchase->product->items_per_unit ?? 1;
+            $actualReturnQty = $isPackage ? ($totalReturnQty * $itemsPerUnit) : $totalReturnQty;
+
+            // Check stock available
+            if ($purchase->product->stock_quantity < $actualReturnQty) {
+                 throw new \Exception("Insufficient stock to perform return. Available: {$purchase->product->stock_quantity}, Required: {$actualReturnQty}");
+            }
+
+            // Calculate proportional values
+            $proportion = $totalReturnQty / $purchase->quantity;
+            $totalReturnAmount = round($purchase->invoice_price * $proportion, 2);
+            $totalReturnVat = round($purchase->vat_amount * $proportion, 2);
+            $netReturnAmount = $totalReturnAmount - $totalReturnVat;
+
+            // 1. Decrement Stock
+            $purchase->product->decrement('stock_quantity', $actualReturnQty);
+
+            // 2. Create AP Transaction (Return)
+            $transaction = \App\Models\ApTransaction::create([
+                'supplier_id' => $purchase->supplier_id,
+                'type' => 'return',
+                'amount' => $totalReturnAmount,
+                'description' => "إرجاع مشتريات (Voucher #{$purchase->voucher_number}) - " . ($reason ?? "Reason: $totalReturnQty units"),
+                'reference_type' => 'purchases',
+                'reference_id' => $purchase->id,
+                'created_by' => $userId,
+                'transaction_date' => now(),
+            ]);
+
+            // 3. Post to GL
+            $accounts = $this->coaService->getStandardAccounts();
+            $glEntries = [
+                [
+                    'account_code' => $purchase->payment_type === 'credit' ? $accounts['accounts_payable'] : $accounts['cash'],
+                    'entry_type' => 'DEBIT',
+                    'amount' => $totalReturnAmount,
+                    'description' => "Purchase Return - Purchase #{$purchase->voucher_number}"
+                ],
+                [
+                    'account_code' => $accounts['inventory'],
+                    'entry_type' => 'CREDIT',
+                    'amount' => $netReturnAmount,
+                    'description' => "Inventory Reduction (Return) - Purchase #{$purchase->voucher_number}"
+                ],
+            ];
+
+            if ($totalReturnVat > 0) {
+                $glEntries[] = [
+                    'account_code' => $accounts['input_vat'],
+                    'entry_type' => 'CREDIT',
+                    'amount' => $totalReturnVat,
+                    'description' => "VAT Input Reversal - Purchase #{$purchase->voucher_number}"
+                ];
+            }
+
+            $this->ledgerService->postTransaction(
+                $glEntries,
+                'ap_transactions',
+                $transaction->id,
+                null,
+                now()->format('Y-m-d')
+            );
+
+            // 4. Update Supplier Balance
+            if ($purchase->supplier_id) {
+                $this->updateSupplierBalance($purchase->supplier_id);
+            }
+
+            return $transaction->id;
+        });
+    }
+
+    /**
      * Update supplier balance based on transactions
      */
     public function updateSupplierBalance(int $supplierId): void
