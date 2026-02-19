@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, Button } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, Button, ActionButtons } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
 import { Icon, getIcon } from "@/lib/icons";
@@ -128,33 +128,37 @@ export default function ARCustomersPage() {
             header: "الإجراءات",
             dataLabel: "الإجراءات",
             render: (it) => (
-                <div className="action-buttons">
-                    <button
-                        className="icon-btn view"
-                        onClick={() => router.push(`/finance/ar_ledger?customer_id=${it.id}`)}
-                        title="كشف الحساب"
-                    >
-                        <Icon name="clipboard-list" />
-                    </button>
-                    <button
-                        className="icon-btn info"
-                        onClick={() => { setSelectedCustomer(it); setViewDialog(true); }}
-                        title="تفاصيل"
-                    >
-                        <Icon name="eye" />
-                    </button>
-                    {canAccess(permissions, "ar_customers", "edit") && (
-                        <button className="icon-btn edit" onClick={() => openEditDialog(it)} title="تعديل">
-                            <Icon name="edit" />
-                        </button>
-                    )}
-                    {canAccess(permissions, "ar_customers", "delete") && (
-                        <button className="icon-btn delete" onClick={() => { setDeleteId(it.id); setConfirmDialog(true); }} title="حذف">
-                            <Icon name="trash" />
-                        </button>
-                    )}
-                </div>
-            )
+                <ActionButtons
+                    actions={[
+                        {
+                            icon: "list",
+                            title: "كشف الحساب",
+                            variant: "view",
+                            onClick: () => { router.push(`/finance/ar_ledger?customer_id=${it.id}`); }
+                        },
+                        {
+                            icon: "eye",
+                            title: "تفاصيل",
+                            variant: "info",
+                            onClick: () => { setSelectedCustomer(it); setViewDialog(true); },
+                        },
+                        {
+                            icon: "edit",
+                            title: "تعديل",
+                            variant: "edit",
+                            onClick: () => { openEditDialog(it) },
+                            hidden: canAccess(permissions, "ar_customers", "edit")
+                        },
+                        {
+                            icon: "trash",
+                            title: "حذف",
+                            variant: "delete",
+                            onClick: () => { setDeleteId(it.id); setConfirmDialog(true); },
+                            hidden: canAccess(permissions, "ar_customers", "delete")
+                        }
+                    ]}
+                />
+            ),
         }
     ];
 
