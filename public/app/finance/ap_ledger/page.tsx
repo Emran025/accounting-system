@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions, NumberInput } from "@/components/ui";
+import { Table, Dialog, ConfirmDialog, showToast, Column, Button, FilterGroup, DateRangePicker, FilterActions, NumberInput } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/select";

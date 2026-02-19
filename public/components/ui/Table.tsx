@@ -24,6 +24,55 @@ interface TableProps<T> {
   isLoading?: boolean;
 }
 
+export function TableLoding<T>({
+  columns = []
+}: {
+  columns: Column<T>[];
+}) {
+  return (
+    <tr>
+      <td colSpan={columns?.length}>
+        <div className="empty-state" style={{ textAlign: "center" }}>
+          <i className="fas fa-spinner fa-spin" style={{ fontSize: "2rem", marginBottom: "1rem" }}></i>
+          <div>جاري التحميل...</div>
+        </div>
+      </td>
+    </tr>
+  );
+};
+
+export function TableEmpty<T>({
+  emptyMessage = "لا توجد بيانات",
+  columns = []
+}: {
+  emptyMessage: String,
+  columns: Column<T>[];
+}) {
+  return <tr>
+    <td colSpan={columns?.length}>
+      <div className="empty-state" style={{ textAlign: "center" }}>
+        <i className="fas fa-folder-open" style={{ fontSize: "2.5rem", marginBottom: "1rem", opacity: 0.5 }}></i>
+        <div>{emptyMessage}</div>
+      </div>
+    </td>
+  </tr>
+};
+
+export function TableHeader<T>({
+  columns
+}: {
+  columns: Column<T>[];
+}) {
+  return <thead>
+    <tr>
+      {columns.map((col) => (
+        <th key={col.key} className={col.className}>
+          {col.header}
+        </th>
+      ))}
+    </tr>
+  </thead>
+}
 export function Table<T>({
   columns,
   data,
@@ -32,57 +81,34 @@ export function Table<T>({
   pagination,
   isLoading = false,
 }: TableProps<T>) {
-  if (isLoading) {
-    return (
-      <div className="table-container">
-        <div className="empty-state" style={{ textAlign: "center", padding: "1rem" }}>
-          <i className="fas fa-spinner fa-spin" style={{ fontSize: "2rem", marginBottom: "1rem" }}></i>
-          <div>جاري التحميل...</div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="table-container">
       <div className="table-wrapper">
         <table>
-          <thead>
-            <tr>
-              {columns.map((col) => (
-                <th key={col.key} className={col.className}>
-                  {col.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
+          <TableHeader columns={columns} />
           <tbody>
-            {data.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length}>
-                  <div className="empty-state" style={{ textAlign: "center", padding: "1rem" }}>
-                    <i className="fas fa-folder-open" style={{ fontSize: "2.5rem", marginBottom: "1rem", opacity: 0.5 }}></i>
-                    <div>{emptyMessage}</div>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              data.map((item, index) => (
-                <tr key={keyExtractor(item, index)}>
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={col.className}
-                      data-label={col.dataLabel || col.header}
-                    >
-                      {col.render
-                        ? col.render(item, index)
-                        : (item as Record<string, unknown>)[col.key] as ReactNode}
-                    </td>
-                  ))}
-                </tr>
-              ))
-            )}
+            {isLoading ?
+              <TableLoding columns={columns} />
+              : data.length === 0 ? (
+                <TableEmpty emptyMessage={emptyMessage} columns={columns} />
+              ) : (
+                data.map((item, index) => (
+                  <tr key={keyExtractor(item, index)}>
+                    {columns.map((col) => (
+                      <td
+                        key={col.key}
+                        className={col.className}
+                        data-label={col.dataLabel || col.header}
+                      >
+                        {col.render
+                          ? col.render(item, index)
+                          : (item as Record<string, unknown>)[col.key] as ReactNode}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
           </tbody>
         </table>
       </div>

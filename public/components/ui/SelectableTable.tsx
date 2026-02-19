@@ -3,6 +3,7 @@
 import { ReactNode, useState, useRef, useCallback } from "react";
 import { Icon } from "@/lib/icons";
 import { Checkbox } from "./checkbox";
+import { Label } from "./Label";
 
 export interface SelectableColumn<T> {
   key: string;
@@ -23,6 +24,7 @@ interface SelectableTableProps<T> {
   onRowClick?: (item: T) => void;
   isLoading?: boolean;
   emptyMessage?: string;
+  isRowSelectable?: (item: T) => boolean;
 }
 
 const LONG_PRESS_DURATION = 500;
@@ -38,6 +40,7 @@ export function SelectableTable<T>({
   onRowClick,
   isLoading = false,
   emptyMessage = "لا توجد بيانات",
+  isRowSelectable,
 }: SelectableTableProps<T>) {
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const pressStartPos = useRef<{ x: number; y: number } | null>(null);
@@ -46,10 +49,10 @@ export function SelectableTable<T>({
     // Only track if long press handler exists
     if (!onRowLongPress && !selectionMode) return;
 
-    const pos = 'touches' in e 
+    const pos = 'touches' in e
       ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
       : { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY };
-    
+
     pressStartPos.current = pos;
 
     longPressTimer.current = setTimeout(() => {
@@ -69,8 +72,8 @@ export function SelectableTable<T>({
 
   const handlePressMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!pressStartPos.current || !longPressTimer.current) return;
-    
-    const pos = 'touches' in e 
+
+    const pos = 'touches' in e
       ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
       : { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY };
 
@@ -87,8 +90,10 @@ export function SelectableTable<T>({
 
   const handleRowClick = (item: T) => {
     const id = keyExtractor(item);
-    
+
     if (selectionMode) {
+      if (isRowSelectable && !isRowSelectable(item)) return;
+
       // Toggle selection
       const isSelected = selectedIds.includes(id);
       let newSelected;
@@ -126,10 +131,13 @@ export function SelectableTable<T>({
                 <th className="checkbox-header" style={{ width: "40px" }}>
                   <Checkbox
                     className="minimal"
-                    checked={data.length > 0 && selectedIds.length === data.length}
+                    checked={data.length > 0 && data.every(item => !isRowSelectable || !isRowSelectable(item) || selectedIds.includes(keyExtractor(item))) && data.some(item => !isRowSelectable || isRowSelectable(item))}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        onSelectionChange(data.map(item => keyExtractor(item)));
+                        const selectableIds = data
+                          .filter(item => !isRowSelectable || isRowSelectable(item))
+                          .map(item => keyExtractor(item));
+                        onSelectionChange(selectableIds);
                       } else {
                         onSelectionChange([]);
                       }
@@ -157,7 +165,7 @@ export function SelectableTable<T>({
                 const isSelected = selectedIds.includes(id);
 
                 return (
-                  <tr 
+                  <tr
                     key={id}
                     className={`selectable-row ${isSelected ? "selected" : ""}`}
                     onClick={() => handleRowClick(item)}
@@ -168,14 +176,24 @@ export function SelectableTable<T>({
                     onTouchStart={(e) => handlePressStart(e, item)}
                     onTouchEnd={handlePressEnd}
                     onTouchMove={handlePressMove}
+                    style={{
+                      opacity: isRowSelectable && !isRowSelectable(item) ? 0.5 : 1,
+                      cursor: isRowSelectable && !isRowSelectable(item) ? "not-allowed" : "pointer",
+                      pointerEvents: isRowSelectable && !isRowSelectable(item) ? "none" : "auto"
+                    }}
                   >
                     {selectionMode && (
                       <td className="checkbox-cell" onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          className="minimal"
-                          checked={isSelected}
-                          onChange={() => handleRowClick(item)}
-                        />
+                        {(!isRowSelectable || isRowSelectable(item)) ? (
+                          <Checkbox
+                            className="minimal"
+                            checked={isSelected}
+                            onChange={() => handleRowClick(item)}
+                          />
+                        ) : (
+                          <div style={{ height: "22px" }} />
+                        )
+                        }
                       </td>
                     )}
                     {columns.map((col) => (

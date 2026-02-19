@@ -5,7 +5,7 @@ export interface ActionButton {
     icon: IconName;
     title: string;
     onClick: () => void;
-    variant?: 'view' | 'edit' | 'delete' | 'restore' | 'success' | 'warning' | 'primary' | 'secondary';
+    variant?: 'view' | 'edit' | 'delete' | 'restore' | 'success' | 'warning' | 'primary' | 'secondary' | 'info';
     disabled?: boolean;
     hidden?: boolean;
 }

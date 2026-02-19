@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { ModuleLayout, PageHeader, PageSubHeader } from "@/components/layout";
 import { Table, showToast, Column, TabNavigation, FilterSection, FilterGroup, DateRangePicker, FilterActions, Button } from "@/components/ui";
 import { Select } from "@/components/ui/select";
 import { fetchAPI } from "@/lib/api";
@@ -304,21 +304,29 @@ export default function GeneralLedgerPage() {
         {/* Journal Entries Tab */}
         <div className={`tab-content ${activeTab === "journal" ? "active" : ""}`}>
           <div className="sales-card">
-            <FilterSection>
-              <DateRangePicker
-                label="فترة التقرير"
-                startDate={journalDateFrom}
-                endDate={journalDateTo}
-                onStartDateChange={setJournalDateFrom}
-                onEndDateChange={setJournalDateTo}
-              />
-              <FilterActions>
-                <Button onClick={() => loadJournalEntries(1)} icon="search">
-                  بحث
-                </Button>
-              </FilterActions>
-            </FilterSection>
-
+            <PageSubHeader
+              title="القيود اليومية"
+              titleIcon="chart-line"
+              actions={
+                <>
+                  <DateRangePicker
+                    // label="فترة التقرير"
+                    startDate={journalDateFrom}
+                    endDate={journalDateTo}
+                    onStartDateChange={setJournalDateFrom}
+                    onEndDateChange={setJournalDateTo}
+                  />
+                  <FilterActions>
+                    <Button
+                      onClick={() => loadJournalEntries(1)}
+                      icon="search"
+                      variant="primary"
+                    >
+                      بحث
+                    </Button>
+                  </FilterActions>
+                </>
+              } />
             <Table
               columns={journalColumns}
               data={journalEntries}

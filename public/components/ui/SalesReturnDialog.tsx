@@ -78,7 +78,7 @@ export function SalesReturnDialog({
     selectedItems.forEach(item => {
       const qty = quantities[item.invoiceItemId] ?? item.quantity;
       const invoice = activeInvoices[item.invoiceId];
-      
+
       if (!invoice) {
         missingInvoices = true;
         return;
@@ -118,7 +118,7 @@ export function SalesReturnDialog({
     try {
       // Group items by invoice
       const groupedData: Record<number, ReturnData> = {};
-      
+
       selectedItems.forEach(item => {
         if (!groupedData[item.invoiceId]) {
           groupedData[item.invoiceId] = {
@@ -134,10 +134,10 @@ export function SalesReturnDialog({
       });
 
       const dataToSubmit = Object.values(groupedData);
-      
+
       // Submit array if multi, or single if only one invoice
       await onConfirmReturn(isMultiInvoice ? dataToSubmit : dataToSubmit[0]);
-      
+
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
@@ -181,9 +181,9 @@ export function SalesReturnDialog({
             {step === "review" ? (
               <div className="quantity-input">
                 <button onClick={() => handleQuantityChange(item.invoiceItemId, qty - 1, item.maxQuantity)} disabled={qty <= 1}>-</button>
-                <input 
-                  type="number" 
-                  value={qty} 
+                <input
+                  type="number"
+                  value={qty}
                   onChange={(e) => handleQuantityChange(item.invoiceItemId, parseInt(e.target.value) || 1, item.maxQuantity)}
                 />
                 <button onClick={() => handleQuantityChange(item.invoiceItemId, qty + 1, item.maxQuantity)} disabled={qty >= item.maxQuantity}>+</button>
@@ -192,6 +192,11 @@ export function SalesReturnDialog({
               <span className="final-qty">{qty}</span>
             )}
             <span className="max-qty">/ {item.maxQuantity}</span>
+            {item.originalQuantity !== undefined && item.originalQuantity !== item.maxQuantity && (
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', width: '100%', textAlign: 'center' }}>
+                (من أصل {item.originalQuantity})
+              </span>
+            )}
           </div>
         );
       }
@@ -214,15 +219,15 @@ export function SalesReturnDialog({
       maxWidth="800px"
       footer={
         <div className="dialog-actions">
-          <button 
-            className="btn btn-secondary" 
+          <button
+            className="btn btn-secondary"
             onClick={step === "confirm" ? () => setStep("review") : handleClose}
             disabled={isSubmitting}
           >
             {step === "confirm" ? "رجوع" : "إلغاء"}
           </button>
-          <button 
-            className="btn btn-primary" 
+          <button
+            className="btn btn-primary"
             onClick={handleSubmit}
             disabled={isSubmitting || !calculations}
           >
@@ -234,8 +239,8 @@ export function SalesReturnDialog({
       <div className="return-dialog-content">
         {!calculations ? (
           <div className="p-8 text-center text-secondary">
-             <div className="loading-spinner"></div>
-             <div>جاري جلب بيانات المعالجة...</div>
+            <div className="loading-spinner"></div>
+            <div>جاري جلب بيانات المعالجة...</div>
           </div>
         ) : (
           <>
@@ -243,21 +248,21 @@ export function SalesReturnDialog({
               <div className="stat-card minimal">
                 <Icon name="receipt" size={20} />
                 <div className="stat-details">
-                   <span className="label">عدد الفواتير</span>
-                   <span className="value">{uniqueInvoicesCount}</span>
+                  <span className="label">عدد الفواتير</span>
+                  <span className="value">{uniqueInvoicesCount}</span>
                 </div>
               </div>
               <div className="stat-card minimal">
                 <Icon name="box" size={20} />
                 <div className="stat-details">
-                   <span className="label">عدد المنتجات</span>
-                   <span className="value">{selectedItems.length}</span>
+                  <span className="label">عدد المنتجات</span>
+                  <span className="value">{selectedItems.length}</span>
                 </div>
               </div>
             </div>
 
             <div className="items-table-section">
-              <Table 
+              <Table
                 columns={returnColumns}
                 data={selectedItems}
                 keyExtractor={(item) => item.invoiceItemId}
@@ -283,9 +288,9 @@ export function SalesReturnDialog({
             {step === "review" ? (
               <div className="form-group mb-0">
                 <label>سبب المرتجع (اختياري)</label>
-                <textarea 
-                  value={reason} 
-                  onChange={(e) => setReason(e.target.value)} 
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
                   placeholder="مثال: تلف المنتج، تبديل بمقاس آخر، إلخ..."
                   rows={3}
                 />

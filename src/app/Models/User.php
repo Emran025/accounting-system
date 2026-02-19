@@ -54,4 +54,21 @@ class User extends Authenticatable
     {
         return $this->hasMany(Session::class);
     }
+
+    /**
+     * Check if the user has a specific role.
+     * 
+     * @param string $role
+     * @return bool
+     */
+    public function hasRole(string $role): bool
+    {
+        // Check legacy role column
+        if ($this->role === $role) {
+            return true;
+        }
+
+        // Check related role key
+        return $this->roleRelation && $this->roleRelation->role_key === $role;
+    }
 }

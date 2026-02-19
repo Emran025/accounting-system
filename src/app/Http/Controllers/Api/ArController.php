@@ -161,13 +161,40 @@ class ArController extends Controller
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
 
-        $query = ArTransaction::where('customer_id', $customerId)
-            ->where('is_deleted', false);
+        $query = ArTransaction::where('customer_id', $customerId);
+
+        if ($request->boolean('show_deleted')) {
+             $query->where('is_deleted', true);
+        } else {
+             $query->where('is_deleted', false);
+        }
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('description', 'like', "%$search%")
+                  ->orWhere('reference_id', 'like', "%$search%")
+                  ->orWhere('amount', 'like', "%$search%");
+            });
+        }
+
+        if ($type = $request->input('type')) {
+            $query->where('type', $type);
+        }
+
+        if ($dateFrom = $request->input('date_from')) {
+            $query->whereDate('transaction_date', '>=', $dateFrom);
+        }
+
+        if ($dateTo = $request->input('date_to')) {
+            $query->whereDate('transaction_date', '<=', $dateTo);
+        }
 
         // Stats calculation
         $statsData = (clone $query)->selectRaw('
             SUM(CASE WHEN type = "invoice" THEN amount ELSE 0 END) as total_debit,
-            SUM(CASE WHEN type IN ("payment", "return") THEN amount ELSE 0 END) as total_credit,
+            SUM(CASE WHEN type IN ("payment", "receipt", "return") THEN amount ELSE 0 END) as total_credit,
+            SUM(CASE WHEN type = "return" THEN amount ELSE 0 END) as total_returns,
+            SUM(CASE WHEN type IN ("payment", "receipt") THEN amount ELSE 0 END) as total_receipts,
             COUNT(*) as transaction_count
         ')->first();
 
@@ -188,6 +215,8 @@ class ArController extends Controller
             'stats' => [
                 'total_debit' => (float)($statsData->total_debit ?? 0),
                 'total_credit' => (float)($statsData->total_credit ?? 0),
+                'total_returns' => (float)($statsData->total_returns ?? 0),
+                'total_receipts' => (float)($statsData->total_receipts ?? 0),
                 'balance' => (float)$customer->current_balance,
                 'transaction_count' => (int)($statsData->transaction_count ?? 0),
             ],
@@ -206,7 +235,7 @@ class ArController extends Controller
 
         $validated = $request->validate([
             'customer_id' => 'required|exists:ar_customers,id',
-            'type' => 'required|in:payment,return',
+            'type' => 'required|in:payment,receipt,return',
             'amount' => 'required|numeric|min:0.01',
             'description' => 'nullable|string',
             'date' => 'nullable|date',
@@ -222,7 +251,7 @@ class ArController extends Controller
                 'created_by' => auth()->id() ?? session('user_id'),
             ]);
 
-            // Update customer balance: Both payments and returns reduce the customer's debt
+            // Update customer balance: Both payments/receipts and returns reduce the customer's debt
             $balanceChange = -$validated['amount'];
             
             ArCustomer::where('id', $validated['customer_id'])
@@ -233,19 +262,19 @@ class ArController extends Controller
             $glEntries = [];
             $customer = ArCustomer::find($validated['customer_id']);
 
-            if ($validated['type'] === 'payment') {
-                // Payment Received: Debit Cash, Credit AR
+            if ($validated['type'] === 'payment' || $validated['type'] === 'receipt') {
+                // Payment/Receipt Received: Debit Cash, Credit AR
                 $glEntries[] = [
                     'account_code' => $mappings['cash'],
                     'entry_type' => 'DEBIT',
                     'amount' => $validated['amount'],
-                    'description' => "Payment from customer: {$customer->name} - " . ($validated['description'] ?? '')
+                    'description' => "Receipt from customer: {$customer->name} - " . ($validated['description'] ?? '')
                 ];
                 $glEntries[] = [
                     'account_code' => $mappings['accounts_receivable'],
                     'entry_type' => 'CREDIT',
                     'amount' => $validated['amount'],
-                    'description' => "Payment from customer: {$customer->name} (AR Update)"
+                    'description' => "Receipt from customer: {$customer->name} (AR Update)"
                 ];
             } else {
                 // Return: Debit Sales Revenue (or Sales Return), Credit AR
@@ -291,7 +320,7 @@ class ArController extends Controller
         }
 
         return DB::transaction(function () use ($transaction) {
-            // Reverse balance change: Both payments and returns previously reduced debt,
+            // Reverse balance change: Both payments/receipts and returns previously reduced debt,
             // so deleting either should increase the debt (increment current_balance).
             $balanceChange = $transaction->amount;
             
@@ -340,7 +369,7 @@ class ArController extends Controller
                     return $this->errorResponse('Transaction is not deleted', 400);
                 }
 
-                // Restore transaction balance impact: Both payments and returns reduce debt.
+                // Restore transaction balance impact: Both payments/receipts and returns reduce debt.
                 $balanceChange = -$transaction->amount;
             
                 ArCustomer::where('id', $transaction->customer_id)
@@ -351,18 +380,18 @@ class ArController extends Controller
                 $glEntries = [];
                 $customer = ArCustomer::find($transaction->customer_id);
 
-                if ($transaction->type === 'payment') {
+                if ($transaction->type === 'payment' || $transaction->type === 'receipt') {
                     $glEntries[] = [
                         'account_code' => $mappings['cash'],
                         'entry_type' => 'DEBIT',
                         'amount' => $transaction->amount,
-                        'description' => "Restored Payment from: {$customer->name} [Original ID: {$transaction->id}]"
+                        'description' => "Restored Receipt from: {$customer->name} [Original ID: {$transaction->id}]"
                     ];
                     $glEntries[] = [
                         'account_code' => $mappings['accounts_receivable'],
                         'entry_type' => 'CREDIT',
                         'amount' => $transaction->amount,
-                        'description' => "Restored Payment from: {$customer->name} (AR Reference)"
+                        'description' => "Restored Receipt from: {$customer->name} (AR Reference)"
                     ];
                 } else {
                     $glEntries[] = [

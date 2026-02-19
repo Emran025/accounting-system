@@ -4,6 +4,7 @@ import { ProfitLossView, APIProfitLoss } from "../types";
 import { fetchAPI } from "@/lib/api";
 import { showToast, FilterSection, DateRangePicker, FilterActions, Button } from "@/components/ui";
 import { useState, useCallback, useEffect } from "react";
+import { PageSubHeader } from "@/components/layout";
 
 export function ProfitLossTab() {
     const [isLoading, setIsLoading] = useState(false);
@@ -49,23 +50,25 @@ export function ProfitLossTab() {
 
     return (
         <div className="sales-card">
-            <h2><i className="fas fa-chart-line"></i> قائمة الدخل</h2>
-
-            <FilterSection>
-                <DateRangePicker
-                    label="فترة التقرير"
-                    startDate={startDate}
-                    endDate={endDate}
-                    onStartDateChange={setStartDate}
-                    onEndDateChange={setEndDate}
-                />
-                <FilterActions>
-                    <Button onClick={loadProfitLoss} icon="search">
-                        عرض التقرير
-                    </Button>
-                </FilterActions>
-            </FilterSection>
-
+            <PageSubHeader
+                title="قائمة الدخل"
+                titleIcon="chart-line"
+                actions={
+                    <>
+                        <DateRangePicker
+                            //label="فترة التقرير"
+                            startDate={startDate}
+                            endDate={endDate}
+                            onStartDateChange={setStartDate}
+                            onEndDateChange={setEndDate}
+                        />
+                        <FilterActions>
+                            <Button onClick={loadProfitLoss} icon="search">
+                                عرض التقرير
+                            </Button>
+                        </FilterActions>
+                    </>
+                } />
             {isLoading ? (
                 <div style={{ textAlign: "center", padding: "3rem" }}>
                     <i className="fas fa-spinner fa-spin" style={{ fontSize: "2rem" }}></i>

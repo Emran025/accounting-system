@@ -215,22 +215,61 @@ export function CapacityPlanningTab() {
                 }
             />
 
-            <Table columns={columns} data={jobTitles} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد مسميات وظيفية" isLoading={isLoading} />
+            <Table
+                columns={columns}
+                data={jobTitles}
+                keyExtractor={(i) => i.id.toString()}
+                emptyMessage="لا توجد مسميات وظيفية"
+                isLoading={isLoading}
+            />
 
-            <Dialog isOpen={showAdd} onClose={() => setShowAdd(false)} title={editItem ? "تعديل المسمى الوظيفي" : "مسمى وظيفي جديد"} footer={
-                <>
-                    <Button variant="secondary" onClick={() => setShowAdd(false)}>إلغاء</Button>
-                    <Button variant="primary" onClick={handleSave}>{editItem ? "تحديث" : "إنشاء"}</Button>
-                </>
-            }>
+            <Dialog
+                isOpen={showAdd}
+                onClose={() => setShowAdd(false)}
+                title={editItem ? "تعديل المسمى الوظيفي" : "مسمى وظيفي جديد"}
+                footer={
+                    <>
+                        <Button
+                            variant="secondary"
+                            onClick={() => setShowAdd(false)}
+                        >إلغاء
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={handleSave}
+                        >
+                            {editItem ? "تحديث" : "إنشاء"}
+                        </Button>
+                    </>
+                }>
                 <div className="space-y-4">
-                    <TextInput label="المسمى الوظيفي (عربي) *" value={form.title_ar} onChange={(e) => setForm({ ...form, title_ar: e.target.value })} />
-                    <TextInput label="المسمى الوظيفي (إنجليزي)" value={form.title_en} onChange={(e) => setForm({ ...form, title_en: e.target.value })} />
-                    <Select label="القسم" value={form.department_id} onChange={(e) => setForm({ ...form, department_id: e.target.value })}
+                    <TextInput
+                        label="المسمى الوظيفي (عربي) *"
+                        value={form.title_ar}
+                        onChange={(e) => setForm({ ...form, title_ar: e.target.value })} />
+                    <TextInput
+                        label="المسمى الوظيفي (إنجليزي)"
+                        value={form.title_en}
+                        onChange={(e) => setForm({ ...form, title_en: e.target.value })}
+                    />
+                    <Select
+                        label="القسم"
+                        value={form.department_id}
+                        onChange={(e) => setForm({ ...form, department_id: e.target.value })}
                         options={[{ value: "", label: "-- اختر القسم --" }, ...departments.map((d) => ({ value: d.id.toString(), label: d.name_ar }))]}
                     />
-                    <TextInput label="السعة القصوى *" type="number" value={form.max_headcount} onChange={(e) => setForm({ ...form, max_headcount: e.target.value })} />
-                    <Textarea label="الوصف" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
+                    <TextInput
+                        label="السعة القصوى *"
+                        type="number"
+                        value={form.max_headcount}
+                        onChange={(e) => setForm({ ...form, max_headcount: e.target.value })}
+                    />
+                    <Textarea
+                        label="الوصف"
+                        value={form.description}
+                        onChange={(e) => setForm({ ...form, description: e.target.value })}
+                        rows={3}
+                    />
                 </div>
             </Dialog>
         </>

@@ -3,8 +3,9 @@ import { formatCurrency } from "@/lib/utils";
 import { BalanceSheetView, APIBalanceSheet, APIAccountSummary } from "../types";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { showToast } from "@/components/ui";
+import { Button, showToast } from "@/components/ui";
 import { useState, useCallback } from "react";
+import { PageSubHeader } from "@/components/layout";
 
 export function BalanceSheetTab({ onLoad }: { onLoad?: () => void }) {
     const [isLoading, setIsLoading] = useState(false);
@@ -126,16 +127,22 @@ export function BalanceSheetTab({ onLoad }: { onLoad?: () => void }) {
     });
 
     return (
-        <div className="balance-sheet-wrapper">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-                <div>
-                    <h2 style={{ fontSize: "1.8rem", marginBottom: "0.5rem" }}>الميزانية العمومية</h2>
-                    <p style={{ color: "var(--text-secondary)" }}>الوضع المالي للمؤسسة كما هو في {new Date().toLocaleDateString('ar-SA')}</p>
-                </div>
-                <button className="btn btn-primary" onClick={loadFinancialData}>
-                    <i className="fas fa-sync"></i> تحديث البيانات
-                </button>
-            </div>
+        <div className="sales-card balance-sheet-wrapper">
+            <PageSubHeader
+                title="الميزانية العمومية"
+                titleIcon="chart-line"
+                actions={
+                    <>
+                        <Button
+                            variant="primary"
+                            icon="sync"
+                            onClick={loadFinancialData}
+                        >
+                            تحديث البيانات
+                        </Button>
+                    </>
+                }
+            />
 
             {isLoading ? (
                 <div style={{ textAlign: "center", padding: "5rem" }}>

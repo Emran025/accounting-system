@@ -12,7 +12,8 @@ use App\Models\GovernmentFee;
 use App\Models\InvoiceFee;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-
+use App\Models\SalesReturn;
+use App\Models\SalesReturnItem;
 /**
  * Service for handling sales operations, including invoice creation, returns, and inventory integration.
  * Implements "Server Sovereignty" principles for tax calculation and pricing floors.
@@ -544,7 +545,7 @@ class SalesService
             $invoice = Invoice::with(['items.product', 'fees', 'customer'])->findOrFail($invoiceId);
 
             // Validate that invoice hasn't been fully returned
-            $existingReturns = \App\Models\SalesReturn::where('invoice_id', $invoiceId)->sum('subtotal');
+            $existingReturns = SalesReturn::where('invoice_id', $invoiceId)->sum('subtotal');
             if ($existingReturns >= $invoice->subtotal) {
                 throw new \Exception("هذه الفاتورة تم إرجاعها بالكامل مسبقاً");
             }
@@ -556,13 +557,19 @@ class SalesService
             foreach ($items as $item) {
                 $invoiceItem = $invoice->items->firstWhere('id', $item['invoice_item_id']);
                 if (!$invoiceItem) {
-                    throw new \Exception("عنصر الفاتورة غير موجود: {$item['invoice_item_id']}");
+                    Log::error("Return Error: Item not found in invoice.", [
+                        'invoice_id' => $invoice->id,
+                        'invoice_number' => $invoice->invoice_number,
+                        'looking_for_item_id' => $item['invoice_item_id'],
+                        'invoice_items' => $invoice->items->pluck('id')->toArray(),
+                    ]);
+                    throw new \Exception("عنصر الفاتورة غير موجود: {$item['invoice_item_id']} في الفاتورة رقم: {$invoice->id}");
                 }
 
                 $returnQuantity = (int)$item['return_quantity'];
 
                 // Check if return quantity is valid
-                $previouslyReturned = \App\Models\SalesReturnItem::where('invoice_item_id', $invoiceItem->id)
+                $previouslyReturned = SalesReturnItem::where('invoice_item_id', $invoiceItem->id)
                     ->sum('quantity');
                 $availableToReturn = $invoiceItem->quantity - $previouslyReturned;
 
@@ -592,14 +599,14 @@ class SalesService
 
             // Generate return number
             $returnNumber = 'RET-' . date('Ymd') . '-' . str_pad(
-                \App\Models\SalesReturn::whereDate('created_at', today())->count() + 1,
+                SalesReturn::whereDate('created_at', today())->count() + 1,
                 4,
                 '0',
                 STR_PAD_LEFT
             );
 
             // Create return record
-            $return = \App\Models\SalesReturn::create([
+            $return = SalesReturn::create([
                 'return_number' => $returnNumber,
                 'invoice_id' => $invoiceId,
                 'total_amount' => $returnTotal,
@@ -612,7 +619,7 @@ class SalesService
 
             // Create return items and restore stock
             foreach ($returnItems as $item) {
-                \App\Models\SalesReturnItem::create([
+                SalesReturnItem::create([
                     'sales_return_id' => $return->id,
                     'invoice_item_id' => $item['invoice_item_id'],
                     'product_id' => $item['product_id'],

@@ -1139,14 +1139,23 @@ export default function DeferredSalesPage() {
             <div className="invoice-items-minimal">
               <h4 style={{ marginBottom: "1rem" }}>المنتجات المباعة:</h4>
               {selectedInvoice.items?.map((item, index) => (
-                <div key={index} className="item-row-minimal" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem", borderBottom: "1px solid var(--border-color)" }}>
+                <div key={index} className="item-row-minimal" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem", borderBottom: "1px solid var(--border-color)", opacity: item.quantity === 0 ? 0.6 : 1 }}>
                   <div className="item-info-pkg">
-                    <span className="item-name-pkg" style={{ display: "block", fontWeight: "600" }}>{item.product_name}</span>
-                    <span className="item-meta-pkg" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>سعر الوحدة: {formatCurrency(item.unit_price)}</span>
+                    <span className="item-name-pkg" style={{ display: "block", fontWeight: "600", textDecoration: item.quantity === 0 ? 'line-through' : 'none' }}>{item.product_name}</span>
+                    <span className="item-meta-pkg" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                      سعر الوحدة: {formatCurrency(item.unit_price)}
+                      {item.returned_quantity > 0 && (
+                        <span style={{ color: item.quantity === 0 ? 'var(--danger-color)' : 'var(--warning-color)', marginRight: '8px' }}>
+                          {item.quantity === 0 ? '(مسترجع بالكامل)' : `(مسترجع: ${item.returned_quantity})`}
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div className="item-info-pkg" style={{ textAlign: "left" }}>
-                    <span className="item-name-pkg" style={{ display: "block", fontWeight: "600" }}>{formatCurrency(item.subtotal)}</span>
-                    <span className="item-meta-pkg" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>الكمية: {item.quantity}</span>
+                    <span className="item-name-pkg" style={{ display: "block", fontWeight: "600" }}>{formatCurrency(item.unit_price * item.quantity)}</span>
+                    <span className="item-meta-pkg" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                      {item.quantity} {item.quantity !== item.original_quantity && `(من ${item.original_quantity})`}
+                    </span>
                   </div>
                 </div>
               ))}

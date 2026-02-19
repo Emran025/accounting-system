@@ -25,12 +25,17 @@ class InvoiceResource extends JsonResource
             'created_at' => $this->created_at->toDateTimeString(),
             'items' => $this->whenLoaded('items', function() {
                 return $this->items->map(function($item) {
+                    $returnedQty = $item->relationLoaded('returns') ? $item->returns->sum('quantity') : 0;
                     return [
+                        'id' => $item->id,
                         'product_id' => $item->product_id,
                         'product_name' => $item->product?->name,
-                        'quantity' => $item->quantity,
+                        'original_quantity' => $item->quantity,
+                        'returned_quantity' => $returnedQty,
+                        'quantity' => $item->quantity - $returnedQty,
                         'unit_price' => (float)$item->unit_price,
                         'subtotal' => (float)$item->subtotal,
+                        'unit_type' => $item->unit_type,
                     ];
                 });
             }),

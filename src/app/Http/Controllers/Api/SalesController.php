@@ -144,7 +144,7 @@ class SalesController extends Controller
         }
 
 
-        $invoice = Invoice::with(['items.product', 'user', 'customer', 'zatcaEinvoice'])
+        $invoice = Invoice::with(['items.product', 'items.returns', 'user', 'customer', 'zatcaEinvoice'])
             ->withCount('items')
             ->findOrFail($id);
 

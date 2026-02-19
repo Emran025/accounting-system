@@ -38,4 +38,9 @@ class InvoiceItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function returns()
+    {
+        return $this->hasMany(SalesReturnItem::class, 'invoice_item_id');
+    }
 }
