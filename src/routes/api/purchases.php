@@ -21,5 +21,7 @@ Route::middleware('can:ap_suppliers,edit')->put('/ap/suppliers', [ApController::
 Route::middleware('can:ap_suppliers,delete')->delete('/ap/suppliers', [ApController::class, 'destroySupplier'])->name('api.ap.suppliers.destroy');
 Route::middleware('can:ap_suppliers,view')->get('/ap/transactions', [ApController::class, 'transactions'])->name('api.ap.transactions');
 Route::middleware('can:ap_suppliers,create')->post('/ap/transactions', [ApController::class, 'storeTransaction'])->name('api.ap.transactions.store');
+Route::middleware('can:ap_suppliers,edit')->put('/ap/transactions', [ApController::class, 'updateTransaction'])->name('api.ap.transactions.update');
+Route::middleware('can:ap_suppliers,delete')->delete('/ap/transactions', [ApController::class, 'destroyTransaction'])->name('api.ap.transactions.destroy');
 Route::middleware('can:ap_suppliers,create')->post('/ap/payment', [ApController::class, 'recordPayment'])->name('api.ap.payments.store');
 Route::middleware('can:ap_suppliers,view')->get('/ap/ledger', [ApController::class, 'supplierLedger'])->name('api.ap.ledger');

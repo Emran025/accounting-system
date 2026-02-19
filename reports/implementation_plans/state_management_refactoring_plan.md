@@ -780,7 +780,7 @@ public/
 | `app/inventory/products/useProducts.ts` | Replace with `useProductStore` (then delete) |
 | `app/ar_customers/useCustomers.ts` | Replace with `useCustomerStore` (then delete) |
 | `app/purchases/purchases/usePurchases.ts` | Replace with `usePurchaseStore` (then delete) |
-| `app/suppliers/useSuppliers.ts` | Replace with `useSupplierStore` (then delete) |
+| `app/ap_suppliers/useSuppliers.ts` | Replace with `useSupplierStore` (then delete) |
 
 ### Files to Delete (After Migration)
 
@@ -789,7 +789,7 @@ public/
 | `app/inventory/products/useProducts.ts` | `stores/useProductStore.ts` |
 | `app/ar_customers/useCustomers.ts` | `stores/useCustomerStore.ts` |
 | `app/purchases/purchases/usePurchases.ts` | `stores/usePurchaseStore.ts` |
-| `app/suppliers/useSuppliers.ts` | `stores/useSupplierStore.ts` |
+| `app/ap_suppliers/useSuppliers.ts` | `stores/useSupplierStore.ts` |
 
 ---
 

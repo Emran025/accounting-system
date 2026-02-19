@@ -3,50 +3,19 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, Button, FilterGroup, DateRangePicker, FilterActions, NumberInput } from "@/components/ui";
-import { TextInput } from "@/components/ui/TextInput";
-import { Textarea } from "@/components/ui/Textarea";
-import { Select } from "@/components/ui/select";
+import { ConfirmDialog, showToast, showAlert, Button, SelectedItem, SalesReturnDialog, SelectableInvoice, SelectableInvoiceItem, ReturnData } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
+import { parseNumber } from "@/lib/utils";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
-import { Icon } from "@/lib/icons";
 
-interface LedgerTransaction {
-  id: number;
-  transaction_date: string;
-  type: "invoice" | "payment" | "return";
-  description?: string;
-  amount: number;
-  running_balance?: number;
-  days_outstanding?: number;
-  created_by_name?: string;
-  reference_type?: string;
-  reference_id?: number;
-}
-
-interface Supplier {
-  id: number;
-  name: string;
-  phone?: string;
-  tax_number?: string;
-  current_balance: number;
-}
-
-interface AgingBuckets {
-  current: number;
-  days_30_60: number;
-  days_60_90: number;
-  over_90: number;
-  total: number;
-}
-
-interface APLedgerResponse {
-  supplier: Supplier;
-  transactions: LedgerTransaction[];
-  aging: AgingBuckets;
-}
+import { SupplierInfoSection } from "./components/SupplierInfoSection";
+import { LedgerStatsCards } from "./components/LedgerStatsCards";
+import { LedgerTable } from "./components/LedgerTable";
+import { LedgerFilterDialog } from "./components/LedgerFilterDialog";
+import { TransactionFormDialog } from "./components/TransactionFormDialog";
+import { InvoiceDetailsDialog } from "./components/InvoiceDetailsDialog";
+import { LedgerTransaction, Pagination, LedgerStats, Supplier, DetailedInvoice } from "./types";
 
 function APLedgerPageContent() {
   const router = useRouter();
@@ -56,250 +25,478 @@ function APLedgerPageContent() {
   const [user, setUser] = useState<User | null>(null);
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [transactions, setTransactions] = useState<LedgerTransaction[]>([]);
-  const [aging, setAging] = useState<AgingBuckets>({
-    current: 0,
-    days_30_60: 0,
-    days_60_90: 0,
-    over_90: 0,
-    total: 0,
+  const [stats, setStats] = useState<LedgerStats>({
+    total_debit: 0,
+    total_credit: 0,
+    total_returns: 0,
+    total_payments: 0,
+    balance: 0,
+    transaction_count: 0,
+  });
+
+  const [pagination, setPagination] = useState<Pagination>({
+    total_records: 0,
+    total_pages: 0,
+    current_page: 0,
   });
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDeleted, setShowDeleted] = useState(false);
+
+  // Filters
+  const [filters, setFilters] = useState({
+    search: "",
+    type: "",
+    date_from: "",
+    date_to: "",
+  });
 
   // Dialogs
-  const [paymentDialog, setPaymentDialog] = useState(false);
+  const [filterDialog, setFilterDialog] = useState(false);
+  const [transactionDialog, setTransactionDialog] = useState(false);
+  const [viewDialog, setViewDialog] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState(false);
+  const [deleteTransactionId, setDeleteTransactionId] = useState<number | null>(null);
+  const [restoreTransactionId, setRestoreTransactionId] = useState<number | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<DetailedInvoice | null>(null);
+
+  // Returns state
+  const [selectedReturnItems, setSelectedReturnItems] = useState<SelectedItem[]>([]);
+  const [returnDialog, setReturnDialog] = useState(false);
+  const [invoicesMap, setInvoicesMap] = useState<Record<number, SelectableInvoice>>({});
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
+
+  // Form
+  const [currentTransactionId, setCurrentTransactionId] = useState<number | null>(null);
+  const [transactionType, setTransactionType] = useState<"payment" | "invoice">("payment");
   const [transactionAmount, setTransactionAmount] = useState("");
+  const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split("T")[0]);
   const [transactionDescription, setTransactionDescription] = useState("");
 
   const itemsPerPage = 20;
 
   useEffect(() => {
     if (!supplierId) {
-      router.push("/suppliers");
+      router.push("/ap_supplier");
       return;
     }
   }, [supplierId, router]);
 
-  const loadLedger = useCallback(async (page: number = 1) => {
+  const loadSupplierDetails = useCallback(async () => {
     if (!supplierId) return;
 
     try {
-      setIsLoading(true);
-      const limit = itemsPerPage;
-      const offset = (page - 1) * limit;
-
-      const response = await fetchAPI(
-        `${API_ENDPOINTS.PURCHASES.SUPPLIERS.LEDGER}?supplier_id=${supplierId}&limit=${limit}&offset=${offset}`
-      );
-
-      if (response.success) {
-        setSupplier(response.supplier as Supplier || null);
-        setTransactions(response.data as LedgerTransaction[] || []);
-
-        // Map backend aging keys to frontend interface
-        const agingData = response.aging as any;
-        const statsData = response.stats as any;
-        setAging({
-          current: (agingData?.current || 0) + (agingData?.['1_30'] || 0),
-          days_30_60: agingData?.['31_60'] || 0,
-          days_60_90: agingData?.['61_90'] || 0,
-          over_90: agingData?.over_90 || 0,
-          total: statsData?.balance || 0,
-        });
-
-        const pagination = response.pagination as any;
-        setTotalPages(pagination?.total_pages || 1);
-        setCurrentPage(page);
+      const response = await fetchAPI(`${API_ENDPOINTS.PURCHASES.SUPPLIERS.BASE}?id=${supplierId}`);
+      if (response.success && response.data) {
+        const supplierData = Array.isArray(response.data) ? response.data[0] : response.data;
+        setSupplier(supplierData as Supplier);
       }
     } catch {
-      showToast("خطأ في تحميل كشف الحساب", "error");
-    } finally {
-      setIsLoading(false);
+      showToast("خطأ في تحميل بيانات المورد", "error");
     }
   }, [supplierId]);
+
+  const loadLedger = useCallback(
+    async (page: number = 1) => {
+      if (!supplierId) return;
+
+      try {
+        setIsLoading(true);
+        const offset = (page - 1) * itemsPerPage;
+        let params = `supplier_id=${supplierId}&limit=${itemsPerPage}&offset=${offset}&show_deleted=${showDeleted}`;
+        if (filters.search) params += `&search=${encodeURIComponent(filters.search)}`;
+        if (filters.type) params += `&type=${filters.type}`;
+        if (filters.date_from) params += `&date_from=${filters.date_from}`;
+        if (filters.date_to) params += `&date_to=${filters.date_to}`;
+
+        const response = await fetchAPI(`${API_ENDPOINTS.PURCHASES.SUPPLIERS.LEDGER}?${params}`);
+        if (response.success && response.data) {
+          const rawTransactions = response.data as any[];
+          const mappedTransactions: LedgerTransaction[] = rawTransactions.map((item) => ({
+            ...item,
+            type: item.type,
+            invoice_number: item.reference_id ? `REF-${item.reference_id}` : `TRX-${item.id}`,
+            total_amount: item.amount,
+            subtotal: item.amount,
+            vat_amount: 0,
+            discount_amount: 0,
+            payment_type: item.type === "invoice" ? "credit" : "cash",
+            created_at: item.transaction_date,
+          }));
+
+          setTransactions(mappedTransactions);
+          if (response.stats) {
+            setStats(response.stats as LedgerStats);
+          }
+
+          if (response.pagination) {
+            setPagination(response.pagination as Pagination);
+          }
+          const total = Number(pagination.total_records) || 0;
+          setTotalPages(Math.ceil(total / itemsPerPage));
+          setCurrentPage(page);
+        } else {
+          showAlert("alert-container", response.message || "فشل تحميل العمليات", "error");
+        }
+      } catch {
+        showAlert("alert-container", "خطأ في الاتصال بالسيرفر", "error");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [supplierId, showDeleted, filters]
+  );
 
   useEffect(() => {
     const init = async () => {
       const authenticated = await checkAuth();
       if (!authenticated) return;
-      setUser(getStoredUser());
-      loadLedger();
+
+      const storedUser = getStoredUser();
+      setUser(storedUser);
+      await loadSupplierDetails();
+      await loadLedger();
     };
     init();
-  }, [loadLedger]);
+  }, [loadSupplierDetails, loadLedger]);
 
-  const handlePayment = async () => {
+  const openAddTransactionDialog = () => {
+    setCurrentTransactionId(null);
+    setTransactionType("payment");
+    setTransactionAmount("");
+    setTransactionDate(new Date().toISOString().split("T")[0]);
+    setTransactionDescription("");
+    setTransactionDialog(true);
+  };
+
+  const openEditTransaction = (transaction: LedgerTransaction) => {
+    setCurrentTransactionId(transaction.id);
+    setTransactionType(transaction.type === "invoice" ? "invoice" : "payment");
+    setTransactionAmount(String(transaction.amount));
+    const d = new Date(transaction.transaction_date);
+    setTransactionDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+    setTransactionDescription(transaction.description || "");
+    setTransactionDialog(true);
+  };
+
+  const saveTransaction = async () => {
     if (!transactionAmount || parseNumber(transactionAmount) <= 0) {
-      showToast("يرجى إدخال مبلغ صحيح", "error");
+      showToast("المبلغ مطلوب", "error");
       return;
     }
 
     try {
-      const response = await fetchAPI(API_ENDPOINTS.PURCHASES.SUPPLIERS.PAYMENT, {
-        method: "POST",
-        body: JSON.stringify({
-          supplier_id: supplierId,
-          amount: parseNumber(transactionAmount),
-          description: transactionDescription,
-        }),
+      const data: any = {
+        supplier_id: supplierId,
+        type: transactionType,
+        amount: parseNumber(transactionAmount),
+        date: transactionDate,
+        description: transactionDescription,
+      };
+      if (currentTransactionId) data.id = currentTransactionId;
+
+      const method = currentTransactionId ? "PUT" : "POST";
+      const response = await fetchAPI(API_ENDPOINTS.PURCHASES.SUPPLIERS.TRANSACTIONS, {
+        method,
+        body: JSON.stringify(data),
       });
 
       if (response.success) {
-        showToast("تم تسجيل الدفعة بنجاح", "success");
-        setPaymentDialog(false);
-        setTransactionAmount("");
-        setTransactionDescription("");
-        loadLedger(1);
+        showToast("تم الحفظ بنجاح", "success");
+        setTransactionDialog(false);
+        await loadLedger(currentPage);
+        await loadSupplierDetails();
       } else {
-        showToast(response.message || "خطأ في تسجيل الدفعة", "error");
+        showToast(response.message || "خطأ", "error");
       }
     } catch {
-      showToast("خطأ في الاتصال بالخادم", "error");
+      showToast("خطأ في الحفظ", "error");
     }
   };
 
-  const columns: Column<LedgerTransaction>[] = [
-    {
-      key: "transaction_date",
-      header: "التاريخ",
-      dataLabel: "التاريخ",
-      render: (item) => formatDateTime(item.transaction_date),
-    },
-    {
-      key: "type",
-      header: "نوع العملية",
-      dataLabel: "النوع",
-      render: (item) => (
-        <span className={`badge ${item.type === 'invoice' ? 'badge-danger' : 'badge-success'}`}>
-          {item.type === 'invoice' ? 'فاتورة مشتريات' : item.type === 'payment' ? 'سند صرف' : 'مرتجع'}
-        </span>
-      ),
-    },
-    { key: "description", header: "البيان / الوصف", dataLabel: "الوصف" },
-    {
-      key: "debit",
-      header: "مدين (دفعات)",
-      dataLabel: "مدين",
-      render: (item) => item.type !== 'invoice' ? <span className="text-success">{formatCurrency(item.amount)}</span> : "-",
-    },
-    {
-      key: "credit",
-      header: "دائن (التزام)",
-      dataLabel: "دائن",
-      render: (item) => item.type === 'invoice' ? <span className="text-danger">{formatCurrency(item.amount)}</span> : "-",
-    },
-    {
-      key: "running_balance",
-      header: "الرصيد التراكمي",
-      dataLabel: "الرصيد",
-      render: (item) => formatCurrency(item.running_balance || 0),
-    },
-  ];
+  const viewInvoice = async (id: number) => {
+    try {
+      const response = await fetchAPI(`${API_ENDPOINTS.PURCHASES.BASE}?id=${id}`);
+      if (response.success && response.data) {
+        setSelectedInvoice(response.data as DetailedInvoice);
+        setViewDialog(true);
+      }
+    } catch {
+      showAlert("alert-container", "خطأ في جلب التفاصيل", "error");
+    }
+  };
+
+  const getInvoiceItems = async (item: LedgerTransaction): Promise<SelectableInvoiceItem[]> => {
+    if (item.type === "payment") return [];
+    if (!item.reference_id) return [];
+
+    const endpoint = item.reference_type === "purchase_returns"
+      ? `${API_ENDPOINTS.PURCHASES.BASE}?id=${item.reference_id}&type=return`
+      : `${API_ENDPOINTS.PURCHASES.BASE}?id=${item.reference_id}`;
+
+    try {
+      const response = await fetchAPI(endpoint);
+      if (response.success && response.data) {
+        const data = response.data as DetailedInvoice;
+        return (data.items as SelectableInvoiceItem[]) || [];
+      }
+      return [];
+    } catch (error) {
+      console.error("Failed to fetch items", error);
+      return [];
+    }
+  };
+
+  const handleReturnSelection = useCallback((items: SelectedItem[]) => {
+    setSelectedReturnItems(items);
+  }, []);
+
+  const openReturnDialog = async () => {
+    if (selectedReturnItems.length === 0) {
+      showToast("يرجى تحديد عناصر للإرجاع أولاً", "warning");
+      return;
+    }
+
+    const uniqueInvoiceIds = Array.from(new Set(selectedReturnItems.map(i => i.invoiceId)));
+    const missingIds = uniqueInvoiceIds.filter(id => !invoicesMap[id]);
+
+    if (missingIds.length > 0) {
+      setIsLoadingInvoices(true);
+      try {
+        const newMap = { ...invoicesMap };
+        await Promise.all(missingIds.map(async (id) => {
+          const res = await fetchAPI(`${API_ENDPOINTS.PURCHASES.BASE}?id=${id}`);
+          if (res.success && res.data) {
+            newMap[id] = res.data as SelectableInvoice;
+          }
+        }));
+        setInvoicesMap(newMap);
+      } catch (error) {
+        console.error("Failed to load invoice details", error);
+        showToast("فشل تحميل بيانات الفواتير", "error");
+      } finally {
+        setIsLoadingInvoices(false);
+      }
+    }
+
+    setReturnDialog(true);
+  };
+
+  const handleConfirmReturn = async (data: ReturnData | ReturnData[]) => {
+    const dataArray = Array.isArray(data) ? data : [data];
+
+    try {
+      for (const returnData of dataArray) {
+        const response = await fetchAPI(API_ENDPOINTS.PURCHASES.BASE, {
+          method: "POST",
+          body: JSON.stringify({ ...returnData, type: "return" }),
+        });
+
+        if (!response.success) {
+          throw new Error(response.message || "فشل تسجيل المرتجع");
+        }
+      }
+
+      showToast("تم تسجيل المرتجع بنجاح", "success");
+    } catch (error: any) {
+      showToast(error.message || "خطأ في تسجيل المرتجع", "error");
+      throw error;
+    }
+  };
+
+  const confirmDeleteTransaction = (id: number) => {
+    setDeleteTransactionId(id);
+    setConfirmDialog(true);
+  };
+
+  const deleteTransaction = async () => {
+    if (!deleteTransactionId) return;
+
+    try {
+      const response = await fetchAPI(`${API_ENDPOINTS.PURCHASES.SUPPLIERS.TRANSACTIONS}?id=${deleteTransactionId}`, {
+        method: "DELETE",
+      });
+      if (response.success) {
+        showToast("تم الحذف بنجاح", "success");
+        setConfirmDialog(false);
+        setDeleteTransactionId(null);
+        await loadLedger(currentPage);
+      } else {
+        showToast(response.message || "خطأ", "error");
+      }
+    } catch {
+      showToast("خطأ في الحذف", "error");
+    }
+  };
+
+  const confirmRestoreTransaction = (id: number) => {
+    setRestoreTransactionId(id);
+    setConfirmDialog(true);
+  };
+
+  const restoreTransaction = async () => {
+    if (!restoreTransactionId) return;
+
+    try {
+      const response = await fetchAPI(API_ENDPOINTS.PURCHASES.SUPPLIERS.TRANSACTIONS, {
+        method: "PUT",
+        body: JSON.stringify({ id: restoreTransactionId, restore: true }),
+      });
+      if (response.success) {
+        showToast("تم الاستعادة بنجاح", "success");
+        setConfirmDialog(false);
+        setRestoreTransactionId(null);
+        await loadLedger(currentPage);
+      } else {
+        showToast(response.message || "خطأ", "error");
+      }
+    } catch {
+      showToast("خطأ في الاستعادة", "error");
+    }
+  };
+
+  const applyFilters = () => {
+    setFilterDialog(false);
+    loadLedger(1);
+  };
+
+  const handleConfirm = () => {
+    if (deleteTransactionId) {
+      deleteTransaction();
+    } else if (restoreTransactionId) {
+      restoreTransaction();
+    }
+  };
+
+  if (!supplierId) {
+    return null;
+  }
 
   return (
     <ModuleLayout groupKey="purchases" requiredModule="ap_supplier">
       <PageHeader
-        title={`دفتر المورد: ${supplier?.name || "..."}`}
+        title={`كشف حساب: ${supplier?.name || ""}`}
         user={user}
         actions={
-          <Button
-            variant="primary"
-            icon="plus"
-            onClick={() => setPaymentDialog(true)}
-          >
-            صرف دفعة للمورد
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              icon="search"
+              onClick={() => setFilterDialog(true)}
+            >
+              تصفية
+            </Button>
+            <Button
+              variant="primary"
+              icon="plus"
+              onClick={openAddTransactionDialog}
+            >
+              عملية جديدة
+            </Button>
+          </>
         }
       />
 
-      {/* Aging & Summary Section */}
-      <div className="dashboard-stats animate-fade" style={{ marginBottom: "2rem" }}>
-        <div className="stat-card">
-          <div className="stat-info">
-            <h3>الرصيد المستحق</h3>
-            <p className="text-danger" style={{ fontSize: "1.5rem" }}>{formatCurrency(aging?.total || 0)}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-info">
-            <h3>مستحق حالي</h3>
-            <p>{formatCurrency(aging?.current || 0)}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-info">
-            <h3>متأخر (30-60 يوم)</h3>
-            <p className="text-warning">{formatCurrency(aging?.days_30_60 || 0)}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-info">
-            <h3>متأخر جداً (+90 يوم)</h3>
-            <p className="text-danger">{formatCurrency(aging?.over_90 || 0)}</p>
-          </div>
-        </div>
-      </div>
+      <SupplierInfoSection
+        supplier={supplier}
+        showDeleted={showDeleted}
+        onShowDeletedChange={(checked) => {
+          setShowDeleted(checked);
+          loadLedger(1);
+        }}
+      />
 
-      {/* Transaction Table */}
-      <div className="sales-card animate-fade">
-        <Table
-          columns={columns}
-          data={transactions}
-          keyExtractor={(item) => item.id}
-          emptyMessage="لا يوجد عمليات مسجلة"
-          isLoading={isLoading}
-          pagination={{
-            currentPage,
-            totalPages,
-            onPageChange: loadLedger,
-          }}
-        />
-      </div>
+      <LedgerStatsCards stats={stats} />
 
-      {/* Payment Dialog */}
-      <Dialog
-        isOpen={paymentDialog}
-        onClose={() => setPaymentDialog(false)}
-        title="صرف دفعة مالية للمورد"
-        footer={
-          <FilterActions className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setPaymentDialog(false)}>
-              إلغاء
-            </Button>
-            <Button variant="primary" onClick={handlePayment}>
-              تأكيد الصرف
-            </Button>
-          </FilterActions>
+      <div id="alert-container"></div>
+
+      <LedgerTable
+        transactions={transactions}
+        isLoading={isLoading}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        handleReturnSelection={handleReturnSelection}
+        setSearch={(query) => setFilters({ ...filters, search: query })}
+        onPageChange={loadLedger}
+        getInvoiceItems={getInvoiceItems}
+        openReturnDialog={openReturnDialog}
+        onViewInvoice={viewInvoice}
+        onEditTransaction={openEditTransaction}
+        onDeleteTransaction={confirmDeleteTransaction}
+        onRestoreTransaction={confirmRestoreTransaction}
+      />
+
+      <LedgerFilterDialog
+        isOpen={filterDialog}
+        onClose={() => setFilterDialog(false)}
+        filters={filters}
+        setFilters={setFilters}
+        onApply={applyFilters}
+      />
+
+      <TransactionFormDialog
+        isOpen={transactionDialog}
+        onClose={() => setTransactionDialog(false)}
+        isCustomId={!!currentTransactionId}
+        transactionType={transactionType}
+        transactionAmount={transactionAmount}
+        transactionDate={transactionDate}
+        transactionDescription={transactionDescription}
+        setTransactionType={setTransactionType}
+        setTransactionAmount={setTransactionAmount}
+        setTransactionDate={setTransactionDate}
+        setTransactionDescription={setTransactionDescription}
+        onSave={saveTransaction}
+      />
+
+      <InvoiceDetailsDialog
+        isOpen={viewDialog}
+        onClose={() => setViewDialog(false)}
+        selectedInvoice={selectedInvoice}
+      />
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog}
+        onClose={() => {
+          setConfirmDialog(false);
+          setDeleteTransactionId(null);
+          setRestoreTransactionId(null);
+        }}
+        onConfirm={handleConfirm}
+        title="تأكيد الإجراء"
+        message={
+          deleteTransactionId
+            ? "هل أنت متأكد من حذف هذه العملية (حذف مؤقت)؟"
+            : "هل أنت متأكد من استعادة هذه العملية؟"
         }
-      >
-        <div className="space-y-4">
-          <NumberInput
-            label="المبلغ *"
-            value={transactionAmount}
-            onChange={(val) => setTransactionAmount(val)}
-            placeholder="0.00"
-          />
-          <Textarea
-            label="الوصف / رقم السند"
-            value={transactionDescription}
-            onChange={(e) => setTransactionDescription(e.target.value)}
-            rows={3}
-            placeholder="مثلاً: دفعة عن فاتورة رقم 123"
-          />
-        </div>
-        <div style={{ marginTop: "1rem", color: "var(--text-secondary)", fontSize: "0.85rem" }}>
-          * سيتم خصم هذا المبلغ من رصيد المورد وتأثيره على حساب النقدية في دفتر الأستاذ العام.
-        </div>
-      </Dialog>
+        confirmText="تأكيد"
+        confirmVariant={deleteTransactionId ? "danger" : "primary"}
+      />
+
+      {/* Purchase Return Dialog */}
+      <SalesReturnDialog
+        isOpen={returnDialog}
+        onClose={() => setReturnDialog(false)}
+        selectedItems={selectedReturnItems}
+        invoicesMap={invoicesMap}
+        onConfirmReturn={handleConfirmReturn}
+        onSuccess={() => {
+          setReturnDialog(false);
+          setSelectedReturnItems([]);
+          loadLedger(currentPage);
+          loadSupplierDetails();
+        }}
+      />
     </ModuleLayout>
   );
 }
 
 export default function APLedgerPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="p-4 text-center">جاري التحميل...</div>}>
       <APLedgerPageContent />
     </Suspense>
   );

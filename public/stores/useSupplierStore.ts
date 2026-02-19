@@ -1,6 +1,6 @@
 import { createCRUDStore } from './factories/createCRUDStore';
 import { API_ENDPOINTS } from '@/lib/endpoints';
-import { Supplier } from '@/app/suppliers/types';
+import { Supplier } from '@/app/ap_suppliers/types';
 
 /**
  * Zustand store for Suppliers (AP).

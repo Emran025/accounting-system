@@ -363,24 +363,49 @@ class ApController extends Controller
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
 
-        $query = ApTransaction::where('supplier_id', $supplierId)
-            ->where('is_deleted', false)
-            ->with('createdBy');
+        $query = ApTransaction::where('supplier_id', $supplierId);
+
+        if ($request->boolean('show_deleted')) {
+             $query->where('is_deleted', true);
+        } else {
+             $query->where('is_deleted', false);
+        }
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('description', 'like', "%$search%")
+                  ->orWhere('reference_id', 'like', "%$search%")
+                  ->orWhere('amount', 'like', "%$search%");
+            });
+        }
+
+        if ($type = $request->input('type')) {
+            $query->where('type', $type);
+        }
+
+        if ($dateFrom = $request->input('date_from')) {
+            $query->whereDate('transaction_date', '>=', $dateFrom);
+        }
+
+        if ($dateTo = $request->input('date_to')) {
+            $query->whereDate('transaction_date', '<=', $dateTo);
+        }
+
+        // Stats calculation for the summary cards
+        $statsData = (clone $query)->selectRaw('
+            SUM(CASE WHEN type = "invoice" THEN amount ELSE 0 END) as total_debit,
+            SUM(CASE WHEN type IN ("payment", "return") THEN amount ELSE 0 END) as total_credit,
+            SUM(CASE WHEN type = "return" THEN amount ELSE 0 END) as total_returns,
+            SUM(CASE WHEN type = "payment" THEN amount ELSE 0 END) as total_payments,
+            COUNT(*) as transaction_count
+        ')->first();
 
         $total = $query->count();
-        $transactions = $query->orderBy('transaction_date', 'desc')
+        $transactions = $query->with('createdBy')
+            ->orderBy('transaction_date', 'desc')
             ->skip(($page - 1) * $perPage)
             ->take($perPage)
             ->get();
-
-        // Stats calculation for the summary cards
-        $statsData = ApTransaction::where('supplier_id', $supplierId)
-            ->where('is_deleted', false)
-            ->selectRaw('
-                SUM(CASE WHEN type = "invoice" THEN amount ELSE 0 END) as total_debit,
-                SUM(CASE WHEN type IN ("payment", "return") THEN amount ELSE 0 END) as total_credit,
-                COUNT(*) as transaction_count
-            ')->first();
 
         // Calculate aging using a targeted query for efficiency
         $today = now();
@@ -420,6 +445,8 @@ class ApController extends Controller
             'stats' => [
                 'total_debit' => (float)($statsData->total_debit ?? 0),
                 'total_credit' => (float)($statsData->total_credit ?? 0),
+                'total_returns' => (float)($statsData->total_returns ?? 0),
+                'total_payments' => (float)($statsData->total_payments ?? 0),
                 'balance' => (float)$supplier->current_balance,
                 'transaction_count' => (int)($statsData->transaction_count ?? 0),
             ],
@@ -430,6 +457,129 @@ class ApController extends Controller
                 'total_pages' => ceil($total / $perPage),
             ],
         ]);
+    }
+
+    /**
+     * Soft-delete AP transaction
+     */
+    public function destroyTransaction(Request $request): JsonResponse
+    {
+
+
+        $id = $request->input('id');
+        $transaction = ApTransaction::findOrFail($id);
+
+        if ($transaction->type === 'invoice') {
+            return $this->errorResponse('Cannot delete invoice transactions from here. Please use the Purchases module.', 400);
+        }
+
+        return DB::transaction(function () use ($transaction) {
+            // Reverse GL entries
+            $voucherNumber = \App\Models\GeneralLedger::where('reference_type', 'ap_transactions')
+                ->where('reference_id', $transaction->id)
+                ->value('voucher_number');
+            
+            if ($voucherNumber) {
+                $this->ledgerService->reverseTransaction($voucherNumber, "Reversal of AP Transaction #{$transaction->id}");
+            }
+
+            // Soft delete
+            $transaction->update([
+                'is_deleted' => true,
+                'deleted_at' => now(),
+            ]);
+
+            // Update supplier balance
+            $this->updateSupplierBalance($transaction->supplier_id);
+
+            TelescopeService::logOperation('DELETE', 'ap_transactions', $transaction->id, $transaction->toArray(), null);
+
+            return $this->successResponse();
+        });
+    }
+
+    /**
+     * Update/restore AP transaction
+     */
+    public function updateTransaction(Request $request): JsonResponse
+    {
+
+
+        $validated = $request->validate([
+            'id' => 'required|exists:ap_transactions,id',
+            'restore' => 'nullable|boolean',
+        ]);
+
+        $transaction = ApTransaction::findOrFail($validated['id']);
+
+        if ($transaction->type === 'invoice') {
+            return $this->errorResponse('Cannot restore invoice transactions from here. Please use the Purchases module.', 400);
+        }
+
+        if ($validated['restore'] ?? false) {
+            return DB::transaction(function () use ($transaction) {
+                if (!$transaction->is_deleted) {
+                    return $this->errorResponse('Transaction is not deleted', 400);
+                }
+
+                // Trigger NEW GL Posting to recognize the movement again
+                $mappings = $this->coaService->getStandardAccounts();
+                $glEntries = [];
+                $supplier = ApSupplier::find($transaction->supplier_id);
+
+                if ($transaction->type === 'payment') {
+                    // Payment to Supplier: Debit AP, Credit Cash
+                    $glEntries[] = [
+                        'account_code' => $mappings['accounts_payable'],
+                        'entry_type' => 'DEBIT',
+                        'amount' => $transaction->amount,
+                        'description' => "Restored Payment to: {$supplier->name} [Original ID: {$transaction->id}]"
+                    ];
+                    $glEntries[] = [
+                        'account_code' => $mappings['cash'],
+                        'entry_type' => 'CREDIT',
+                        'amount' => $transaction->amount,
+                        'description' => "Restored Payment to: {$supplier->name} (AP Reference)"
+                    ];
+                } else {
+                    // Return: Debit AP, Credit Expense
+                    $glEntries[] = [
+                        'account_code' => $mappings['accounts_payable'],
+                        'entry_type' => 'DEBIT',
+                        'amount' => $transaction->amount,
+                        'description' => "Restored Return to: {$supplier->name} [Original ID: {$transaction->id}]"
+                    ];
+                    $glEntries[] = [
+                        'account_code' => $mappings['operating_expenses'],
+                        'entry_type' => 'CREDIT',
+                        'amount' => $transaction->amount,
+                        'description' => "Restored Return to: {$supplier->name} (AP Reference)"
+                    ];
+                }
+
+                $this->ledgerService->postTransaction(
+                    $glEntries,
+                    'ap_transactions',
+                    $transaction->id,
+                    null,
+                    now()->format('Y-m-d')
+                );
+
+                $transaction->update([
+                    'is_deleted' => false,
+                    'deleted_at' => null,
+                ]);
+
+                // Update supplier balance
+                $this->updateSupplierBalance($transaction->supplier_id);
+
+                TelescopeService::logOperation('RESTORE', 'ap_transactions', $transaction->id, ['is_deleted' => true], ['is_deleted' => false]);
+
+                return $this->successResponse(['status' => 'restored']);
+            });
+        }
+
+        return $this->successResponse();
     }
 
     /**
