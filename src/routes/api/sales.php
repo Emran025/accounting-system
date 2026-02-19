@@ -16,6 +16,8 @@ Route::middleware('can:sales,delete')->delete('/invoices', [SalesController::cla
 Route::middleware('can:sales,view')->get('/sales/returns', [SalesReturnController::class, 'index'])->name('api.sales_returns.index');
 Route::middleware('can:sales,create')->post('/sales/returns', [SalesReturnController::class, 'store'])->name('api.sales_returns.store');
 Route::middleware('can:sales,view')->get('/sales/returns/show', [SalesReturnController::class, 'show'])->name('api.sales_returns.show');
+Route::middleware('can:sales,view')->get('/sales/returns/ledger', [SalesReturnController::class, 'ledger'])->name('api.sales_returns.ledger');
+
 
 // ZATCA - Stricter rate limiting for external API calls
 Route::post('/invoices/{invoice_id}/zatca/submit', [ZATCAInvoiceController::class, 'submit'])

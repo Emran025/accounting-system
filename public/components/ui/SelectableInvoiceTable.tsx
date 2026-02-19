@@ -255,17 +255,16 @@ export function SelectableInvoiceTable<T extends Invoice>({
 
       */}
 
-
-      <PageSubHeader
-        title="قائمة الفواتير"
-        titleIcon="receipt"
-        actions={
-          <>
-            {FilterTabNavigation}
-          </>
-        }
-
-      />
+      {FilterTabNavigation &&
+        (<PageSubHeader
+          title="قائمة الفواتير"
+          titleIcon="receipt"
+          actions={
+            <>
+              {FilterTabNavigation}
+            </>
+          }
+        />)}
       <div className="table-controls">
         <div className="search-wrapper">
           <SearchableSelect

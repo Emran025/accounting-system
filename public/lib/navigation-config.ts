@@ -56,7 +56,7 @@ export const navigationGroups: NavigationGroup[] = [
       { href: "/finance/ar_ledger", icon: "book-open", label: "أستاذ العملاء", description: "حسابات القبض والأرصدة", module: "ar_customers" },
       { href: "/system/dashboard", icon: "cart", label: "عروض الأسعار", description: "إنشاء عروض الأسعار (قريباً)", module: "dashboard" },
       { href: "/system/dashboard", icon: "cart", label: "أوامر البيع", description: "إدارة طلبات البيع (قريباً)", module: "dashboard" },
-      { href: "/system/dashboard", icon: "history", label: "المرتجعات", description: "مرتجعات المبيعات (قريباً)", module: "dashboard" },
+      { href: "/sales/returns", icon: "history", label: "المرتجعات", description: "مرتجعات المبيعات", module: "returns" },
       { href: "/system/dashboard", icon: "tags", label: "قوائم الأسعار", description: "إدارة الأسعار والخصومات (قريباً)", module: "dashboard" },
       { href: "/system/dashboard", icon: "coins", label: "العمولات", description: "عمولات المبيعات (قريباً)", module: "dashboard" },
     ],

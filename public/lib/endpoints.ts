@@ -354,6 +354,7 @@ export const API_ENDPOINTS = {
         RETURNS: {
             BASE: "/sales/returns",
             SHOW: "/sales/returns/show",
+            LEDGER: "/sales/returns/ledger",
         },
         ZATCA: {
             SUBMIT: (id: string | number) => `/invoices/${id}/zatca/submit`,

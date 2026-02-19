@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { getIcon } from "@/lib/icons";
+import { Button } from "../ui";
 
 export interface Tab {
   key: string;
@@ -167,14 +168,16 @@ export function TabSubNavigation({ tabs, activeTab, onTabChange, className = "" 
     <div className={`card-header-flex ${className}`}>
       <div className="discount-type-toggle">
         {tabs.map((tab) => (
-          <button
+          <Button
             key={tab.key}
             className={activeTab === tab.key ? "active" : ""}
+            variant="primary"
+            icon={tab.icon}
             onClick={() => onTabChange(tab.key)}
-            type="button"
+            border_radius="sm"
           >
-            {getIcon(tab.icon)} {tab.label}
-          </button>
+            {tab.label}
+          </Button>
         ))}
       </div>
     </div>

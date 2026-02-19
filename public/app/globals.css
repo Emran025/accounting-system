@@ -343,8 +343,6 @@ body:not(:has(.sidebar)) .content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border-color);
 }
 
 .card-header-flex h3 {
@@ -888,7 +886,7 @@ tbody tr:hover {
 
 .discount-type-toggle {
   display: flex;
-  background: var(--bg-color);
+  background: var(--primary-subtle);
   border-radius: var(--radius-sm);
   padding: 2px;
   border: 1px solid var(--border-color);
@@ -897,12 +895,14 @@ tbody tr:hover {
 .discount-type-toggle button {
   border: none;
   background: transparent !important;
+  height: 42px;
   padding: 2px 8px !important;
-  font-size: 0.75rem !important;
+  font-size: 0.85rem !important;
   font-weight: 700 !important;
   cursor: pointer;
   border-radius: 4px !important;
-  transition: all 0.2s;
+  transition: none !important;
+  box-shadow: none !important;
   color: var(--text-secondary);
   min-width: 30px;
 }
@@ -1255,6 +1255,8 @@ tbody tr:hover {
 .dashboard-stats {
   display: grid !important;
   grid-template-columns: repeat(5, 1fr) !important;
+  grid-auto-rows: 1fr;
+  align-items: stretch !important;
   gap: 1.25rem;
   margin-bottom: 2.5rem;
 }
@@ -1283,190 +1285,391 @@ tbody tr:hover {
   }
 }
 
+/* =========================================
+   STAT CARDS — Professional Light Base
+   ========================================= */
+
+/* --- Card Shell (Unified White Surface) --- */
 .stat-card {
   position: relative;
-  background: white;
-  border-radius: 12px;
-  padding: 1rem 0.75rem;
+  border-radius: 18px;
+  padding: 1.25rem 1.4rem;
   display: flex !important;
-  flex-direction: column !important;
+  flex-direction: row !important;
   align-items: center !important;
-  text-align: center;
-  gap: 0.5rem;
-  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.02);
+  gap: 1.1rem;
   overflow: hidden;
-  height: auto;
-  min-height: 125px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  border-top: 3px solid transparent;
-}
-
-/* Color Accents at top of cards */
-.stat-card:has(.sales) {
-  border-top-color: #0ea5e9;
-}
-
-.stat-card:has(.products) {
-  border-top-color: #10b981;
-}
-
-.stat-card:has(.alert) {
-  border-top-color: #f43f5e;
-}
-
-.stat-card:has(.total) {
-  border-top-color: #f59e0b;
-}
-
-.stat-card:has(.default) {
-  border-top-color: #6366f1;
+  height: 80%;
+  min-height: 105px;
+  cursor: default;
+  /* Pure white background to match the app's surface */
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  /* Soft, deep shadow for a 'floating' premium effect */
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  transition:
+    transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.38s ease,
+    border-color 0.38s ease;
 }
 
 .stat-card.interactive {
   cursor: pointer;
 }
 
-.stat-card:hover {
-  transform: translateY(-4px);
+/* ─── Per-card ambient tint: Light version ─── */
+.stat-card.sales {
+  background:
+    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(14, 165, 233, 0.06) 0%, transparent 70%),
+    #ffffff;
   box-shadow:
-    0 12px 20px -5px rgba(0, 0, 0, 0.08),
-    0 4px 6px -2px rgba(0, 0, 0, 0.03);
-  background: #fafafa;
+    0 4px 20px rgba(0, 0, 0, 0.05),
+    inset 0 -3px 0 rgba(14, 165, 233, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
+.stat-card.products {
+  background:
+    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(16, 185, 129, 0.06) 0%, transparent 70%),
+    #ffffff;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.05),
+    inset 0 -3px 0 rgba(16, 185, 129, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.stat-card.alert {
+  background:
+    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(244, 63, 94, 0.06) 0%, transparent 70%),
+    #ffffff;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.05),
+    inset 0 -3px 0 rgba(244, 63, 94, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.stat-card.total {
+  background:
+    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(245, 158, 11, 0.05) 0%, transparent 70%),
+    #ffffff;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.05),
+    inset 0 -3px 0 rgba(245, 158, 11, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.stat-card.default {
+  background:
+    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(99, 102, 241, 0.06) 0%, transparent 70%),
+    #ffffff;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.05),
+    inset 0 -3px 0 rgba(99, 102, 241, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+/* ─── Hover: Clean Lift ─── */
+.stat-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  border-color: rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+}
+
+.stat-card.sales:hover {
+  box-shadow: 0 15px 35px rgba(14, 165, 233, 0.15), inset 0 -3px 0 #0ea5e9;
+}
+
+.stat-card.products:hover {
+  box-shadow: 0 15px 35px rgba(16, 185, 129, 0.15), inset 0 -3px 0 #10b981;
+}
+
+.stat-card.alert:hover {
+  box-shadow: 0 15px 35px rgba(244, 63, 94, 0.15), inset 0 -3px 0 #f43f5e;
+}
+
+.stat-card.total:hover {
+  box-shadow: 0 15px 35px rgba(245, 158, 11, 0.15), inset 0 -3px 0 #f59e0b;
+}
+
+.stat-card.default:hover {
+  box-shadow: 0 15px 35px rgba(99, 102, 241, 0.15), inset 0 -3px 0 #6366f1;
+}
+
+
+/* ─── Shimmer (opacity-only — no hydration flash) ─── */
+.stat-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg,
+      transparent 25%,
+      rgba(255, 255, 255, 0.06) 50%,
+      transparent 75%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.stat-card:hover .stat-shimmer {
+  opacity: 1;
+}
+
+/* ─── Icon bubble — colored gradient with halo ring ─── */
+.stat-icon-wrap {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.stat-icon-inner {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Icon gradient + halo ring per type */
+.stat-card.sales .stat-icon-inner {
+  background: linear-gradient(135deg, #0369a1 0%, #0ea5e9 100%);
+  box-shadow: 0 0 0 5px rgba(14, 165, 233, 0.15), 0 6px 18px rgba(14, 165, 233, 0.45);
+}
+
+.stat-card.products .stat-icon-inner {
+  background: linear-gradient(135deg, #047857 0%, #10b981 100%);
+  box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.15), 0 6px 18px rgba(16, 185, 129, 0.45);
+}
+
+.stat-card.alert .stat-icon-inner {
+  background: linear-gradient(135deg, #9f1239 0%, #f43f5e 100%);
+  box-shadow: 0 0 0 5px rgba(244, 63, 94, 0.15), 0 6px 18px rgba(244, 63, 94, 0.45);
+}
+
+.stat-card.total .stat-icon-inner {
+  background: linear-gradient(135deg, #92400e 0%, #f59e0b 100%);
+  box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.15), 0 6px 18px rgba(245, 158, 11, 0.45);
+}
+
+.stat-card.default .stat-icon-inner {
+  background: linear-gradient(135deg, #3730a3 0%, #818cf8 100%);
+  box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.15), 0 6px 18px rgba(99, 102, 241, 0.45);
+}
+
+.stat-icon-inner svg,
+.stat-icon-inner i,
+.stat-icon-inner .icon {
+  width: 22px !important;
+  height: 22px !important;
+  stroke-width: 2px !important;
+  color: #fff;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.3));
+}
+
+.stat-card:hover .stat-icon-inner {
+  transform: scale(1.1) rotate(-6deg);
+}
+
+/* ─── Text body ─── */
+.stat-body {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  /* Slate-500 for formal labels */
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-value {
+  font-family: "Outfit", "Cairo", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  /* Deep slate for maximum legibility */
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+/* ─── Decorative orbs — Very subtle tints ─── */
+.stat-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(2px);
+  transition: transform 0.55s ease, opacity 0.55s ease;
+  opacity: 0.05;
+}
+
+.stat-orb-1 {
+  width: 110px;
+  height: 110px;
+  top: -35px;
+  right: -35px;
+}
+
+.stat-orb-2 {
+  width: 65px;
+  height: 65px;
+  bottom: -22px;
+  left: 22%;
+  opacity: 0.07;
+}
+
+.stat-card.sales .stat-orb {
+  background: #38bdf8;
+}
+
+.stat-card.products .stat-orb {
+  background: #10b981;
+}
+
+.stat-card.alert .stat-orb {
+  background: #f43f5e;
+}
+
+.stat-card.total .stat-orb {
+  background: #fbbf24;
+}
+
+.stat-card.default .stat-orb {
+  background: #a5b4fc;
+}
+
+.stat-card:hover .stat-orb-1 {
+  transform: scale(1.5);
+  opacity: 0.18;
+}
+
+.stat-card:hover .stat-orb-2 {
+  transform: scale(1.7) translateX(-5px);
+  opacity: 0.12;
+}
+
+[dir="rtl"] .stat-orb-1 {
+  right: auto;
+  left: -35px;
+}
+
+[dir="rtl"] .stat-orb-2 {
+  left: auto;
+  right: 22%;
+}
+
+/* ─── Loading dots ─── */
+.stat-card .loading-dots {
+  color: #64748b;
+}
+
+/* =========================================
+   LedgerStatsCards — .stat-icon / .stat-info
+   legacy support on top of new dark cards
+   ========================================= */
 .stat-icon {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 12px;
   display: flex !important;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
+  color: #fff;
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Colored icon bubbles for legacy usage */
+.stat-card.sales .stat-icon {
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.45);
+}
+
+.stat-card.products .stat-icon {
+  background: linear-gradient(135deg, #047857, #10b981);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.45);
+}
+
+.stat-card.alert .stat-icon {
+  background: linear-gradient(135deg, #be123c, #f43f5e);
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.45);
+}
+
+.stat-card.total .stat-icon {
+  background: linear-gradient(135deg, #b45309, #f59e0b);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.45);
+}
+
+.stat-card.default .stat-icon {
+  background: linear-gradient(135deg, #4338ca, #818cf8);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.45);
 }
 
 .stat-icon svg,
 .stat-icon i,
 .stat-icon .icon {
-  width: 18px !important;
-  height: 18px !important;
-  stroke-width: 2.5px !important;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  width: 20px !important;
+  height: 20px !important;
+  stroke-width: 2.2px !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
 
 .stat-card:hover .stat-icon {
-  transform: scale(1.1);
-}
-
-/* Sophisticated Vibrant Gradients for Icons */
-.stat-icon.sales {
-  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
-  color: white;
-  box-shadow: 0 4px 8px rgba(14, 165, 233, 0.2);
-}
-
-.stat-icon.products {
-  background: linear-gradient(135deg, #34d399, #10b981);
-  color: white;
-  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
-}
-
-.stat-icon.alert {
-  background: linear-gradient(135deg, #fb7185, #f43f5e);
-  color: white;
-  box-shadow: 0 4px 8px rgba(244, 63, 94, 0.2);
-}
-
-.stat-icon.total {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  color: white;
-  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.2);
-}
-
-.stat-icon.default {
-  background: linear-gradient(135deg, #818cf8, #6366f1);
-  color: white;
-  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.2);
+  transform: scale(1.1) rotate(-5deg);
 }
 
 .stat-info {
   flex: 1;
-  width: 100%;
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 0.2rem;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 .stat-info h3 {
   margin: 0;
-  font-size: 0.7rem;
-  color: #64748b;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  color: #64748b;
   line-height: 1.2;
 }
 
 .stat-info p {
   margin: 0;
-  font-size: 1.15rem;
+  font-family: "Outfit", "Cairo", sans-serif;
+  font-size: 1.5rem;
   font-weight: 800;
   color: #1e293b;
+  letter-spacing: -0.02em;
   line-height: 1.1;
-  font-family: "Outfit", sans-serif;
-  letter-spacing: -0.01em;
 }
 
-/* Minimal Background GLow */
+/* stat-decoration is now replaced by stat-orbs; keep empty rule to avoid errors */
 .stat-decoration {
-  position: absolute;
-  top: -10%;
-  right: -10%;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  opacity: 0.05;
-  filter: blur(25px);
-  z-index: 0;
-  pointer-events: none;
-  transition: all 0.5s ease;
-}
-
-.stat-decoration.sales {
-  background: #0ea5e9;
-}
-
-.stat-decoration.products {
-  background: #10b981;
-}
-
-.stat-decoration.alert {
-  background: #f43f5e;
-}
-
-.stat-decoration.total {
-  background: #f59e0b;
-}
-
-.stat-decoration.default {
-  background: #6366f1;
-}
-
-.stat-card:hover .stat-decoration {
-  opacity: 0.15;
-  transform: scale(2);
-}
-
-[dir="rtl"] .stat-decoration {
-  right: auto;
-  left: -10%;
+  display: none;
 }
 
 /* Progress Bar */

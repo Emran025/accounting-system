@@ -12,6 +12,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     isLoading?: boolean;
     href?: string;
     className?: string;
+    key?: string;
+    border_radius?: string;
 }
 
 export function Button({
@@ -24,13 +26,15 @@ export function Button({
     href,
     className = "",
     disabled,
+    border_radius,
+    key,
     ...props
 }: ButtonProps) {
     const baseClasses = "btn whitespace-nowrap";
     const variantClasses = `btn-${variant}`;
     const sizeClasses = size === "sm" ? "btn-sm" : size === "lg" ? "btn-lg" : "";
-
-    const combinedClasses = `${baseClasses} ${variantClasses} ${sizeClasses} ${className}`.trim();
+    const borderRadiusClass = border_radius ? `border-radius-${border_radius}` : "";
+    const combinedClasses = `${baseClasses} ${variantClasses} ${sizeClasses} ${className} ${borderRadiusClass}`.trim();
 
     const iconElement = typeof icon === "string" ? <Icon name={icon as IconName} /> : icon;
 
@@ -65,6 +69,7 @@ export function Button({
 
     return (
         <button
+            key={key}
             className={combinedClasses}
             disabled={disabled || isLoading}
             {...props}

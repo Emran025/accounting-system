@@ -9,34 +9,44 @@ interface StatsCardProps {
     isLoading?: boolean;
 }
 
-export function StatsCard({ 
-    title, 
-    value, 
-    icon, 
-    colorClass = "default", 
+export function StatsCard({
+    title,
+    value,
+    icon,
+    colorClass = "default",
     onClick,
-    isLoading = false 
+    isLoading = false
 }: StatsCardProps) {
     return (
-        <div 
-            className={`stat-card ${onClick ? "interactive" : ""}`} 
+        <div
+            className={`stat-card ${colorClass} ${onClick ? "interactive" : ""}`}
             onClick={onClick}
         >
-            <div className={`stat-icon ${colorClass}`}>
-                {icon}
+            {/* Shimmer highlight */}
+            <div className="stat-shimmer" />
+
+            {/* Icon bubble */}
+            <div className="stat-icon-wrap">
+                <div className="stat-icon-inner">
+                    {icon}
+                </div>
             </div>
-            <div className={`stat-info ${colorClass}`}>
-                <h3>{title}</h3>
-                <p>
+
+            {/* Text content */}
+            <div className="stat-body">
+                <span className="stat-label">{title}</span>
+                <span className="stat-value">
                     {isLoading ? (
                         <span className="loading-dots">...</span>
                     ) : (
                         value
                     )}
-                </p>
+                </span>
             </div>
-            {/* Background decoration for visual interest */}
-            <div className={`stat-decoration ${colorClass}`}></div>
+
+            {/* Decorative orbs */}
+            <div className="stat-orb stat-orb-1" />
+            <div className="stat-orb stat-orb-2" />
         </div>
     );
 }
