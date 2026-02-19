@@ -94,12 +94,23 @@ function APLedgerPageContent() {
         `${API_ENDPOINTS.PURCHASES.SUPPLIERS.LEDGER}?supplier_id=${supplierId}&limit=${limit}&offset=${offset}`
       );
 
-      if (response.success && response.data) {
-        const data = response.data as APLedgerResponse;
-        setSupplier(data.supplier as Supplier);
-        setTransactions(data.transactions as LedgerTransaction[] || []);
-        setAging(data.aging as AgingBuckets);
-        setTotalPages(Math.ceil((response.total as number || 0) / limit));
+      if (response.success) {
+        setSupplier(response.supplier as Supplier || null);
+        setTransactions(response.data as LedgerTransaction[] || []);
+
+        // Map backend aging keys to frontend interface
+        const agingData = response.aging as any;
+        const statsData = response.stats as any;
+        setAging({
+          current: (agingData?.current || 0) + (agingData?.['1_30'] || 0),
+          days_30_60: agingData?.['31_60'] || 0,
+          days_60_90: agingData?.['61_90'] || 0,
+          over_90: agingData?.over_90 || 0,
+          total: statsData?.balance || 0,
+        });
+
+        const pagination = response.pagination as any;
+        setTotalPages(pagination?.total_pages || 1);
         setCurrentPage(page);
       }
     } catch {
@@ -208,25 +219,25 @@ function APLedgerPageContent() {
         <div className="stat-card">
           <div className="stat-info">
             <h3>الرصيد المستحق</h3>
-            <p className="text-danger" style={{ fontSize: "1.5rem" }}>{formatCurrency(aging.total)}</p>
+            <p className="text-danger" style={{ fontSize: "1.5rem" }}>{formatCurrency(aging?.total || 0)}</p>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-info">
-            <h3>مستحق حالي (30 يوم)</h3>
-            <p>{formatCurrency(aging.current)}</p>
+            <h3>مستحق حالي</h3>
+            <p>{formatCurrency(aging?.current || 0)}</p>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-info">
             <h3>متأخر (30-60 يوم)</h3>
-            <p className="text-warning">{formatCurrency(aging.days_30_60)}</p>
+            <p className="text-warning">{formatCurrency(aging?.days_30_60 || 0)}</p>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-info">
             <h3>متأخر جداً (+90 يوم)</h3>
-            <p className="text-danger">{formatCurrency(aging.over_90)}</p>
+            <p className="text-danger">{formatCurrency(aging?.over_90 || 0)}</p>
           </div>
         </div>
       </div>

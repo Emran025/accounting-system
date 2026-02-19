@@ -78,7 +78,7 @@ export function canAccess(
   if (!Array.isArray(permissions)) return false;
 
   const moduleName = moduleAccessMap[module] || module;
-  const permission = permissions.find((p) => p.module === moduleName);
+  const permission = permissions.find((p) => p.module === moduleName || p.module === "*");
 
   if (!permission) return false;
 

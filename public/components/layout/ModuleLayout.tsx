@@ -57,7 +57,7 @@ export function ModuleLayout({
         if (Array.isArray(currentPermissions)) {
           const hasAccess = currentPermissions.some(
             (p) =>
-              p.module === requiredModule &&
+              (p.module === requiredModule || p.module === "*") &&
               (requiredAction === "view"
                 ? p.can_view
                 : requiredAction === "create"

@@ -104,7 +104,7 @@ class AuthService
 
         $session = Session::where('session_token', $sessionToken)
             ->where('expires_at', '>', now())
-            ->with('user')
+            ->with(['user', 'user.roleRelation'])
             ->first();
 
         if ($session && $session->user) {

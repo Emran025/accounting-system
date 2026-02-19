@@ -146,7 +146,7 @@ export const useAuthStore = create<AuthState>()(
                 // Permission check
                 canAccess: (module, action = 'view') => {
                     const { permissions } = get();
-                    const perm = permissions.find(p => p.module === module);
+                    const perm = permissions.find(p => p.module === module || p.module === '*');
                     if (!perm) return false;
                     // Fix implicit action check
                     return action === 'view' ? perm.can_view
