@@ -3,55 +3,19 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ModuleLayout, PageHeader } from "@/components/layout";
-import { ActionButtons, Dialog, ConfirmDialog, showToast, showAlert, Button, FilterSection, FilterGroup, DateRangePicker, FilterActions, SelectableInvoiceTable, SelectedItem, SalesReturnDialog, SelectableInvoice, SelectableInvoiceItem, ReturnData, InvoiceTableColumn, NumberInput } from "@/components/ui";
-import { TextInput } from "@/components/ui/TextInput";
-import { Textarea } from "@/components/ui/Textarea";
-import { Select } from "@/components/ui/select";
+import { ConfirmDialog, showToast, showAlert, Button, SelectedItem, SalesReturnDialog, SelectableInvoice, SelectableInvoiceItem, ReturnData } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { formatCurrency, formatDate, formatDateTime, parseNumber } from "@/lib/utils";
+import { parseNumber } from "@/lib/utils";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
-import { getIcon, Icon } from "@/lib/icons";
-interface LedgerTransaction extends SelectableInvoice {
-  transaction_date: string;
-  type: "invoice" | "payment" | "return";
-  description?: string;
-  amount: number;
-  created_by?: string;
-  is_deleted: boolean;
-  reference_type?: string;
-  reference_id?: number;
-}
 
-interface Pagination {
-  total_records: number;
-  total_pages: number;
-  current_page: number;
-};
-interface LedgerStats {
-  total_debit: number;
-  total_credit: number;
-  balance: number;
-  transaction_count: number;
-}
-
-interface Customer {
-  id: number;
-  name: string;
-  phone?: string;
-  tax_number?: string;
-}
-
-// This interface is for the detailed view of an invoice
-interface DetailedInvoice extends SelectableInvoice {
-  voucher_number?: string;
-  customer_name?: string;
-  customer_phone?: string;
-  customer_tax?: string;
-  amount_paid?: number;
-  vat_rate?: number;
-  items: Array<SelectableInvoiceItem & { product_name?: string }>;
-}
+import { CustomerInfoSection } from "./components/CustomerInfoSection";
+import { LedgerStatsCards } from "./components/LedgerStatsCards";
+import { LedgerTable } from "./components/LedgerTable";
+import { LedgerFilterDialog } from "./components/LedgerFilterDialog";
+import { TransactionFormDialog } from "./components/TransactionFormDialog";
+import { InvoiceDetailsDialog } from "./components/InvoiceDetailsDialog";
+import { LedgerTransaction, Pagination, LedgerStats, Customer, DetailedInvoice } from "./types";
 
 function ARLedgerPageContent() {
   const router = useRouter();
@@ -64,6 +28,8 @@ function ARLedgerPageContent() {
   const [stats, setStats] = useState<LedgerStats>({
     total_debit: 0,
     total_credit: 0,
+    total_returns: 0,
+    total_receipts: 0,
     balance: 0,
     transaction_count: 0,
   });
@@ -104,7 +70,7 @@ function ARLedgerPageContent() {
 
   // Form
   const [currentTransactionId, setCurrentTransactionId] = useState<number | null>(null);
-  const [transactionType, setTransactionType] = useState<"payment" | "invoice">("payment");
+  const [transactionType, setTransactionType] = useState<"receipt" | "invoice">("receipt");
   const [transactionAmount, setTransactionAmount] = useState("");
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split("T")[0]);
   const [transactionDescription, setTransactionDescription] = useState("");
@@ -150,6 +116,7 @@ function ARLedgerPageContent() {
           const rawTransactions = response.data as any[];
           const mappedTransactions: LedgerTransaction[] = rawTransactions.map((item) => ({
             ...item,
+            type: item.type,
             invoice_number: item.reference_id ? `REF-${item.reference_id}` : `TRX-${item.id}`,
             total_amount: item.amount,
             subtotal: item.amount,
@@ -197,7 +164,7 @@ function ARLedgerPageContent() {
 
   const openAddTransactionDialog = () => {
     setCurrentTransactionId(null);
-    setTransactionType("payment");
+    setTransactionType("receipt");
     setTransactionAmount("");
     setTransactionDate(new Date().toISOString().split("T")[0]);
     setTransactionDescription("");
@@ -206,7 +173,7 @@ function ARLedgerPageContent() {
 
   const openEditTransaction = (transaction: LedgerTransaction) => {
     setCurrentTransactionId(transaction.id);
-    setTransactionType(transaction.type === "invoice" ? "invoice" : "payment");
+    setTransactionType(transaction.type === "invoice" ? "invoice" : "receipt");
     setTransactionAmount(String(transaction.amount));
     const d = new Date(transaction.transaction_date);
     setTransactionDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
@@ -262,6 +229,7 @@ function ARLedgerPageContent() {
   };
 
   const getInvoiceItems = async (item: LedgerTransaction): Promise<SelectableInvoiceItem[]> => {
+    if (item.type === "receipt") return [];
     if (!item.reference_id) return [];
 
     const endpoint = item.reference_type === "sales_returns"
@@ -291,7 +259,6 @@ function ARLedgerPageContent() {
       return;
     }
 
-    // Fetch missing invoice details for calculation
     const uniqueInvoiceIds = Array.from(new Set(selectedReturnItems.map(i => i.invoiceId)));
     const missingIds = uniqueInvoiceIds.filter(id => !invoicesMap[id]);
 
@@ -333,10 +300,9 @@ function ARLedgerPageContent() {
       }
 
       showToast("تم تسجيل المرتجع بنجاح", "success");
-      // Result will be handled by onSuccess in dialog
     } catch (error: any) {
       showToast(error.message || "خطأ في تسجيل المرتجع", "error");
-      throw error; // Re-throw to keep dialog open if needed
+      throw error;
     }
   };
 
@@ -396,143 +362,6 @@ function ARLedgerPageContent() {
     loadLedger(1);
   };
 
-  const getTypeName = (type: string) => {
-    const types: Record<string, string> = {
-      invoice: "فاتورة مبيعات",
-      payment: "سند قبض",
-      return: "مرتجع",
-    };
-    return types[type] || type;
-  };
-
-  const canEdit = (transaction: LedgerTransaction) => {
-    if (transaction.is_deleted) return false;
-    const transactionDate = new Date(transaction.transaction_date);
-    const now = new Date();
-    const diffMs = now.getTime() - transactionDate.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-    return diffHours < 48;
-  };
-
-  const columns: InvoiceTableColumn<LedgerTransaction>[] = [
-    {
-      key: "id",
-      header: "#",
-      dataLabel: "#",
-      render: (item) => (
-        <span
-          className={item.reference_type === "invoices" ? "clickable-id" : ""}
-          onClick={() => item.reference_type === "invoices" && viewInvoice(item.reference_id!)}
-          style={{ cursor: item.reference_type === "invoices" ? "pointer" : "default", fontWeight: "bold", color: item.reference_type === "invoices" ? "var(--primary-color)" : "inherit" }}
-        >
-          {item.id}
-        </span>
-      ),
-    },
-    {
-      key: "transaction_date",
-      header: "التاريخ",
-      dataLabel: "التاريخ",
-      render: (item) => (
-        <span style={{ fontSize: "0.9em" }}>
-          {formatDateTime(item.transaction_date)}
-        </span>
-      ),
-    },
-    {
-      key: "type",
-      header: "نوع العملية",
-      dataLabel: "نوع العملية",
-      render: (item) => (
-        <span
-          className={`badge ${item.type === "invoice" ? "badge-primary" : "badge-success"
-            }`}
-        >
-          {getTypeName(item.type)}
-        </span>
-      ),
-    },
-    {
-      key: "description",
-      header: "الوصف",
-      dataLabel: "الوصف",
-      render: (item) => (
-        <div
-          className={item.reference_type === "invoices" ? "clickable-desc" : ""}
-          onClick={() => item.reference_type === "invoices" && viewInvoice(item.reference_id!)}
-          style={{ cursor: item.reference_type === "invoices" ? "pointer" : "default" }}
-        >
-          {item.description || "-"} {item.is_deleted && "(محذوف)"}
-        </div>
-      ),
-    },
-    {
-      key: "debit",
-      header: "مدين (عليك)",
-      dataLabel: "مدين (عليك)",
-      render: (item) => (
-        <span className="text-danger font-bold">
-          {item.type === "invoice" ? formatCurrency(item.amount) : "-"}
-        </span>
-      ),
-    },
-    {
-      key: "credit",
-      header: "دائن (لك)",
-      dataLabel: "دائن (لك)",
-      render: (item) => (
-        <span className="text-success font-bold">
-          {item.type !== "invoice" ? formatCurrency(item.amount) : "-"}
-        </span>
-      ),
-    },
-    {
-      key: "created_by",
-      header: "المستخدم",
-      dataLabel: "المستخدم",
-      render: (item) => item.created_by || "-",
-    },
-    {
-      key: "actions",
-      header: "الإجراءات",
-      dataLabel: "الإجراءات",
-      render: (item) => (
-        <ActionButtons
-          actions={[
-            {
-              icon: "check",
-              title: "استعادة",
-              variant: "edit",
-              onClick: () => confirmRestoreTransaction(item.id),
-              hidden: !item.is_deleted
-            },
-            {
-              icon: "edit",
-              title: "تعديل",
-              variant: "edit",
-              onClick: () => openEditTransaction(item),
-              hidden: item.is_deleted || !canEdit(item)
-            },
-            {
-              icon: "trash",
-              title: "حذف",
-              variant: "delete",
-              onClick: () => confirmDeleteTransaction(item.id),
-              hidden: item.is_deleted || item.type === "invoice"
-            },
-            {
-              icon: "eye",
-              title: "عرض الفاتورة",
-              variant: "view",
-              onClick: () => viewInvoice(item.reference_id!),
-              hidden: item.is_deleted || item.reference_type !== "invoices"
-            }
-          ]}
-        />
-      ),
-    },
-  ];
-
   const handleConfirm = () => {
     if (deleteTransactionId) {
       deleteTransaction();
@@ -570,318 +399,63 @@ function ARLedgerPageContent() {
         }
       />
 
-      {customer && (
-        <FilterSection className="animate-fade" style={{ marginBottom: "1.5rem" }}>
-          <div className="title-with-icon">
-            <div className="stat-icon products" style={{ width: "45px", height: "45px", fontSize: "1.2rem" }}>
-              {getIcon("user")}
-            </div>
-            <div>
-              <h3 style={{ margin: 0 }}>{customer.name}</h3>
-              <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>
-                {customer.phone || "بدون هاتف"} | {customer.tax_number || "بدون رقم ضريبي"}
-              </p>
-            </div>
-          </div>
+      <CustomerInfoSection
+        customer={customer}
+        showDeleted={showDeleted}
+        onShowDeletedChange={(checked) => {
+          setShowDeleted(checked);
+          loadLedger(1);
+        }}
+      />
 
-          <FilterGroup className="checkbox-group" style={{ marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: "0.5rem" }}>
-            <input
-              type="checkbox"
-              id="show-deleted-toggle"
-              checked={showDeleted}
-              onChange={(e) => {
-                setShowDeleted(e.target.checked);
-                loadLedger(1);
-              }}
-            />
-            <label htmlFor="show-deleted-toggle" style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: 0, cursor: "pointer" }}>
-              عرض المحذوفات
-            </label>
-          </FilterGroup>
-        </FilterSection>
-      )}
-
-      {/* Stats Cards */}
-      <div className="dashboard-stats animate-fade" style={{ marginBottom: "2rem" }}>
-        <div className="stat-card">
-          <div className="stat-icon alert">{getIcon("dollar")}</div>
-          <div className="stat-info">
-            <h3>إجمالي المبيعات (مدين)</h3>
-            <p className="text-danger">{formatCurrency(stats.total_debit)}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon products">{getIcon("check")}</div>
-          <div className="stat-info">
-            <h3>إجمالي المقبوضات (دائن)</h3>
-            <p className="text-success">{formatCurrency(stats.total_credit)}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon total">{getIcon("building")}</div>
-          <div className="stat-info">
-            <h3>الرصيد الحالي</h3>
-            <p className={stats.balance > 0 ? "text-danger" : stats.balance < 0 ? "text-success" : ""}>
-              {formatCurrency(stats.balance)}
-            </p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon sales">{getIcon("eye")}</div>
-          <div className="stat-info">
-            <h3>عدد العمليات</h3>
-            <p>{stats.transaction_count}</p>
-          </div>
-        </div>
-      </div>
+      <LedgerStatsCards stats={stats} />
 
       <div id="alert-container"></div>
 
-      <div className="sales-card animate-fade">
-        <SelectableInvoiceTable
-          columns={columns}
-          invoices={transactions}
-          keyExtractor={(item) => item.id}
-          isLoading={isLoading}
-          onSelectionChange={handleReturnSelection}
-          onSearch={(query) => setFilters({ ...filters, search: query })}
-          getInvoiceItems={getInvoiceItems}
-          emptyMessage="لا توجد عمليات"
-          multiInvoiceSelection={true}
-          isExpandable={(item: LedgerTransaction) => !!item.reference_id && (item.reference_type === "invoices" || item.reference_type === "sales_returns")}
-          pagination={{
-            currentPage,
-            totalPages,
-            onPageChange: loadLedger,
-          }}
-          openReturnDialog={openReturnDialog}
-        />
-      </div>
+      <LedgerTable
+        transactions={transactions}
+        isLoading={isLoading}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        handleReturnSelection={handleReturnSelection}
+        setSearch={(query) => setFilters({ ...filters, search: query })}
+        onPageChange={loadLedger}
+        getInvoiceItems={getInvoiceItems}
+        openReturnDialog={openReturnDialog}
+        onViewInvoice={viewInvoice}
+        onEditTransaction={openEditTransaction}
+        onDeleteTransaction={confirmDeleteTransaction}
+        onRestoreTransaction={confirmRestoreTransaction}
+      />
 
-      {/* Filter Dialog */}
-      <Dialog
+      <LedgerFilterDialog
         isOpen={filterDialog}
         onClose={() => setFilterDialog(false)}
-        title="تصفية العمليات"
-        footer={
-          <FilterActions>
-            <Button variant="secondary" onClick={() => setFilterDialog(false)}>
-              إلغاء
-            </Button>
-            <Button variant="primary" onClick={applyFilters}>
-              تطبيق
-            </Button>
-          </FilterActions>
-        }
-      >
-        <div className="space-y-4">
-          <FilterGroup label="الفترة">
-            <DateRangePicker
-              startDate={filters.date_from}
-              endDate={filters.date_to}
-              onStartDateChange={(val) => setFilters({ ...filters, date_from: val })}
-              onEndDateChange={(val) => setFilters({ ...filters, date_to: val })}
-            />
-          </FilterGroup>
-          <Select
-            label="نوع العملية"
-            id="filter-type"
-            value={filters.type}
-            onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-            options={[
-              { value: "", label: "الكل" },
-              { value: "invoice", label: "فاتورة مبيعات" },
-              { value: "payment", label: "سند قبض (دفعة)" },
-              { value: "return", label: "مرتجع" },
-            ]}
-          />
-        </div>
-      </Dialog>
+        filters={filters}
+        setFilters={setFilters}
+        onApply={applyFilters}
+      />
 
-      {/* Transaction Dialog */}
-      <Dialog
+      <TransactionFormDialog
         isOpen={transactionDialog}
         onClose={() => setTransactionDialog(false)}
-        title={currentTransactionId ? "تعديل عملية" : "تسجيل عملية جديدة"}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setTransactionDialog(false)}>
-              إلغاء
-            </Button>
-            <Button variant="primary" onClick={saveTransaction}>
-              حفظ
-            </Button>
-          </div>
-        }
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            saveTransaction();
-          }}
-          className="space-y-4"
-        >
-          <Select
-            label="نوع العملية *"
-            id="trans-type"
-            value={transactionType}
-            onChange={(e) => setTransactionType(e.target.value as typeof transactionType)}
-            required
-            disabled={!!currentTransactionId}
-            options={[
-              { value: "payment", label: "سند قبض (استلام نقدية)" },
-              { value: "invoice", label: "فاتورة (أجل) - يدوي" },
-            ]}
-          />
-          <div className="form-row">
-            <NumberInput
-              label="المبلغ *"
-              id="trans-amount"
-              value={transactionAmount}
-              onChange={(val) => setTransactionAmount(val)}
-              step={0.01}
-              required
-              className="flex-1"
-            />
-            <TextInput
-              type="date"
-              label="التاريخ *"
-              id="trans-date"
-              value={transactionDate}
-              onChange={(e) => setTransactionDate(e.target.value)}
-              required
-              disabled={!!currentTransactionId}
-              className="flex-1"
-            />
-          </div>
-          <Textarea
-            label="الوصف / البيان"
-            id="trans-desc"
-            rows={3}
-            value={transactionDescription}
-            onChange={(e) => setTransactionDescription(e.target.value)}
-          />
-        </form>
-      </Dialog>
+        isCustomId={!!currentTransactionId}
+        transactionType={transactionType}
+        transactionAmount={transactionAmount}
+        transactionDate={transactionDate}
+        transactionDescription={transactionDescription}
+        setTransactionType={setTransactionType}
+        setTransactionAmount={setTransactionAmount}
+        setTransactionDate={setTransactionDate}
+        setTransactionDescription={setTransactionDescription}
+        onSave={saveTransaction}
+      />
 
-      {/* View Invoice Dialog */}
-      <Dialog
+      <InvoiceDetailsDialog
         isOpen={viewDialog}
         onClose={() => setViewDialog(false)}
-        title="تفاصيل الفاتورة"
-      // size="large"
-      >
-        {selectedInvoice && (
-          <div>
-            <div style={{ marginBottom: "2rem", borderBottom: "2px solid var(--border-color)", paddingBottom: "1rem" }}>
-              <div className="form-row">
-                <div className="summary-stat">
-                  <span className="stat-label">رقم الفاتورة</span>
-                  <span className="stat-value">{selectedInvoice.invoice_number}</span>
-                </div>
-                <div className="summary-stat">
-                  <span className="stat-label">التاريخ</span>
-                  <span className="stat-value">{formatDate(selectedInvoice.created_at)}</span>
-                </div>
-                <div className="summary-stat">
-                  <span className="stat-label">نوع الدفع</span>
-                  <span className="stat-value">
-                    <span
-                      className={`badge ${selectedInvoice.payment_type === "credit" ? "badge-warning" : "badge-success"
-                        }`}
-                    >
-                      {selectedInvoice.payment_type === "credit" ? "آجل (ذمم)" : "نقدي"}
-                    </span>
-                  </span>
-                </div>
-              </div>
-              {selectedInvoice.customer_name && (
-                <div
-                  className="form-row"
-                  style={{
-                    marginTop: "1rem",
-                    background: "var(--surface-hover)",
-                    padding: "1rem",
-                    borderRadius: "var(--radius-md)",
-                  }}
-                >
-                  <div className="summary-stat">
-                    <span className="stat-label">العميل</span>
-                    <span className="stat-value">{selectedInvoice.customer_name}</span>
-                  </div>
-                  {selectedInvoice.customer_phone && (
-                    <div className="summary-stat">
-                      <span className="stat-label">الهاتف</span>
-                      <span className="stat-value">{selectedInvoice.customer_phone}</span>
-                    </div>
-                  )}
-                  {selectedInvoice.customer_tax && (
-                    <div className="summary-stat">
-                      <span className="stat-label">الرقم الضريبي</span>
-                      <span className="stat-value">{selectedInvoice.customer_tax}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-              {selectedInvoice.payment_type === "credit" && (
-                <div className="form-row" style={{ marginTop: "1rem" }}>
-                  <div className="summary-stat">
-                    <span className="stat-label">المبلغ المدفوع</span>
-                    <span className="stat-value" style={{ color: "var(--success-color)" }}>
-                      {formatCurrency(selectedInvoice.amount_paid || 0)}
-                    </span>
-                  </div>
-                  <div className="summary-stat">
-                    <span className="stat-label">المبلغ المتبقي</span>
-                    <span
-                      className="stat-value"
-                      style={{ color: "var(--danger-color)", fontWeight: 700 }}
-                    >
-                      {formatCurrency(
-                        selectedInvoice.total_amount - (selectedInvoice.amount_paid || 0)
-                      )}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <h4 style={{ marginBottom: "1rem" }}>المنتجات المباعة:</h4>
-              {selectedInvoice.items.map((item, idx) => (
-                <div key={idx} className="item-row-minimal">
-                  <div className="item-info-pkg">
-                    <span className="item-name-pkg">{item.product_name}</span>
-                    <span className="item-meta-pkg">سعر الوحدة: {formatCurrency(item.unit_price)}</span>
-                  </div>
-                  <div className="item-info-pkg" style={{ textAlign: "left" }}>
-                    <span className="item-name-pkg">{formatCurrency(item.subtotal)}</span>
-                    <span className="item-meta-pkg">الكمية: {item.quantity}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div
-              className="sales-summary-bar"
-              style={{
-                marginTop: "2rem",
-                background: "var(--grad-primary)",
-                color: "white",
-              }}
-            >
-              <div className="summary-stat">
-                <span className="stat-label" style={{ color: "rgba(255,255,255,0.8)" }}>
-                  المبلغ الإجمالي
-                </span>
-                <span className="stat-value highlight" style={{ color: "white" }}>
-                  {formatCurrency(selectedInvoice.total_amount)}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-      </Dialog>
+        selectedInvoice={selectedInvoice}
+      />
 
       {/* Confirm Dialog */}
       <ConfirmDialog
@@ -927,5 +501,3 @@ export default function ARLedgerPage() {
     </Suspense>
   );
 }
-
-
