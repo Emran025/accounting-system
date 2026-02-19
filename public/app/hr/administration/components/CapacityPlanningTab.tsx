@@ -177,9 +177,15 @@ export function CapacityPlanningTab() {
                     icon={getIcon("chart-pie")}
                     colorClass={utilizationPct > 90 ? "alert" : "sales"}
                 />
+                <StatsCard
+                    title="معدل الاستيعاب الكلي"
+                    value={`${utilizationPct}%`}
+                    icon={getIcon("chart-pie")}
+                    colorClass={utilizationPct > 90 ? "alert" : "sales"}
+                />
             </div>
 
-            {/* Utilization Progress Bar */}
+            {/* Utilization Progress Bar
             <div className="sales-card" style={{ marginBottom: "1.5rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
                     <span className="stat-label">معدل الاستيعاب الكلي</span>
@@ -193,7 +199,7 @@ export function CapacityPlanningTab() {
                         style={{ width: `${utilizationPct}%` }}
                     />
                 </div>
-            </div>
+            </div> */}
 
             <PageSubHeader
                 title="المسميات الوظيفية"

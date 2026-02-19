@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { getIcon } from "@/lib/icons";
 
 export interface Tab {
   key: string;
@@ -156,6 +157,25 @@ export function TabNavigation({ tabs, activeTab, onTabChange, className = "" }: 
         >
           <i className="fas fa-chevron-left"></i>
         </button>
+      </div>
+    </div>
+  );
+}
+
+export function TabSubNavigation({ tabs, activeTab, onTabChange, className = "" }: TabNavigationProps) {
+  return (
+    <div className={`card-header-flex ${className}`}>
+      <div className="discount-type-toggle">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            className={activeTab === tab.key ? "active" : ""}
+            onClick={() => onTabChange(tab.key)}
+            type="button"
+          >
+            {getIcon(tab.icon)} {tab.label}
+          </button>
+        ))}
       </div>
     </div>
   );

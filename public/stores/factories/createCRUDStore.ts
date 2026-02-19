@@ -14,7 +14,7 @@ export interface CRUDState<T> {
     lastFetched: number | null;
 
     load: (page?: number, search?: string) => Promise<void>;
-    save: (data: Record<string, any>, id?: number) => Promise<boolean>;
+    save: (data: Record<string, unknown>, id?: number) => Promise<boolean>;
     remove: (id: number) => Promise<boolean>;
     invalidate: () => void;
 }
@@ -22,7 +22,7 @@ export interface CRUDState<T> {
 /**
  * Configuration for creating a CRUD store.
  */
-export interface CRUDConfig<T = any> {
+export interface CRUDConfig<T = unknown> {
     /** API endpoint path (e.g. API_ENDPOINTS.INVENTORY.PRODUCTS) */
     endpoint: string;
     /** DevTools store name (e.g. 'product-store') */
@@ -44,7 +44,7 @@ export interface CRUDConfig<T = any> {
      * Optional transform applied to the raw data array returned from the API.
      * Use this to map backend field names to frontend-friendly names.
      */
-    transform?: (raw: any[]) => T[];
+    transform?: (raw: unknown[]) => T[];
 }
 
 /**
@@ -64,7 +64,7 @@ export function createCRUDStore<T extends { id: number }>(config: CRUDConfig<T>)
         endpoint,
         storeName,
         itemsPerPage = 10,
-        cacheTTL = 5 * 60 * 1000,
+        // cacheTTL = 5 * 60 * 1000,
         messages = {},
         transform,
     } = config;
@@ -85,25 +85,29 @@ export function createCRUDStore<T extends { id: number }>(config: CRUDConfig<T>)
                             `${endpoint}?page=${page}&limit=${itemsPerPage}&search=${encodeURIComponent(search)}`
                         );
                         if (res.success) {
-                            let rawItems = (res.data as any) || [];
-
-                            // Handle paginated vs flat responses
+                            const raw = res.data ?? [];
+                            let itemsToTransform: unknown[] = [];
                             let totalPages = 1;
-                            if (Array.isArray(rawItems)) {
-                                // Flat array
-                            } else if (rawItems.data && Array.isArray(rawItems.data)) {
-                                totalPages = rawItems.last_page || 1;
-                                rawItems = rawItems.data;
+
+                            if (Array.isArray(raw)) {
+                                itemsToTransform = raw;
+                            } else if (raw && typeof raw === 'object') {
+                                const paginated = raw as Record<string, unknown>;
+                                if (Array.isArray(paginated.data)) {
+                                    itemsToTransform = paginated.data as unknown[];
+                                    totalPages = (paginated.last_page as number) || 1;
+                                }
                             }
 
                             // Also check pagination object from BaseApiController
-                            if ((res.pagination as any)?.total_pages) {
-                                totalPages = (res.pagination as any).total_pages;
+                            const pagination = res.pagination as Record<string, unknown> | undefined;
+                            if (pagination?.total_pages) {
+                                totalPages = pagination.total_pages as number;
                             }
 
                             const items = transform
-                                ? transform(rawItems)
-                                : (rawItems as T[]);
+                                ? transform(itemsToTransform)
+                                : (itemsToTransform as T[]);
 
                             set({
                                 items,

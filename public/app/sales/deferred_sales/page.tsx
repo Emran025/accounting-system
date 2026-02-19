@@ -6,7 +6,7 @@ import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, Searchabl
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDateTime, parseNumber } from "@/lib/utils";
-import { User, getStoredUser, canAccess, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
+import { User, getStoredUser, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
 import { printInvoice } from "@/lib/invoice-utils";
 

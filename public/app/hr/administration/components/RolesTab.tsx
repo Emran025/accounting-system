@@ -3,7 +3,7 @@ import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showToast, Dialog, ConfirmDialog } from "@/components/ui";
 import { getIcon } from "@/lib/icons";
-import { Role, RolePermission, ModuleData } from "../types";
+import { Role, RolePermission, ModuleData } from "../../../system/settings/types";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export function RolesTab() {

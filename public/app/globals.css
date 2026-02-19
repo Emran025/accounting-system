@@ -272,9 +272,11 @@ body:not(:has(.sidebar)) .content {
   margin-bottom: 1rem;
 }
 
-.page-header h1 {
+.page-header h2 {
   font-size: 1.75rem;
   font-weight: 800;
+  padding: 0;
+  margin: 0.5rem;
   color: var(--text-primary);
 }
 
@@ -2795,7 +2797,7 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
 .navigation-content {
   margin-right: 260px;
   width: calc(100% - 260px);
-  padding: 2.5rem 3rem;
+  padding: 1rem 2rem;
   transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

@@ -132,7 +132,7 @@ The system implements a comprehensive ERP solution with the following modules:
 ### 2.3 Directory Structure
 
 ```txt
-accounting-system/
+accsystem/
 ├── src/                          # Laravel Backend
 │   ├── app/
 │   │   ├── Http/
@@ -1807,7 +1807,7 @@ class StoreInvoiceRequest extends FormRequest
 
 ```bash
 git clone <repository-url>
-cd accounting-system
+cd accsystem
 ```
 
 - **Step 2: Backend Setup**

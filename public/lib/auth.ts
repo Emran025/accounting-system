@@ -1,7 +1,5 @@
 // Authentication utilities - migrated from common.js
 
-import { fetchAPI } from "./api";
-import { API_ENDPOINTS } from "./endpoints";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 /**

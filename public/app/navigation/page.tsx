@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { NavigationCard, NavigationGrid, NavigationSidebar } from "@/components/navigation";
 import { navigationGroups, getNavigationGroup } from "@/lib/navigation-config";
-import { checkAuth, Permission, canAccess } from "@/lib/auth";
+import { checkAuth, Permission, canAccess, User } from "@/lib/auth";
 import { initSystemSettings } from "@/lib/settings";
+import { PageHeader } from "@/components/layout";
 
 export default function NavigationPage() {
+  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -98,10 +100,10 @@ export default function NavigationPage() {
       />
 
       <main className={`navigation-content ${isContentExpanded ? "expanded" : ""}`}>
-        <div className="navigation-header">
-          <h1>{currentGroup?.label || "التنقل"}</h1>
-          <p>اختر الوحدة التي تريد الوصول إليها</p>
-        </div>
+        <PageHeader
+          title={currentGroup?.label || "التنقل"}
+          user={user}
+        />
 
         <NavigationGrid>
           {accessibleLinks.map((link) => (

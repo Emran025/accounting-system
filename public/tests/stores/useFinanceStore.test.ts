@@ -1,12 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fetchAPI } from '@/lib/api';
-import { showToast } from '@/components/ui';
 
 const mockedFetchAPI = vi.mocked(fetchAPI);
-const mockedShowToast = vi.mocked(showToast);
 
 describe('useFinanceStore', () => {
-    let useFinanceStore: any;
+    let useFinanceStore: typeof import('@/stores/useFinanceStore').useFinanceStore;
 
     beforeEach(async () => {
         vi.clearAllMocks();
@@ -22,8 +20,8 @@ describe('useFinanceStore', () => {
             fiscalPeriodsLoading: false,
             fiscalPeriodsLastFetched: null,
             journalVouchers: [],
-            journalVouchersLoading: false,
-            journalVouchersLastFetched: null,
+            jvLoading: false,
+            jvLastFetched: null,
         });
     });
 
@@ -46,7 +44,7 @@ describe('useFinanceStore', () => {
         it('respects TTL cache', async () => {
             // Set a recent lastFetched to simulate cache
             useFinanceStore.setState({
-                accounts: [{ id: 1 }],
+                accounts: [{ id: 1 } as any],
                 accountsLastFetched: Date.now(),
             });
 
@@ -59,7 +57,7 @@ describe('useFinanceStore', () => {
         it('forces reload when cache is stale', async () => {
             // Set a stale lastFetched
             useFinanceStore.setState({
-                accounts: [{ id: 1 }],
+                accounts: [{ id: 1 } as any],
                 accountsLastFetched: Date.now() - 6 * 60 * 1000, // 6 min ago (TTL = 5 min)
             });
 
@@ -121,16 +119,16 @@ describe('useFinanceStore', () => {
         });
 
         it('invalidateJournalVouchers clears cache timestamp', () => {
-            useFinanceStore.setState({ journalVouchersLastFetched: Date.now() });
+            useFinanceStore.setState({ jvLastFetched: Date.now() });
             useFinanceStore.getState().invalidateJournalVouchers();
-            expect(useFinanceStore.getState().journalVouchersLastFetched).toBeNull();
+            expect(useFinanceStore.getState().jvLastFetched).toBeNull();
         });
 
         it('invalidateAll clears all caches', () => {
             useFinanceStore.setState({
                 accountsLastFetched: Date.now(),
                 fiscalPeriodsLastFetched: Date.now(),
-                journalVouchersLastFetched: Date.now(),
+                jvLastFetched: Date.now(),
             });
 
             useFinanceStore.getState().invalidateAll();
@@ -138,7 +136,7 @@ describe('useFinanceStore', () => {
             const state = useFinanceStore.getState();
             expect(state.accountsLastFetched).toBeNull();
             expect(state.fiscalPeriodsLastFetched).toBeNull();
-            expect(state.journalVouchersLastFetched).toBeNull();
+            expect(state.jvLastFetched).toBeNull();
         });
     });
 });

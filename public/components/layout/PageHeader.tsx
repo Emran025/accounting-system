@@ -40,8 +40,7 @@ export function PageHeader({
       </div>
 
       <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "1rem", flex: 1, justifyContent: "flex-end" }}>
-        {searchInput && <div style={{ flex: 1 }}>{searchInput}</div>}
-
+        <div style={{ flex: 1 }}>{searchInput}</div>
         {actions}
 
         {user && (
@@ -78,7 +77,7 @@ export function PageSubHeader({
       </div>
 
       <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "1rem", flex: 1, justifyContent: "flex-end" }}>
-        {searchInput && <div style={{ flex: 1 }}>{searchInput}</div>}
+        <div style={{ flex: 1 }}>{searchInput}</div>
 
         {actions}
       </div>

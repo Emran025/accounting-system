@@ -4,13 +4,11 @@ import { useState, useEffect } from "react";
 import { MainLayout, PageHeader } from "@/components/layout";
 import { TabNavigation } from "@/components/ui";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
-import { getIcon } from "@/lib/icons";
 
 import { StoreSettingsTab } from "./components/StoreSettingsTab";
 import { InvoiceSettingsTab } from "./components/InvoiceSettingsTab";
 import { SecurityTab } from "./components/SecurityTab";
 import { SessionsTab } from "./components/SessionsTab";
-import { RolesTab } from "./components/RolesTab";
 import { GovernmentFeesTab } from "./components/GovernmentFeesTab";
 
 import { CurrencySettingsTab } from "./components/CurrencySettingsTab"; // Import added manually in thought but here in replacement chunk
@@ -32,7 +30,7 @@ export default function SettingsPage() {
       <PageHeader title="الإعدادات" user={user} showDate={true} />
 
       <div className="settings-wrapper animate-fade">
-        <TabNavigation 
+        <TabNavigation
           tabs={[
             { key: "store", label: "معلومات المتجر", icon: "fa-store" },
             { key: "invoice", label: "إعدادات الفاتورة", icon: "fa-file-invoice" },
@@ -40,23 +38,18 @@ export default function SettingsPage() {
             { key: "currency", label: "العملات", icon: "fa-money-bill-wave" },
             { key: "security", label: "الحساب والأمان", icon: "fa-lock" },
             { key: "sessions", label: "الجلسات النشطة", icon: "fa-desktop" },
-            ...(canAccess(permissions, "settings", "edit") 
-              ? [{ key: "roles", label: "الأدوار والصلاحيات", icon: "fa-user-shield" }]
-              : []
-            )
           ]}
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />
 
-        <div style={{ marginTop: "1rem" ,  }}>
-            {activeTab === "store" && <StoreSettingsTab />}
-            {activeTab === "invoice" && <InvoiceSettingsTab />}
-            {activeTab === "fees" && <GovernmentFeesTab />}
-            {activeTab === "currency" && <CurrencySettingsTab />}
-            {activeTab === "security" && <SecurityTab />}
-            {activeTab === "sessions" && <SessionsTab />}
-            {activeTab === "roles" && canAccess(permissions, "settings", "edit") && <RolesTab />}
+        <div style={{ marginTop: "1rem", }}>
+          {activeTab === "store" && <StoreSettingsTab />}
+          {activeTab === "invoice" && <InvoiceSettingsTab />}
+          {activeTab === "fees" && <GovernmentFeesTab />}
+          {activeTab === "currency" && <CurrencySettingsTab />}
+          {activeTab === "security" && <SecurityTab />}
+          {activeTab === "sessions" && <SessionsTab />}
         </div>
       </div>
     </MainLayout>

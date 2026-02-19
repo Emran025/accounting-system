@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { fetchAPI, APIResponse } from '@/lib/api';
+import { fetchAPI } from '@/lib/api';
 import { API_ENDPOINTS } from '@/lib/endpoints';
 
 interface SystemSettings {
@@ -13,14 +13,14 @@ interface SystemSettings {
     invoice_size?: 'thermal' | 'a4';
     footer_message?: string;
     currency_symbol?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 interface SettingsState {
     settings: SystemSettings | null;
     isLoading: boolean;
     initSettings: () => Promise<SystemSettings | null>;
-    getSetting: (key: string, defaultValue?: any) => any;
+    getSetting: <T = unknown>(key: string, defaultValue?: T) => T;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -40,8 +40,8 @@ export const useSettingsStore = create<SettingsState>()(
                     // The fetchAPI handles base URL prepending.
                     const result = await fetchAPI(API_ENDPOINTS.SYSTEM.SETTINGS.INDEX);
                     if (result.success && result.settings) {
-                        set({ settings: result.settings, isLoading: false });
-                        return result.settings;
+                        set({ settings: result.settings as SystemSettings, isLoading: false });
+                        return result.settings as SystemSettings;
                     }
                 } catch (e) {
                     console.error("Failed to initialize system settings", e);
@@ -50,10 +50,10 @@ export const useSettingsStore = create<SettingsState>()(
                 return null;
             },
 
-            getSetting: (key, defaultValue = null) => {
+            getSetting: <T>(key: string, defaultValue?: T): T => {
                 const { settings } = get();
-                if (!settings) return defaultValue;
-                return settings[key] !== undefined ? settings[key] : defaultValue;
+                if (!settings) return defaultValue as T;
+                return (settings[key] !== undefined ? settings[key] : defaultValue) as T;
             }
         }),
         { name: 'settings-store' }

@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fetchAPI } from '@/lib/api';
-import { showToast } from '@/components/ui';
 
 const mockedFetchAPI = vi.mocked(fetchAPI);
 
 describe('useAuthStore', () => {
-    let useAuthStore: any;
+    let useAuthStore: typeof import('@/stores/useAuthStore').useAuthStore;
 
     beforeEach(async () => {
         vi.clearAllMocks();
@@ -54,9 +53,9 @@ describe('useAuthStore', () => {
         it('clears auth on failed check', async () => {
             // Set some initial auth state
             useAuthStore.setState({
-                user: { id: 1 },
+                user: { id: 1, full_name: 'Test', username: 'test', role: 'admin', role_id: 1, is_active: true },
                 isAuthenticated: true,
-                permissions: [{ module: 'hr' }],
+                permissions: [{ module: 'hr', can_view: true, can_create: true, can_edit: true, can_delete: true }],
             });
 
             mockedFetchAPI.mockResolvedValueOnce({
@@ -86,7 +85,7 @@ describe('useAuthStore', () => {
         it('returns true when permission exists', () => {
             useAuthStore.setState({
                 permissions: [
-                    { module_key: 'hr', can_view: true, can_create: true, can_edit: true, can_delete: true },
+                    { module: 'hr', can_view: true, can_create: true, can_edit: true, can_delete: true },
                 ],
             });
 
@@ -98,7 +97,7 @@ describe('useAuthStore', () => {
         it('returns false when permission is missing', () => {
             useAuthStore.setState({
                 permissions: [
-                    { module_key: 'hr', can_view: true, can_create: false, can_edit: false, can_delete: false },
+                    { module: 'hr', can_view: true, can_create: false, can_edit: false, can_delete: false },
                 ],
             });
 
@@ -111,9 +110,9 @@ describe('useAuthStore', () => {
     describe('logout', () => {
         it('clears state on logout', async () => {
             useAuthStore.setState({
-                user: { id: 1 },
+                user: { id: 1, full_name: 'Test', username: 'test', role: 'admin', role_id: 1, is_active: true },
                 isAuthenticated: true,
-                permissions: [{ module: 'hr' }],
+                permissions: [{ module: 'hr', can_view: true, can_create: true, can_edit: true, can_delete: true }],
             });
 
             mockedFetchAPI.mockResolvedValueOnce({});

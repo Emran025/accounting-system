@@ -2,7 +2,7 @@
 
 import { fetchAPI } from "./api";
 import { API_ENDPOINTS } from "./endpoints";
-import { generateBarcode, generateQRCode } from "./api";
+import { generateQRCode } from "./api";
 import { formatDate } from "./utils";
 
 export interface InvoiceData {
@@ -116,11 +116,11 @@ export async function generateInvoiceHTML(
 
   // E-Invoicing Data Preparation
   const dateObj = inv.created_at ? new Date(inv.created_at) : new Date();
-  const isoTimestamp = dateObj.toISOString().split(".")[0] + "Z";
-  const formattedTotal = parseFloat(String(inv.total_amount || 0)).toFixed(2);
-  const formattedVat = parseFloat(
-    String(inv.vat_amount || inv.tax_amount || 0)
-  ).toFixed(2);
+  // const isoTimestamp = dateObj.toISOString().split(".")[0] + "Z";
+  // const formattedTotal = parseFloat(String(inv.total_amount || 0)).toFixed(2);
+  // const formattedVat = parseFloat(
+  //   String(inv.vat_amount || inv.tax_amount || 0)
+  // ).toFixed(2);
 
   // Compute amounts
   const subtotalAmount =

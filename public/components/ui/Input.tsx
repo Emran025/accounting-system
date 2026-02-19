@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, forwardRef } from "react";
+import { useState, useRef, forwardRef } from "react";
 import { Icon, IconName } from "@/lib/icons";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {

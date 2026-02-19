@@ -1,6 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchAPI } from '@/lib/api';
-import { showToast } from '@/components/ui';
 
 // Must use dynamic import to get a fresh store per test
 const getStore = async () => {

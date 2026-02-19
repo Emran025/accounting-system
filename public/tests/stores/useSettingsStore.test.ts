@@ -1,12 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fetchAPI } from '@/lib/api';
-import { showToast } from '@/components/ui';
 
 const mockedFetchAPI = vi.mocked(fetchAPI);
-const mockedShowToast = vi.mocked(showToast);
 
 describe('useSettingsStore', () => {
-    let useSettingsStore: any;
+    let useSettingsStore: typeof import('@/stores/useSettingsStore').useSettingsStore;
 
     beforeEach(async () => {
         vi.clearAllMocks();
@@ -17,31 +15,46 @@ describe('useSettingsStore', () => {
 
     it('has correct initial state', () => {
         const state = useSettingsStore.getState();
-        expect(state.settings).toBeDefined();
-        expect(state.isLoaded).toBeDefined();
+        expect(state.settings).toBeNull();
+        expect(state.isLoading).toBe(false);
     });
 
-    it('loads settings from API', async () => {
+    it('loads settings from API via initSettings', async () => {
         const mockSettings = {
-            company_name: 'Test Corp',
-            currency: 'SAR',
-            language: 'ar',
+            store_name: 'Test Store',
+            currency_symbol: 'SAR',
         };
-        mockedFetchAPI.mockResolvedValueOnce(mockSettings);
+        mockedFetchAPI.mockResolvedValueOnce({
+            success: true,
+            settings: mockSettings,
+        });
 
-        await useSettingsStore.getState().loadSettings();
+        const result = await useSettingsStore.getState().initSettings();
 
-        const state = useSettingsStore.getState();
-        expect(state.settings).toMatchObject(mockSettings);
-        expect(state.isLoaded).toBe(true);
+        expect(result).toMatchObject(mockSettings);
+        expect(useSettingsStore.getState().settings).toMatchObject(mockSettings);
     });
 
-    it('handles load failure gracefully', async () => {
+    it('returns null on initSettings failure', async () => {
         mockedFetchAPI.mockRejectedValueOnce(new Error('fail'));
 
-        await useSettingsStore.getState().loadSettings();
+        const result = await useSettingsStore.getState().initSettings();
 
-        const state = useSettingsStore.getState();
-        expect(state.isLoaded).toBe(false);
+        expect(result).toBeNull();
+        expect(useSettingsStore.getState().isLoading).toBe(false);
+    });
+
+    it('gets a specific setting with getSetting', () => {
+        useSettingsStore.setState({
+            settings: {
+                store_name: 'Mapped Store',
+            },
+        });
+
+        const name = useSettingsStore.getState().getSetting('store_name');
+        const missing = useSettingsStore.getState().getSetting('missing', 'fallback');
+
+        expect(name).toBe('Mapped Store');
+        expect(missing).toBe('fallback');
     });
 });

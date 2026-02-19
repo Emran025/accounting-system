@@ -44,9 +44,9 @@ interface ToastItem {
   type: ToastType;
 }
 
-interface ToastContextValue {
-  showToast: (message: string, type?: ToastType) => void;
-}
+// interface ToastContextValue {
+//   showToast: (message: string, type?: ToastType) => void;
+// }
 
 let toastHandler: ((message: string, type?: ToastType) => void) | null = null;
 

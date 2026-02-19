@@ -6,7 +6,7 @@ import { PageSubHeader } from "@/components/layout";
 import { CapacityPlanningTab } from "./components/CapacityPlanningTab";
 import { PermissionTemplatesTab } from "./components/PermissionTemplatesTab";
 import { UserLinkingTab } from "./components/UserLinkingTab";
-import { RolesTab } from "@/app/system/settings/components/RolesTab";
+import { RolesTab } from "@/app/hr/administration/components/RolesTab";
 
 export function HrAdministration() {
     const [activeTab, setActiveTab] = useState<"capacity" | "roles" | "templates" | "linking">("capacity");

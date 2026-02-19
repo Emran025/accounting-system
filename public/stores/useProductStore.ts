@@ -20,8 +20,8 @@ export const useProductStore = createCRUDStore<Product>({
         deleteSuccess: 'تم حذف المنتج',
         deleteError: 'خطأ في حذف المنتج',
     },
-    transform: (raw: any[]): Product[] =>
-        raw.map(p => ({
+    transform: (raw: unknown[]): Product[] =>
+        (raw as Record<string, any>[]).map(p => ({
             ...p,
             selling_price: parseFloat(p.unit_price) || 0,
             purchase_price: parseFloat(p.purchase_price || p.latest_purchase_price) || 0,
@@ -30,5 +30,5 @@ export const useProductStore = createCRUDStore<Product>({
             unit_type: p.unit_name === 'كرتون' ? 'ctn' : 'piece',
             profit_margin: parseFloat(p.minimum_profit_margin) || 0,
             description: p.description || '',
-        })),
+        } as Product)),
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchAPI } from '@/lib/api';
+import { fetchAPI, APIResponse } from '@/lib/api';
 import { showToast } from '@/components/ui';
 
 const mockedFetchAPI = vi.mocked(fetchAPI);
@@ -56,9 +56,9 @@ describe('usePayrollStore', () => {
         });
 
         it('sets loading state during fetch', async () => {
-            let resolvePromise: Function;
-            const promise = new Promise((resolve) => { resolvePromise = resolve; });
-            mockedFetchAPI.mockReturnValueOnce(promise as any);
+            let resolvePromise: (value: APIResponse) => void;
+            const promise = new Promise<APIResponse>((resolve) => { resolvePromise = resolve; });
+            mockedFetchAPI.mockReturnValueOnce(promise);
 
             const loadPromise = usePayrollStore.getState().loadCycles();
             expect(usePayrollStore.getState().cyclesLoading).toBe(true);
@@ -171,7 +171,7 @@ describe('usePayrollStore', () => {
 
     describe('toggleItemStatus', () => {
         it('toggles item and reloads cycle details', async () => {
-            const item = { id: 1, payroll_cycle_id: 5, status: 'active' } as any;
+            const item = { id: 1, payroll_cycle_id: 5, status: 'active' } as unknown as import('@/app/hr/types').PayrollItem;
             mockedFetchAPI
                 .mockResolvedValueOnce({ status: 'on_hold' })  // toggle
                 .mockResolvedValueOnce({ data: [] });           // reload
@@ -221,13 +221,13 @@ describe('usePayrollStore', () => {
 
     describe('setSelectedCycle', () => {
         it('sets selected cycle', () => {
-            const cycle = { id: 1, status: 'draft' } as any;
+            const cycle = { id: 1, status: 'draft' } as unknown as import('@/app/hr/types').PayrollCycle;
             usePayrollStore.getState().setSelectedCycle(cycle);
             expect(usePayrollStore.getState().selectedCycle).toEqual(cycle);
         });
 
         it('clears selected cycle', () => {
-            usePayrollStore.getState().setSelectedCycle({ id: 1 } as any);
+            usePayrollStore.getState().setSelectedCycle({ id: 1 } as unknown as import('@/app/hr/types').PayrollCycle);
             usePayrollStore.getState().setSelectedCycle(null);
             expect(usePayrollStore.getState().selectedCycle).toBeNull();
         });

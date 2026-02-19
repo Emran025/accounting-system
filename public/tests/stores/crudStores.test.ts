@@ -9,7 +9,7 @@ describe('CRUD Store Factory Stores', () => {
 
     // ──── useProductStore ─────────────────────────────────
     describe('useProductStore', () => {
-        let useProductStore: any;
+        let useProductStore: typeof import('@/stores/useProductStore').useProductStore;
 
         beforeEach(async () => {
             vi.clearAllMocks();
@@ -20,11 +20,9 @@ describe('CRUD Store Factory Stores', () => {
             useProductStore.setState({
                 items: [],
                 isLoading: false,
-                error: null,
                 lastFetched: null,
                 currentPage: 1,
                 totalPages: 1,
-                totalItems: 0,
             });
         });
 
@@ -32,13 +30,12 @@ describe('CRUD Store Factory Stores', () => {
             const state = useProductStore.getState();
             expect(state.items).toEqual([]);
             expect(state.isLoading).toBe(false);
-            expect(state.error).toBeNull();
         });
 
         it('loads products from API', async () => {
             const mockProducts = [
-                { id: 1, product_name: 'Widget', sku: 'W001', selling_price: 100, quantity: 50 },
-                { id: 2, product_name: 'Gadget', sku: 'G001', selling_price: 200, quantity: 30 },
+                { id: 1, name: 'Widget', barcode: 'W001', unit_price: 100, stock_quantity: 50 },
+                { id: 2, name: 'Gadget', barcode: 'G001', unit_price: 200, stock_quantity: 30 },
             ];
             mockedFetchAPI.mockResolvedValueOnce({
                 data: mockProducts,
@@ -68,7 +65,7 @@ describe('CRUD Store Factory Stores', () => {
                 .mockResolvedValueOnce({ id: 3, product_name: 'New' })  // save
                 .mockResolvedValueOnce({ data: [] });                     // reload
 
-            const result = await useProductStore.getState().save({ product_name: 'New', sku: 'N001' });
+            const result = await useProductStore.getState().save({ name: 'New', barcode: 'N001' });
             expect(result).toBe(true);
             expect(mockedShowToast).toHaveBeenCalledWith(
                 expect.any(String),
@@ -79,8 +76,8 @@ describe('CRUD Store Factory Stores', () => {
         it('removes a product', async () => {
             useProductStore.setState({
                 items: [
-                    { id: 1, product_name: 'Widget' },
-                    { id: 2, product_name: 'Gadget' },
+                    { id: 1, name: 'Widget' } as any,
+                    { id: 2, name: 'Gadget' } as any,
                 ],
             });
 
@@ -101,7 +98,7 @@ describe('CRUD Store Factory Stores', () => {
 
     // ──── useCustomerStore ────────────────────────────────
     describe('useCustomerStore', () => {
-        let useCustomerStore: any;
+        let useCustomerStore: typeof import('@/stores/useCustomerStore').useCustomerStore;
 
         beforeEach(async () => {
             vi.clearAllMocks();
@@ -111,7 +108,6 @@ describe('CRUD Store Factory Stores', () => {
             useCustomerStore.setState({
                 items: [],
                 isLoading: false,
-                error: null,
                 lastFetched: null,
             });
         });
@@ -134,7 +130,7 @@ describe('CRUD Store Factory Stores', () => {
 
         it('removes a customer optimistically', async () => {
             useCustomerStore.setState({
-                items: [{ id: 1, name: 'Cust A' }, { id: 2, name: 'Cust B' }],
+                items: [{ id: 1, name: 'Cust A' } as any, { id: 2, name: 'Cust B' } as any],
             });
             mockedFetchAPI.mockResolvedValueOnce({});
 
@@ -146,7 +142,7 @@ describe('CRUD Store Factory Stores', () => {
 
     // ──── useSupplierStore ────────────────────────────────
     describe('useSupplierStore', () => {
-        let useSupplierStore: any;
+        let useSupplierStore: typeof import('@/stores/useSupplierStore').useSupplierStore;
 
         beforeEach(async () => {
             vi.clearAllMocks();
@@ -156,7 +152,6 @@ describe('CRUD Store Factory Stores', () => {
             useSupplierStore.setState({
                 items: [],
                 isLoading: false,
-                error: null,
                 lastFetched: null,
             });
         });
@@ -174,7 +169,7 @@ describe('CRUD Store Factory Stores', () => {
 
     // ──── usePurchaseStore ────────────────────────────────
     describe('usePurchaseStore', () => {
-        let usePurchaseStore: any;
+        let usePurchaseStore: typeof import('@/stores/usePurchaseStore').usePurchaseStore;
 
         beforeEach(async () => {
             vi.clearAllMocks();
@@ -184,7 +179,6 @@ describe('CRUD Store Factory Stores', () => {
             usePurchaseStore.setState({
                 items: [],
                 isLoading: false,
-                error: null,
                 lastFetched: null,
             });
         });
