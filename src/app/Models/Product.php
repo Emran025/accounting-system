@@ -35,6 +35,7 @@ class Product extends Model
         'unit_price',
         'minimum_profit_margin',
         'stock_quantity',
+        'low_stock_threshold',
         'unit_name',
         'items_per_unit',
         'sub_unit_name',
@@ -49,6 +50,7 @@ class Product extends Model
             'unit_price' => 'decimal:2',
             'minimum_profit_margin' => 'decimal:2',
             'stock_quantity' => 'integer',
+            'low_stock_threshold' => 'integer',
             'items_per_unit' => 'integer',
             'weighted_average_cost' => 'decimal:2',
         ];

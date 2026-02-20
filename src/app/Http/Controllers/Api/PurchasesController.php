@@ -208,13 +208,52 @@ class PurchasesController extends Controller
 
         $validated = $request->validate([
             'id' => 'required|exists:purchase_requests,id',
-            'status' => 'required|in:approved,rejected',
+            'status' => 'required|in:approved,rejected,done',
         ]);
 
         $purchaseRequest = PurchaseRequest::findOrFail($validated['id']);
         $purchaseRequest->update(['status' => $validated['status']]);
 
         return $this->successResponse();
+    }
+
+    /**
+     * Auto-generates purchase requests for products that are below their low stock threshold.
+     * 
+     * @return JsonResponse
+     */
+    public function autoGenerateRequests(): JsonResponse
+    {
+        $products = \App\Models\Product::whereRaw('stock_quantity <= low_stock_threshold')->get();
+        $generatedCount = 0;
+        $userId = auth()->id() ?? session('user_id');
+
+        foreach ($products as $product) {
+            // Check if there is already a pending request for this product
+            $existingRequest = PurchaseRequest::where('product_id', $product->id)
+                ->where('status', 'pending')
+                ->first();
+
+            if (!$existingRequest) {
+                // Calculate suggested quantity (e.g., minimum of 10 or twice the low stock threshold)
+                $suggestedQuantity = max(10, $product->low_stock_threshold * 2);
+
+                PurchaseRequest::create([
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'quantity' => $suggestedQuantity,
+                    'user_id' => $userId,
+                    'status' => 'pending',
+                    'notes' => 'Auto-generated due to low stock (' . $product->stock_quantity . ' left)',
+                ]);
+                $generatedCount++;
+            }
+        }
+
+        return $this->successResponse([
+            'message' => "Successfully generated {$generatedCount} purchase requests for low stock items.",
+            'generated_count' => $generatedCount
+        ]);
     }
 
     /**

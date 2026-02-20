@@ -13,6 +13,7 @@ Route::middleware('can:purchases,edit')->put('/purchases', [PurchasesController:
 Route::middleware('can:purchases,delete')->delete('/purchases', [PurchasesController::class, 'destroy'])->name('api.purchases.destroy');
 Route::middleware('can:purchases,view')->get('/requests', [PurchasesController::class, 'requests'])->name('api.requests.index');
 Route::middleware('can:purchases,create')->post('/requests', [PurchasesController::class, 'storeRequest'])->name('api.requests.store');
+Route::middleware('can:purchases,create')->post('/requests/auto-generate', [PurchasesController::class, 'autoGenerateRequests'])->name('api.requests.auto_generate');
 Route::middleware('can:purchases,edit')->put('/requests', [PurchasesController::class, 'updateRequest'])->name('api.requests.update');
 Route::middleware('can:purchases,edit')->post('/purchases/approve', [PurchasesController::class, 'approve'])->name('api.purchases.approve');
 
