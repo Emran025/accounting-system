@@ -359,6 +359,11 @@ export const API_ENDPOINTS = {
         ZATCA: {
             SUBMIT: (id: string | number) => `/invoices/${id}/zatca/submit`,
             STATUS: (id: string | number) => `/invoices/${id}/zatca/status`,
+        },
+        REPRESENTATIVES: {
+            BASE: "/sales_representatives",
+            LEDGER: "/sales_representatives/ledger",
+            TRANSACTIONS: "/sales_representatives/transactions",
         }
     },
     PURCHASES: {

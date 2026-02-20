@@ -1,7 +1,7 @@
 import { getIcon } from "@/lib/icons";
 import { formatCurrency } from "@/lib/utils";
-import { LedgerStats } from "../types";
 import { StatsCard } from "@/components/ui/StatsCard";
+import { LedgerStats } from "../types";
 
 interface LedgerStatsCardsProps {
     stats: LedgerStats;
@@ -9,27 +9,21 @@ interface LedgerStatsCardsProps {
 
 export function LedgerStatsCards({ stats }: LedgerStatsCardsProps) {
     return (
-        <div className="dashboard-stats animate-fade" style={{ marginBottom: "2rem" }}>
+        <div className="dashboard-stats animate-fade" style={{ marginBottom: "2rem", display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <StatsCard
-                title="إجمالي المشتريات (دائن)"
-                value={formatCurrency(stats.total_credit)}
+                title="إجمالي العمولات"
+                value={formatCurrency(stats.total_commissions)}
                 icon={getIcon("dollar")}
                 colorClass="alert"
             />
             <StatsCard
-                title="إجمالي المرتجعات (مدين)"
-                value={formatCurrency(stats.total_returns)}
-                icon={getIcon("dollar")}
-                colorClass="alert"
-            />
-            <StatsCard
-                title="إجمالي المدفوعات (مدين)"
-                value={formatCurrency(stats.total_payments)}
+                title="المدفوعات والمسترجعات"
+                value={formatCurrency(stats.total_payments + stats.total_returns)}
                 icon={getIcon("check")}
                 colorClass="products"
             />
             <StatsCard
-                title="الرصيد الحالي"
+                title="المستحق للمندوب"
                 value={formatCurrency(stats.balance)}
                 icon={getIcon("building")}
                 colorClass="total"
@@ -43,4 +37,3 @@ export function LedgerStatsCards({ stats }: LedgerStatsCardsProps) {
         </div>
     );
 }
-

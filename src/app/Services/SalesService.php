@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\SalesReturn;
 use App\Models\SalesReturnItem;
+use App\Models\SalesRepresentative;
+use App\Models\SalesRepresentativeTransaction;
+
 /**
  * Service for handling sales operations, including invoice creation, returns, and inventory integration.
  * Implements "Server Sovereignty" principles for tax calculation and pricing floors.
@@ -61,6 +64,7 @@ class SalesService
             if (!$userId) throw new \Exception("User ID is required");
             $amountPaid = (float)($data['amount_paid'] ?? 0);
             $discountAmount = (float)($data['discount_amount'] ?? 0);
+            $salesRepresentativeId = $data['sales_representative_id'] ?? null;
             $currencyId = $data['currency_id'] ?? null;
             $exchangeRate = $data['exchange_rate'] ?? null;
             $items = $data['items'] ?? [];
@@ -187,6 +191,7 @@ class SalesService
                 'amount_paid' => $amountPaid,
                 'payment_type' => $paymentType,
                 'customer_id' => $customerId,
+                'sales_representative_id' => $salesRepresentativeId,
                 'user_id' => $userId,
                 'currency_id' => $currencyId,
                 'exchange_rate' => $exchangeRate,
@@ -462,6 +467,22 @@ class SalesService
                 $invoice->update(['voucher_number' => $voucherNumber]);
             }
 
+            // Sales Representative tracking
+            if ($salesRepresentativeId) {
+                SalesRepresentativeTransaction::create([
+                    'sales_representative_id' => $salesRepresentativeId,
+                    'type' => 'commission', // Marking as commission/invoice tracking
+                    'amount' => $totalAmount,
+                    'description' => "Invoice #$invoiceNumber",
+                    'reference_type' => 'invoices',
+                    'reference_id' => $invoice->id,
+                    'created_by' => $userId,
+                ]);
+
+                SalesRepresentative::where('id', $salesRepresentativeId)
+                    ->increment('current_balance', $totalAmount);
+            }
+
             return $invoice->id;
         });
     }
@@ -524,6 +545,21 @@ class SalesService
                 }
             }
 
+            // Reverse representative commission if applicable
+            if ($invoice->sales_representative_id) {
+                // Find and delete the commission transaction
+                SalesRepresentativeTransaction::where('reference_type', 'invoices')
+                    ->where('reference_id', $invoiceId)
+                    ->update([
+                        'is_deleted' => true,
+                        'deleted_at' => now(),
+                    ]);
+
+                // Reduce the balance back
+                SalesRepresentative::where('id', $invoice->sales_representative_id)
+                    ->decrement('current_balance', $invoice->total_amount);
+            }
+
             // Flag as reversed instead of deleting
             $invoice->update([
                 'is_reversed' => true,
@@ -542,7 +578,7 @@ class SalesService
     public function createReturn(int $invoiceId, array $items, ?string $reason, int $userId): int
     {
         return DB::transaction(function () use ($invoiceId, $items, $reason, $userId) {
-            $invoice = Invoice::with(['items.product', 'fees', 'customer'])->findOrFail($invoiceId);
+            $invoice = Invoice::with(['items.product', 'fees.feeDefinition.account', 'customer'])->findOrFail($invoiceId);
 
             // Validate that invoice hasn't been fully returned
             $existingReturns = SalesReturn::where('invoice_id', $invoiceId)->sum('subtotal');
@@ -591,11 +627,12 @@ class SalesService
                 ];
             }
 
-            // Calculate proportional VAT and Fees
+            // Calculate proportional VAT, Fees, and Discounts
             $proportion = $invoice->subtotal > 0 ? $returnSubtotal / $invoice->subtotal : 0;
             $returnVat = round($invoice->vat_amount * $proportion, 2);
             $returnFees = round($invoice->fees->sum('amount') * $proportion, 2);
-            $returnTotal = $returnSubtotal + $returnVat + $returnFees;
+            $returnDiscount = round(($invoice->discount_amount ?? 0) * $proportion, 2);
+            $returnTotal = ($returnSubtotal - $returnDiscount) + $returnVat + $returnFees;
 
             // Generate return number
             $returnNumber = 'RET-' . date('Ymd') . '-' . str_pad(
@@ -663,15 +700,27 @@ class SalesService
             if ($returnFees > 0 && $invoice->fees->count() > 0) {
                 foreach ($invoice->fees as $fee) {
                     $feeReturn = round($fee->amount * $proportion, 2);
-                    if ($feeReturn > 0 && $fee->account_code) {
+                    $accountCode = $fee->feeDefinition?->account?->account_code;
+                    
+                    if ($feeReturn > 0 && $accountCode) {
                         $glEntries[] = [
-                            'account_code' => $fee->account_code,
+                            'account_code' => $accountCode,
                             'entry_type' => 'DEBIT',
                             'amount' => $feeReturn,
                             'description' => "Fee Reversal: {$fee->fee_name} - Return #$returnNumber"
                         ];
                     }
                 }
+            }
+
+            // Reverse Discount proportionally (Credit)
+            if ($returnDiscount > 0) {
+                $glEntries[] = [
+                    'account_code' => $this->coaService->getStandardAccounts()['sales_discount'],
+                    'entry_type' => 'CREDIT',
+                    'amount' => $returnDiscount,
+                    'description' => "Discount Reversal - Return #$returnNumber"
+                ];
             }
 
             // Credit side depends on payment type
@@ -747,6 +796,22 @@ class SalesService
 
                 // Reduce customer balance
                 ArCustomer::where('id', $invoice->customer_id)
+                    ->decrement('current_balance', $returnTotal);
+            }
+
+            // Reverse Sales Representative tracking if applicable
+            if ($invoice->sales_representative_id) {
+                SalesRepresentativeTransaction::create([
+                    'sales_representative_id' => $invoice->sales_representative_id,
+                    'type' => 'return',
+                    'amount' => $returnTotal,
+                    'description' => "مرتجع مبيعات - فاتورة #{$invoiceNumber} (مرتجع #{$returnNumber})",
+                    'reference_type' => 'sales_returns',
+                    'reference_id' => $return->id,
+                    'created_by' => $userId,
+                ]);
+
+                SalesRepresentative::where('id', $invoice->sales_representative_id)
                     ->decrement('current_balance', $returnTotal);
             }
 

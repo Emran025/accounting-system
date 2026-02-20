@@ -63,7 +63,6 @@ const moduleAccessMap: Record<string, string> = {
   "audit_trail": "audit_trail",
   "batch_processing": "batch_processing",
   "ap_suppliers": "ap_suppliers",
-  "ap_supplier": "ap_suppliers",
   "hr": "hr",
 };
 
@@ -229,6 +228,7 @@ export function getSidebarLinks(permissions: Permission[]): Array<{
     { href: "/hr/employees", icon: "user", label: "الموظفين", module: "Workforce-Management" },
     { href: "/hr/payroll", icon: "banknote", label: "الرواتب والمستحقات", module: "payroll" },
     { href: "/ar_customers", icon: "user-plus", label: "عملاء الآجل", module: "ar_customers" },
+    { href: "/representatives", icon: "users", label: "المناديب (المبيعات)", module: "representatives" },
     { href: "/finance/general_ledger", icon: "book-open", label: "دفتر الأستاذ", module: "general_ledger" },
     { href: "/finance/chart_of_accounts", icon: "sitemap", label: "دليل الحسابات", module: "chart_of_accounts" },
     { href: "/finance/journal_vouchers", icon: "file-signature", label: "سندات القيد", module: "journal_vouchers" },
@@ -241,7 +241,7 @@ export function getSidebarLinks(permissions: Permission[]): Array<{
     { href: "/system/recurring_transactions", icon: "repeat", label: "المعاملات المتكررة", module: "recurring_transactions" },
     { href: "/system/batch_processing", icon: "layers", label: "المعالجة الدفعية", module: "batch_processing" },
     { href: "/suppliers", icon: "truck", label: "الموردين", module: "ap_suppliers" },
-    { href: "/finance/ap_ledger", icon: "hand-coins", label: "مدفوعات الموردين", module: "ap_supplier" },
+    { href: "/finance/ap_ledger", icon: "hand-coins", label: "مدفوعات الموردين", module: "ap_suppliers" },
     { href: "/system/settings", icon: "settings", label: "الإعدادات", module: "settings" },
   ];
 

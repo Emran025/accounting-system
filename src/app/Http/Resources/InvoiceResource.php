@@ -19,6 +19,8 @@ class InvoiceResource extends JsonResource
             'payment_type' => $this->payment_type,
             'customer_id' => $this->customer_id,
             'customer_name' => $this->customer?->name,
+            'sales_representative_id' => $this->sales_representative_id,
+            'sales_representative_name' => $this->salesRepresentative?->name,
             'amount_paid' => (float)$this->amount_paid,
             'user_id' => $this->user_id,
             'cashier_name' => $this->user?->username,

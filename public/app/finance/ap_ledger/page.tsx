@@ -79,7 +79,7 @@ function APLedgerPageContent() {
 
   useEffect(() => {
     if (!supplierId) {
-      router.push("/ap_supplier");
+      router.push("/ap_suppliers");
       return;
     }
   }, [supplierId, router]);
@@ -375,7 +375,7 @@ function APLedgerPageContent() {
   }
 
   return (
-    <ModuleLayout groupKey="purchases" requiredModule="ap_supplier">
+    <ModuleLayout groupKey="purchases" requiredModule="ap_suppliers">
       <PageHeader
         title={`كشف حساب: ${supplier?.name || ""}`}
         user={user}

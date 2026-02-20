@@ -34,3 +34,12 @@ Route::middleware('can:ar_customers,view')->get('/ar/ledger', [ArController::cla
 Route::middleware('can:ar_customers,create')->post('/ar/transactions', [ArController::class, 'storeTransaction'])->name('api.ar.transactions.store');
 Route::middleware('can:ar_customers,edit')->put('/ar/transactions', [ArController::class, 'updateTransaction'])->name('api.ar.transactions.update');
 Route::middleware('can:ar_customers,delete')->delete('/ar/transactions', [ArController::class, 'destroyTransaction'])->name('api.ar.transactions.destroy');
+
+// Sales Representatives
+Route::get('/sales_representatives', [\App\Http\Controllers\Api\SalesRepresentativeController::class, 'representatives'])->name('api.sales_representatives.index');
+Route::post('/sales_representatives', [\App\Http\Controllers\Api\SalesRepresentativeController::class, 'storeRepresentative'])->name('api.sales_representatives.store');
+Route::put('/sales_representatives', [\App\Http\Controllers\Api\SalesRepresentativeController::class, 'updateRepresentative'])->name('api.sales_representatives.update');
+Route::delete('/sales_representatives', [\App\Http\Controllers\Api\SalesRepresentativeController::class, 'destroyRepresentative'])->name('api.sales_representatives.destroy');
+Route::get('/sales_representatives/ledger', [\App\Http\Controllers\Api\SalesRepresentativeController::class, 'ledger'])->name('api.sales_representatives.ledger');
+Route::post('/sales_representatives/transactions', [\App\Http\Controllers\Api\SalesRepresentativeController::class, 'storeTransaction'])->name('api.sales_representatives.transactions.store');
+Route::delete('/sales_representatives/transactions', [\App\Http\Controllers\Api\SalesRepresentativeController::class, 'destroyTransaction'])->name('api.sales_representatives.transactions.destroy');

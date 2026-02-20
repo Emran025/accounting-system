@@ -73,7 +73,7 @@ export const navigationGroups: NavigationGroup[] = [
       { href: "/purchases/purchases", icon: "shopping-bag", label: "فواتير المشتريات", description: "إدارة فواتير الشراء", module: "purchases" },
       { href: "/purchases/expenses", icon: "credit-card", label: "المصروفات", description: "تسجيل المصروفات التشغيلية", module: "expenses" },
       { href: "/ap_suppliers", icon: "truck", label: "الموردين", description: "قاعدة بيانات الموردين", module: "ap_suppliers" },
-      { href: "/finance/ap_ledger", icon: "hand-coins", label: "أستاذ الموردين", description: "حسابات الدفع والأرصدة", module: "ap_supplier" },
+      { href: "/finance/ap_ledger", icon: "hand-coins", label: "أستاذ الموردين", description: "حسابات الدفع والأرصدة", module: "ap_suppliers" },
       { href: "/system/dashboard", icon: "cart", label: "طلبات الشراء", description: "إنشاء طلبات الشراء (قريباً)", module: "dashboard" },
       { href: "/system/dashboard", icon: "cart", label: "أوامر الشراء", description: "إدارة أوامر الشراء (قريباً)", module: "dashboard" },
       { href: "/system/dashboard", icon: "history", label: "مرتجعات المشتريات", description: "إدارة المرتجعات (قريباً)", module: "dashboard" },

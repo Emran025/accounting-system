@@ -91,6 +91,10 @@ export default function SalesPage() {
     // Customer
     const [selectedCustomer, setSelectedCustomer] = useState<{ id: number, name: string } | null>(null);
 
+    // Sales Representative
+    const [salesRepresentatives, setSalesRepresentatives] = useState<any[]>([]);
+    const [selectedRepresentative, setSelectedRepresentative] = useState<{ id: number, name: string } | null>(null);
+
     // Invoice form
     const [quantity, setQuantity] = useState("1");
     const [unitType, setUnitType] = useState<"sub" | "main">("sub");
@@ -211,6 +215,18 @@ export default function SalesPage() {
         }
     }, []);
 
+    const loadRepresentatives = useCallback(async () => {
+        try {
+            const response = await fetchAPI(API_ENDPOINTS.SALES.REPRESENTATIVES.BASE + "?per_page=1000");
+            if (response.success && response.data) {
+                const repData = (response.data as any).data || response.data;
+                setSalesRepresentatives(repData);
+            }
+        } catch (error) {
+            console.error("Failed to load representatives", error);
+        }
+    }, []);
+
     const loadInvoices = useCallback(async (page: number = 1) => {
         try {
             setIsLoading(true);
@@ -267,12 +283,12 @@ export default function SalesPage() {
 
 
 
-            await Promise.all([loadProducts(), loadInvoices(), loadFees()]);
+            await Promise.all([loadProducts(), loadInvoices(), loadFees(), loadRepresentatives()]);
             generateInvoiceNumber();
             setIsLoading(false);
         };
         init();
-    }, [loadProducts, loadInvoices, generateInvoiceNumber, loadFees]);
+    }, [loadProducts, loadInvoices, generateInvoiceNumber, loadFees, loadRepresentatives]);
 
 
     // Calculate subtotal
@@ -461,6 +477,7 @@ export default function SalesPage() {
                 subtotal: baseItemsTotal,
                 payment_type: 'cash',
                 customer_id: selectedCustomer?.id,
+                sales_representative_id: selectedRepresentative?.id,
                 // Note: VAT rate is enforced server-side from config, not sent by client
             };
 
@@ -907,6 +924,22 @@ export default function SalesPage() {
                                         { value: "percent", label: "نسبة" }
                                     ]}
                                 />
+
+                                <div className="form-group" style={{ marginBottom: 0, minWidth: '250px' }}>
+                                    <label>المندوب (اختياري)</label>
+                                    <SearchableSelect
+                                        options={salesRepresentatives.map((r) => ({
+                                            value: r.id,
+                                            label: r.name,
+                                            subtitle: r.phone || "بدون هاتف"
+                                        }))}
+                                        value={selectedRepresentative?.id || ""}
+                                        onChange={(val, opt) => {
+                                            setSelectedRepresentative(opt ? { id: Number(opt.value), name: opt.label } : null);
+                                        }}
+                                        placeholder="اختر المندوب..."
+                                    />
+                                </div>
                             </div>
 
                             {calculatedDiscount() > 0 && (

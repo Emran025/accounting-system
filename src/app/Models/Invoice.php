@@ -43,6 +43,7 @@ class Invoice extends Model
         'discount_amount',
         'payment_type',
         'customer_id',
+        'sales_representative_id',
         'amount_paid',
         'user_id',
         'is_reversed',
@@ -114,5 +115,10 @@ class Invoice extends Model
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class);
+    }
+
+    public function salesRepresentative(): BelongsTo
+    {
+        return $this->belongsTo(SalesRepresentative::class, 'sales_representative_id');
     }
 }
