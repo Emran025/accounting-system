@@ -44,6 +44,7 @@ export const navigationGroups: NavigationGroup[] = [
   // ═══════════════════════════════════════════════════════════════════════════
   // المبيعات وعلاقات العملاء - Sales & CRM
   // ═══════════════════════════════════════════════════════════════════════════
+
   {
     key: "sales",
     label: "المبيعات والعملاء",
@@ -53,11 +54,12 @@ export const navigationGroups: NavigationGroup[] = [
       { href: "/sales/deferred_sales", icon: "receipt", label: "المبيعات الآجلة", description: "مبيعات بالتقسيط والآجل", module: "deferred_sales" },
       { href: "/sales/revenues", icon: "trending-up", label: "الإيرادات", description: "تسجيل الإيرادات المتنوعة", module: "revenues" },
       { href: "/ar_customers", icon: "user-plus", label: "العملاء", description: "قاعدة بيانات العملاء", module: "ar_customers" },
-      { href: "/finance/ar_ledger", icon: "book-open", label: "أستاذ العملاء", description: "حسابات القبض والأرصدة", module: "ar_customers" },
+      { href: "/sales/receipts", icon: "book-open", label: "سندات القبض", description: "مقبوضات أرصدة العملاء", module: "ar_customers" },
       { href: "/system/dashboard", icon: "cart", label: "عروض الأسعار", description: "إنشاء عروض الأسعار (قريباً)", module: "dashboard" },
       { href: "/system/dashboard", icon: "cart", label: "أوامر البيع", description: "إدارة طلبات البيع (قريباً)", module: "dashboard" },
       { href: "/sales/returns", icon: "history", label: "مرتجعات المبيعات", description: "إدارة مرتجعات المبيعات", module: "returns" },
-      { href: "/system/dashboard", icon: "tags", label: "قوائم الأسعار", description: "إدارة الأسعار والخصومات (قريباً)", module: "dashboard" },
+      { href: "/system/dashboard", icon: "book-open", label: "طلبات الشراء", description: "إدارة طلبات الشراء أو النقل المخزني وحالتها(قريباً)", module: "ar_customers" },
+      //{ href: "/system/dashboard", icon: "tags", label: "قوائم الأسعار", description: "إدارة الأسعار والخصومات (قريباً)", module: "dashboard" },
       { href: "/representatives", icon: "tags", label: "المناديب والمسوقين", description: "إدارة المناديب والمسوقين", module: "representatives" },
       { href: "/system/dashboard", icon: "coins", label: "العمولات", description: "عمولات المبيعات (قريباً)", module: "dashboard" },
       { href: "/system/dashboard", icon: "coins", label: "إدارة القوالب", description: "إدارة قوالب التصاميم والفواتير وكشوفات الحساب (قريباً)", module: "dashboard" },
@@ -76,7 +78,7 @@ export const navigationGroups: NavigationGroup[] = [
       { href: "/purchases/expenses", icon: "credit-card", label: "المصروفات", description: "تسجيل المصروفات التشغيلية", module: "expenses" },
       { href: "/ap_suppliers", icon: "truck", label: "الموردين", description: "قاعدة بيانات الموردين", module: "ap_suppliers" },
       { href: "/finance/ap_ledger", icon: "hand-coins", label: "أستاذ الموردين", description: "حسابات الدفع والأرصدة", module: "ap_suppliers" },
-      { href: "/system/dashboard", icon: "cart", label: "طلبات الشراء", description: "إنشاء طلبات الشراء (قريباً)", module: "dashboard" },
+      { href: "/system/dashboard", icon: "cart", label: "طلبات الشراء", description: "إنشاء أو استعراض طلبات الشراء (قريباً)", module: "dashboard" },
       { href: "/system/dashboard", icon: "cart", label: "أوامر الشراء", description: "إدارة أوامر الشراء (قريباً)", module: "dashboard" },
       { href: "/purchases/returns", icon: "history", label: "مردودات المشتريات", description: "إدارة مردودات المشتريات", module: "purchases" },
       { href: "/system/dashboard", icon: "calendar", label: "جدول الدفعات", description: "جدولة المدفوعات (قريباً)", module: "dashboard" },

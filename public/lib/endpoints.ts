@@ -99,6 +99,7 @@ export const API_ENDPOINTS = {
             CUSTOMERS: "/ar/customers",
             LEDGER: "/ar/ledger",
             TRANSACTIONS: "/ar/transactions",
+            RECEIPTS: "/ar/receipts",
         }
     },
     HR: {

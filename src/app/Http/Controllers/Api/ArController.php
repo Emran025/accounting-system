@@ -429,4 +429,39 @@ class ArController extends Controller
 
         return $this->successResponse();
     }
+
+    public function receipts(Request $request): JsonResponse
+    {
+        $page = max(1, (int)$request->input('page', 1));
+        $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
+
+        $query = ArTransaction::whereIn('type', ['receipt', 'payment'])
+            ->with(['customer', 'createdBy']);
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('description', 'like', "%$search%")
+                  ->orWhere('amount', 'like', "%$search%")
+                  ->orWhereHas('customer', function($c) use ($search) {
+                      $c->where('name', 'like', "%$search%");
+                  });
+            });
+        }
+
+        $total = $query->count();
+        $transactions = $query->orderBy('transaction_date', 'desc')
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
+            ->get();
+
+        return $this->successResponse([
+            'data' => ArTransactionResource::collection($transactions),
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total_records' => $total,
+                'total_pages' => ceil($total / $perPage),
+            ],
+        ]);
+    }
 }

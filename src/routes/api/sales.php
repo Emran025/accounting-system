@@ -34,6 +34,8 @@ Route::middleware('can:ar_customers,view')->get('/ar/ledger', [ArController::cla
 Route::middleware('can:ar_customers,create')->post('/ar/transactions', [ArController::class, 'storeTransaction'])->name('api.ar.transactions.store');
 Route::middleware('can:ar_customers,edit')->put('/ar/transactions', [ArController::class, 'updateTransaction'])->name('api.ar.transactions.update');
 Route::middleware('can:ar_customers,delete')->delete('/ar/transactions', [ArController::class, 'destroyTransaction'])->name('api.ar.transactions.destroy');
+Route::middleware('can:ar_customers,view')->get('/ar/receipts', [ArController::class, 'receipts'])->name('api.ar.receipts');
+
 
 // Sales Representatives
 Route::get('/sales_representatives', [\App\Http\Controllers\Api\SalesRepresentativeController::class, 'representatives'])->name('api.sales_representatives.index');
