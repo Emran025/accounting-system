@@ -41,10 +41,10 @@ export default function PurchaseRequestsPage() {
 
     useEffect(() => {
         const init = async () => {
-            const authenticated = await checkAuth();
-            if (!authenticated) return;
-            setUser(getStoredUser());
-            setPermissions(getStoredPermissions());
+            const authState = await checkAuth();
+            if (!authState.isAuthenticated) return;
+            setUser(authState.user);
+            setPermissions(authState.permissions);
             await loadData();
         };
         init();
@@ -84,11 +84,15 @@ export default function PurchaseRequestsPage() {
             const response = await fetchAPI(API_ENDPOINTS.PURCHASES.REQUESTS + "/auto-generate", {
                 method: "POST",
             });
-            const data = response.data as { message: string, generated_count: number };
-            showToast(data.message, "success");
+
+            // The backend merges the response object if it's associative
+            const message = (response.message as string) || "تمت العملية بنجاح";
+            const generatedCount = (response.generated_count as number) || 0;
+
+            showToast(message, "success");
             setIsAutoOpen(false);
-            if (data.generated_count > 0) {
-                loadData();
+            if (generatedCount > 0) {
+                await loadData();
             }
         } catch (error) {
             console.error("Failed to auto-generate requests", error);
