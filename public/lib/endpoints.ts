@@ -375,6 +375,11 @@ export const API_ENDPOINTS = {
             TRANSACTIONS: "/ap/transactions",
             PAYMENT: "/ap/payment",
             LEDGER: "/ap/ledger",
+        },
+        RETURNS: {
+            BASE: "/purchases",
+            SHOW: "/purchases/show",
+            LEDGER: "/purchases/returns/ledger"
         }
     },
     REPORTS: {

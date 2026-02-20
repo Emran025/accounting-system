@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\ApController;
 // Purchases
 Route::middleware('can:purchases,view')->get('/purchases', [PurchasesController::class, 'index'])->name('api.purchases.index');
 Route::middleware('can:purchases,create')->post('/purchases', [PurchasesController::class, 'store'])->name('api.purchases.store');
+Route::middleware('can:purchases,view')->get('/purchases/show', [PurchasesController::class, 'show'])->name('api.purchases.show');
+Route::middleware('can:purchases,view')->get('/purchases/returns/ledger', [PurchasesController::class, 'returnsLedger'])->name('api.purchases.returns.ledger');
 Route::middleware('can:purchases,edit')->put('/purchases', [PurchasesController::class, 'update'])->name('api.purchases.update');
 Route::middleware('can:purchases,delete')->delete('/purchases', [PurchasesController::class, 'destroy'])->name('api.purchases.destroy');
 Route::middleware('can:purchases,view')->get('/requests', [PurchasesController::class, 'requests'])->name('api.requests.index');

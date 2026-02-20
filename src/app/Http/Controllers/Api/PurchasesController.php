@@ -40,8 +40,6 @@ class PurchasesController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-
-
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
         $search = $request->input('search', '');
@@ -284,5 +282,107 @@ class PurchasesController extends Controller
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
         }
+    }
+
+    /**
+     * Unified purchase returns ledger (fetches ApTransactions where type='return' and reference='purchases')
+     */
+    public function returnsLedger(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $page    = max(1, (int) $request->input('page', 1));
+        $perPage = min(100, max(1, (int) $request->input('per_page', 20)));
+        $offset  = ($page - 1) * $perPage;
+
+        // Base query on ap_transactions
+        $query = \App\Models\ApTransaction::with(['supplier', 'createdBy'])
+            ->leftJoin('purchases', function($join) {
+                // Since ap_transactions reference_id represents the purchase.id
+                $join->on('ap_transactions.reference_id', '=', 'purchases.id')
+                     ->where('ap_transactions.reference_type', '=', 'purchases');
+            })
+            ->leftJoin('ap_suppliers', 'ap_transactions.supplier_id', '=', 'ap_suppliers.id')
+            ->where('ap_transactions.type', 'return')
+            ->where('ap_transactions.is_deleted', false)
+            ->select(
+                'ap_transactions.*',
+                'purchases.payment_type',
+                'purchases.invoice_price',
+                'purchases.voucher_number',
+                'ap_suppliers.name as supplier_name'
+            );
+
+        // Search:
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('ap_transactions.description', 'like', "%{$search}%")
+                  ->orWhere('ap_suppliers.name', 'like', "%{$search}%")
+                  ->orWhere('purchases.voucher_number', 'like', "%{$search}%")
+                  ->orWhere('ap_transactions.amount', 'like', "%{$search}%");
+            });
+        }
+
+        if ($type = $request->input('type')) {
+            $query->where('purchases.payment_type', $type);
+        }
+
+        if ($dateFrom = $request->input('date_from')) {
+            $query->whereDate('ap_transactions.transaction_date', '>=', $dateFrom);
+        }
+        if ($dateTo = $request->input('date_to')) {
+            $query->whereDate('ap_transactions.transaction_date', '<=', $dateTo);
+        }
+
+        // Stats
+        $statsData = (clone $query)->selectRaw('
+            COUNT(*) as transaction_count,
+            SUM(ap_transactions.amount) as total_returns,
+            SUM(CASE WHEN purchases.payment_type = "cash" THEN ap_transactions.amount ELSE 0 END) as total_cash_returns,
+            SUM(CASE WHEN purchases.payment_type = "credit" THEN ap_transactions.amount ELSE 0 END) as total_credit_returns
+        ')->first();
+
+        $total   = $query->count();
+        $returns = $query
+            ->orderBy('ap_transactions.transaction_date', 'desc')
+            ->skip($offset)
+            ->take($perPage)
+            ->get();
+
+        // format to mirror ledger/sales returns shape
+        $data = $returns->map(function ($r) {
+            return [
+                'id'             => $r->id,
+                'type'           => 'return',
+                'amount'         => (float) $r->amount,
+                'description'    => $r->description,
+                'reference_type' => $r->reference_type,
+                'reference_id'   => $r->reference_id, // This is the purchase ID!
+                'transaction_date' => $r->transaction_date,
+                'created_at'     => $r->created_at?->toDateTimeString(),
+                'created_by'     => $r->createdBy?->name ?? null,
+                'is_deleted'     => false,
+                'payment_type'   => $r->payment_type,
+                'supplier_id'    => $r->supplier_id,
+                'supplier_name'  => $r->supplier_name,
+                'related_invoice_number' => $r->voucher_number,
+                // Add alias for frontend component compatibility
+                'invoice_number' => $r->voucher_number ?? ('PR-' . $r->reference_id), 
+            ];
+        });
+
+        return $this->successResponse([
+            'data' => $data,
+            'stats' => [
+                'total_returns'        => (float) ($statsData->total_returns ?? 0),
+                'total_cash_returns'   => (float) ($statsData->total_cash_returns ?? 0),
+                'total_credit_returns' => (float) ($statsData->total_credit_returns ?? 0),
+                'transaction_count'    => (int) ($statsData->transaction_count ?? 0),
+            ],
+            'pagination' => [
+                'current_page'  => $page,
+                'per_page'      => $perPage,
+                'total_records' => $total,
+                'total_pages'   => $total > 0 ? ceil($total / $perPage) : 1,
+            ],
+        ]);
     }
 }

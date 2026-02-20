@@ -21,6 +21,7 @@ export { FilterSection, FilterGroup, DateRangePicker, FilterActions } from "./Fi
 export { SelectableInvoiceTable } from "./SelectableInvoiceTable";
 export type { InvoiceTableColumn, SelectedItem, Invoice as SelectableInvoice, InvoiceItem as SelectableInvoiceItem } from "./SelectableInvoiceTable";
 export { SalesReturnDialog } from "./SalesReturnDialog";
+export { PurchaseReturnDialog } from "./PurchaseReturnDialog";
 export type { ReturnData } from "./SalesReturnDialog";
 export { FloatingActionTableBar } from "./FloatingActionBar";
 export type { ActionBarAction } from "./FloatingActionBar";
