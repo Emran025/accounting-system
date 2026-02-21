@@ -21,6 +21,11 @@ class DocumentTemplate extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function histories()
+    {
+        return $this->hasMany(DocumentTemplateHistory::class, 'document_template_id')->orderBy('created_at', 'desc');
+    }
+
     /**
      * Scope: only active templates.
      */
