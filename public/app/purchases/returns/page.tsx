@@ -119,14 +119,19 @@ function ReturnsPageContent() {
         [filters]
     );
 
+    // Initial auth check only once on mount
     useEffect(() => {
         const init = async () => {
             const authenticated = await checkAuth();
             if (!authenticated) return;
             setUser(getStoredUser());
-            await loadReturns();
         };
         init();
+    }, []);
+
+    // Load returns whenever loadReturns changes (which happens when filters change)
+    useEffect(() => {
+        loadReturns();
     }, [loadReturns]);
 
     /* ──────────────────────────────────────────────

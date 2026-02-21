@@ -32,7 +32,6 @@ export default function SettingsPage() {
           tabs={[
             { key: "store", label: "معلومات المتجر", icon: "fa-store" },
             { key: "invoice", label: "إعدادات الفاتورة", icon: "fa-file-invoice" },
-
             { key: "security", label: "الحساب والأمان", icon: "fa-lock" },
             { key: "sessions", label: "الجلسات النشطة", icon: "fa-desktop" },
           ]}
@@ -43,7 +42,6 @@ export default function SettingsPage() {
         <div style={{ marginTop: "1rem", }}>
           {activeTab === "store" && <StoreSettingsTab />}
           {activeTab === "invoice" && <InvoiceSettingsTab />}
-
           {activeTab === "security" && <SecurityTab />}
           {activeTab === "sessions" && <SessionsTab />}
         </div>

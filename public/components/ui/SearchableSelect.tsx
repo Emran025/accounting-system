@@ -65,11 +65,12 @@ export function SearchableSelect({
         if (selectedOption) {
             setInputValue(selectedOption.label);
             setSearchTerm("");
-        } else if (!value) {
+        } else if (!value && !onSearch) {
+            // Only clear if not in search mode
             setInputValue("");
             setSearchTerm("");
         }
-    }, [selectedOption, value]);
+    }, [selectedOption, value, onSearch]);
 
     // Filter options based on search (only if onSearch is not provided)
     const filteredOptions = onSearch
@@ -108,7 +109,11 @@ export function SearchableSelect({
         setIsOpen(true);
         if (!selectedOption) {
             setSearchTerm(inputValue);
-            if (onSearch) onSearch(inputValue);
+            // Only trigger search on focus if there's actually something to search for
+            // to avoid redundant parent re-renders that look like page refreshes
+            if (onSearch && inputValue.trim() !== "") {
+                onSearch(inputValue);
+            }
         }
     };
 

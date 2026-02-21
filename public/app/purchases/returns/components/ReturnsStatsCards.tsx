@@ -1,5 +1,6 @@
 import { getIcon } from "@/lib/icons";
 import { formatCurrency } from "@/lib/utils";
+import { StatsCard } from "@/components/ui/StatsCard";
 
 export interface ReturnsStats {
     total_debit?: number;
@@ -20,38 +21,34 @@ export interface ReturnsStatsCardsProps {
 export function ReturnsStatsCards({ stats }: ReturnsStatsCardsProps) {
     return (
         <div className="dashboard-stats animate-fade" style={{ marginBottom: "2rem" }}>
-            <div className="stat-card">
-                <div className="stat-icon alert">{getIcon("repeat")}</div>
-                <div className="stat-info">
-                    <h3>إجمالي المرتجعات</h3>
-                    <p className="text-danger">{formatCurrency(stats.total_returns)}</p>
-                </div>
-            </div>
+            <StatsCard
+                title="إجمالي المرتجعات"
+                value={formatCurrency(stats.total_returns)}
+                icon={getIcon("repeat")}
+                colorClass="alert"
+            />
             {stats.total_cash_returns !== undefined && (
-                <div className="stat-card">
-                    <div className="stat-icon products">{getIcon("dollar")}</div>
-                    <div className="stat-info">
-                        <h3>مرتجعات نقدية</h3>
-                        <p className="text-warning">{formatCurrency(stats.total_cash_returns)}</p>
-                    </div>
-                </div>
+                <StatsCard
+                    title="مرتجعات نقدية"
+                    value={formatCurrency(stats.total_cash_returns)}
+                    icon={getIcon("dollar")}
+                    colorClass="products"
+                />
             )}
             {stats.total_credit_returns !== undefined && (
-                <div className="stat-card">
-                    <div className="stat-icon total">{getIcon("dollar")}</div>
-                    <div className="stat-info">
-                        <h3>مرتجعات ذمم (آجل)</h3>
-                        <p className="text-danger">{formatCurrency(stats.total_credit_returns)}</p>
-                    </div>
-                </div>
+                <StatsCard
+                    title="مرتجعات ذمم (آجل)"
+                    value={formatCurrency(stats.total_credit_returns)}
+                    icon={getIcon("dollar")}
+                    colorClass="total"
+                />
             )}
-            <div className="stat-card">
-                <div className="stat-icon sales">{getIcon("eye")}</div>
-                <div className="stat-info">
-                    <h3>عدد المرتجعات</h3>
-                    <p>{stats.transaction_count}</p>
-                </div>
-            </div>
+            <StatsCard
+                title="عدد المرتجعات"
+                value={stats.transaction_count}
+                icon={getIcon("eye")}
+                colorClass="sales"
+            />
         </div>
     );
 }

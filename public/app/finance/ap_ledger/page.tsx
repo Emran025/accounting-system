@@ -149,17 +149,20 @@ function APLedgerPageContent() {
     [supplierId, showDeleted, filters]
   );
 
+  // Initial auth check only once on mount
   useEffect(() => {
     const init = async () => {
       const authenticated = await checkAuth();
       if (!authenticated) return;
-
-      const storedUser = getStoredUser();
-      setUser(storedUser);
-      await loadSupplierDetails();
-      await loadLedger();
+      setUser(getStoredUser());
     };
     init();
+  }, []);
+
+  // Load ledger whenever loadLedger or loadSupplierDetails changes
+  useEffect(() => {
+    loadSupplierDetails();
+    loadLedger();
   }, [loadSupplierDetails, loadLedger]);
 
   const openAddTransactionDialog = () => {
