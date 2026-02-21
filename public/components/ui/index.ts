@@ -33,3 +33,4 @@ export { EmailInput } from "./EmailInput";
 export { PasswordInput } from "./PasswordInput";
 export { TextInput } from "./TextInput";
 export { Textarea } from "./Textarea";
+export { TabMiniNavigation } from "../navigation/TabNavigation";

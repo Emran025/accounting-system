@@ -163,6 +163,7 @@ export function TabNavigation({ tabs, activeTab, onTabChange, className = "" }: 
   );
 }
 
+
 export function TabSubNavigation({ tabs, activeTab, onTabChange, className = "" }: TabNavigationProps) {
   return (
     <div className={`card-header-flex ${className}`}>
@@ -183,3 +184,44 @@ export function TabSubNavigation({ tabs, activeTab, onTabChange, className = "" 
     </div>
   );
 }
+
+interface TabMiniNavigationProps {
+  title: string;
+  icon: string;
+  tabs: Tab[];
+  activeTab: string;
+  onTabChange: (tabKey: string) => void;
+  className?: string;
+}
+
+export function TabMiniNavigation({
+  title,
+  icon,
+  tabs,
+  activeTab,
+  onTabChange,
+  className = ""
+}: TabMiniNavigationProps) {
+  return (
+    <div className={`settings-tabs ${className}`} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <i className={`fas ${icon}`} style={{ color: 'var(--primary-color)', fontSize: '1.25rem' }}></i>
+        <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)' }}>{title}</span>
+      </div>
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => onTabChange(tab.key)}
+            className={`tab-btn ${activeTab === tab.key ? "active" : ""}`}
+          >
+            <i className={`fas ${tab.icon}`}></i>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+

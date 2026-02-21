@@ -82,12 +82,15 @@ class GeneralLedgerController extends Controller
 
 
         $accountCode = $request->input('account_code');
+        $accountId = $request->input('account_id');
         
-        if (!$accountCode) {
-            return $this->errorResponse('account_code is required', 400);
+        if ($accountId) {
+            $account = ChartOfAccount::find($accountId);
+        } elseif ($accountCode) {
+            $account = ChartOfAccount::where('account_code', $accountCode)->first();
+        } else {
+            return $this->errorResponse('account_code or account_id is required', 400);
         }
-
-        $account = ChartOfAccount::where('account_code', $accountCode)->first();
         
         if (!$account) {
             return $this->errorResponse('Account not found', 404);
@@ -95,8 +98,8 @@ class GeneralLedgerController extends Controller
 
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 50)));
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        $startDate = $request->input('start_date') ?? $request->input('date_from');
+        $endDate = $request->input('end_date') ?? $request->input('date_to');
 
         $query = GeneralLedger::where('account_id', $account->id)
             ->where('is_closed', false)
@@ -166,8 +169,8 @@ class GeneralLedgerController extends Controller
 
         $page = max(1, (int)$request->input('page', 1));
         $perPage = min(100, max(1, (int)$request->input('per_page', 50)));
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        $startDate = $request->input('start_date') ?? $request->input('date_from');
+        $endDate = $request->input('end_date') ?? $request->input('date_to');
         $voucherNumber = $request->input('voucher_number');
         $accountCode = $request->input('account_code');
 
@@ -298,19 +301,22 @@ class GeneralLedgerController extends Controller
 
 
         $accountCode = $request->input('account_code');
+        $accountId = $request->input('account_id');
         
-        if (!$accountCode) {
-            return $this->errorResponse('account_code is required', 400);
+        if ($accountId) {
+            $account = ChartOfAccount::find($accountId);
+        } elseif ($accountCode) {
+            $account = ChartOfAccount::where('account_code', $accountCode)->first();
+        } else {
+            return $this->errorResponse('account_code or account_id is required', 400);
         }
-
-        $account = ChartOfAccount::where('account_code', $accountCode)->first();
         
         if (!$account) {
             return $this->errorResponse('Account not found', 404);
         }
 
-        $startDate = $request->input('start_date', now()->startOfYear()->format('Y-m-d'));
-        $endDate = $request->input('end_date', now()->format('Y-m-d'));
+        $startDate = $request->input('start_date') ?? $request->input('date_from') ?? now()->startOfYear()->format('Y-m-d');
+        $endDate = $request->input('end_date') ?? $request->input('date_to') ?? now()->format('Y-m-d');
         $interval = $request->input('interval', 'month'); // day, week, month, year
 
         $entries = GeneralLedger::where('account_id', $account->id)

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { Currency } from "../../settings/types";
+import { Currency } from "@/app/finance/currency/types";
 
 export function ExchangeRatesWidget() {
   const [currencies, setCurrencies] = useState<Currency[]>([]);

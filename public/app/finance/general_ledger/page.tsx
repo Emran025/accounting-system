@@ -140,14 +140,30 @@ export default function GeneralLedgerPage() {
 
     try {
       setIsLoading(true);
-      let url = `${API_ENDPOINTS.FINANCE.GL.BALANCE_HISTORY}?account_id=${selectedAccountId}`;
-      const params = [];
-      if (historyDateFrom) params.push(`date_from=${historyDateFrom}`);
-      if (historyDateTo) params.push(`date_to=${historyDateTo}`);
-      if (params.length) url += `?${params.join("&")}`;
+      const account = accounts.find(a => a.id.toString() === selectedAccountId);
+      if (!account) return;
+
+      const params = new URLSearchParams();
+      params.append('account_code', account.code);
+      params.append('interval', 'day'); // Default to daily for a more detailed history view
+      if (historyDateFrom) params.append('start_date', historyDateFrom);
+      if (historyDateTo) params.append('end_date', historyDateTo);
+
+      const url = `${API_ENDPOINTS.FINANCE.GL.BALANCE_HISTORY}?${params.toString()}`;
 
       const response = await fetchAPI(url);
-      setAccountHistory(response.history as AccountHistoryItem[] || []);
+
+      // Map backend response fields to what the table expects
+      const mappedHistory = (response.history as any[] || []).map(item => ({
+        ...item,
+        entry_date: item.period,
+        debit: item.debits,
+        credit: item.credits,
+        running_balance: item.balance,
+        description: `الرصيد المجمع ليوم ${item.period}` // "Summary balance for day..."
+      }));
+
+      setAccountHistory(mappedHistory as AccountHistoryItem[]);
     } catch {
       showToast("خطأ في تحميل سجل الحساب", "error");
     } finally {

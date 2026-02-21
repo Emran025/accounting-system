@@ -243,6 +243,7 @@ export function getSidebarLinks(permissions: Permission[]): Array<{
     { href: "/suppliers", icon: "truck", label: "الموردين", module: "ap_suppliers" },
     { href: "/finance/ap_ledger", icon: "hand-coins", label: "مدفوعات الموردين", module: "ap_suppliers" },
     { href: "/system/settings", icon: "settings", label: "الإعدادات", module: "settings" },
+   // { href: "/finance/currency", icon: "currency", label: "العملات والسياسة النقدية", module: "currency" },
   ];
 
   return allLinks.filter((link) => canAccess(permissions, link.module, "view"));

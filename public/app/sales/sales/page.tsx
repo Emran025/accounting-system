@@ -9,7 +9,7 @@ import { formatCurrency, formatDateTime, parseNumber } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, checkAuth } from "@/lib/auth";
 import { Icon } from "@/lib/icons";
 import { printInvoice } from "@/lib/invoice-utils";
-import { Currency } from "../../system/settings/types";
+import { Currency } from "../../finance/currency/types";
 import { PaginatedResponse } from "@/lib/types";
 
 interface GovernmentFee {
