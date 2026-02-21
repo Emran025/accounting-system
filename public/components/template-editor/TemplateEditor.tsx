@@ -326,7 +326,7 @@ export function TemplateEditor({
                 body_html: formattedBody,
                 description,
                 language,
-                editable_fields: template?.editable_fields, // preserve existing fields
+                editable_fields: Array.isArray(template?.editable_fields) ? template.editable_fields : [], // preserve existing fields or default to empty array
             });
         } finally {
             setIsSaving(false);

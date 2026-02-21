@@ -13,6 +13,15 @@ return new class extends Migration
         Schema::table('document_templates', function (Blueprint $table) {
             $table->string('template_type', 255)->default('other')->change();
         });
+
+        Schema::table('document_templates', function (Blueprint $table) {
+            if (!Schema::hasColumn('document_templates', 'description')) {
+                $table->string('description', 500)->nullable();
+            }
+            if (!Schema::hasColumn('document_templates', 'editable_fields')) {
+                $table->json('editable_fields')->nullable();
+            }
+        });
         
         // Add a history table to maintain record of changes
         Schema::create('document_template_histories', function (Blueprint $table) {
@@ -31,6 +40,10 @@ return new class extends Migration
         
         Schema::table('document_templates', function (Blueprint $table) {
             $table->string('template_type', 50)->default('other')->change();
+        });
+
+        Schema::table('document_templates', function (Blueprint $table) {
+            $table->dropColumn(['description', 'editable_fields']);
         });
     }
 };
