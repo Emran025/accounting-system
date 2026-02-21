@@ -34,3 +34,5 @@ export { PasswordInput } from "./PasswordInput";
 export { TextInput } from "./TextInput";
 export { Textarea } from "./Textarea";
 export { TabMiniNavigation } from "../navigation/TabNavigation";
+export { DocumentPreview } from "./DocumentPreview";
+export type { DocumentPreviewProps } from "./DocumentPreview";

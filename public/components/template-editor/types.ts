@@ -4,6 +4,7 @@ export interface TemplateField {
     key: string;
     description: string;
     type: "string" | "number" | "date" | "boolean" | "list";
+    templateTypes?: string[];
 }
 
 export interface TemplateData {
@@ -14,6 +15,7 @@ export interface TemplateData {
     body_html: string;
     description?: string;
     language: string;
+    editable_fields?: string[];
 }
 
 export interface TemplateEditorProps {

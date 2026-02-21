@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Icon, IconName } from "@/lib/icons";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: "primary" | "secondary" | "success" | "danger" | "warning" | "info";
+    variant?: "primary" | "secondary" | "success" | "danger" | "warning" | "info" | "purple" | "rose" | "outline";
     size?: "sm" | "md" | "lg";
     icon?: IconName | React.ReactNode;
     iconPosition?: "left" | "right";

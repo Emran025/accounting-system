@@ -43,12 +43,53 @@ export function TemplateEditor({
     const [replaceQuery, setReplaceQuery] = useState("");
     const [findMatchCase, setFindMatchCase] = useState(false);
 
+    // ── Undo / Redo State ──
+    const [history, setHistory] = useState<string[]>([]);
+    const [historyIndex, setHistoryIndex] = useState(-1);
+
     // Refs
     const editorRef = useRef<HTMLTextAreaElement>(null);
     const highlightRef = useRef<HTMLPreElement>(null);
     const lineNumberRef = useRef<HTMLDivElement>(null);
     const previewIframeRef = useRef<HTMLIFrameElement>(null);
     const findInputRef = useRef<HTMLInputElement>(null);
+
+    // ── Determine Applicable Keys ──
+    const applicableKeys = useMemo(() => {
+        if (!templateType) return approvedKeys;
+        return approvedKeys.filter(k =>
+            !k.templateTypes || k.templateTypes.length === 0 || k.templateTypes.includes(templateType)
+        );
+    }, [approvedKeys, templateType]);
+
+    const approvedKeyNames = useMemo(() => applicableKeys.map(k => k.key), [applicableKeys]);
+
+    // ── Undo / Redo Handlers ──
+    const handleUndo = useCallback(() => {
+        if (historyIndex > 0) {
+            const prev = history[historyIndex - 1];
+            setHistoryIndex(historyIndex - 1);
+            setBodyHtml(prev);
+        }
+    }, [history, historyIndex]);
+
+    const handleRedo = useCallback(() => {
+        if (historyIndex < history.length - 1) {
+            const next = history[historyIndex + 1];
+            setHistoryIndex(historyIndex + 1);
+            setBodyHtml(next);
+        }
+    }, [history, historyIndex]);
+
+    const updateBodyHtml = useCallback((newHtml: string, isFromHistory = false) => {
+        setBodyHtml(newHtml);
+        if (!isFromHistory) {
+            const newHistory = history.slice(0, historyIndex + 1);
+            newHistory.push(newHtml);
+            setHistory(newHistory);
+            setHistoryIndex(newHistory.length - 1);
+        }
+    }, [history, historyIndex]);
 
     // ── Sync with Props ──
     useEffect(() => {
@@ -59,7 +100,14 @@ export function TemplateEditor({
             setTemplateType(template.template_type || "");
             setDescription(template.description || "");
             setLanguage(template.language || "ar");
-            setBodyHtml(template.body_html || "");
+
+            const initialHtml = template.body_html || "";
+            setBodyHtml(initialHtml);
+            setHistory([initialHtml]);
+            setHistoryIndex(0);
+        } else {
+            setHistory([""]);
+            setHistoryIndex(0);
         }
     }, [template]);
 
@@ -71,8 +119,6 @@ export function TemplateEditor({
     }, [templateType, templateTypeLabels]);
 
     // ── Validation ──
-    const approvedKeyNames = useMemo(() => approvedKeys.map(k => k.key), [approvedKeys]);
-
     // Using utils
     const keyValidations = useMemo(() => validateTemplateKeys(bodyHtml, approvedKeyNames), [bodyHtml, approvedKeyNames]);
     const forbiddenIssues = useMemo(() => detectForbiddenElements(bodyHtml), [bodyHtml]);
@@ -124,15 +170,29 @@ export function TemplateEditor({
         const end = editor.selectionEnd;
         const placeholder = `{{${key}}}`;
         const newValue = bodyHtml.substring(0, start) + placeholder + bodyHtml.substring(end);
-        setBodyHtml(newValue);
+        updateBodyHtml(newValue);
         setTimeout(() => {
             editor.focus();
             editor.selectionStart = editor.selectionEnd = start + placeholder.length;
         }, 0);
-    }, [bodyHtml]);
+    }, [bodyHtml, updateBodyHtml]);
 
     // ── Handle keyboard shortcuts ──
     const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        // Undo
+        if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+            e.preventDefault();
+            handleUndo();
+            return;
+        }
+
+        // Redo
+        if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+            e.preventDefault();
+            handleRedo();
+            return;
+        }
+
         // Tab key - insert 4 spaces
         if (e.key === "Tab") {
             e.preventDefault();
@@ -140,7 +200,7 @@ export function TemplateEditor({
             const start = editor.selectionStart;
             const end = editor.selectionEnd;
             const newValue = bodyHtml.substring(0, start) + "    " + bodyHtml.substring(end);
-            setBodyHtml(newValue);
+            updateBodyHtml(newValue);
             setTimeout(() => {
                 editor.selectionStart = editor.selectionEnd = start + 4;
             }, 0);
@@ -168,7 +228,7 @@ export function TemplateEditor({
         if ((e.ctrlKey || e.metaKey) && e.key === "k") {
             e.preventDefault();
             const formatted = prettifyHTML(bodyHtml);
-            setBodyHtml(formatted);
+            updateBodyHtml(formatted);
             showToast("تم تنسيق الكود", "success");
             return;
         }
@@ -179,7 +239,7 @@ export function TemplateEditor({
             editorRef.current?.focus();
             return;
         }
-    }, [bodyHtml, isSaving, forbiddenIssues.length, invalidKeys.length, showFindReplace]);
+    }, [bodyHtml, isSaving, forbiddenIssues.length, invalidKeys.length, showFindReplace, handleUndo, handleRedo, updateBodyHtml]);
 
     // ── Find and Replace functionality ──
     const handleFind = useCallback(() => {
@@ -191,7 +251,7 @@ export function TemplateEditor({
         const searchFrom = text.substring(startPos);
         const searchTextLower = findMatchCase ? searchText : searchText.toLowerCase();
         const index = searchFrom.toLowerCase().indexOf(searchTextLower);
-        
+
         if (index !== -1) {
             const absoluteIndex = startPos + index;
             editor.selectionStart = absoluteIndex;
@@ -209,10 +269,10 @@ export function TemplateEditor({
         const start = editor.selectionStart;
         const end = editor.selectionEnd;
         const selectedText = editor.value.substring(start, end);
-        
+
         if (findMatchCase ? selectedText === findQuery : selectedText.toLowerCase() === findQuery.toLowerCase()) {
             const newValue = bodyHtml.substring(0, start) + replaceQuery + bodyHtml.substring(end);
-            setBodyHtml(newValue);
+            updateBodyHtml(newValue);
             setTimeout(() => {
                 editor.selectionStart = editor.selectionEnd = start + replaceQuery.length;
                 editor.focus();
@@ -220,15 +280,15 @@ export function TemplateEditor({
         } else {
             handleFind();
         }
-    }, [findQuery, replaceQuery, findMatchCase, bodyHtml, handleFind]);
+    }, [findQuery, replaceQuery, findMatchCase, bodyHtml, handleFind, updateBodyHtml]);
 
     const handleReplaceAll = useCallback(() => {
         if (!findQuery) return;
         const regex = new RegExp(findQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), findMatchCase ? "g" : "gi");
         const newValue = bodyHtml.replace(regex, replaceQuery);
-        setBodyHtml(newValue);
+        updateBodyHtml(newValue);
         showToast("تم استبدال جميع التطابقات", "success");
-    }, [findQuery, replaceQuery, findMatchCase, bodyHtml]);
+    }, [findQuery, replaceQuery, findMatchCase, bodyHtml, updateBodyHtml]);
 
     // ── Line numbers ──
     const lineCount = useMemo(() => bodyHtml.split("\n").length, [bodyHtml]);
@@ -256,7 +316,7 @@ export function TemplateEditor({
         try {
             // "Format on Save" behavior
             const formattedBody = prettifyHTML(bodyHtml);
-            setBodyHtml(formattedBody);
+            updateBodyHtml(formattedBody);
 
             await onSave({
                 template_key: templateKey,
@@ -266,6 +326,7 @@ export function TemplateEditor({
                 body_html: formattedBody,
                 description,
                 language,
+                editable_fields: template?.editable_fields, // preserve existing fields
             });
         } finally {
             setIsSaving(false);
@@ -274,8 +335,8 @@ export function TemplateEditor({
 
     // ── Filtered keys ──
     const sortedApprovedKeys = useMemo(() => {
-        return [...approvedKeys].sort((a, b) => a.key.localeCompare(b.key));
-    }, [approvedKeys]);
+        return [...applicableKeys].sort((a, b) => a.key.localeCompare(b.key));
+    }, [applicableKeys]);
 
     const filteredKeys = useMemo(() => {
         if (!keysSearchQuery) return sortedApprovedKeys;
@@ -291,12 +352,12 @@ export function TemplateEditor({
         const editor = editorRef.current;
         const lines = bodyHtml.split("\n");
         if (lineNumber < 1 || lineNumber > lines.length) return;
-        
+
         let position = 0;
         for (let i = 0; i < lineNumber - 1; i++) {
             position += lines[i].length + 1; // +1 for newline
         }
-        
+
         editor.selectionStart = editor.selectionEnd = position;
         editor.focus();
         editor.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -498,6 +559,22 @@ export function TemplateEditor({
                             </div>
                             <button
                                 className="te-toolbar-btn"
+                                onClick={handleUndo}
+                                disabled={historyIndex <= 0}
+                                title="تراجع عن خطوة (Ctrl+Z)"
+                            >
+                                <i className="fas fa-undo" />
+                            </button>
+                            <button
+                                className="te-toolbar-btn"
+                                onClick={handleRedo}
+                                disabled={historyIndex >= history.length - 1}
+                                title="إعادة خطوة (Ctrl+Y)"
+                            >
+                                <i className="fas fa-redo" />
+                            </button>
+                            <button
+                                className="te-toolbar-btn"
                                 onClick={() => {
                                     setShowFindReplace(!showFindReplace);
                                     if (!showFindReplace) {
@@ -512,7 +589,7 @@ export function TemplateEditor({
                                 className="te-toolbar-btn"
                                 onClick={() => {
                                     const formatted = prettifyHTML(bodyHtml);
-                                    setBodyHtml(formatted);
+                                    updateBodyHtml(formatted);
                                     showToast("تم تنسيق الكود", "success");
                                 }}
                                 title="تنسيق الكود (Ctrl+K)"
@@ -637,7 +714,7 @@ export function TemplateEditor({
                                     ref={editorRef}
                                     className="te-textarea"
                                     value={bodyHtml}
-                                    onChange={(e) => setBodyHtml(e.target.value)}
+                                    onChange={(e) => updateBodyHtml(e.target.value)}
                                     onScroll={handleEditorScroll}
                                     onKeyDown={handleKeyDown}
                                     spellCheck={false}
