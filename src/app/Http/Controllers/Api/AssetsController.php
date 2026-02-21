@@ -19,15 +19,27 @@ class AssetsController extends Controller
 
 
         $page = max(1, (int)$request->input('page', 1));
-        $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
+        $perPage = min(100, max(1, (int)$request->input('per_page', $request->input('limit', 20))));
 
         $query = Asset::with('createdBy');
+
+        if ($search = $request->input('search')) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
 
         $total = $query->count();
         $assets = $query->orderBy('created_at', 'desc')
             ->skip(($page - 1) * $perPage)
             ->take($perPage)
             ->get();
+
+        // Map recorder_name for frontend consistency
+        $assets->each(function($asset) {
+            $asset->recorder_name = $asset->createdBy->name ?? null;
+        });
 
         return $this->paginatedResponse($assets, $total, $page, $perPage);
     }

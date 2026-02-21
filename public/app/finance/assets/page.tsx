@@ -14,7 +14,7 @@ import { User, getStoredUser, canAccess, getStoredPermissions, Permission, check
 interface Asset {
     id: number;
     name: string;
-    value: number;
+    purchase_value: number;
     purchase_date: string;
     depreciation_rate: number;
     status: "active" | "maintenance" | "disposed";
@@ -125,7 +125,7 @@ export default function AssetsPage() {
 
         setCurrentAssetId(id);
         setAssetName(asset.name);
-        setAssetValue(String(asset.value));
+        setAssetValue(String(asset.purchase_value));
         setAssetDate(asset.purchase_date);
         setAssetDepreciation(String(asset.depreciation_rate || 0));
         setAssetStatus(asset.status);
@@ -143,7 +143,7 @@ export default function AssetsPage() {
             const method = currentAssetId ? "PUT" : "POST";
             const body: any = {
                 name: assetName,
-                value: parseNumber(assetValue),
+                purchase_value: parseNumber(assetValue),
                 purchase_date: assetDate,
                 depreciation_rate: parseNumber(assetDepreciation),
                 status: assetStatus,
@@ -205,10 +205,10 @@ export default function AssetsPage() {
             render: (item) => <strong>{item.name}</strong>,
         },
         {
-            key: "value",
+            key: "purchase_value",
             header: "القيمة",
             dataLabel: "القيمة",
-            render: (item) => formatCurrency(item.value),
+            render: (item) => formatCurrency(item.purchase_value),
         },
         {
             key: "purchase_date",
