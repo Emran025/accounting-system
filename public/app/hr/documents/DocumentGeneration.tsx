@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Table, Column, Dialog, showToast, Select, ActionButtons, SearchableSelect } from "@/components/ui";
+import { Button, Table, Column, showToast, Select, ActionButtons, SearchableSelect, DocumentPreview } from "@/components/ui";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { PageSubHeader } from "@/components/layout";
 import { DocumentTemplate, Employee } from "@/app/hr/types";
 import { useEmployeeStore } from "@/stores/useEmployeeStore";
-import { templateTypeLabels, templateTypeBadgeClass, printCSS } from "./templates-data";
+import { templateTypeLabels, templateTypeBadgeClass } from "./templates-data";
 
 export function DocumentGeneration() {
     const { canAccess } = useAuthStore();
@@ -17,12 +17,13 @@ export function DocumentGeneration() {
     const { allEmployees: employees, loadAllEmployees } = useEmployeeStore();
     const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [showPreview, setShowPreview] = useState(false);
-    const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
-    const [renderedHtml, setRenderedHtml] = useState("");
     const [typeFilter, setTypeFilter] = useState("");
-    const printRef = useRef<HTMLDivElement>(null);
+
+    const [previewHtml, setPreviewHtml] = useState("");
+    const [previewName, setPreviewName] = useState("");
+    const [isPreviewMode, setIsPreviewMode] = useState(false);
+    const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
     useEffect(() => {
         loadTemplates();
@@ -46,34 +47,40 @@ export function DocumentGeneration() {
         router.push(`/hr/documents/editor?id=${template.id}`);
     };
 
-    // ── Render / preview ──
-    const handleRender = async (template: DocumentTemplate) => {
+    // ── Open Preview ──
+    const openPreview = async (template: DocumentTemplate) => {
         if (!selectedEmployeeId) {
-            showToast("يرجى اختيار موظف أولاً", "error");
+            showToast("يرجى اختيار موظف للمعاينة أولاً", "error");
             return;
         }
+
+        setIsPreviewMode(true);
+        setIsPreviewLoading(true);
+        setPreviewName(template.template_name_ar);
+
         try {
             const res = await fetchAPI(API_ENDPOINTS.HR.DOCUMENT_TEMPLATES.RENDER(template.id), {
                 method: "POST",
                 body: JSON.stringify({ employee_id: Number(selectedEmployeeId) }),
             });
             const resData = (res as any).data;
-            setRenderedHtml(resData?.rendered_html || template.body_html);
-            setSelectedTemplate(template);
-            setShowPreview(true);
-        } catch { showToast("فشل عرض المستند", "error"); }
-    };
+            let finalHtml = resData?.rendered_html || "";
 
-    // ── Print in new window with proper CSS ──
-    const handlePrint = () => {
-        const printWindow = window.open("", "_blank");
-        if (printWindow) {
-            printWindow.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head>
-<meta charset="UTF-8"><title>${selectedTemplate?.template_name_ar || 'مستند'}</title>
-<style>${printCSS}</style></head><body>${renderedHtml}</body></html>`);
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => printWindow.print(), 400);
+            const templateRes = await fetchAPI(API_ENDPOINTS.HR.DOCUMENT_TEMPLATES.withId(template.id));
+            const templateData = (templateRes as any).data || templateRes;
+            if (templateData) {
+                if (!finalHtml) {
+                    finalHtml = templateData.body_html || "";
+                }
+            }
+
+            setPreviewHtml(finalHtml);
+        } catch (error) {
+            console.error("Render error:", error);
+            showToast("فشل في تحميل المعاينة", "error");
+            setIsPreviewMode(false);
+        } finally {
+            setIsPreviewLoading(false);
         }
     };
 
@@ -118,7 +125,7 @@ export function DocumentGeneration() {
             render: (item) => (
                 <ActionButtons
                     actions={[
-                        { icon: "eye", title: "معاينة وطباعة", variant: "view", onClick: () => handleRender(item) },
+                        { icon: "eye", title: "معاينة", variant: "view", onClick: () => openPreview(item) },
                         ...(canAccess("employees", "edit") ? [{ icon: "edit" as const, title: "محرر القالب", variant: "edit" as const, onClick: () => openEdit(item) }] : []),
                         ...(canAccess("employees", "delete") ? [{ icon: "trash" as const, title: "حذف", variant: "delete" as const, onClick: () => handleDelete(item.id) }] : [])
                     ]}
@@ -130,6 +137,18 @@ export function DocumentGeneration() {
     // ═══════════════════════════
     //  List View
     // ═══════════════════════════
+    if (isPreviewMode) {
+        return (
+            <DocumentPreview
+                title={previewName}
+                htmlContent={previewHtml}
+                onBack={() => setIsPreviewMode(false)}
+                isLoading={isPreviewLoading}
+                titleIcon="file-signature"
+            />
+        );
+    }
+
     return (
         <div className="sales-card animate-fade">
             <PageSubHeader
@@ -163,29 +182,6 @@ export function DocumentGeneration() {
 
             <Table columns={columns} data={templates} keyExtractor={(i) => i.id.toString()} emptyMessage="لا توجد قوالب مسجلة" isLoading={isLoading} />
 
-            {/* ── Preview / Print Dialog ── */}
-            <Dialog isOpen={showPreview} onClose={() => setShowPreview(false)} title={`معاينة: ${selectedTemplate?.template_name_ar || ''}`} footer={
-                <>
-                    <Button variant="secondary" onClick={() => setShowPreview(false)}>إغلاق</Button>
-                    <Button variant="primary" icon="printer" onClick={handlePrint}>طباعة</Button>
-                </>
-            }>
-                <div
-                    ref={printRef}
-                    className="document-preview"
-                    style={{
-                        background: "#f8f9fa",
-                        padding: "24px",
-                        borderRadius: "8px",
-                        border: "1px solid var(--border-color)",
-                        minHeight: "500px",
-                        maxHeight: "75vh",
-                        overflowY: "auto",
-                        boxShadow: "inset 0 2px 8px rgba(0,0,0,0.04)",
-                    }}
-                    dangerouslySetInnerHTML={{ __html: renderedHtml }}
-                />
-            </Dialog>
         </div>
     );
 }
