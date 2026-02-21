@@ -40,6 +40,15 @@ export const API_ENDPOINTS = {
             SESSIONS: "/sessions",
             SESSIONS_WITH_ID: (id: string | number) => `/sessions/${id}`,
         },
+        TEMPLATES: {
+            BASE: "/templates",
+            withId: (id: string | number) => `/templates/${id}`,
+            byKey: (key: string) => `/templates/key/${key}`,
+            byType: (type: string) => `/templates/type/${type}`,
+            HISTORY: (id: string | number) => `/templates/${id}/history`,
+            RENDER: (id: string | number) => `/templates/${id}/render`,
+            APPROVED_KEYS: "/templates/approved-keys",
+        },
         BATCH: "/batch",
     },
     FINANCE: {
@@ -310,6 +319,7 @@ export const API_ENDPOINTS = {
             BASE: "/document-templates",
             withId: (id: string | number) => `/document-templates/${id}`,
             RENDER: (id: string | number) => `/document-templates/${id}/render`,
+            APPROVED_KEYS: "/document-templates/approved-keys",
         },
         BIOMETRIC: {
             DEVICES: "/biometric/devices",

@@ -62,7 +62,7 @@ export const navigationGroups: NavigationGroup[] = [
       //{ href: "/system/dashboard", icon: "tags", label: "قوائم الأسعار", description: "إدارة الأسعار والخصومات (قريباً)", module: "dashboard" },
       { href: "/representatives", icon: "tags", label: "المناديب والمسوقين", description: "إدارة المناديب والمسوقين", module: "representatives" },
       { href: "/system/dashboard", icon: "coins", label: "العمولات", description: "عمولات المبيعات (قريباً)", module: "dashboard" },
-      { href: "/system/dashboard", icon: "coins", label: "إدارة القوالب", description: "إدارة قوالب التصاميم والفواتير وكشوفات الحساب (قريباً)", module: "dashboard" },
+      { href: "/system/templates", icon: "coins", label: "إدارة القوالب", description: "إدارة قوالب التصاميم والفواتير وكشوفات الحساب", module: "dashboard" },
     ],
   },
 
