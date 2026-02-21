@@ -4,43 +4,18 @@ import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { showToast, Dialog, ConfirmDialog, Table, Column, ActionButtons, Button } from "@/components/ui";
-import { getIcon } from "@/lib/icons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { ZatcaSettingsTab } from "./ZatcaSettingsTab";
 import { PageSubHeader } from "@/components/layout";
-
-
-interface GovernmentFee {
-    id: number;
-    name: string;
-    code?: string;
-    percentage: number;
-    fixed_amount?: number;
-    account_id?: number | null;
-    account?: {
-        id: number;
-        account_name: string;
-        account_code: string;
-    };
-    is_active: boolean;
-}
-
-interface Account {
-    id: number;
-    account_name: string;
-    account_code: string;
-    account_type: string;
-}
+import { GovernmentFee, Account } from "../types";
 
 export function GovernmentFeesTab() {
     const { canAccess } = useAuthStore();
     const [fees, setFees] = useState<GovernmentFee[]>([]);
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [subTab, setSubTab] = useState<"fees" | "zatca">("fees");
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -71,7 +46,6 @@ export function GovernmentFeesTab() {
         try {
             const response: any = await fetchAPI(API_ENDPOINTS.FINANCE.ACCOUNTS.BASE);
             if (response.data) {
-                // Handle both direct array and wrapped object
                 const list = Array.isArray(response.data) ? response.data : (response.data.accounts || []);
                 if (Array.isArray(list)) {
                     setAccounts(list.filter((a: any) => a.account_type === 'Liability'));
@@ -101,7 +75,7 @@ export function GovernmentFeesTab() {
                 name: "",
                 percentage: 0,
                 fixed_amount: 0,
-                account_id: accounts.find(a => a.account_code === '2310')?.id || null, // Default to General Fees if found
+                account_id: accounts.find(a => a.account_code === '2310')?.id || null,
                 is_active: true
             });
         }
@@ -224,49 +198,26 @@ export function GovernmentFeesTab() {
 
     return (
         <div className="sales-card animate-fade">
-            <div className="card-header-flex">
-                <div className="discount-type-toggle">
-                    <button
-                        className={subTab === 'fees' ? 'active' : ''}
-                        onClick={() => setSubTab('fees')}
+            <PageSubHeader
+                title="الالتزامات الحكومية (الخراج)"
+                titleIcon="money-bill-wave"
+                actions={
+                    <Button
+                        onClick={() => handleOpenDialog()}
+                        variant="primary"
+                        icon="plus"
                     >
-                        {getIcon("scale-balanced")} الرسوم والالتزامات
-                    </button>
-                    <button
-                        className={subTab === 'zatca' ? 'active' : ''}
-                        onClick={() => setSubTab('zatca')}
-                    >
-                        {getIcon("shield-check")} إعدادات زاتكا (ZATCA)
-                    </button>
-                </div>
-            </div>
-
-            {subTab === 'zatca' ? (
-                <ZatcaSettingsTab />
-            ) : (
-                <>
-                    <PageSubHeader
-                        title="الالتزامات الحكومية (الخراج)"
-                        titleIcon="money-bill-wave"
-                        actions={
-                            <Button
-                                onClick={() => handleOpenDialog()}
-                                variant="primary"
-                                icon="plus"
-                            >
-                                إضافة التزام جديد
-                            </Button>
-                        }
-                    />
-                    <Table
-                        columns={feesColumns}
-                        data={fees}
-                        keyExtractor={(fee) => fee.id}
-                        isLoading={isLoading}
-                        emptyMessage="لا توجد التزامات مسجلة"
-                    />
-                </>
-            )}
+                        إضافة التزام جديد
+                    </Button>
+                }
+            />
+            <Table
+                columns={feesColumns}
+                data={fees}
+                keyExtractor={(fee) => fee.id}
+                isLoading={isLoading}
+                emptyMessage="لا توجد التزامات مسجلة"
+            />
 
             <Dialog
                 isOpen={dialogOpen}

@@ -28,6 +28,7 @@ class ModuleSeeder extends Seeder
             ['module_key' => 'reconciliation', 'module_name_ar' => 'التسوية البنكية', 'module_name_en' => 'Bank Reconciliation', 'category' => 'finance', 'icon' => 'check', 'sort_order' => 55],
             ['module_key' => 'assets', 'module_name_ar' => 'الأصول', 'module_name_en' => 'Fixed Assets', 'category' => 'finance', 'icon' => 'building', 'sort_order' => 56],
             ['module_key' => 'currency', 'module_name_ar' => 'العملات والسياسة النقدية', 'module_name_en' => 'Currency & Finance Policy', 'category' => 'finance', 'icon' => 'coins', 'sort_order' => 57],
+            ['module_key' => 'vat_zatca', 'module_name_ar' => 'الضرائب والزكاة (VAT/ZATCA)', 'module_name_en' => 'VAT & ZATCA Management', 'category' => 'finance', 'icon' => 'shield-check', 'sort_order' => 58],
             ['module_key' => 'reports', 'module_name_ar' => 'الميزانية والتقارير', 'module_name_en' => 'Reports & Balance Sheet', 'category' => 'reports', 'icon' => 'eye', 'sort_order' => 60],
             ['module_key' => 'audit_trail', 'module_name_ar' => 'سجل التدقيق', 'module_name_en' => 'Audit Trail', 'category' => 'system', 'icon' => 'eye', 'sort_order' => 70],
             ['module_key' => 'recurring_transactions', 'module_name_ar' => 'المعاملات المتكررة', 'module_name_en' => 'Recurring Transactions', 'category' => 'system', 'icon' => 'check', 'sort_order' => 71],

@@ -7,9 +7,9 @@ import { showToast, Button } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ZatcaSettings } from "../types";
 import { getIcon } from "@/lib/icons";
 import { PageSubHeader } from "@/components/layout";
+import { ZatcaSettings } from "../types";
 
 export function ZatcaSettingsTab() {
     const [settings, setSettings] = useState<ZatcaSettings>({

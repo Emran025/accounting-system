@@ -122,7 +122,7 @@ export const navigationGroups: NavigationGroup[] = [
       { href: "/system/dashboard", icon: "wallet", label: "الميزانيات", description: "التخطيط والميزانيات (قريباً)", module: "dashboard" },
       { href: "/system/dashboard", icon: "building", label: "مراكز التكلفة", description: "توزيع التكاليف (قريباً)", module: "dashboard" },
       { href: "/system/dashboard", icon: "trending-up", label: "التدفق النقدي", description: "إدارة السيولة (قريباً)", module: "dashboard" },
-      { href: "/system/dashboard", icon: "shield-check", label: "الضرائب (VAT/ZATCA)", description: "إدارة الضرائب (قريباً)", module: "dashboard" },
+      { href: "/finance/vat-zatca", icon: "shield-check", label: "الضرائب (VAT/ZATCA)", description: "إدارة الضرائب والربط مع زاتكا", module: "dashboard" },
       { href: "/finance/currency", icon: "coins", label: "العملات والسياسة النقدية", description: "إدارة العملات والسياسة النقدية للمؤسسة", module: "currency" },
     ],
   },

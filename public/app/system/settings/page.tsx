@@ -9,7 +9,7 @@ import { StoreSettingsTab } from "./components/StoreSettingsTab";
 import { InvoiceSettingsTab } from "./components/InvoiceSettingsTab";
 import { SecurityTab } from "./components/SecurityTab";
 import { SessionsTab } from "./components/SessionsTab";
-import { GovernmentFeesTab } from "./components/GovernmentFeesTab";
+
 
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -32,7 +32,7 @@ export default function SettingsPage() {
           tabs={[
             { key: "store", label: "معلومات المتجر", icon: "fa-store" },
             { key: "invoice", label: "إعدادات الفاتورة", icon: "fa-file-invoice" },
-            { key: "fees", label: "الالتزامات الحكومية", icon: "fa-scale-balanced" },
+
             { key: "security", label: "الحساب والأمان", icon: "fa-lock" },
             { key: "sessions", label: "الجلسات النشطة", icon: "fa-desktop" },
           ]}
@@ -43,7 +43,7 @@ export default function SettingsPage() {
         <div style={{ marginTop: "1rem", }}>
           {activeTab === "store" && <StoreSettingsTab />}
           {activeTab === "invoice" && <InvoiceSettingsTab />}
-          {activeTab === "fees" && <GovernmentFeesTab />}
+
           {activeTab === "security" && <SecurityTab />}
           {activeTab === "sessions" && <SessionsTab />}
         </div>
