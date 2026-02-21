@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Icon } from "@/lib/icons";
+import { isArabic as checkIsArabic } from "@/lib/utils";
 
 export interface SelectOption {
     value: string | number;
@@ -44,13 +45,20 @@ export function SearchableSelect({
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [inputValue, setInputValue] = useState("");
+    const [isArabic, setIsArabic] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Get selected option label
-    const selectedOption = Array.isArray(options) 
+    const selectedOption = Array.isArray(options)
         ? options.find((opt) => opt.value === value)
         : null;
+
+    // Detect text direction
+    useEffect(() => {
+        const displayValue = isOpen ? searchTerm : inputValue;
+        setIsArabic(checkIsArabic(displayValue));
+    }, [isOpen, searchTerm, inputValue]);
 
     // Update input value when selection changes
     useEffect(() => {
@@ -64,8 +72,8 @@ export function SearchableSelect({
     }, [selectedOption, value]);
 
     // Filter options based on search (only if onSearch is not provided)
-    const filteredOptions = onSearch 
-        ? options 
+    const filteredOptions = onSearch
+        ? options
         : Array.isArray(options)
             ? options.filter((opt) => {
                 if (filterOption) return filterOption(opt, searchTerm);
@@ -137,6 +145,12 @@ export function SearchableSelect({
                 disabled={disabled}
                 autoComplete="off"
                 required={required && !value}
+                style={{
+                    direction: isArabic ? "rtl" : "ltr",
+                    textAlign: isArabic ? "right" : "left",
+                    paddingLeft: "3rem",
+                    paddingRight: (value && !isOpen) ? "2.5rem" : "1rem"
+                }}
             />
             <div className="input-icon">
                 <Icon name="search" size={18} />

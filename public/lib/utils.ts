@@ -347,3 +347,15 @@ export async function generateQRCode(text: string): Promise<string> {
   }
 }
 
+/**
+ * Check if text contains Arabic characters for RTL UI support.
+ * 
+ * @param text The string to check
+ * @returns True if Arabic characters are detected
+ */
+export function isArabic(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+  return arabicPattern.test(text);
+}
+

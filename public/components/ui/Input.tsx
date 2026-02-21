@@ -2,6 +2,7 @@
 
 import { useState, useRef, forwardRef } from "react";
 import { Icon, IconName } from "@/lib/icons";
+import { isArabic as checkIsArabic } from "@/lib/utils";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     icon?: IconName;
@@ -26,9 +27,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         // Check if starts with Arabic char
-        const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
-        setIsArabic(arabicPattern.test(val)); // Simple check: contains Arabic? Or starts with? Usually starts with.
-        
+        setIsArabic(checkIsArabic(val));
+
         if (onChange) {
             onChange(e);
         }
@@ -39,7 +39,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
     // But Login page seems to force LTR and put icon on Left.
     // We will stick to the generic design: Icon on "Start"?
     // The previous code put icon at the bottom? No.
-    
+
     return (
         <div className={`input-wrapper ${containerClassName}`} ref={containerRef} style={{ position: "relative", width: "100%" }}>
             <input
