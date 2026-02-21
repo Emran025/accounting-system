@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\SessionsController;
 use App\Http\Controllers\Api\GovernmentFeesController;
 use App\Http\Controllers\Api\AuditTrailController;
+use App\Http\Controllers\Api\SystemTemplateController;
 
 // Settings
 Route::middleware('can:settings,view')->get('/settings', [SettingsController::class, 'index'])->name('api.settings.index');
@@ -45,3 +46,17 @@ Route::middleware('can:settings,delete')->delete('/roles/{id}', [RolesController
 Route::get('/my_sessions', [UsersController::class, 'mySessions'])->name('api.my_sessions');
 Route::get('/sessions', [SessionsController::class, 'index'])->name('api.sessions.index');
 Route::delete('/sessions/{id}', [SessionsController::class, 'destroy'])->name('api.sessions.destroy');
+
+// System Templates
+Route::group(['prefix' => 'templates'], function () {
+    Route::get('', [SystemTemplateController::class, 'index'])->name('api.system_templates.index');
+    Route::get('/approved-keys', [SystemTemplateController::class, 'getApprovedKeys'])->name('api.system_templates.approved_keys');
+    Route::post('/', [SystemTemplateController::class, 'store'])->name('api.system_templates.store');
+    Route::get('/key/{key}', [SystemTemplateController::class, 'showByKey'])->name('api.system_templates.show_by_key');
+    Route::get('/type/{type}', [SystemTemplateController::class, 'showByType'])->name('api.system_templates.show_by_type');
+    Route::get('/{id}', [SystemTemplateController::class, 'show'])->name('api.system_templates.show');
+    Route::put('/{id}', [SystemTemplateController::class, 'update'])->name('api.system_templates.update');
+    Route::delete('/{id}', [SystemTemplateController::class, 'destroy'])->name('api.system_templates.destroy');
+    Route::get('/{id}/history', [SystemTemplateController::class, 'history'])->name('api.system_templates.history');
+    Route::post('/{id}/render', [SystemTemplateController::class, 'render'])->name('api.system_templates.render');
+});

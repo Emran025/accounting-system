@@ -239,6 +239,7 @@ Route::middleware('can:employees,edit')->put('/expertise/{id}', [\App\Http\Contr
 
 // Document Templates
 Route::middleware('can:employees,view')->get('/document-templates', [\App\Http\Controllers\Api\DocumentTemplateController::class, 'index']);
+Route::middleware('can:employees,view')->get('/document-templates/approved-keys', [\App\Http\Controllers\Api\DocumentTemplateController::class, 'getApprovedKeys']);
 Route::middleware('can:employees,create')->post('/document-templates', [\App\Http\Controllers\Api\DocumentTemplateController::class, 'store']);
 Route::middleware('can:employees,view')->get('/document-templates/{id}', [\App\Http\Controllers\Api\DocumentTemplateController::class, 'show']);
 Route::middleware('can:employees,edit')->put('/document-templates/{id}', [\App\Http\Controllers\Api\DocumentTemplateController::class, 'update']);

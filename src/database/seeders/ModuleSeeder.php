@@ -35,6 +35,7 @@ class ModuleSeeder extends Seeder
             ['module_key' => 'batch_processing', 'module_name_ar' => 'المعالجة الدفعية', 'module_name_en' => 'Batch Processing', 'category' => 'system', 'icon' => 'check', 'sort_order' => 72],
             ['module_key' => 'users', 'module_name_ar' => 'إدارة المستخدمين', 'module_name_en' => 'User Management', 'category' => 'system', 'icon' => 'users', 'sort_order' => 73],
             ['module_key' => 'settings', 'module_name_ar' => 'الإعدادات', 'module_name_en' => 'Settings', 'category' => 'system', 'icon' => 'settings', 'sort_order' => 74],
+            ['module_key' => 'system_templates', 'module_name_ar' => 'إدارة القوالب', 'module_name_en' => 'Template Management', 'category' => 'system', 'icon' => 'file-signature', 'sort_order' => 76],
             ['module_key' => 'roles_permissions', 'module_name_ar' => 'الأدوار والصلاحيات', 'module_name_en' => 'Roles & Permissions', 'category' => 'system', 'icon' => 'lock', 'sort_order' => 75],
             ['module_key' => 'hr', 'module_name_ar' => 'الموارد البشرية', 'module_name_en' => 'Human Resources', 'category' => 'hr', 'icon' => 'users', 'sort_order' => 80],
             ['module_key' => 'employees', 'module_name_ar' => 'إدارة الموظفين', 'module_name_en' => 'Employee Management', 'category' => 'hr', 'icon' => 'user-tie', 'sort_order' => 81],

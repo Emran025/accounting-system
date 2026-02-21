@@ -5,32 +5,22 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\TemplateService;
 use App\Services\TemplateRegistry;
-use App\Services\EmployeeContextBuilder;
-use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use App\Models\DocumentTemplate;
 
 /**
- * HR Document Template Controller
+ * System Template Controller
  * 
- * This controller enforces the exclusive use of system templates for HR documents.
- * All HR template operations must go through the centralized TemplateService
+ * This controller enforces the exclusive use of system templates.
+ * All template operations must go through the centralized TemplateService
  * which ensures compliance with the Report and Document Management Policy.
  */
-class DocumentTemplateController extends Controller
+class SystemTemplateController extends Controller
 {
     use BaseApiController;
 
     protected TemplateService $templateService;
     protected TemplateRegistry $registry;
-
-    // HR-specific approved template types
-    protected array $hrTypes = [
-        'contract', 'clearance', 'warning', 'id_card', 
-        'handover', 'certificate', 'memo', 'other',
-        'employee_certificate', 'employee_contract'
-    ];
 
     public function __construct(TemplateService $templateService, TemplateRegistry $registry)
     {
@@ -38,18 +28,40 @@ class DocumentTemplateController extends Controller
         $this->registry = $registry;
     }
 
+    protected function isSystemType(string $type): bool
+    {
+        $meta = TemplateRegistry::getTypeMetadata($type);
+        return $meta && isset($meta['module']) && $meta['module'] !== 'hr';
+    }
+
+    protected function getSystemTypes(): array
+    {
+        $types = [];
+        foreach (TemplateRegistry::getApprovedTypes() as $type => $meta) {
+            if (isset($meta['module']) && $meta['module'] !== 'hr') {
+                $types[] = $type;
+            }
+        }
+        return $types;
+    }
+
     /**
-     * List all active HR document templates.
-     * Only returns templates from approved HR types.
+     * List all system templates.
+     * Only returns templates from approved system types.
      */
     public function index(Request $request): JsonResponse
     {
-        $query = DocumentTemplate::whereIn('template_type', $this->hrTypes);
+        \Illuminate\Support\Facades\Log::info('SystemTemplateController@index hit');
+        $approvedTypes = $this->getSystemTypes();
+        \Illuminate\Support\Facades\Log::info('Checking templates for types: ' . implode(',', $approvedTypes));
+        
+        $query = \App\Models\DocumentTemplate::whereIn('template_type', $approvedTypes);
+        \Illuminate\Support\Facades\Log::info('Template count before filters: ' . $query->count());
 
         if ($request->filled('type')) {
             // Validate type is approved
-            if (!in_array($request->type, $this->hrTypes) || !$this->registry->isApprovedType($request->type)) {
-                return $this->errorResponse("Template type '{$request->type}' is not an approved HR template type", 400);
+            if (!$this->isSystemType($request->type)) {
+                return $this->errorResponse("Template type '{$request->type}' is not an approved system type", 400);
             }
             $query->where('template_type', $request->type);
         }
@@ -71,7 +83,7 @@ class DocumentTemplateController extends Controller
     }
 
     /**
-     * Store a new HR document template.
+     * Store a new system template.
      * Validates template structure and keys before creation.
      */
     public function store(Request $request): JsonResponse
@@ -80,13 +92,17 @@ class DocumentTemplateController extends Controller
             'template_key'     => 'required|string|max:50|unique:document_templates,template_key',
             'template_name_ar' => 'required|string|max:255',
             'template_name_en' => 'nullable|string|max:255',
-            'template_type'    => 'required|string|in:' . implode(',', $this->hrTypes),
+            'template_type'    => 'required|string',
             'body_html'        => 'required|string',
             'editable_fields'  => 'nullable|array',
             'description'      => 'nullable|string|max:500',
         ]);
 
         try {
+            if (!$this->isSystemType($validated['template_type'])) {
+                return $this->errorResponse("Template type '{$validated['template_type']}' is not an approved system type.", 403);
+            }
+
             // Validate template using centralized service
             $validation = $this->templateService->validateTemplate($validated['template_type'], $validated['body_html']);
             if (!$validation['valid']) {
@@ -101,16 +117,18 @@ class DocumentTemplateController extends Controller
     }
 
     /**
-     * Show a specific HR document template.
+     * Show a specific system template by its unique key.
      */
-    public function show($id): JsonResponse
+    public function showByKey($key): JsonResponse
     {
         try {
-            $template = DocumentTemplate::findOrFail($id);
+            $template = \App\Models\DocumentTemplate::where('template_key', $key)
+                ->where('is_active', true)
+                ->firstOrFail();
             
-            // Ensure template is from approved HR types
-            if (!in_array($template->template_type, $this->hrTypes) || !$this->registry->isApprovedType($template->template_type)) {
-                return $this->errorResponse('Template is not an approved HR template', 403);
+            // Ensure template is from approved system types
+            if (!$this->isSystemType($template->template_type)) {
+                return $this->errorResponse('Template is not a system template', 403);
             }
             
             return $this->successResponse($template->toArray());
@@ -120,7 +138,44 @@ class DocumentTemplateController extends Controller
     }
 
     /**
-     * Update an existing HR template.
+     * Show the latest active template of a specific type.
+     */
+    public function showByType($type): JsonResponse
+    {
+        try {
+            $template = $this->templateService->getTemplate($type);
+            
+            if (!$template) {
+                return $this->errorResponse("No active template found for type '{$type}'", 404);
+            }
+            
+            return $this->successResponse($template->toArray());
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Show a specific system template.
+     */
+    public function show($id): JsonResponse
+    {
+        try {
+            $template = \App\Models\DocumentTemplate::findOrFail($id);
+            
+            // Ensure template is from approved system types
+            if (!$this->isSystemType($template->template_type)) {
+                return $this->errorResponse('Template is not a system template', 403);
+            }
+            
+            return $this->successResponse($template->toArray());
+        } catch (\Exception $e) {
+            return $this->errorResponse('Template not found', 404);
+        }
+    }
+
+    /**
+     * Update a template and store its history.
      * Validates template structure before updating.
      */
     public function update(Request $request, $id): JsonResponse
@@ -128,7 +183,7 @@ class DocumentTemplateController extends Controller
         $validated = $request->validate([
             'template_name_ar' => 'string|max:255',
             'template_name_en' => 'nullable|string|max:255',
-            'template_type'    => 'string|in:' . implode(',', $this->hrTypes),
+            'template_type'    => 'string',
             'body_html'        => 'string',
             'editable_fields'  => 'nullable|array',
             'description'      => 'nullable|string|max:500',
@@ -136,9 +191,18 @@ class DocumentTemplateController extends Controller
         ]);
 
         try {
+            $template = \App\Models\DocumentTemplate::findOrFail($id);
+            if (!$this->isSystemType($template->template_type)) {
+                return $this->errorResponse('Template is not a system template', 403);
+            }
+
+            if (isset($validated['template_type']) && !$this->isSystemType($validated['template_type'])) {
+                return $this->errorResponse('Cannot change to a non-system template type', 403);
+            }
+
             // If body_html is being updated, validate it
             if (isset($validated['body_html'])) {
-                $type = $validated['template_type'] ?? DocumentTemplate::findOrFail($id)->template_type;
+                $type = $validated['template_type'] ?? $template->template_type;
                 $validation = $this->templateService->validateTemplate($type, $validated['body_html']);
                 if (!$validation['valid']) {
                     return $this->errorResponse('Template validation failed: ' . implode(', ', $validation['errors']), 422);
@@ -146,23 +210,23 @@ class DocumentTemplateController extends Controller
             }
 
             $template = $this->templateService->updateTemplate($id, $validated);
-            return $this->successResponse($template->toArray(), 'Template updated successfully');
+            return $this->successResponse($template->toArray(), 'Template updated and history recorded');
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
         }
     }
 
     /**
-     * Soft-delete / deactivate a template.
+     * Delete a template.
      */
     public function destroy($id): JsonResponse
     {
         try {
-            $template = DocumentTemplate::findOrFail($id);
+            $template = \App\Models\DocumentTemplate::findOrFail($id);
             
-            // Ensure template is from approved HR types
-            if (!in_array($template->template_type, $this->hrTypes) || !$this->registry->isApprovedType($template->template_type)) {
-                return $this->errorResponse('Template is not an approved HR template', 403);
+            // Ensure template is from approved system types
+            if (!$this->isSystemType($template->template_type)) {
+                return $this->errorResponse('Template is not a system template', 403);
             }
             
             $this->templateService->deactivateTemplate($id);
@@ -173,45 +237,38 @@ class DocumentTemplateController extends Controller
     }
 
     /**
-     * Render a template with employee data for preview/print.
-     * 
-     * Uses the centralized TemplateService and EmployeeContextBuilder
-     * to ensure consistent rendering across all HR documents.
+     * View history log of a template
+     */
+    public function history($id): JsonResponse
+    {
+        try {
+            $histories = $this->templateService->getTemplateHistory($id);
+            return $this->successResponse($histories->toArray(), 'Template history fetched');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Template not found', 404);
+        }
+    }
+
+    /**
+     * Render a template with provided context data.
+     * This endpoint allows modules to render templates with their data.
      */
     public function render(Request $request, $id): JsonResponse
     {
         $request->validate([
-            'employee_id'   => 'required|exists:employees,id',
-            'custom_fields' => 'nullable|array',
-            'language'      => 'nullable|string|in:ar,en',
+            'context'   => 'required|array',
+            'language'  => 'nullable|string|in:ar,en',
         ]);
 
         try {
-            // Load template
-            $template = DocumentTemplate::findOrFail($id);
-            
-            // Ensure template is from approved HR types
-            if (!in_array($template->template_type, $this->hrTypes) || !$this->registry->isApprovedType($template->template_type)) {
-                return $this->errorResponse('Template is not an approved HR template', 403);
-            }
-
-            // Load employee with relationships
-            $employee = Employee::with(['role', 'department', 'currentContract'])->findOrFail($request->employee_id);
-
-            // Build context using EmployeeContextBuilder
-            $context = EmployeeContextBuilder::build($employee, $request->custom_fields ?? []);
-
-            // Render using centralized TemplateService
             $renderedHtml = $this->templateService->renderTemplate(
-                $template->id,
-                $context,
+                $id,
+                $request->context,
                 $request->language ?? 'ar'
             );
 
             return $this->successResponse([
                 'rendered_html' => $renderedHtml,
-                'template'      => $template->toArray(),
-                'employee'      => $employee->toArray(),
             ], 'Template rendered successfully');
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
@@ -229,8 +286,8 @@ class DocumentTemplateController extends Controller
         ]);
 
         try {
-            if (!in_array($request->type, $this->hrTypes) || !$this->registry->isApprovedType($request->type)) {
-                return $this->errorResponse("Template type '{$request->type}' is not an approved HR template type", 400);
+            if (!$this->isSystemType($request->type)) {
+                return $this->errorResponse("Template type '{$request->type}' is not an approved system type", 400);
             }
 
             $keys = $this->templateService->getApprovedKeysForType($request->type);
