@@ -12,8 +12,9 @@ interface PageHeaderProps {
   searchInput?: ReactNode;
 }
 interface PageSubHeaderProps {
-  title: string;
-  titleIcon: IconName;
+  title?: string;
+  subTitle?: string;
+  titleIcon?: IconName;
   user?: User | null;
   showDate?: boolean;
   actions?: ReactNode;
@@ -59,7 +60,9 @@ export function PageHeader({
 
 export function PageSubHeader({
   title,
+  subTitle,
   titleIcon,
+
   showDate = false,
   actions,
   searchInput,
@@ -67,17 +70,24 @@ export function PageSubHeader({
 
   return (
     <header className="page-header">
-      <div>
-        <h3 style={{ margin: 0 }}>{getIcon(titleIcon)} {title}</h3>
+      {title ? (<div>
+        <h3 style={{ margin: 0 }}>{titleIcon && getIcon(titleIcon)} {title}</h3>
         {showDate && (
           <span style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
             {getCurrentDateTime()}
           </span>
         )}
-      </div>
+        {subTitle && (
+          <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", margin: "4px 0 0" }}>
+            {subTitle}
+          </p>
+        )}
+      </div>) : searchInput}
 
       <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "1rem", flex: 1, justifyContent: "flex-end" }}>
-        <div style={{ flex: 1 }}>{searchInput}</div>
+        {title && (<div style={{ flex: 1 }}>
+          {searchInput}
+        </div>)}
 
         {actions}
       </div>

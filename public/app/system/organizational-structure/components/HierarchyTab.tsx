@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, JSX } from "react";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { Button, showToast } from "@/components/ui";
+import { Button, showToast, Select } from "@/components/ui";
 import { getIcon } from "@/lib/icons";
+import { PageSubHeader } from "@/components/layout";
 
 interface MetaType {
     id: string;
@@ -285,30 +286,27 @@ export function HierarchyTab() {
         <div style={{ display: "grid", gridTemplateColumns: selectedNode ? "1fr 380px" : "1fr", gap: "1rem" }}>
             {/* Tree Panel */}
             <div className="sales-card animate-fade">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
-                    <h3 style={{ margin: 0, color: "var(--text-primary)" }}>
-                        {getIcon("tree")} الشجرة التنظيمية
-                    </h3>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                        <select
-                            className="form-control"
-                            value={filterDomain}
-                            onChange={(e) => setFilterDomain(e.target.value)}
-                            style={{ maxWidth: "160px", fontSize: "0.8rem" }}
-                        >
-                            <option value="">جميع المجالات</option>
-                            {filteredDomains.map((d) => (
-                                <option key={d} value={d}>{d}</option>
-                            ))}
-                        </select>
-                        <Button variant="secondary" onClick={expandAll} style={{ fontSize: "0.75rem", padding: "4px 8px" }}>
-                            توسيع الكل
-                        </Button>
-                        <Button variant="secondary" onClick={collapseAll} style={{ fontSize: "0.75rem", padding: "4px 8px" }}>
-                            طي الكل
-                        </Button>
-                    </div>
-                </div>
+                <PageSubHeader
+                    title="الشجرة التنظيمية"
+                    titleIcon="tree"
+                    actions={
+                        <>
+                            <Select
+                                value={filterDomain}
+                                onChange={(e) => setFilterDomain(e.target.value)}
+                                options={filteredDomains.map((d) => ({ value: d, label: d }))}
+                                placeholder="جميع المجالات"
+                                style={{ maxWidth: "160px", fontSize: "0.8rem" }}
+                            />
+                            <Button variant="secondary" onClick={expandAll} style={{ fontSize: "0.75rem", padding: "4px 8px" }}>
+                                توسيع الكل
+                            </Button>
+                            <Button variant="secondary" onClick={collapseAll} style={{ fontSize: "0.75rem", padding: "4px 8px" }}>
+                                طي الكل
+                            </Button>
+                        </>
+                    }
+                />
 
                 {/* Domain Legend */}
                 <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1rem", flexWrap: "wrap" }}>

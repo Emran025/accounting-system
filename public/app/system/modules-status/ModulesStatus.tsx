@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column } from "@/components/ui";
+import { Table, Column, Select } from "@/components/ui";
 import { getIcon } from "@/lib/icons";
+import { PageSubHeader } from "@/components/layout";
 
 interface ModuleStatus {
   domain: string;
@@ -19,46 +20,46 @@ const modules: ModuleStatus[] = [
   { domain: "Core HR Management", module: "Employee Master Data & Lifecycle", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Core HR Management", module: "Global Mobility & Expat Management", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Core HR Management", module: "Employee Assets & Equipment", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
-  
+
   // Talent Acquisition
   { domain: "Talent Acquisition", module: "Recruitment & Applicant Tracking (ATS)", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Talent Acquisition", module: "Digital Onboarding & Offboarding", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
-  
+
   // Workforce Strategy
   { domain: "Workforce Strategy", module: "Expanded Workforce (Contingent)", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
-  
+
   // Legal & Compliance
   { domain: "Legal & Compliance", module: "Contracts & Agreements Management", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Legal & Compliance", module: "Quality Assurance & Internal Audit", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
-  
+
   // Time, Attendance & Scheduling
   { domain: "Time, Attendance & Scheduling", module: "Time Tracking & Capture", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Time, Attendance & Scheduling", module: "Workforce Scheduling & Optimization", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Time, Attendance & Scheduling", module: "Leave & Absence Management", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
-  
+
   // Employee Relations & Services
   { domain: "Employee Relations & Services", module: "Employee Relations & Disciplinary", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Employee Relations & Services", module: "Travel & Expense Management", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Employee Relations & Services", module: "Financial Services (Loans)", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Employee Relations & Services", module: "Corporate Communications", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
-  
+
   // Performance & Talent Development
   { domain: "Performance & Talent Development", module: "Performance & Goals", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Performance & Talent Development", module: "Learning Management (LMS)", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Performance & Talent Development", module: "Succession & Career Pathing", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
-  
+
   // Compensation & Benefits
   { domain: "Compensation & Benefits", module: "Compensation Management", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Compensation & Benefits", module: "Benefits Administration", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
-  
+
   // Payroll
   { domain: "Payroll", module: "Global Payroll Processing", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Payroll", module: "Post-Payroll Integrations", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
-  
+
   // Health, Safety & Well-being
   { domain: "Health, Safety & Well-being", module: "EHS (Environment, Health, Safety)", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
   { domain: "Health, Safety & Well-being", module: "Employee Well-being", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
-  
+
   // Knowledge Management
   { domain: "Knowledge Management", module: "Expertise Directory & Knowledge Base", backend: "complete", frontend: "complete", routes: "complete", models: "complete", status: "operational" },
 ];
@@ -93,7 +94,7 @@ export function ModulesStatus() {
   const [filterDomain, setFilterDomain] = useState("");
 
   const uniqueDomains = Array.from(new Set(modules.map(m => m.domain)));
-  const filteredModules = filterDomain 
+  const filteredModules = filterDomain
     ? modules.filter(m => m.domain === filterDomain)
     : modules;
 
@@ -148,24 +149,19 @@ export function ModulesStatus() {
 
   return (
     <div className="sales-card animate-fade">
-      <div className="card-header-flex" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h3 style={{ margin: 0 }}>{getIcon("check-circle")} حالة الوحدات</h3>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <select
+      <PageSubHeader
+        title="حالة الوحدات"
+        titleIcon="check-circle"
+        actions={
+          <Select
             value={filterDomain}
             onChange={(e) => setFilterDomain(e.target.value)}
-            className="form-select"
+            options={uniqueDomains.map(domain => ({ value: domain, label: domain }))}
+            placeholder="جميع المجالات"
             style={{ minWidth: '200px' }}
-          >
-            <option value="">جميع المجالات</option>
-            {uniqueDomains.map(domain => (
-              <option key={domain} value={domain}>{domain}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+          />
+        }
+      />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
         <div className="stat-card" style={{ padding: '1.5rem', background: 'var(--surface-white)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)' }}>

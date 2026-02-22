@@ -1,21 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Table, showToast, Column } from "@/components/ui";
+import { Table, showToast, Column, Select, StatsCard } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
+import { PageSubHeader } from "@/components/layout";
+import { DOMAIN_COLORS, DOMAIN_ICONS } from "./ui";
 
 interface MetaType {
     id: string; display_name: string; display_name_ar?: string;
     level_domain: string; description?: string; is_assignable: boolean; sort_order: number;
     attributes?: { attribute_key: string; is_mandatory: boolean; attribute_type: string; sort_order: number }[];
 }
-
-const DOMAIN_COLORS: Record<string, string> = {
-    Enterprise: "#8b5cf6", Financial: "#3b82f6", Controlling: "#06b6d4",
-    Logistics: "#10b981", Sales: "#f59e0b", HR: "#ec4899", Project: "#6366f1",
-};
 
 export function MetaTypesTab() {
     const [metaTypes, setMetaTypes] = useState<MetaType[]>([]);
@@ -76,36 +73,42 @@ export function MetaTypesTab() {
 
     return (
         <div className="sales-card animate-fade">
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-                <div>
-                    <h3 style={{ margin: 0, color: "var(--text-primary)" }}>{getIcon("cube")} أنواع الوحدات التنظيمية (Meta Types)</h3>
-                    <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", margin: "4px 0 0" }}>
-                        أنواع الوحدات التنظيمية المعرّفة في النظام — تتوافق مع تعريفات SAP SPRO
-                    </p>
-                </div>
-                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                    <select className="form-control" value={filterDomain} onChange={(e) => setFilterDomain(e.target.value)} style={{ maxWidth: "150px", fontSize: "0.8rem" }}>
-                        <option value="">جميع المجالات</option>
-                        {domains.map((d) => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                </div>
-            </div>
+            <PageSubHeader
+                title="أنواع الوحدات التنظيمية (Meta Types)"
+                subTitle="أنواع الوحدات التنظيمية المعرّفة في النظام — تتوافق مع تعريفات SAP SPRO"
+                titleIcon="box"
+                actions={
+                    <>
+                        <Select
+                            placeholder="جميع المجالات"
+                            className="form-control"
+                            value={filterDomain}
+                            options={domains.map((d) => ({ value: d, label: d }))}
+                            onChange={(e) => setFilterDomain(e.target.value)}
+                            style={{
+                                maxWidth: "200px",
+                                fontSize: "1rem"
+                            }}
+                        />
+                    </>
+                }
+            />
 
             {/* Domain Summary Cards */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "0.5rem", marginBottom: "1rem" }}>
                 {domains.map((d) => {
                     const count = metaTypes.filter((t) => t.level_domain === d).length;
-                    const color = DOMAIN_COLORS[d] || "#6b7280";
+                    const isActive = filterDomain === d;
                     return (
-                        <div key={d}
-                            style={{
-                                padding: "0.5rem 0.75rem", borderRadius: "8px", background: color + "10", border: `1px solid ${color}30`,
-                                cursor: "pointer", transition: "all 0.15s", opacity: !filterDomain || filterDomain === d ? 1 : 0.5,
-                            }}
-                            onClick={() => setFilterDomain(filterDomain === d ? "" : d)}>
-                            <div style={{ fontSize: "1.2rem", fontWeight: 700, color }}>{count}</div>
-                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{d}</div>
-                        </div>
+                        <StatsCard
+                            hight={80}
+                            key={d}
+                            title={d}
+                            value={count}
+                            icon={getIcon(DOMAIN_ICONS[d] || "box")}
+                            colorClass={isActive ? "sales" : "total"}
+                            onClick={() => setFilterDomain(isActive ? "" : d)}
+                        />
                     );
                 })}
             </div>

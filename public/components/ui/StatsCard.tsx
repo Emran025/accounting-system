@@ -7,6 +7,7 @@ interface StatsCardProps {
     colorClass?: "sales" | "products" | "alert" | "total" | "default";
     onClick?: () => void;
     isLoading?: boolean;
+    hight?: number;
 }
 
 export function StatsCard({
@@ -15,12 +16,14 @@ export function StatsCard({
     icon,
     colorClass = "default",
     onClick,
-    isLoading = false
+    isLoading = false,
+    hight = 100
 }: StatsCardProps) {
     return (
         <div
             className={`stat-card ${colorClass} ${onClick ? "interactive" : ""}`}
             onClick={onClick}
+            style={{ height: `${hight}px` }}
         >
             {/* Shimmer highlight */}
             <div className="stat-shimmer" />

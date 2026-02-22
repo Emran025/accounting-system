@@ -6,6 +6,7 @@ import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Select } from "@/components/ui/select";
 import { getIcon } from "@/lib/icons";
+import { PageSubHeader } from "@/components/layout";
 
 interface MetaType { id: string; display_name: string; display_name_ar?: string; level_domain: string; }
 interface StructureNode { node_uuid: string; node_type_id: string; code: string; attributes_json?: Record<string, unknown>; }
@@ -57,30 +58,33 @@ export function ScopeContextTab() {
 
     return (
         <div className="sales-card animate-fade">
-            <div style={{ marginBottom: "1.5rem" }}>
-                <h3 style={{ margin: "0 0 4px", color: "var(--text-primary)" }}>{getIcon("search")} تحليل السياق التنظيمي (Scope Context Resolution)</h3>
-                <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", margin: 0 }}>
-                    إذا كنت في وحدة معيّنة (مثلاً مصنع)، ما هو رمز الشركة والعملة ومنطقة التحكم؟
-                    <br />
-                    هذه الأداة تحاكي عمل SAP Scope Context Resolution — تتبع الروابط صعوداً في الشجرة التنظيمية وتُعيد كل الوحدات المرتبطة.
-                </p>
-            </div>
+            <PageSubHeader
+                title="تحليل السياق التنظيمي (Scope Context Resolution)"
+                subTitle="إذا كنت في وحدة معيّنة (مثلاً مصنع)، ما هو رمز الشركة والعملة ومنطقة التحكم؟"
+                titleIcon="search"
+                actions={
+                    <>
+                        <Select
+                            value={selectedUuid}
+                            onChange={(e) => setSelectedUuid(e.target.value)}
+                            options={nodes.map((n) => ({
+                                value: n.node_uuid,
+                                label: `${n.code} — ${getTypeLabel(n.node_type_id)}${n.attributes_json?.name ? ` (${n.attributes_json.name})` : ""}`,
+                            }))}
+                            style={{
+                                maxWidth: "200px",
+                                fontSize: "1rem"
+                            }}
+                            className="form-control"
+                            placeholder="اختر وحدة..."
+                        />
 
-            <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end", marginBottom: "1.5rem" }}>
-                <div style={{ flex: 1, maxWidth: "400px" }}>
-                    <Select label="اختر الوحدة المرجعية (Anchor Node)" value={selectedUuid} onChange={(e) => setSelectedUuid(e.target.value)}>
-                        <option value="">اختر وحدة تنظيمية...</option>
-                        {nodes.map((n) => (
-                            <option key={n.node_uuid} value={n.node_uuid}>
-                                {n.code} — {getTypeLabel(n.node_type_id)} {(n.attributes_json?.name as string) ? `(${n.attributes_json?.name})` : ""}
-                            </option>
-                        ))}
-                    </Select>
-                </div>
-                <Button variant="primary" icon="search" onClick={resolveScope} disabled={!selectedUuid || isLoading}>
-                    {isLoading ? "جاري التحليل..." : "تحليل السياق"}
-                </Button>
-            </div>
+                        <Button variant="primary" icon="search" onClick={resolveScope} disabled={!selectedUuid || isLoading}>
+                            {isLoading ? "جاري التحليل..." : "تحليل السياق"}
+                        </Button>
+                    </>
+                }
+            />
 
             {result && (
                 <div style={{ display: "grid", gap: "1rem" }}>

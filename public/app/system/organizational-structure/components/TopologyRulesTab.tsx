@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Table, showToast, Column } from "@/components/ui";
+import { Table, showToast, Column, Select } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
+import { PageSubHeader } from "@/components/layout";
 
 interface MetaType { id: string; display_name: string; display_name_ar?: string; level_domain: string; }
 interface TopologyRule {
@@ -92,18 +93,29 @@ export function TopologyRulesTab() {
 
     return (
         <div className="sales-card animate-fade">
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-                <div>
-                    <h3 style={{ margin: 0, color: "var(--text-primary)" }}>{getIcon("route")} قواعد الارتباط (Topology Rules)</h3>
-                    <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", margin: "4px 0 0" }}>
-                        القواعد التي تحكم العلاقات المسموحة بين أنواع الوحدات التنظيمية — بما يحاكي SAP SPRO
-                    </p>
-                </div>
-                <select className="form-control" value={filterDomain} onChange={(e) => setFilterDomain(e.target.value)} style={{ maxWidth: "150px", fontSize: "0.8rem" }}>
-                    <option value="">جميع المجالات</option>
-                    {domains.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
-            </div>
+            <PageSubHeader
+                title="قواعد الارتباط (Topology Rules)"
+                subTitle="القواعد التي تحكم العلاقات المسموحة بين أنواع الوحدات التنظيمية — بما يحاكي SAP SPRO"
+                titleIcon="route"
+                actions={
+                    <>
+                        <Select
+                            value={filterDomain}
+                            onChange={(e) => setFilterDomain(e.target.value)}
+                            options={domains.map((d) => ({
+                                value: d,
+                                label: d,
+                            }))}
+                            className="form-control"
+                            style={{
+                                maxWidth: "200px",
+                                fontSize: "1rem"
+                            }}
+                            placeholder="اختر وحدة..."
+                        />
+                    </>
+                }
+            />
 
             {/* Cardinality Legend */}
             <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>

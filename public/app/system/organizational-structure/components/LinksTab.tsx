@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Table, Dialog, ConfirmDialog, showToast, Column, Button } from "@/components/ui";
+import { ActionButtons, Table, Dialog, ConfirmDialog, showToast, Column, Button, Checkbox } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Select } from "@/components/ui/select";
 import { TextInput } from "@/components/ui/TextInput";
 import { getIcon } from "@/lib/icons";
+import { PageSubHeader } from "@/components/layout";
 
 interface MetaType { id: string; display_name: string; display_name_ar?: string; level_domain: string; }
 interface StructureNode { node_uuid: string; node_type_id: string; code: string; attributes_json?: Record<string, unknown>; status: string; meta_type?: MetaType; }
@@ -210,16 +211,16 @@ export function LinksTab() {
             },
         },
         {
-            key: "actions", header: "الإجراءات", dataLabel: "الإجراءات",
+            key: "actions",
+            header: "الإجراءات",
+            dataLabel: "الإجراءات",
             render: (l) => (
-                <div style={{ display: "flex", gap: "0.25rem" }}>
-                    <button onClick={() => openEditDialog(l)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--primary)", fontSize: "1rem" }} title="تعديل">
-                        {getIcon("edit")}
-                    </button>
-                    <button onClick={() => confirmDeleteLink(l)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--danger)", fontSize: "1rem" }} title="حذف">
-                        {getIcon("trash")}
-                    </button>
-                </div>
+                <ActionButtons
+                    actions={[
+                        { icon: "edit", title: "تعديل", variant: "edit", onClick: () => openEditDialog(l) },
+                        { icon: "trash", title: "حذف", variant: "delete", onClick: () => confirmDeleteLink(l) },
+                    ]}
+                />
             ),
         },
     ];
@@ -227,36 +228,40 @@ export function LinksTab() {
     return (
         <>
             <div className="sales-card animate-fade">
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-                    <div>
-                        <h3 style={{ margin: 0, color: "var(--text-primary)" }}>{getIcon("link")} إدارة الارتباطات (Assignment Matrix)</h3>
-                        <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", margin: "4px 0 0" }}>
-                            ارتباطات الهيكل التنظيمي بما يحاكي SAP Assignment Block — تحكّم بالعلاقات والصلاحية الزمنية.
-                        </p>
-                    </div>
-                    <Button variant="primary" icon="plus" onClick={() => { resetForm(); setAddDialog(true); }}>إنشاء ارتباط</Button>
-                </div>
+                <PageSubHeader
+                    title="إدارة الارتباطات (Assignment Matrix)"
+                    subTitle="ارتباطات الهيكل التنظيمي بما يحاكي SAP Assignment Block — تحكّم بالعلاقات والصلاحية الزمنية."
+                    titleIcon="link"
+                    actions={
+                        <>
+                            <Select value={filterSourceType} onChange={(e) => setFilterSourceType(e.target.value)} style={{ maxWidth: "160px" }}
+                                options={[
+                                    { value: "", label: "نوع المصدر (الكل)" },
+                                    ...uniqueTypes.map(t => ({ value: t, label: getTypeLabel(t) }))
+                                ]}
+                                />
+                            <Select value={filterTargetType} onChange={(e) => setFilterTargetType(e.target.value)} style={{ maxWidth: "160px" }}
+                                options={[
+                                    { value: "", label: "نوع الهدف (الكل)" },
+                                    ...uniqueTypes.map(t => ({ value: t, label: getTypeLabel(t) }))
+                                ]}
+                                />
+                            <Select value={filterLinkType} onChange={(e) => setFilterLinkType(e.target.value)} style={{ maxWidth: "130px" }}
+                                options={[
+                                    { value: "", label: "نوع الارتباط (الكل)" },
+                                    { value: "assignment", label: "تعيين" },
+                                    { value: "reporting", label: "تقارير" }
+                                ]}
+                                />
+                            <Checkbox
+                                label="نشطة فقط"
+                                checked={showActiveOnly}
+                                onChange={(e) => setShowActiveOnly(e.target.checked)}
+                            />
 
-                {/* Filters */}
-                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-                    <Select value={filterSourceType} onChange={(e) => setFilterSourceType(e.target.value)} style={{ maxWidth: "160px" }}>
-                        <option value="">نوع المصدر (الكل)</option>
-                        {uniqueTypes.map(t => <option key={t} value={t}>{getTypeLabel(t)}</option>)}
-                    </Select>
-                    <Select value={filterTargetType} onChange={(e) => setFilterTargetType(e.target.value)} style={{ maxWidth: "160px" }}>
-                        <option value="">نوع الهدف (الكل)</option>
-                        {uniqueTypes.map(t => <option key={t} value={t}>{getTypeLabel(t)}</option>)}
-                    </Select>
-                    <Select value={filterLinkType} onChange={(e) => setFilterLinkType(e.target.value)} style={{ maxWidth: "130px" }}>
-                        <option value="">نوع الارتباط (الكل)</option>
-                        <option value="assignment">تعيين</option>
-                        <option value="reporting">تقارير</option>
-                    </Select>
-                    <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "0.8rem", cursor: "pointer", color: "var(--text-secondary)" }}>
-                        <input type="checkbox" checked={showActiveOnly} onChange={(e) => setShowActiveOnly(e.target.checked)} />
-                        نشطة فقط
-                    </label>
-                </div>
+                            <Button variant="primary" icon="plus" onClick={() => { resetForm(); setAddDialog(true); }}>إنشاء ارتباط</Button>
+                        </>}
+                />
 
                 {/* Summary stats */}
                 <div style={{ display: "flex", gap: "1.5rem", marginBottom: "1rem", fontSize: "0.8rem" }}>

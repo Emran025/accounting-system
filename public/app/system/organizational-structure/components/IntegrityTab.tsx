@@ -3,8 +3,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { Button, showToast } from "@/components/ui";
+import { Button, showToast, StatsCard } from "@/components/ui";
 import { getIcon } from "@/lib/icons";
+import {
+    FilterChip,
+    EmptyState,
+    CheckItem,
+    IssueRow,
+} from "./ui";
+import { PageSubHeader } from "@/components/layout";
 
 interface IntegrityIssue {
     type: "ERROR" | "WARNING" | "INFO";
@@ -23,18 +30,6 @@ const CATEGORY_LABELS: Record<string, string> = {
     cardinality_violation: "مخالفات تعدد العلاقات",
     expired_link: "ارتباطات منتهية الصلاحية",
     inactive_with_links: "وحدات غير نشطة لها ارتباطات",
-};
-
-const TYPE_COLORS: Record<string, string> = {
-    ERROR: "var(--danger)",
-    WARNING: "#f59e0b",
-    INFO: "var(--primary)",
-};
-
-const TYPE_ICONS: Record<string, string> = {
-    ERROR: "exclamation-circle",
-    WARNING: "warning",
-    INFO: "info-circle",
 };
 
 export function IntegrityTab() {
@@ -85,58 +80,67 @@ export function IntegrityTab() {
     }, {} as Record<string, IntegrityIssue[]>);
 
     return (
-        <div className="animate-fade">
+        <div className="sales-card animate-fade">
             {/* Header */}
-            <div className="sales-card" style={{ marginBottom: "1rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                        <h3 style={{ margin: 0, color: "var(--text-primary)" }}>
-                            {getIcon("check-shield")} فحص سلامة الهيكل التنظيمي (Consistency Check)
-                        </h3>
-                        <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", margin: "4px 0 0" }}>
-                            فحص شامل للتعيينات والسمات والعلاقات بما يحاكي SAP Consistency Log &amp; SCDO.
-                        </p>
-                    </div>
-                    <Button variant="primary" onClick={runScan} disabled={isScanning}>
-                        {isScanning ? "جاري الفحص..." : "إعادة تشغيل الفحص"}
-                    </Button>
-                </div>
-            </div>
+            <PageSubHeader
+                titleIcon="shield-check"
+                title="فحص سلامة الهيكل التنظيمي (Consistency Check)"
+                subTitle="فحص شامل للتعيينات والسمات والعلاقات بما يحاكي SAP Consistency Log &amp; SCDO."
+                actions={
+                    <>
+                        <Button variant="primary" onClick={runScan} disabled={isScanning}>
+                            {isScanning ? "جاري الفحص..." : "إعادة تشغيل الفحص"}
+                        </Button>
+                    </>
+                }
+            />
 
-            {/* Summary Cards */}
+            {/* Stats Row */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}>
-                <SummaryCard count={summary.total} label="إجمالي النتائج" color="var(--text-primary)" icon="list" active={!filterType} onClick={() => setFilterType("")} />
-                <SummaryCard count={summary.errors} label="أخطاء (Blockers)" color="var(--danger)" icon="exclamation-circle" active={filterType === "ERROR"} onClick={() => setFilterType(filterType === "ERROR" ? "" : "ERROR")} />
-                <SummaryCard count={summary.warnings} label="تحذيرات" color="#f59e0b" icon="warning" active={filterType === "WARNING"} onClick={() => setFilterType(filterType === "WARNING" ? "" : "WARNING")} />
-                <SummaryCard count={summary.info} label="تنبيهات" color="var(--primary)" icon="info-circle" active={filterType === "INFO"} onClick={() => setFilterType(filterType === "INFO" ? "" : "INFO")} />
+                <StatsCard
+                    title="إجمالي النتائج"
+                    value={summary.total}
+                    icon={getIcon("list")}
+                    colorClass="total"
+                    onClick={() => setFilterType("")}
+                />
+                <StatsCard
+                    title="أخطاء (Blockers)"
+                    value={summary.errors}
+                    icon={getIcon("alert")}
+                    colorClass="alert"
+                    onClick={() => setFilterType(filterType === "ERROR" ? "" : "ERROR")}
+                />
+                <StatsCard
+                    title="تحذيرات"
+                    value={summary.warnings}
+                    icon={getIcon("alertTriangle")}
+                    colorClass="default"
+                    onClick={() => setFilterType(filterType === "WARNING" ? "" : "WARNING")}
+                />
+                <StatsCard
+                    title="تنبيهات"
+                    value={summary.info}
+                    icon={getIcon("eye")}
+                    colorClass="sales"
+                    onClick={() => setFilterType(filterType === "INFO" ? "" : "INFO")}
+                />
             </div>
 
             {/* Category Filter */}
             {categories.length > 0 && (
                 <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
-                    <button
-                        onClick={() => setFilterCategory("")}
-                        style={{
-                            padding: "4px 12px", borderRadius: "6px", border: "1px solid var(--border-color)",
-                            background: !filterCategory ? "var(--primary)" : "transparent",
-                            color: !filterCategory ? "white" : "var(--text-secondary)",
-                            cursor: "pointer", fontSize: "0.78rem", fontWeight: 500, transition: "all 0.15s"
-                        }}
-                    >الكل</button>
+                    <FilterChip label="الكل" active={!filterCategory} onClick={() => setFilterCategory("")} />
                     {categories.map(cat => {
                         const count = issues.filter(i => i.category === cat && (!filterType || i.type === filterType)).length;
                         return (
-                            <button key={cat}
+                            <FilterChip
+                                key={cat}
+                                label={CATEGORY_LABELS[cat] || cat}
+                                active={filterCategory === cat}
                                 onClick={() => setFilterCategory(filterCategory === cat ? "" : cat)}
-                                style={{
-                                    padding: "4px 12px", borderRadius: "6px", border: "1px solid var(--border-color)",
-                                    background: filterCategory === cat ? "var(--primary)" : "transparent",
-                                    color: filterCategory === cat ? "white" : "var(--text-secondary)",
-                                    cursor: "pointer", fontSize: "0.78rem", fontWeight: 500, transition: "all 0.15s"
-                                }}
-                            >
-                                {CATEGORY_LABELS[cat] || cat} ({count})
-                            </button>
+                                count={count}
+                            />
                         );
                     })}
                 </div>
@@ -144,18 +148,18 @@ export function IntegrityTab() {
 
             {/* Results */}
             {issues.length === 0 && !isScanning ? (
-                <div className="sales-card" style={{ textAlign: "center", padding: "4rem" }}>
-                    <div style={{ fontSize: "4rem", marginBottom: "1rem", color: "var(--success)" }}>{getIcon("check-circle")}</div>
-                    <h4 style={{ color: "var(--success)" }}>الهيكل سليم 100%</h4>
-                    <p style={{ color: "var(--text-muted)" }}>لا توجد تعارضات أو سمات إجبارية مفقودة أو مخالفات في القواعد المعرّفة حالياً.</p>
-                    <div style={{ display: "flex", gap: "1rem", justifyContent: "center", marginTop: "1.5rem" }}>
-                        <CheckItem label="السمات الإجبارية" icon="check" />
-                        <CheckItem label="الارتباطات الأساسية" icon="check" />
-                        <CheckItem label="قواعد التعدد" icon="check" />
-                        <CheckItem label="صلاحية الروابط" icon="check" />
-                        <CheckItem label="الوحدات المعزولة" icon="check" />
-                    </div>
-                </div>
+                <EmptyState
+                    icon="check-circle"
+                    title="الهيكل سليم 100%"
+                    description="لا توجد تعارضات أو سمات إجبارية مفقودة أو مخالفات في القواعد المعرّفة حالياً."
+                    iconColor="var(--success)"
+                >
+                    <CheckItem label="السمات الإجبارية" />
+                    <CheckItem label="الارتباطات الأساسية" />
+                    <CheckItem label="قواعد التعدد" />
+                    <CheckItem label="صلاحية الروابط" />
+                    <CheckItem label="الوحدات المعزولة" />
+                </EmptyState>
             ) : isScanning ? (
                 <div className="sales-card" style={{ textAlign: "center", padding: "3rem" }}>
                     <div className="loading-spinner" style={{ margin: "0 auto 1rem" }} />
@@ -172,68 +176,30 @@ export function IntegrityTab() {
                                 {CATEGORY_LABELS[category] || category}
                             </h4>
                             <div style={{ display: "grid", gap: "0.5rem" }}>
-                                {categoryIssues.map((issue, idx) => {
-                                    const color = TYPE_COLORS[issue.type] || "var(--text-muted)";
-                                    return (
-                                        <div key={idx} style={{
-                                            display: "flex", gap: "0.75rem", padding: "0.75rem 1rem", borderRadius: "8px",
-                                            background: "var(--bg-secondary)", borderRight: `3px solid ${color}`,
-                                            transition: "all 0.15s",
-                                        }}>
-                                            <span style={{ color, fontSize: "1.2rem", flexShrink: 0, marginTop: "2px" }}>
-                                                {getIcon(TYPE_ICONS[issue.type] || "info-circle")}
-                                            </span>
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", flexWrap: "wrap" }}>
-                                                    <strong style={{ fontSize: "0.88rem" }}>{issue.message_ar || issue.message}</strong>
-                                                    <span style={{
-                                                        fontSize: "0.65rem", padding: "1px 6px", borderRadius: "4px",
-                                                        background: color + "18", color, fontWeight: 600,
-                                                    }}>{issue.type}</span>
-                                                </div>
-                                                <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "4px" }}>
-                                                    الوحدة: <strong>{issue.node_code}</strong>
-                                                    <span style={{ marginRight: "0.5rem", marginLeft: "0.5rem" }}>|</span>
-                                                    النوع: <code style={{ fontSize: "0.75rem" }}>{issue.node_type}</code>
-                                                    {issue.node_uuid && (
-                                                        <span style={{ marginRight: "0.5rem", color: "var(--text-muted)", fontSize: "0.72rem" }}>
-                                                            (ID: {issue.node_uuid.substring(0, 8)}...)
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                {categoryIssues.map((issue, idx) => (
+                                    <IssueRow
+                                        key={idx}
+                                        type={issue.type}
+                                        message={issue.message_ar || issue.message}
+                                        meta={
+                                            <>
+                                                الوحدة: <strong>{issue.node_code}</strong>
+                                                <span style={{ marginRight: "0.5rem", marginLeft: "0.5rem" }}>|</span>
+                                                النوع: <code style={{ fontSize: "0.75rem" }}>{issue.node_type}</code>
+                                                {issue.node_uuid && (
+                                                    <span style={{ marginRight: "0.5rem", color: "var(--text-muted)", fontSize: "0.72rem" }}>
+                                                        (ID: {issue.node_uuid.substring(0, 8)}...)
+                                                    </span>
+                                                )}
+                                            </>
+                                        }
+                                    />
+                                ))}
                             </div>
                         </div>
                     ))}
                 </div>
             )}
         </div>
-    );
-}
-
-function SummaryCard({ count, label, color, icon, active, onClick }: {
-    count: number; label: string; color: string; icon: string; active: boolean; onClick: () => void;
-}) {
-    return (
-        <div onClick={onClick} className="sales-card" style={{
-            padding: "1.25rem", textAlign: "center", cursor: "pointer",
-            border: active ? `2px solid ${color}` : "1px solid var(--border-color)",
-            transition: "all 0.15s", opacity: active ? 1 : 0.7,
-        }}>
-            <div style={{ fontSize: "1.3rem", color, marginBottom: "0.25rem" }}>{getIcon(icon)}</div>
-            <div style={{ fontSize: "1.8rem", fontWeight: 800, color }}>{count}</div>
-            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase" }}>{label}</div>
-        </div>
-    );
-}
-
-function CheckItem({ label, icon }: { label: string; icon: string }) {
-    return (
-        <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "0.8rem", color: "var(--success)" }}>
-            {getIcon(icon)} {label}
-        </span>
     );
 }

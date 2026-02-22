@@ -1,20 +1,22 @@
 // React Icons - Using Lucide React
 import React from 'react';
 import {
-    Mail, Plus, SquarePen, Trash2, Eye, Check, Printer, Box, Download, ShoppingCart,
+    Mail, Plus, SquarePen, Trash2, Eye, Check, Printer, Download, ShoppingCart,
     LogOut, X, CircleAlert, Home, Users, User, ChevronUp, ChevronDown,
     ChevronRight, Settings, DollarSign, Building2, Lock, Unlock,
     RefreshCw, Minus, History, Search, Clock, CircleCheck, List,
     ClipboardList, ChartBar, ChartLine, Wallet, Coins, HandHelping,
     TrendingUp, Receipt, CreditCard, Banknote, UserPlus, BookOpen,
     Network, FileSignature, Calendar, Timer, Scale, Activity,
-    Repeat, Layers, Truck, HandCoins, ShoppingBag, PieChart,
-    ShieldCheck, Landmark, BarChart3, UserCog, Bell, FileSearch,
-    Tags, Ruler, Factory, Files, Hammer, Cpu, ClipboardCheck,
+    Repeat, Layers, Truck, HandCoins, ShoppingBag, PieChart, Route,
+    ShieldCheck, Landmark, BarChart3, UserCog, Bell, FileSearch ,
+    Tags, Ruler, Factory, Files, Hammer, Cpu, ClipboardCheck, Box, AlertTriangle,
     Briefcase, CheckSquare, Hourglass, LayoutDashboard, Save, Calculator,
     FileText, FileCheck, Scroll, Globe, Laptop, Book, HardHat, HeartPulse, Link,
     CalendarDays, UserCheck, Plane, Megaphone, GraduationCap, Heart, EyeOff, BarChart,
-    Send, Filter, Handshake, CheckCheck, Play, Star, Pause, ThumbsUp, Upload, Folder, Gavel
+    Send, Filter, Handshake, CheckCheck, Play, Star, Pause, ThumbsUp, Upload, Folder, Gavel,
+    Delete,
+    PlusCircle
 } from 'lucide-react';
 
 interface IconProps {
@@ -136,6 +138,11 @@ export const icons = {
     folder: (props: IconProps) => <Folder className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     "file-alt": (props: IconProps) => <FileText className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     gavel: (props: IconProps) => <Gavel className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    route: (props: IconProps) => <Route className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    tree: (props: IconProps) => <Network className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    alertTriangle: (props: IconProps) => <AlertTriangle className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "plus-circle": (props: IconProps) => <PlusCircle className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "delete": (props: IconProps) => <Delete className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
 };
 
 export type IconName = keyof typeof icons;

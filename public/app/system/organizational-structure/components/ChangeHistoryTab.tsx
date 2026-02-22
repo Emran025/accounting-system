@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Table, showToast, Column, Button } from "@/components/ui";
+import { Table, showToast, Column, Button, StatsCard } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { Select } from "@/components/ui/select";
 import { getIcon } from "@/lib/icons";
+import { MetaGrid } from "./ui";
+import { PageSubHeader } from "@/components/layout";
 
 interface ChangeRecord {
     id: number;
@@ -232,140 +234,128 @@ export function ChangeHistoryTab() {
     ];
 
     return (
-        <div className="animate-fade">
-            {/* Header */}
-            <div className="sales-card" style={{ marginBottom: "1rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                        <h3 style={{ margin: 0, color: "var(--text-primary)" }}>
-                            {getIcon("history")} سجل التغييرات (Change Documents — SCDO)
-                        </h3>
-                        <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", margin: "4px 0 0" }}>
-                            تتبع جميع التغييرات على الوحدات والارتباطات والقواعد — محاكاة لسجل التغييرات في SAP.
-                        </p>
-                    </div>
-                    <Button variant="secondary" onClick={loadHistory} disabled={isLoading}>
-                        {isLoading ? "جاري التحميل..." : "تحديث"}
-                    </Button>
-                </div>
-            </div>
+        <div className="sales-card animate-fade">
+            <PageSubHeader
+                titleIcon="history"
+                title="سجل التغييرات (Change Documents — SCDO)"
+                subTitle="تتبع جميع التغييرات على الوحدات والارتباطات والقواعد — محاكاة لسجل التغييرات في SAP."
+                actions={
+                    <>
+                        <Select value={filterEntity} onChange={(e) => setFilterEntity(e.target.value)} style={{ maxWidth: "160px" }}
+                            options={[
+                                { value: "", label: "جميع الكيانات" },
+                                { value: "node", label: "وحدات تنظيمية" },
+                                { value: "link", label: "ارتباطات" },
+                                { value: "meta_type", label: "أنواع الوحدات" },
+                                { value: "topology_rule", label: "قواعد الارتباط" },
+                            ]}
+                        />
+                        <Select value={String(limit)} onChange={(e) => setLimit(parseInt(e.target.value))} style={{ maxWidth: "120px" }}
+                            options={[
+                                { value: 25, label: "آخر 25" },
+                                { value: 50, label: "آخر 50" },
+                                { value: 100, label: "آخر 100" },
+                                { value: 200, label: "آخر 200" },
+                            ]}
+                        />
+                        <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                            يظهر {filteredHistory.length} من {history.length} سجل
+                        </span>
+                        <Button variant="secondary" onClick={loadHistory} disabled={isLoading}>
+                            {isLoading ? "جاري التحميل..." : "تحديث"}
+                        </Button>
+                    </>
+                }
+            />
 
             {/* Stats Row */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
                 {(["created", "updated", "deleted", "status_change"] as const).map(type => {
-                    const color = CHANGE_TYPE_COLORS[type];
                     const isActive = filterType === type;
                     return (
-                        <div key={type} onClick={() => setFilterType(isActive ? "" : type)}
-                            className="sales-card" style={{
-                                padding: "1rem", textAlign: "center", cursor: "pointer",
-                                border: isActive ? `2px solid ${color}` : "1px solid var(--border-color)",
-                                transition: "all 0.15s", opacity: isActive || !filterType ? 1 : 0.5,
-                            }}>
-                            <span style={{ color, fontSize: "1.2rem" }}>{getIcon(CHANGE_TYPE_ICONS[type])}</span>
-                            <div style={{ fontSize: "1.5rem", fontWeight: 800, color, margin: "0.25rem 0" }}>
-                                {statsByType[type]}
-                            </div>
-                            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{CHANGE_TYPE_LABELS[type]}</div>
-                        </div>
+                        <StatsCard
+                            hight={80}
+                            key={type}
+                            title={CHANGE_TYPE_LABELS[type]}
+                            value={statsByType[type]}
+                            icon={getIcon(CHANGE_TYPE_ICONS[type])}
+                            colorClass={
+                                type === "created" ? "products" :
+                                    type === "updated" ? "sales" :
+                                        type === "deleted" ? "alert" :
+                                            "default"
+                            }
+                            onClick={() => setFilterType(isActive ? "" : type)}
+                        />
                     );
                 })}
             </div>
 
-            {/* Filters + Table */}
-            <div className="sales-card">
-                <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-                    <Select value={filterEntity} onChange={(e) => setFilterEntity(e.target.value)} style={{ maxWidth: "160px" }}>
-                        <option value="">جميع الكيانات</option>
-                        <option value="node">وحدات تنظيمية</option>
-                        <option value="link">ارتباطات</option>
-                        <option value="meta_type">أنواع الوحدات</option>
-                        <option value="topology_rule">قواعد الارتباط</option>
-                    </Select>
-                    <Select value={String(limit)} onChange={(e) => setLimit(parseInt(e.target.value))} style={{ maxWidth: "120px" }}>
-                        <option value="25">آخر 25</option>
-                        <option value="50">آخر 50</option>
-                        <option value="100">آخر 100</option>
-                        <option value="200">آخر 200</option>
-                    </Select>
-                    <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                        يظهر {filteredHistory.length} من {history.length} سجل
-                    </span>
-                </div>
+            <Table columns={historyColumns} data={filteredHistory} keyExtractor={(r) => String(r.id)} emptyMessage="لا يوجد سجل تغييرات بعد" isLoading={isLoading} />
 
-                <Table columns={historyColumns} data={filteredHistory} keyExtractor={(r) => String(r.id)} emptyMessage="لا يوجد سجل تغييرات بعد" isLoading={isLoading} />
+            {/* Expanded Detail */}
+            {expandedId && (() => {
+                const record = filteredHistory.find(r => r.id === expandedId);
+                if (!record) return null;
 
-                {/* Expanded Detail */}
-                {expandedId && (() => {
-                    const record = filteredHistory.find(r => r.id === expandedId);
-                    if (!record) return null;
+                return (
+                    <div style={{
+                        marginTop: "1rem", padding: "1rem", background: "var(--bg-secondary)", borderRadius: "10px",
+                        border: "1px solid var(--border-color)",
+                    }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                            <h4 style={{ margin: 0, fontSize: "0.95rem" }}>
+                                {getIcon("search")} تفاصيل التغيير #{record.id}
+                            </h4>
+                            <button onClick={() => setExpandedId(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>
+                                {getIcon("close")}
+                            </button>
+                        </div>
 
-                    return (
-                        <div style={{
-                            marginTop: "1rem", padding: "1rem", background: "var(--bg-secondary)", borderRadius: "10px",
-                            border: "1px solid var(--border-color)",
-                        }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-                                <h4 style={{ margin: 0, fontSize: "0.95rem" }}>
-                                    {getIcon("search")} تفاصيل التغيير #{record.id}
-                                </h4>
-                                <button onClick={() => setExpandedId(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>
-                                    {getIcon("close")}
-                                </button>
-                            </div>
+                        {/* Change metadata — using MetaGrid */}
+                        <div style={{ marginBottom: "1rem" }}>
+                            <MetaGrid items={[
+                                { label: "الكيان", value: ENTITY_LABELS[record.entity_type] || record.entity_type },
+                                { label: "المعرف", value: record.entity_id },
+                                { label: "العملية", value: CHANGE_TYPE_LABELS[record.change_type] || record.change_type },
+                                { label: "بواسطة", value: record.changed_by_user?.name || `#${record.changed_by || "—"}` },
+                                { label: "التوقيت", value: new Date(record.created_at).toLocaleString("ar-SA") },
+                                ...(record.change_reason ? [{ label: "السبب", value: record.change_reason }] : []),
+                            ]} />
+                        </div>
 
-                            {/* Change metadata */}
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.5rem", marginBottom: "1rem" }}>
-                                <MetaItem label="الكيان" value={ENTITY_LABELS[record.entity_type] || record.entity_type} />
-                                <MetaItem label="المعرف" value={record.entity_id} />
-                                <MetaItem label="العملية" value={CHANGE_TYPE_LABELS[record.change_type] || record.change_type} />
-                                <MetaItem label="بواسطة" value={record.changed_by_user?.name || `#${record.changed_by || "—"}`} />
-                                <MetaItem label="التوقيت" value={new Date(record.created_at).toLocaleString("ar-SA")} />
-                                {record.change_reason && <MetaItem label="السبب" value={record.change_reason} />}
-                            </div>
-
-                            {/* Diff View */}
-                            <div style={{ display: "grid", gridTemplateColumns: record.old_values && record.new_values ? "1fr 1fr" : "1fr", gap: "1rem" }}>
-                                {record.old_values && (
-                                    <div>
-                                        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--danger)", marginBottom: "0.35rem" }}>
-                                            {getIcon("minus-circle")} القيم السابقة
-                                        </div>
-                                        {renderDiff(record.old_values, undefined)}
+                        {/* Diff View */}
+                        <div style={{ display: "grid", gridTemplateColumns: record.old_values && record.new_values ? "1fr 1fr" : "1fr", gap: "1rem" }}>
+                            {record.old_values && (
+                                <div>
+                                    <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--danger)", marginBottom: "0.35rem" }}>
+                                        {getIcon("minus-circle")} القيم السابقة
                                     </div>
-                                )}
-                                {record.new_values && (
-                                    <div>
-                                        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--success)", marginBottom: "0.35rem" }}>
-                                            {getIcon("plus-circle")} القيم الجديدة
-                                        </div>
-                                        {renderDiff(undefined, record.new_values)}
+                                    {renderDiff(record.old_values, undefined)}
+                                </div>
+                            )}
+                            {record.new_values && (
+                                <div>
+                                    <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--success)", marginBottom: "0.35rem" }}>
+                                        {getIcon("plus-circle")} القيم الجديدة
                                     </div>
-                                )}
-                            </div>
-
-                            {/* Combined diff for updates */}
-                            {record.old_values && record.new_values && (
-                                <div style={{ marginTop: "1rem" }}>
-                                    <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--primary)", marginBottom: "0.35rem" }}>
-                                        {getIcon("edit")} مقارنة التغييرات
-                                    </div>
-                                    {renderDiff(record.old_values, record.new_values)}
+                                    {renderDiff(undefined, record.new_values)}
                                 </div>
                             )}
                         </div>
-                    );
-                })()}
-            </div>
-        </div>
-    );
-}
 
-function MetaItem({ label, value }: { label: string; value: string }) {
-    return (
-        <div style={{ padding: "0.35rem 0.5rem", background: "var(--bg-primary)", borderRadius: "6px" }}>
-            <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", textTransform: "uppercase" }}>{label}</div>
-            <div style={{ fontSize: "0.82rem", fontWeight: 500, marginTop: "1px", wordBreak: "break-all" }}>{value}</div>
+                        {/* Combined diff for updates */}
+                        {record.old_values && record.new_values && (
+                            <div style={{ marginTop: "1rem" }}>
+                                <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--primary)", marginBottom: "0.35rem" }}>
+                                    {getIcon("edit")} مقارنة التغييرات
+                                </div>
+                                {renderDiff(record.old_values, record.new_values)}
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
         </div>
     );
 }
