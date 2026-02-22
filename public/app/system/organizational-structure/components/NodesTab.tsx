@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ActionButtons, Table, Dialog, ConfirmDialog, showToast, Column, Button, Checkbox, SearchableSelect, Input } from "@/components/ui";
+import { ActionButtons, Table, ConfirmDialog, showToast, Column, Button, Checkbox, SearchableSelect, Dialog } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
-import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
-import { getIcon } from "@/lib/icons";
 import { PageSubHeader } from "@/components/layout";
+import { NodeFormDialog, InitialNodeSetup, NodeFormData } from "./NodeFormPanel";
 
 interface MetaType {
     id: string;
@@ -47,6 +46,7 @@ export function NodesTab() {
     const [metaTypes, setMetaTypes] = useState<MetaType[]>([]);
     const [topologyRules, setTopologyRules] = useState<TopologyRule[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterType, setFilterType] = useState("");
     const [filterDomain, setFilterDomain] = useState("");
@@ -59,7 +59,8 @@ export function NodesTab() {
     const [selectedUuids, setSelectedUuids] = useState<Set<string>>(new Set());
     const [bulkDialog, setBulkDialog] = useState(false);
     const [bulkStatus, setBulkStatus] = useState("active");
-    const [formData, setFormData] = useState({
+    const [initialDataLoaded, setInitialDataLoaded] = useState(false);
+    const [formData, setFormData] = useState<NodeFormData>({
         node_type_id: "", code: "", status: "active",
         target_node_uuid: "", validate_constraints: true,
         valid_from: "", valid_to: "",
@@ -75,6 +76,7 @@ export function NodesTab() {
             if (filterDomain) params.set("level_domain", filterDomain);
             const response = await fetchAPI(`${API_ENDPOINTS.SYSTEM.ORG_STRUCTURE.NODES}?${params}`);
             setNodes((response.nodes as StructureNode[]) || []);
+            setInitialDataLoaded(true);
         } catch { showToast("خطأ في تحميل الوحدات التنظيمية", "error"); }
         finally { setIsLoading(false); }
     }, [searchTerm, filterType, filterStatus, filterDomain]);
@@ -97,7 +99,6 @@ export function NodesTab() {
 
     const getTypeLabel = (id: string) => metaTypes.find((t) => t.id === id)?.display_name_ar || metaTypes.find((t) => t.id === id)?.display_name || id;
     const getTypeDomain = (id: string) => metaTypes.find((t) => t.id === id)?.level_domain || "";
-    const getCurrentAttributes = () => metaTypes.find((t) => t.id === formData.node_type_id)?.attributes || [];
 
     const filteredMetaTypes = filterDomain ? metaTypes.filter((t) => t.level_domain === filterDomain) : metaTypes;
     const domains = [...new Set(metaTypes.map((t) => t.level_domain))].sort();
@@ -129,6 +130,7 @@ export function NodesTab() {
         if (!formData.node_type_id.trim() || !formData.code.trim()) {
             showToast("يرجى إدخال النوع والرمز", "error"); return;
         }
+        setIsSubmitting(true);
         const attrs: Record<string, string> = { ...dynamicAttrs };
         const payload: Record<string, unknown> = {
             node_type_id: formData.node_type_id, code: formData.code.trim(), attributes: attrs, status: formData.status,
@@ -155,6 +157,8 @@ export function NodesTab() {
         } catch (e: unknown) {
             const err = e as { message?: string };
             showToast(err?.message || "خطأ في الحفظ", "error");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -202,6 +206,12 @@ export function NodesTab() {
         } catch (e: unknown) {
             showToast((e as { message?: string })?.message || "خطأ في التحديث الجماعي", "error");
         }
+    };
+
+    // Shared form props for both dialog and inline wizard
+    const formProps = {
+        formData, setFormData, dynamicAttrs, setDynamicAttrs,
+        metaTypes, nodes, topologyRules, selectedNode, getTypeLabel,
     };
 
     const nodeColumns: Column<StructureNode>[] = [
@@ -279,6 +289,23 @@ export function NodesTab() {
         },
     ];
 
+    /* ────────────────────────────────────────────── */
+    /*  Initial Setup Experience (zero nodes)         */
+    /* ────────────────────────────────────────────── */
+    const showInitialSetup = initialDataLoaded && !isLoading && nodes.length === 0 && metaTypes.length > 0;
+
+    if (showInitialSetup && !formDialog) {
+        return (
+            <>
+                <InitialNodeSetup
+                    {...formProps}
+                    onSubmit={handleSubmit}
+                    isSubmitting={isSubmitting}
+                />
+            </>
+        );
+    }
+
     return (
         <>
             <div className="sales-card animate-fade">
@@ -320,7 +347,7 @@ export function NodesTab() {
                 />
                 <PageSubHeader
                     searchInput={
-                        <Select value={filterDomain} onChange={(e) => { setFilterDomain(e.target.value); setFilterType(""); }} style={{ maxWidth: "140px" }}>
+                        <Select value={filterDomain} onChange={(e) => { setFilterDomain(e.target.value); setFilterType(""); }} style={{ maxWidth: "220px" }}>
                             <option value="">جميع المجالات</option>
                             {domains.map((d) => <option key={d} value={d}>{d}</option>)}
                         </Select>
@@ -328,11 +355,13 @@ export function NodesTab() {
                     actions={
                         <>
 
-                            <Select value={filterType} onChange={(e) => setFilterType(e.target.value)} style={{ maxWidth: "170px" }}>
-                                <option value="">جميع الأنواع</option>
-                                {filteredMetaTypes.map((t) => <option key={t.id} value={t.id}>{t.display_name_ar || t.display_name}</option>)}
-                            </Select>
-                            <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ maxWidth: "120px" }}
+                            <Select value={filterType} onChange={(e) => setFilterType(e.target.value)} style={{ maxWidth: "220px" }}
+                                options={[
+                                    { value: "", label: "جميع الأنواع" },
+                                    ...filteredMetaTypes.map((t) => ({ value: t.id, label: t.display_name_ar || t.display_name })),
+                                ]}
+                            />
+                            <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ maxWidth: "220px" }}
                                 options={
                                     [
                                         { value: "", label: "جميع الحالات" },
@@ -366,96 +395,12 @@ export function NodesTab() {
             </div >
 
             {/* Add/Edit Dialog */}
-            <Dialog
+            <NodeFormDialog
                 isOpen={formDialog}
                 onClose={() => setFormDialog(false)}
-                title={selectedNode ? "تعديل الوحدة" : "إضافة وحدة تنظيمية"}
-                footer={
-                    <>
-                        <Button variant="secondary" onClick={() => setFormDialog(false)}>إلغاء</Button>
-                        <Button variant="primary" onClick={handleSubmit}>{selectedNode ? "تحديث" : "إضافة"}</Button>
-                    </>
-                }
-            >
-                <div className="form-row">
-                    <div className="form-group">
-                        <Select label="نوع الوحدة *" value={formData.node_type_id}
-                            onChange={(e) => { setFormData({ ...formData, node_type_id: e.target.value }); setDynamicAttrs({}); }} disabled={!!selectedNode}
-                            options={
-                                metaTypes.map((t) => ({ value: t.id, label: t.display_name_ar || t.display_name }))
-                            }
-                        />
-                    </div>
-                    <div className="form-group">
-                        <TextInput label="الرمز *" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value })} />
-                    </div>
-                </div>
-
-                {/* Dynamic Attributes */}
-                {
-                    getCurrentAttributes().length > 0 && (
-                        <>
-                            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>
-                                {getIcon("cube")} السمات ({getCurrentAttributes().filter(a => a.is_mandatory).length} إلزامية)
-                            </p>
-                            <div className="form-row" style={{ flexWrap: "wrap" }}>
-                                {getCurrentAttributes().map((attr) => (
-                                    <div className="form-group" key={attr.attribute_key} style={{ minWidth: "200px" }}>
-                                        <TextInput
-                                            label={`${attr.attribute_key}${attr.is_mandatory ? " *" : ""}`}
-                                            value={dynamicAttrs[attr.attribute_key] || ""}
-                                            onChange={(e) => setDynamicAttrs({ ...dynamicAttrs, [attr.attribute_key]: e.target.value })}
-                                            placeholder={attr.is_mandatory ? "مطلوب" : "اختياري"}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </>
-                    )
-                }
-
-                {/* Effective Dating (SAP Infotype-style) */}
-                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0.75rem 0 0.5rem" }}>
-                    {getIcon("calendar")} فترة الصلاحية (Effective Dating)
-                </p>
-                <div className="form-row">
-                    <div className="form-group">
-                        <TextInput label="صالح من" type="date" value={formData.valid_from}
-                            onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })} />
-                    </div>
-                    <div className="form-group">
-                        <TextInput label="صالح حتى" type="date" value={formData.valid_to}
-                            onChange={(e) => setFormData({ ...formData, valid_to: e.target.value })} />
-                    </div>
-                </div>
-
-                {/* Link to target on create */}
-                {
-                    !selectedNode && (
-                        <div className="form-group">
-                            <Select label="ربط بـ (اختياري)" value={formData.target_node_uuid}
-                                onChange={(e) => setFormData({ ...formData, target_node_uuid: e.target.value })}>
-                                <option value="">بدون ربط</option>
-                                {nodes
-                                    .filter((n) => topologyRules.some((r) => r.source_node_type_id === formData.node_type_id && r.target_node_type_id === n.node_type_id))
-                                    .map((n) => (
-                                        <option key={n.node_uuid} value={n.node_uuid}>
-                                            {n.code} - {getTypeLabel(n.node_type_id)} {((n.attributes_json as Record<string, unknown>)?.name as string) ? `(${(n.attributes_json as Record<string, unknown>).name})` : ""}
-                                        </option>
-                                    ))}
-                            </Select>
-                        </div>
-                    )
-                }
-
-                <div className="form-group">
-                    <Select label="الحالة" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
-                        <option value="active">نشط</option>
-                        <option value="inactive">غير نشط</option>
-                        <option value="archived">مؤرشف</option>
-                    </Select>
-                </div>
-            </Dialog>
+                onSubmit={handleSubmit}
+                {...formProps}
+            />
 
             {/* Bulk Status Dialog */}
             <Dialog
