@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             ChartOfAccountsSeeder::class,
             SettingsSeeder::class,
+            OrgStructureSeeder::class,
             DocumentSequenceSeeder::class,
             UserSeeder::class,
             CategorySeeder::class,

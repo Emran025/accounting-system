@@ -11,6 +11,7 @@ class ModuleSeeder extends Seeder
     {
         $modules = [
             ['module_key' => 'dashboard', 'module_name_ar' => 'لوحة التحكم', 'module_name_en' => 'Dashboard', 'category' => 'system', 'icon' => 'home', 'sort_order' => 1],
+            ['module_key' => 'org_structure', 'module_name_ar' => 'الهيكل التنظيمي', 'module_name_en' => 'Organizational Structure', 'category' => 'system', 'icon' => 'tree', 'sort_order' => 2],
             ['module_key' => 'sales', 'module_name_ar' => 'المبيعات', 'module_name_en' => 'Sales', 'category' => 'sales', 'icon' => 'cart', 'sort_order' => 10],
             ['module_key' => 'revenues', 'module_name_ar' => 'الإيرادات الإضافية', 'module_name_en' => 'Additional Revenues', 'category' => 'sales', 'icon' => 'plus', 'sort_order' => 11],
             ['module_key' => 'deferred_sales', 'module_name_ar' => 'المبيعات الآجلة', 'module_name_en' => 'Deferred Sales', 'category' => 'sales', 'icon' => 'dollar', 'sort_order' => 12],
@@ -62,7 +63,7 @@ class ModuleSeeder extends Seeder
             ['module_key' => 'expertise', 'module_name_ar' => 'دليل الخبراء', 'module_name_en' => 'Expertise Directory', 'category' => 'hr', 'icon' => 'users-gear', 'sort_order' => 102],
             ['module_key' => 'portal', 'module_name_ar' => 'البوابة الذاتية', 'module_name_en' => 'Employee Self-Service Portal', 'category' => 'hr', 'icon' => 'user-cog', 'sort_order' => 103],
             ['module_key' => 'eosb', 'module_name_ar' => 'مكافأة نهاية الخدمة', 'module_name_en' => 'End of Service Benefits (EOSB)', 'category' => 'hr', 'icon' => 'calculator', 'sort_order' => 104],
-            ['module_key' => 'expat_management', 'module_name_ar' => 'إدارة المغتربين', 'module_name_en' => 'Expat Management', 'category' => 'hr', 'icon' => 'globe', 'sort_order' => 105],
+            ['module_key' => 'expat_management', 'module_name_ar' => 'إدارة العمالة الأجنبية', 'module_name_en' => 'Expat Management', 'category' => 'hr', 'icon' => 'globe', 'sort_order' => 105],
         ];
 
         foreach ($modules as $module) {

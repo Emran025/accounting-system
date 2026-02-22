@@ -14,7 +14,7 @@ export default function ExpatManagementPage() {
 
   return (
     <ModuleLayout groupKey="hr" requiredModule="employees">
-      <PageHeader title="إدارة المغتربين" user={user} showDate={true} />
+      <PageHeader title="إدارة العمالة الأجنبية" user={user} showDate={true} />
       <ExpatManagement />
     </ModuleLayout>
   );

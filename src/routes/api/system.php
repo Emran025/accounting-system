@@ -9,6 +9,36 @@ use App\Http\Controllers\Api\SessionsController;
 use App\Http\Controllers\Api\GovernmentFeesController;
 use App\Http\Controllers\Api\AuditTrailController;
 use App\Http\Controllers\Api\SystemTemplateController;
+use App\Http\Controllers\Api\OrgStructureController;
+
+// Organizational Structure (SAP SPRO-style)
+Route::prefix('org-structure')->group(function () {
+    // Meta Types & Topology Rules
+    Route::get('/meta-types', [OrgStructureController::class, 'metaTypes'])->name('api.org_structure.meta_types');
+    Route::get('/topology-rules', [OrgStructureController::class, 'topologyRules'])->name('api.org_structure.topology_rules');
+
+    // Nodes CRUD
+    Route::get('/nodes', [OrgStructureController::class, 'nodes'])->name('api.org_structure.nodes');
+    Route::get('/nodes/{uuid}', [OrgStructureController::class, 'showNode'])->name('api.org_structure.nodes.show');
+    Route::post('/nodes', [OrgStructureController::class, 'storeNode'])->name('api.org_structure.nodes.store');
+    Route::put('/nodes/{uuid}', [OrgStructureController::class, 'updateNode'])->name('api.org_structure.nodes.update');
+    Route::delete('/nodes/{uuid}', [OrgStructureController::class, 'destroyNode'])->name('api.org_structure.nodes.destroy');
+
+    // Links CRUD (new: listing & update)
+    Route::get('/links', [OrgStructureController::class, 'links'])->name('api.org_structure.links');
+    Route::post('/links', [OrgStructureController::class, 'storeLink'])->name('api.org_structure.links.store');
+    Route::put('/links/{id}', [OrgStructureController::class, 'updateLink'])->name('api.org_structure.links.update');
+    Route::delete('/links/{id}', [OrgStructureController::class, 'destroyLink'])->name('api.org_structure.links.destroy');
+
+    // Scope Context Resolution
+    Route::get('/scope-context/{uuid}', [OrgStructureController::class, 'scopeContext'])->name('api.org_structure.scope_context');
+
+    // Statistics, Integrity, History, Bulk Operations
+    Route::get('/statistics', [OrgStructureController::class, 'statistics'])->name('api.org_structure.statistics');
+    Route::get('/integrity-check', [OrgStructureController::class, 'integrityCheck'])->name('api.org_structure.integrity_check');
+    Route::get('/change-history', [OrgStructureController::class, 'changeHistory'])->name('api.org_structure.change_history');
+    Route::post('/bulk-status-update', [OrgStructureController::class, 'bulkStatusUpdate'])->name('api.org_structure.bulk_status');
+});
 
 // Settings
 Route::middleware('can:settings,view')->get('/settings', [SettingsController::class, 'index'])->name('api.settings.index');

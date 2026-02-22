@@ -50,6 +50,19 @@ export const API_ENDPOINTS = {
             APPROVED_KEYS: "/templates/approved-keys",
         },
         BATCH: "/batch",
+        ORG_STRUCTURE: {
+            META_TYPES: "/org-structure/meta-types",
+            TOPOLOGY_RULES: "/org-structure/topology-rules",
+            NODES: "/org-structure/nodes",
+            NODE: (uuid: string) => `/org-structure/nodes/${uuid}`,
+            LINKS: "/org-structure/links",
+            LINK: (id: number) => `/org-structure/links/${id}`,
+            SCOPE_CONTEXT: (uuid: string) => `/org-structure/scope-context/${uuid}`,
+            STATISTICS: "/org-structure/statistics",
+            INTEGRITY_CHECK: "/org-structure/integrity-check",
+            CHANGE_HISTORY: "/org-structure/change-history",
+            BULK_STATUS: "/org-structure/bulk-status-update",
+        },
     },
     FINANCE: {
         GL: {

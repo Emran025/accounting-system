@@ -123,7 +123,6 @@ export function CapacityPlanningTab() {
                 );
             },
         },
-
         {
             key: "id",
             header: "الإجراءات",

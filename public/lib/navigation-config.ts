@@ -30,8 +30,7 @@ export const navigationGroups: NavigationGroup[] = [
     links: [
       { href: "/system/dashboard", icon: "dashboard", label: "لوحة التحكم", description: "نظرة عامة شاملة على النظام", module: "dashboard" },
       { href: "/system/modules-status", icon: "check-circle", label: "حالة الوحدات", description: "حالة جميع وحدات النظام", module: "dashboard" },
-      { href: "/system/reports", icon: "pie-chart", label: "التقارير والتحليلات", description: "تقارير مالية وتحليلات متقدمة", module: "reports" },
-      { href: "/system/audit_trail", icon: "activity", label: "سجل التدقيق", description: "تتبع جميع العمليات", module: "audit_trail" },
+      { href: "/system/organizational-structure", icon: "tree", label: "الهيكل التنظيمي", description: "تخطيط وتهيئة الهيكل التنظيمي للمؤسسة", module: "org_structure" },
       { href: "/system/recurring_transactions", icon: "repeat", label: "المعاملات المتكررة", description: "جدولة العمليات الآلية", module: "recurring_transactions" },
       { href: "/system/batch_processing", icon: "layers", label: "المعالجة الدفعية", description: "معالجة دفعات البيانات", module: "batch_processing" },
       { href: "/system/settings", icon: "settings", label: "إعدادات النظام", description: "تكوين النظام والتفضيلات", module: "settings" },
@@ -113,14 +112,16 @@ export const navigationGroups: NavigationGroup[] = [
     icon: "coins",
     links: [
       { href: "/finance/chart_of_accounts", icon: "sitemap", label: "دليل الحسابات", description: "هيكل شجرة الحسابات", module: "chart_of_accounts" },
+      { href: "/system/dashboard", icon: "building", label: "مراكز التكلفة", description: "توزيع التكاليف (قريباً)", module: "dashboard" },
       { href: "/finance/general_ledger", icon: "book-open", label: "دفتر الأستاذ العام", description: "السجل المالي الشامل", module: "general_ledger" },
+      { href: "/system/reports", icon: "pie-chart", label: "التقارير والتحليلات", description: "تقارير مالية وتحليلات متقدمة", module: "reports" },
       { href: "/finance/journal_vouchers", icon: "file-signature", label: "سندات القيد", description: "القيود اليومية والمحاسبية", module: "journal_vouchers" },
+      { href: "/system/audit_trail", icon: "activity", label: "سجل التدقيق", description: "تتبع جميع العمليات", module: "audit_trail" },
       { href: "/finance/fiscal_periods", icon: "calendar", label: "الفترات المالية", description: "إدارة السنوات والفترات", module: "fiscal_periods" },
       { href: "/finance/accrual_accounting", icon: "timer", label: "المحاسبة الاستحقاقية", description: "الاستحقاقات والمقدمات", module: "accrual_accounting" },
       { href: "/finance/reconciliation", icon: "scale", label: "التسوية البنكية", description: "مطابقة الحسابات البنكية", module: "reconciliation" },
       { href: "/finance/assets", icon: "landmark", label: "الأصول الثابتة", description: "إدارة الأصول والإهلاك", module: "assets" },
       { href: "/system/dashboard", icon: "wallet", label: "الميزانيات", description: "التخطيط والميزانيات (قريباً)", module: "dashboard" },
-      { href: "/system/dashboard", icon: "building", label: "مراكز التكلفة", description: "توزيع التكاليف (قريباً)", module: "dashboard" },
       { href: "/system/dashboard", icon: "trending-up", label: "التدفق النقدي", description: "إدارة السيولة (قريباً)", module: "dashboard" },
       { href: "/finance/vat-zatca", icon: "shield-check", label: "الضرائب (VAT/ZATCA)", description: "إدارة الضرائب والربط مع زاتكا", module: "dashboard" },
       { href: "/finance/currency", icon: "coins", label: "العملات والسياسة النقدية", description: "إدارة العملات والسياسة النقدية للمؤسسة", module: "currency" },
@@ -137,7 +138,7 @@ export const navigationGroups: NavigationGroup[] = [
     links: [
       // Core HR Management
       { href: "/hr/employees", icon: "user", label: "الموظفين", description: "قاعدة بيانات الموظفين", module: "employees" },
-      { href: "/hr/expat-management", icon: "globe", label: "إدارة المغتربين", description: "إدارة الوثائق والتصاريح للموظفين المغتربين", module: "employees" },
+      { href: "/hr/expat-management", icon: "globe", label: "إدارة العمالة الأجنبية", description: "إدارة الوثائق والتصاريح للموظفين العمالة الأجنبية", module: "employees" },
       { href: "/hr/employee-assets", icon: "laptop", label: "أصول الموظفين", description: "إدارة المعدات والأصول المخصصة للموظفين", module: "employees" },
       { href: "/hr/contracts", icon: "file-contract", label: "العقود والاتفاقيات", description: "إدارة عقود العمل والاتفاقيات", module: "employees" },
 

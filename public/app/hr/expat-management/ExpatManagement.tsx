@@ -142,7 +142,7 @@ export function ExpatManagement() {
   return (
     <div className="sales-card animate-fade">
       <PageSubHeader
-        title="إدارة المغتربين"
+        title="إدارة العمالة الأجنبية"
         titleIcon="globe"
         searchInput={
           <SearchableSelect
