@@ -298,10 +298,10 @@ export function HierarchyTab() {
                                 placeholder="جميع المجالات"
                                 style={{ maxWidth: "160px", fontSize: "0.8rem" }}
                             />
-                            <Button variant="secondary" onClick={expandAll} style={{ fontSize: "0.75rem", padding: "4px 8px" }}>
+                            <Button variant="secondary" onClick={expandAll} style={{ fontSize: "0.9rem", padding: "10px 8px", minHeight: "45px" }}>
                                 توسيع الكل
                             </Button>
-                            <Button variant="secondary" onClick={collapseAll} style={{ fontSize: "0.75rem", padding: "4px 8px" }}>
+                            <Button variant="secondary" onClick={collapseAll} style={{ fontSize: "0.9rem", padding: "10px 8px", minHeight: "45px" }}>
                                 طي الكل
                             </Button>
                         </>

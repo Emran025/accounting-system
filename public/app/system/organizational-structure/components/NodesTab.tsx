@@ -347,21 +347,49 @@ export function NodesTab() {
                 />
                 <PageSubHeader
                     searchInput={
-                        <Select value={filterDomain} onChange={(e) => { setFilterDomain(e.target.value); setFilterType(""); }} style={{ maxWidth: "220px" }}>
-                            <option value="">جميع المجالات</option>
-                            {domains.map((d) => <option key={d} value={d}>{d}</option>)}
-                        </Select>
+                        nodes.length > 0 ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                                <Checkbox
+                                    checked={selectedUuids.size === nodes.length && nodes.length > 0}
+                                    onChange={toggleSelectAll}
+                                    label={`تحديد الكل (${nodes.length})`}
+                                />
+                            </div>
+                        ) : (<Select
+                            value={filterDomain}
+                            onChange={(e) => { setFilterDomain(e.target.value); setFilterType(""); }}
+                            style={{ maxWidth: "220px" }}
+                            options={[
+                                { value: "", label: "جميع المجالات" },
+                                ...domains.map((d) => ({ value: d, label: d }))
+                            ]}
+                        />)
                     }
                     actions={
                         <>
+                            {nodes.length > 0 && (<Select
+                                value={filterDomain}
+                                onChange={(e) => { setFilterDomain(e.target.value); setFilterType(""); }}
+                                style={{ maxWidth: "220px" }}
+                                options={[
+                                    { value: "", label: "جميع المجالات" },
+                                    ...domains.map((d) => ({ value: d, label: d }))
+                                ]}
+                            />)}
 
-                            <Select value={filterType} onChange={(e) => setFilterType(e.target.value)} style={{ maxWidth: "220px" }}
+                            <Select
+                                value={filterType}
+                                onChange={(e) => setFilterType(e.target.value)}
+                                style={{ maxWidth: "220px" }}
                                 options={[
                                     { value: "", label: "جميع الأنواع" },
                                     ...filteredMetaTypes.map((t) => ({ value: t.id, label: t.display_name_ar || t.display_name })),
                                 ]}
                             />
-                            <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ maxWidth: "220px" }}
+                            <Select
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                style={{ maxWidth: "220px" }}
                                 options={
                                     [
                                         { value: "", label: "جميع الحالات" },
@@ -376,17 +404,6 @@ export function NodesTab() {
                         </>
                     }
                 />
-
-                {/* Select all */}
-                {nodes.length > 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                        <Checkbox
-                            checked={selectedUuids.size === nodes.length && nodes.length > 0}
-                            onChange={toggleSelectAll}
-                            label={`تحديد الكل (${nodes.length})`}
-                        />
-                    </div>
-                )}
 
                 <Table columns={nodeColumns} data={nodes} keyExtractor={(item) => item.node_uuid} emptyMessage="لا توجد وحدات تنظيمية" isLoading={isLoading} />
                 <div style={{ marginTop: "0.5rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
