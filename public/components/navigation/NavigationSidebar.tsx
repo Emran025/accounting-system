@@ -12,11 +12,11 @@ interface NavigationSidebarProps {
   onCollapsedChange?: (collapsed: boolean) => void;
 }
 
-export function NavigationSidebar({ 
-  groups, 
-  activeGroup, 
+export function NavigationSidebar({
+  groups,
+  activeGroup,
   onGroupSelect,
-  onCollapsedChange 
+  onCollapsedChange
 }: NavigationSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -99,12 +99,12 @@ export function NavigationSidebar({
         onClick={handleToggle}
         aria-label={isCollapsed ? "توسيع القائمة" : "طي القائمة"}
       >
-        {getIcon("chevronRight")}
+        {getIcon("chevron-right")}
       </button>
 
       {/* Sidebar */}
       <aside className={`sidebar ${isCollapsed ? "collapsed" : ""} ${isMobileOpen ? "mobile-visible" : ""}`}>
-        <FullLogo isCollapsed={isCollapsed} />
+        <FullLogo type={isCollapsed ? "LogoVanilla" : "LogoHorizontal"} size={isCollapsed ? { width: 60, height: 60 } : { width: 240, height: 70 }} />
         <nav className="sidebar-nav">
           {groups.map((group) => (
             <button

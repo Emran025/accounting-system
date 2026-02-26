@@ -115,7 +115,7 @@ export function TabNavigation({ tabs, activeTab, onTabChange, className = "" }: 
   };
 
   return (
-    <div className={`settings-tabs ${className}`}>
+    <div className={`page-tap-nav${className}`}>
       {/* Mobile Dropdown */}
       <MobileTabDropdown
         tabs={tabs}
@@ -203,7 +203,7 @@ export function TabMiniNavigation({
   className = ""
 }: TabMiniNavigationProps) {
   return (
-    <div className={`settings-tabs ${className}`} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className={`page-tap-nav${className}`} style={{ justifyContent: 'space-between', alignItems: 'center' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <i className={`fas ${icon}`} style={{ color: 'var(--primary-color)', fontSize: '1.25rem' }}></i>
         <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)' }}>{title}</span>

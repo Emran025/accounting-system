@@ -3,20 +3,19 @@ import React from 'react';
 import {
     Mail, Plus, SquarePen, Trash2, Eye, Check, Printer, Download, ShoppingCart,
     LogOut, X, CircleAlert, Home, Users, User, ChevronUp, ChevronDown,
-    ChevronRight, Settings, DollarSign, Building2, Lock, Unlock,
-    RefreshCw, Minus, History, Search, Clock, CircleCheck, List,
-    ClipboardList, ChartBar, ChartLine, Wallet, Coins, HandHelping,
-    TrendingUp, Receipt, CreditCard, Banknote, UserPlus, BookOpen,
-    Network, FileSignature, Calendar, Timer, Scale, Activity,
-    Repeat, Layers, Truck, HandCoins, ShoppingBag, PieChart, Route,
-    ShieldCheck, Landmark, BarChart3, UserCog, Bell, FileSearch ,
+    ChevronRight, ChevronLeft, Settings, DollarSign, Building2, Lock, Unlock,
+    RefreshCw, Minus, History, Search, Clock, CircleCheck, List, ArrowLeft,
+    ClipboardList, ChartBar, ChartLine, Wallet, Coins, HandHelping, ArrowRight,
+    TrendingUp, Receipt, CreditCard, Banknote, UserPlus, BookOpen, PlusCircle,
+    Network, FileSignature, Calendar, Timer, Scale, Activity, Gavel, Link,
+    Repeat, Layers, Truck, HandCoins, ShoppingBag, PieChart, Route, Folder,
+    ShieldCheck, Landmark, BarChart3, UserCog, Bell, FileSearch, BarChart,
     Tags, Ruler, Factory, Files, Hammer, Cpu, ClipboardCheck, Box, AlertTriangle,
     Briefcase, CheckSquare, Hourglass, LayoutDashboard, Save, Calculator,
-    FileText, FileCheck, Scroll, Globe, Laptop, Book, HardHat, HeartPulse, Link,
-    CalendarDays, UserCheck, Plane, Megaphone, GraduationCap, Heart, EyeOff, BarChart,
-    Send, Filter, Handshake, CheckCheck, Play, Star, Pause, ThumbsUp, Upload, Folder, Gavel,
-    Delete,
-    PlusCircle
+    FileText, FileCheck, Scroll, Globe, Laptop, Book, HardHat, HeartPulse,
+    CalendarDays, UserCheck, Plane, Megaphone, GraduationCap, Heart, EyeOff,
+    Send, Filter, Handshake, CheckCheck, Play, Star, Pause, ThumbsUp, Upload,
+    Delete, PanelRight, LucideGalleryHorizontalEnd, ArrowUp
 } from 'lucide-react';
 
 interface IconProps {
@@ -44,7 +43,7 @@ export const icons = {
     user: (props: IconProps) => <User className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     chevronUp: (props: IconProps) => <ChevronUp className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     chevronDown: (props: IconProps) => <ChevronDown className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
-    chevronRight: (props: IconProps) => <ChevronRight className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "chevron- right": (props: IconProps) => <ChevronRight className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     settings: (props: IconProps) => <Settings className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     dollar: (props: IconProps) => <DollarSign className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     building: (props: IconProps) => <Building2 className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
@@ -143,6 +142,13 @@ export const icons = {
     alertTriangle: (props: IconProps) => <AlertTriangle className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     "plus-circle": (props: IconProps) => <PlusCircle className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     "delete": (props: IconProps) => <Delete className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    chevronLeft: (props: IconProps) => <ChevronLeft className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "arrow-right": (props: IconProps) => <ArrowRight className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "arrow-left": (props: IconProps) => <ArrowLeft className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "panel-right": (props: IconProps) => <PanelRight className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "arrow-up": (props: IconProps) => <ArrowUp className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    // "panel-right-close": (props: IconProps) => <PanelRightClose className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    // "panel-right-open": (props: IconProps) => <PanelRightOpen className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
 };
 
 export type IconName = keyof typeof icons;

@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, ReactNode } from "react";
+import { useEffect, ReactNode, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { Sidebar } from "./Sidebar";
-import { ToastContainer } from "@/components/ui";
+import {
+  SideNavigationBar,
+  TopGlobalBar,
+  SearchNavigationBar,
+  StatusNotificationBar,
+} from "@/components/navigation";
+import { ToastContainer, FullLogo } from "@/components/ui";
 import { initSystemSettings } from "@/lib/settings";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useUIStore } from "@/stores/useUIStore";
@@ -12,35 +17,27 @@ interface MainLayoutProps {
   children: ReactNode;
   requiredModule?: string;
   requiredAction?: "view" | "create" | "edit" | "delete";
+  isWatermark?: boolean;
 }
 
+/**
+ * MainLayout — uses the new SideNavigationBar and global shell bars.
+ * This is for testing purposes before migration.
+ */
 export function MainLayout({
   children,
   requiredModule,
   requiredAction = "view",
+  isWatermark = true,
 }: MainLayoutProps) {
   const router = useRouter();
 
-  // Auth Store
-  const {
-    user,
-    permissions,
-    isLoading,
-    checkAuth,
-    isAuthenticated
-  } = useAuthStore();
-
-  // UI Store
-  const {
-    sidebarCollapsed,
-    setSidebarCollapsed
-  } = useUIStore();
+  const { isLoading, checkAuth } = useAuthStore();
+  const { sideNavCollapsed, sideNavWidth, setSideNavCollapsed } = useUIStore();
 
   useEffect(() => {
     const verifyAuth = async () => {
-      // Initialize settings first so they are available for all components
       await initSystemSettings();
-
       const isAuth = await checkAuth();
 
       if (!isAuth) {
@@ -48,15 +45,12 @@ export function MainLayout({
         return;
       }
 
-      // Check module access if required
       if (requiredModule) {
-        // We get fresh permissions from store (checkAuth updates them)
         const currentPermissions = useAuthStore.getState().permissions;
-
         if (Array.isArray(currentPermissions)) {
           const hasAccess = currentPermissions.some(
             (p) =>
-              p.module === requiredModule &&
+              (p.module === requiredModule || p.module === "*") &&
               (requiredAction === "view"
                 ? p.can_view
                 : requiredAction === "create"
@@ -65,21 +59,14 @@ export function MainLayout({
                     ? p.can_edit
                     : p.can_delete)
           );
-
           if (!hasAccess) {
-            router.push("/system/dashboard");
+            router.push("/navigation");
             return;
           }
         } else {
-          // If required but permissions is not an array, deny access
-          router.push("/system/dashboard");
+          router.push("/navigation");
           return;
         }
-      }
-
-      // Sidebar state is handled by useUIStore (persisted automatically)
-      if (useUIStore.getState().sidebarCollapsed) {
-        document.body.classList.add("sidebar-is-collapsed");
       }
     };
 
@@ -109,7 +96,7 @@ export function MainLayout({
               margin: "0 auto 1rem",
             }}
           />
-          <p style={{ color: "var(--text-secondary)" }}>جاري التحميل...</p>
+          <p style={{ color: "var(--text-secondary)" }}>Loading...</p>
         </div>
         <style jsx>{`
           @keyframes spin {
@@ -123,17 +110,31 @@ export function MainLayout({
   }
 
   return (
-    <div className="main-container">
-      <Sidebar
-        onCollapsedChange={setSidebarCollapsed}
-      />
-      <main className={`content ${sidebarCollapsed ? "expanded" : ""}`}>
-        {children}
-      </main>
-      <ToastContainer />
+    <div className="test-shell-column">
+      <div>
+        <Suspense fallback={<div className="top-global-bar" />}>
+          <TopGlobalBar />
+        </Suspense>
+        <Suspense fallback={<div className="search-navigation-bar" />}>
+          <SearchNavigationBar />
+        </Suspense>
+      </div>
+      <div className="test-main-container">
+        <SideNavigationBar onCollapsedChange={setSideNavCollapsed} />
+        <main className="main-layout-content" >
+          <FullLogo isWatermark={isWatermark} type="LogoVertical" size={{ width: 600, height: 600 }}>
+            {children}
+          </FullLogo>
+        </main>
+        <ToastContainer />
+      </div>
+      <div style={{ alignItems: "stretch" }}>
+        <StatusNotificationBar />
+      </div>
     </div>
   );
 }
+
 
 // Backward compatibility hook - proxies to useAuthStore
 export function useAuth() {
@@ -143,4 +144,3 @@ export function useAuth() {
     permissions: store.permissions
   };
 }
-

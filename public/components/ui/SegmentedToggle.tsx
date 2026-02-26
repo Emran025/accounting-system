@@ -27,7 +27,7 @@ export function SegmentedToggle({
 }: SegmentedToggleProps) {
   return (
     <div className={`segmented-toggle-container ${className}`} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      {label && <span className="stat-label" style={{ fontSize: '0.75rem' }}>{label}</span>}
+      {label && <span className="stat-label">{label}</span>}
       <div className="discount-type-toggle">
         {options.map((option) => (
           <button

@@ -89,11 +89,11 @@ export function NavigationCard({ href, icon, label, description }: NavigationCar
   return (
     <Link href={href} className="premium-nav-card">
       {/* Header with gradient and pattern */}
-      <div 
+      <div
         className="premium-nav-card-header"
         style={{ background: gradient }}
       >
-        <div 
+        <div
           className="premium-nav-card-pattern"
           dangerouslySetInnerHTML={{ __html: pattern }}
         />
@@ -119,7 +119,7 @@ export function NavigationCard({ href, icon, label, description }: NavigationCar
           {isComingSoon ? "عرض التفاصيل" : "الانتقال"}
         </span>
         <div className="premium-nav-card-arrow">
-          {getIcon("chevronRight")}
+          {getIcon("chevron-right")}
         </div>
       </div>
     </Link>

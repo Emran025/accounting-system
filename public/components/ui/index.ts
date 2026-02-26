@@ -43,3 +43,4 @@ export { Checkbox } from "./checkbox";
 export { KPICard, KPICardRow } from "./KPICard";
 export { DomainCard, DomainCardRow } from "./DomainCard";
 export { StatsCard } from "./StatsCard";
+export { FullLogo } from "./Logo";

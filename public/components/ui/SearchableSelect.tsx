@@ -14,6 +14,7 @@ export interface SelectOption {
 interface SearchableSelectProps {
     options: SelectOption[];
     value: string | number | null;
+    paddingVertical?: number;
     onChange: (value: string | number | null, option: SelectOption | null) => void;
     onSearch?: (term: string) => void;
     placeholder?: string;
@@ -40,6 +41,7 @@ export function SearchableSelect({
     className = "",
     noResultsText = "لا توجد نتائج",
     renderOption,
+    paddingVertical,
     filterOption,
 }: SearchableSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
@@ -151,6 +153,9 @@ export function SearchableSelect({
                 autoComplete="off"
                 required={required && !value}
                 style={{
+
+                    paddingTop: paddingVertical ? (paddingVertical + "rem") : undefined,
+                    paddingBottom: paddingVertical ? (paddingVertical + "rem") : undefined,
                     direction: isArabic ? "rtl" : "ltr",
                     textAlign: isArabic ? "right" : "left",
                     paddingLeft: "3rem",
