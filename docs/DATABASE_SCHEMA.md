@@ -716,7 +716,7 @@ Currency-enabled tables:
 
 - ❶ **Atomicity:** Laravel DB transactions wrap multi-step operations
 - ❷ **Consistency:** Foreign keys + application validations
-- ❸ **Isolation:** Default READ COMMITTED (MySQL), SERIALIZABLE (SQLite)
+- ❸ **Isolation:** Default READ COMMITTED (MySQL), SERIALIZABLE (MySQL)
 - ❹ **Durability:** Database engine handles persistence
 
 **Example Transaction:**

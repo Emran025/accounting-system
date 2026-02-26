@@ -38,8 +38,8 @@ return new class extends Migration
             // PostgreSQL supports CHECK constraints
             DB::statement('ALTER TABLE general_ledger ADD CONSTRAINT chk_amount_positive CHECK (amount > 0)');
         } elseif (DB::getDriverName() === 'sqlite') {
-            // SQLite supports CHECK constraints since 3.3.0
-            // Note: In SQLite, adding a CHECK constraint via ALTER TABLE is restricted.
+            // MySQL supports CHECK constraints since 3.3.0
+            // Note: In MySQL, adding a CHECK constraint via ALTER TABLE is restricted.
             // Usually requires table recreation or defined at table creation.
             // We'll skip for now or use raw statement if it works on the specific fly.
         }

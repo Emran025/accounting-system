@@ -233,11 +233,11 @@ class ReportsController extends Controller
         $agingData = ArTransaction::select(
                 'customers.id as customer_id',
                 'customers.name as customer_name',
-                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) <= 0 THEN amount ELSE 0 END) as current"),
-                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) BETWEEN 1 AND 30 THEN amount ELSE 0 END) as `1_30`"),
-                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) BETWEEN 31 AND 60 THEN amount ELSE 0 END) as `31_60`"),
-                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) BETWEEN 61 AND 90 THEN amount ELSE 0 END) as `61_90`"),
-                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) > 90 THEN amount ELSE 0 END) as `over_90`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) <= 0 THEN amount ELSE 0 END) as current"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 1 AND 30 THEN amount ELSE 0 END) as `1_30`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 31 AND 60 THEN amount ELSE 0 END) as `31_60`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 61 AND 90 THEN amount ELSE 0 END) as `61_90`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) > 90 THEN amount ELSE 0 END) as `over_90`"),
                 DB::raw("SUM(amount) as total")
 
             )
@@ -284,11 +284,11 @@ class ReportsController extends Controller
         $agingData = ApTransaction::select(
                 'suppliers.id as supplier_id',
                 'suppliers.name as supplier_name',
-                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) <= 0 THEN amount ELSE 0 END) as current"),
-                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) BETWEEN 1 AND 30 THEN amount ELSE 0 END) as `1_30`"),
-                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) BETWEEN 31 AND 60 THEN amount ELSE 0 END) as `31_60`"),
-                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) BETWEEN 61 AND 90 THEN amount ELSE 0 END) as `61_90`"),
-                DB::raw("SUM(CASE WHEN julianday(?) - julianday(transaction_date) > 90 THEN amount ELSE 0 END) as `over_90`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) <= 0 THEN amount ELSE 0 END) as current"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 1 AND 30 THEN amount ELSE 0 END) as `1_30`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 31 AND 60 THEN amount ELSE 0 END) as `31_60`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) BETWEEN 61 AND 90 THEN amount ELSE 0 END) as `61_90`"),
+                DB::raw("SUM(CASE WHEN DATEDIFF(?, transaction_date) > 90 THEN amount ELSE 0 END) as `over_90`"),
                 DB::raw("SUM(amount) as total")
 
             )

@@ -50,7 +50,7 @@ This is a **full-featured ERP system** built as a **monorepo** containing:
 └──────────────────────────┬─────────────────────────────────┘
                            │
 ┌──────────────────────────▼─────────────────────────────────┐
-│              SQLite DATABASE                               │
+│              MySQL DATABASE                               │
 │        (Production: MySQL/PostgreSQL)                      │
 └────────────────────────────────────────────────────────────┘
 ```
@@ -92,7 +92,7 @@ The system implements a comprehensive ERP solution with the following modules:
 | ----------- | ----------- | --------- |
 | **Framework** | Laravel | 12.x |
 | **Language** | PHP | 8.2+ |
-| **Database** | SQLite (dev) / MySQL (prod) | - |
+| **Database** | MySQL (dev) / MySQL (prod) | - |
 | **ORM** | Eloquent | Built-in |
 | **Queue** | Database driver | Built-in |
 | **Cache** | Database driver | Built-in |
@@ -191,7 +191,6 @@ accsystem/
 - **PHP:** Version 8.2 or higher
 - **Composer:** Latest version
 - **Extensions Required:**
-  - `php-sqlite3` (development)
   - `php-mysql` (production)
   - `php-mbstring`
   - `php-xml`
@@ -214,9 +213,6 @@ cp .env.example .env
 # Generate application key
 php artisan key:generate
 
-# Create SQLite database (if using SQLite)
-touch database/database.sqlite
-
 # Run migrations
 php artisan migrate
 
@@ -238,8 +234,7 @@ APP_DEBUG=true
 APP_URL=http://localhost:8000
 
 # Database
-DB_CONNECTION=sqlite
-# Or for MySQL:
+
 # DB_CONNECTION=mysql
 # DB_HOST=127.0.0.1
 # DB_PORT=3306
@@ -1823,7 +1818,6 @@ cp .env.example .env
 php artisan key:generate
 
 # Database setup
-touch database/database.sqlite
 php artisan migrate
 # Optional: php artisan db:seed
 
@@ -1978,7 +1972,6 @@ php artisan key:generate
 
 - **Issue: Database connection error**
   - Check `.env` file DB settings
-  - For SQLite: Ensure `database/database.sqlite` exists
   - For MySQL: Verify credentials and database exists
 
 - **Issue: 500 error on API calls**
@@ -2068,7 +2061,7 @@ php artisan route:clear
 
 - [ ] Set `APP_ENV=production`
 - [ ] Set `APP_DEBUG=false`
-- [ ] Use MySQL/PostgreSQL (not SQLite)
+- [ ] Use MySQL/PostgreSQL (not MySQL)
 - [ ] Configure proper `APP_URL`
 - [ ] Set strong `APP_KEY`
 - [ ] Configure email driver

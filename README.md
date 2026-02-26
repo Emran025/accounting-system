@@ -32,7 +32,7 @@
 
 ### Prerequisites
 
-- **PHP 8.2+** with extensions: `sqlite3`, `mbstring`, `xml`, `bcmath`, `json`, `curl`
+- **PHP 8.2+** with extensions: `MySQL3`, `mbstring`, `xml`, `bcmath`, `json`, `curl`
 - **Composer** (latest)
 - **Node.js 20+** and npm
 - **Git**
@@ -49,7 +49,6 @@ cd backend
 composer install
 cp .env.example .env
 php artisan key:generate
-touch database/database.sqlite
 php artisan migrate
 php artisan db:seed
 
@@ -134,7 +133,7 @@ For **complete documentation**, see the `/docs` folder:
 └─────────────────┬───────────────────┘
                   │
 ┌─────────────────▼───────────────────┐
-│    DATABASE (SQLite/MySQL)          │
+│    DATABASE (MySQL/MySQL)          │
 │    52 Tables, Full ACID Compliance  │
 └─────────────────────────────────────┘
 ```
@@ -362,7 +361,7 @@ See [API_REFERENCE.md](./docs/API_REFERENCE.md) for complete API documentation.
 | --------- | ---------- |
 | **Framework** | Laravel 12 |
 | **Language** | PHP 8.2+ |
-| **Database** | SQLite (dev), MySQL/PostgreSQL (prod) |
+| **Database** | MySQL (dev), MySQL/PostgreSQL (prod) |
 | **ORM** | Eloquent |
 | **Queue** | Database driver |
 | **Cache** | Database driver |
@@ -422,5 +421,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
 
 ---
 
-> Built with ❤️ using Laravel & Next.js  
-> **Developed by: Emran Nasser && AI Agents**
+> Built with: using Laravel & Next.js  
+> **Developed ,Planning, design, and direction \Software Engineer Emran Nasser. Implementation \ AI Agent.**
