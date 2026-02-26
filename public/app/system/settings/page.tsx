@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { useState } from "react";
+import { MainLayout } from "@/components/layout";
 import { TabNavigation } from "@/components/ui";
-import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
 
 import { StoreSettingsTab } from "./components/StoreSettingsTab";
 import { InvoiceSettingsTab } from "./components/InvoiceSettingsTab";
@@ -12,21 +11,10 @@ import { SessionsTab } from "./components/SessionsTab";
 
 
 export default function SettingsPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
   const [activeTab, setActiveTab] = useState("store");
-
-  useEffect(() => {
-    const storedUser = getStoredUser();
-    const storedPermissions = getStoredPermissions();
-    setUser(storedUser);
-    setPermissions(storedPermissions);
-  }, []);
 
   return (
     <MainLayout requiredModule="settings">
-      <PageHeader title="الإعدادات" user={user} showDate={true} />
-
       <div className="settings-wrapper animate-fade">
         <TabNavigation
           tabs={[

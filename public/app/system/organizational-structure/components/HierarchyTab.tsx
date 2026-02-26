@@ -296,12 +296,12 @@ export function HierarchyTab() {
                                 onChange={(e) => setFilterDomain(e.target.value)}
                                 options={filteredDomains.map((d) => ({ value: d, label: d }))}
                                 placeholder="جميع المجالات"
-                                style={{ maxWidth: "160px", fontSize: "0.8rem" }}
+                                style={{ maxWidth: "160px" }}
                             />
-                            <Button variant="secondary" onClick={expandAll} style={{ fontSize: "0.9rem", padding: "10px 8px", minHeight: "45px" }}>
+                            <Button variant="secondary" onClick={expandAll} style={{ fontSize: "0.9rem", minHeight: "45px" }}>
                                 توسيع الكل
                             </Button>
-                            <Button variant="secondary" onClick={collapseAll} style={{ fontSize: "0.9rem", padding: "10px 8px", minHeight: "45px" }}>
+                            <Button variant="secondary" onClick={collapseAll} style={{ fontSize: "0.9rem", minHeight: "45px" }}>
                                 طي الكل
                             </Button>
                         </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { ExpatForm } from "../ExpatForm";
 import { getStoredUser } from "@/lib/auth";
 import { useState, useEffect } from "react";
@@ -13,9 +13,8 @@ export default function AddExpatPage() {
     }, []);
 
     return (
-        <ModuleLayout groupKey="hr" requiredModule="expat-management">
-            <PageHeader title="إضافة سجل مغترب جديد" user={user} showDate={true} />
+        <MainLayout >
             <ExpatForm />
-        </ModuleLayout>
+        </MainLayout>
     );
 }

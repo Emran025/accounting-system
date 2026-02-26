@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { Table, Dialog, showToast, Column, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -242,8 +242,6 @@ export default function DashboardPage() {
 
     return (
         <MainLayout requiredModule="dashboard">
-            <PageHeader title="لوحة التحكم" user={user} showDate={true} />
-
             <ExchangeRatesWidget />
 
             {/* Stats Grid */}
@@ -357,7 +355,7 @@ export default function DashboardPage() {
                     <div className="section-header">
                         <h3>المبيعات الأخيرة</h3>
                         {canAccess(permissions, "sales", "view") && (
-                            <Button href="/sales/sales" size="sm" variant="secondary">
+                            <Button href="/sales/sales" variant="secondary">
                                 عرض الكل
                             </Button>
                         )}

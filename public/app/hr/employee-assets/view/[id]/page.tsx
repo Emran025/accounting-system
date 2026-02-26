@@ -1,6 +1,6 @@
 "use client";
 
-import { ModuleLayout, PageHeader, PageSubHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { getStoredUser } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { fetchAPI } from "@/lib/api";
@@ -56,9 +56,7 @@ export default function ViewAssetPage({ params }: { params: { id: string } }) {
     };
 
     return (
-        <ModuleLayout groupKey="hr" requiredModule="employee-assets">
-            <PageHeader title="تفاصيل الأصل" user={user} showDate={true} />
-
+        <MainLayout >
             {isLoading ? (
                 <div className="text-center p-8">جاري التحميل...</div>
             ) : asset ? (
@@ -158,6 +156,6 @@ export default function ViewAssetPage({ params }: { params: { id: string } }) {
             ) : (
                 <div className="text-center text-red-500 p-8">عذراً، لم يتم العثور على الأصل المطلوب.</div>
             )}
-        </ModuleLayout>
+        </MainLayout>
     );
 }

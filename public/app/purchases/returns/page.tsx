@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import {
     showAlert,
     showToast,
@@ -227,11 +227,8 @@ function ReturnsPageContent() {
        Render
     ────────────────────────────────────────────── */
     return (
-        <ModuleLayout groupKey="purchases" requiredModule="purchases">
-            <PageHeader
-                title="مرتجعات المشتريات"
-                user={user}
-
+        <MainLayout >
+            <PageSubHeader
                 actions={
                     <>
                         {
@@ -310,7 +307,7 @@ function ReturnsPageContent() {
                     loadReturns(1);
                 }}
             />
-        </ModuleLayout>
+        </MainLayout>
     );
 }
 

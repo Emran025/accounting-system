@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { ActionButtons, Table, Dialog, ConfirmDialog, showToast, Column, Button, NumberInput, SearchableSelect } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { Select } from "@/components/ui/select";
@@ -384,20 +384,20 @@ export default function JournalVouchersPage() {
   ];
 
   return (
-    <ModuleLayout groupKey="finance" requiredModule="journal_vouchers">
-      <PageHeader
-        title="سندات القيد"
-        user={user}
-        actions={
-          canAccess(permissions, "journal_vouchers", "create") && (
-            <Button icon="plus" onClick={openAddDialog}>
-              إنشاء سند
-            </Button>
-          )
-        }
-      />
+    <MainLayout>
+
 
       <div className="sales-card animate-fade">
+        <PageSubHeader
+          user={user}
+          actions={
+            canAccess(permissions, "journal_vouchers", "create") && (
+              <Button icon="plus" onClick={openAddDialog}>
+                إنشاء سند
+              </Button>
+            )
+          }
+        />
         <Table
           columns={columns}
           data={vouchers}
@@ -534,7 +534,7 @@ export default function JournalVouchersPage() {
         confirmText="حذف"
         confirmVariant="danger"
       />
-    </ModuleLayout>
+    </MainLayout>
   );
 }
 

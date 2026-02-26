@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { Table, ConfirmDialog, showToast, Column, SearchableSelect, Button, SelectOption, showAlert } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -220,8 +220,7 @@ export default function ReceiptsPage() {
     ];
 
     return (
-        <ModuleLayout groupKey="sales" requiredModule="ar_customers">
-            <PageHeader title="سندات القبض المباشرة" user={user} />
+        <MainLayout>
             <div id="alert-container"></div>
 
             <div className="sales-layout" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -337,6 +336,6 @@ export default function ReceiptsPage() {
                 confirmText="حذف السند"
                 confirmVariant="danger"
             />
-        </ModuleLayout>
+        </MainLayout>
     );
 }

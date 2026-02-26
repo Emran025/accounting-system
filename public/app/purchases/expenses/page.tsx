@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, SearchableSelect, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -237,9 +237,11 @@ export default function ExpensesPage() {
   ];
 
   return (
-    <ModuleLayout groupKey="purchases" requiredModule="expenses">
-      <PageHeader
-        title="المصروفات"
+    <MainLayout >
+
+      <div className="sales-card animate-fade">
+      <PageSubHeader
+        title=""
         user={user}
         searchInput={
           <SearchableSelect
@@ -264,8 +266,6 @@ export default function ExpensesPage() {
           )
         }
       />
-
-      <div className="sales-card animate-fade">
         <Table
           columns={columns}
           data={expenses}
@@ -399,7 +399,7 @@ export default function ExpensesPage() {
         confirmText="حذف"
         confirmVariant="danger"
       />
-    </ModuleLayout>
+    </MainLayout>
   );
 }
 

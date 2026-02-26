@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { getStoredUser } from "@/lib/auth";
 import { KnowledgeBase } from "./KnowledgeBase";
 
@@ -13,10 +13,9 @@ export default function KnowledgeBasePage() {
     }, []);
 
     return (
-        <ModuleLayout groupKey="hr" requiredModule="knowledge">
-            <PageHeader title="قاعدة المعرفة" user={user} showDate={true} />
+        <MainLayout >
             <KnowledgeBase />
-        </ModuleLayout>
+        </MainLayout>
     );
 }
 

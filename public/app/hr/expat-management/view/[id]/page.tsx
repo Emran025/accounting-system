@@ -1,6 +1,6 @@
 "use client";
 
-import { ModuleLayout, PageHeader, PageSubHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { getStoredUser } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { fetchAPI } from "@/lib/api";
@@ -46,9 +46,7 @@ export default function ViewExpatPage({ params }: { params: { id: string } }) {
     };
 
     return (
-        <ModuleLayout groupKey="hr" requiredModule="expat-management">
-            <PageHeader title="تفاصيل سجل المغترب" user={user} showDate={true} />
-
+        <MainLayout >
             {isLoading ? (
                 <div className="text-center p-8">جاري التحميل...</div>
             ) : record ? (
@@ -196,6 +194,6 @@ export default function ViewExpatPage({ params }: { params: { id: string } }) {
             ) : (
                 <div className="text-center text-red-500 p-8">عذراً، لم يتم العثور على السجل المطلوب.</div>
             )}
-        </ModuleLayout>
+        </MainLayout>
     );
 }

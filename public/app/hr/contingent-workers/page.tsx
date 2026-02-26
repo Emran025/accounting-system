@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { getStoredUser } from "@/lib/auth";
 import { ContingentWorkers } from "./ContingentWorkers";
 
@@ -13,10 +13,9 @@ export default function ContingentWorkersPage() {
   }, []);
 
   return (
-    <ModuleLayout groupKey="hr" requiredModule="contingent">
-      <PageHeader title="العمالة المؤقتة" user={user} showDate={true} />
+    <MainLayout >
       <ContingentWorkers />
-    </ModuleLayout>
+    </MainLayout>
   );
 }
 

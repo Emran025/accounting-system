@@ -1,6 +1,6 @@
 "use client";
 
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { ContractForm } from "../../ContractForm";
 import { getStoredUser } from "@/lib/auth";
 import { useState, useEffect } from "react";
@@ -32,13 +32,12 @@ export default function EditContractPage({ params }: { params: { id: string } })
     };
 
     return (
-        <ModuleLayout groupKey="hr" requiredModule="contracts">
-            <PageHeader title="تعديل العقد" user={user} showDate={true} />
+        <MainLayout >
             {isLoading ? (
                 <div className="text-center p-8">جاري التحميل...</div>
             ) : (
                 contract && <ContractForm contract={contract} />
             )}
-        </ModuleLayout>
+        </MainLayout>
     );
 }

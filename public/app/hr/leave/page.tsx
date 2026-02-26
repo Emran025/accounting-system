@@ -1,6 +1,6 @@
 "use client";
 
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { getStoredUser } from "@/lib/auth";
 import { LeaveRequests } from "./LeaveRequests";
 
@@ -8,10 +8,9 @@ export default function LeaveRequestsPage() {
   const user = getStoredUser();
 
   return (
-    <ModuleLayout groupKey="hr" requiredModule="payroll">
-      <PageHeader title="طلبات الإجازة" user={user} showDate={true} />
+    <MainLayout >
       <LeaveRequests />
-    </ModuleLayout>
+    </MainLayout>
   );
 }
 

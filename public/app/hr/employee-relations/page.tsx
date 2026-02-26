@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { getStoredUser } from "@/lib/auth";
 import { EmployeeRelations } from "./EmployeeRelations";
 
@@ -13,10 +13,9 @@ export default function EmployeeRelationsPage() {
   }, []);
 
   return (
-    <ModuleLayout groupKey="hr" requiredModule="relations">
-      <PageHeader title="علاقات الموظفين" user={user} showDate={true} />
+    <MainLayout >
       <EmployeeRelations />
-    </ModuleLayout>
+    </MainLayout>
   );
 }
 

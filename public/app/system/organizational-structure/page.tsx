@@ -1,28 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { useState } from "react";
+import { MainLayout } from "@/components/layout";
 import { TabNavigation } from "@/components/ui";
-import { User, getStoredUser } from "@/lib/auth";
 import { OrganizationalStructure } from "./OrganizationalStructure";
 
 type OrgTab = "dashboard" | "nodes" | "meta_types" | "topology_rules" | "links" | "hierarchy" | "scope_context" | "integrity" | "change_history";
 
 export default function OrganizationalStructurePage() {
-  const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<OrgTab>("dashboard");
 
-  useEffect(() => {
-    setUser(getStoredUser());
-  }, []);
-
   return (
-    <ModuleLayout groupKey="dashboard" requiredModule="org_structure">
-      <PageHeader
-        title="الهيكل التنظيمي"
-        user={user}
-        showDate={true}
-      />
+    <MainLayout>
       <div className="settings-wrapper animate-fade">
         <TabNavigation
           tabs={[
@@ -39,10 +28,10 @@ export default function OrganizationalStructurePage() {
           activeTab={activeTab}
           onTabChange={(tab) => setActiveTab(tab as OrgTab)}
         />
-        <div style={{ marginTop: "1rem" }}>
+        <div>
           <OrganizationalStructure activeTab={activeTab} />
         </div>
       </div>
-    </ModuleLayout>
+    </MainLayout>
   );
 }

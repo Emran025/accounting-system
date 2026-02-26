@@ -1,6 +1,6 @@
 "use client";
 
-import { ModuleLayout, PageHeader, PageSubHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { getStoredUser } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { fetchAPI } from "@/lib/api";
@@ -44,9 +44,7 @@ export default function ViewContractPage({ params }: { params: { id: string } })
     };
 
     return (
-        <ModuleLayout groupKey="hr" requiredModule="contracts">
-            <PageHeader title="تفاصيل العقد" user={user} showDate={true} />
-
+        <MainLayout >
             {isLoading ? (
                 <div className="text-center p-8">جاري التحميل...</div>
             ) : contract ? (
@@ -138,6 +136,6 @@ export default function ViewContractPage({ params }: { params: { id: string } })
             ) : (
                 <div className="text-center text-red-500 p-8">عذراً، لم يتم العثور على العقد المطلوب.</div>
             )}
-        </ModuleLayout>
+        </MainLayout>
     );
 }

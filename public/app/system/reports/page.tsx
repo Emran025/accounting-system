@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { TabNavigation, Button } from "@/components/ui";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
@@ -30,24 +30,21 @@ export default function ReportsPage() {
 
     return (
         <MainLayout requiredModule="reports">
-            <PageHeader
-                title="التقارير المالية"
-                user={user}
-                showDate={true}
-                actions={
-                    <Button
-                        variant="secondary"
-                        onClick={handleExport}
-                        icon="download"
-                    >
-                        طباعة / تصدير
-                    </Button>
-                }
-            />
 
             <div className="settings-wrapper animate-fade">
+                <PageSubHeader
+                    actions={
+                        <Button
+                            variant="secondary"
+                            onClick={handleExport}
+                            icon="download"
+                        >
+                            طباعة / تصدير
+                        </Button>
+                    }
+                />
                 {/* Tabs */}
-                <TabNavigation 
+                <TabNavigation
                     tabs={[
                         { key: "balance_sheet", label: "الميزانية العمومية", icon: "fa-balance-scale" },
                         { key: "profit_loss", label: "قائمة الدخل", icon: "fa-chart-line" },
@@ -66,7 +63,7 @@ export default function ReportsPage() {
                    If we unmount them (conditional rendering), they re-fetch when clicked. This is usually desired for fresh data. 
                    Let's use conditional rendering which is cleaner in React.
                 */}
-                
+
                 <div style={{ marginTop: "1.5rem" }}>
                     {activeTab === "balance_sheet" && <BalanceSheetTab />}
                     {activeTab === "profit_loss" && <ProfitLossTab />}

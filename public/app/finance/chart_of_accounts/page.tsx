@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { ActionButtons, Table, Dialog, ConfirmDialog, showToast, Column, SearchableSelect, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -250,45 +250,44 @@ export default function ChartOfAccountsPage() {
   ];
 
   return (
-    <ModuleLayout groupKey="finance" requiredModule="chart_of_accounts">
-      <PageHeader
-        title="دليل الحسابات"
-        user={user}
-        searchInput={
-          <SearchableSelect
-            placeholder="بحث بالرقم أو الاسم..."
-            value={searchTerm}
-            onSearch={(term) => {
-              setSearchTerm(term);
-              loadAccounts(term);
-            }}
-            onChange={(val) => {
-              const term = val?.toString() || "";
-              setSearchTerm(term);
-              loadAccounts(term);
-            }}
-            options={accounts.map(acc => ({ value: acc.id, label: `${acc.code} - ${acc.name}` }))}
-            className="header-search-bar"
-          />
-        }
-        actions={
-          canAccess(permissions, "chart_of_accounts", "create") && (
-            <Button variant="primary" icon="plus" onClick={openAddDialog}>
-              إضافة حساب
-            </Button>
-          )
-        }
-      />
+    <MainLayout >
       {/* 
       <div className="filter-section animate-fade" style={{ marginBottom: "1.5rem" }}>
-        <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
-          <input
-
-          />
-        </div>
+      <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
+      <input
+      
+      />
+      </div>
       </div> */}
 
       <div className="sales-card animate-fade">
+        <PageSubHeader
+          title=""
+          searchInput={
+            <SearchableSelect
+              placeholder="بحث بالرقم أو الاسم..."
+              value={searchTerm}
+              onSearch={(term) => {
+                setSearchTerm(term);
+                loadAccounts(term);
+              }}
+              onChange={(val) => {
+                const term = val?.toString() || "";
+                setSearchTerm(term);
+                loadAccounts(term);
+              }}
+              options={accounts.map(acc => ({ value: acc.id, label: `${acc.code} - ${acc.name}` }))}
+              className="header-search-bar"
+            />
+          }
+          actions={
+            canAccess(permissions, "chart_of_accounts", "create") && (
+              <Button variant="primary" icon="plus" onClick={openAddDialog}>
+                إضافة حساب
+              </Button>
+            )
+          }
+        />
         <Table
           columns={columns}
           data={accounts}
@@ -396,7 +395,7 @@ export default function ChartOfAccountsPage() {
         confirmText="حذف"
         confirmVariant="danger"
       />
-    </ModuleLayout>
+    </MainLayout>
   );
 }
 

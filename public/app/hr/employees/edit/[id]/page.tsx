@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { getStoredUser, User } from "@/lib/auth";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -116,9 +116,7 @@ export default function EditEmployeePage({ params }: { params: Promise<{ id: str
     if (isLoading) return <div className="p-5 text-center">جاري التحميل...</div>;
 
     return (
-        <ModuleLayout groupKey="hr" requiredModule="hr">
-            <PageHeader title="تعديل بيانات الموظف" user={user} showDate={true} />
-
+        <MainLayout >
             <div className="settings-wrapper animate-fade">
                 <TabNavigation
                     tabs={[
@@ -258,6 +256,6 @@ export default function EditEmployeePage({ params }: { params: Promise<{ id: str
                     )}
                 </div>
             </div>
-        </ModuleLayout>
+        </MainLayout>
     );
 }

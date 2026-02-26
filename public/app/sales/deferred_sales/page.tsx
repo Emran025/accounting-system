@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, SegmentedToggle, SelectableInvoiceTable, SalesReturnDialog, SelectedItem, SelectableInvoiceItem as UiInvoiceItem, showToast, InvoiceTableColumn, SelectableInvoice, ReturnData } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -767,9 +767,7 @@ export default function DeferredSalesPage() {
   ];
 
   return (
-    <ModuleLayout groupKey="sales" requiredModule="deferred_sales">
-      <PageHeader title="المبيعات الآجلة (ذمم)" user={user} />
-
+    <MainLayout >
       <div id="alert-container"></div>
 
       <div className="sales-layout">
@@ -871,7 +869,7 @@ export default function DeferredSalesPage() {
                   </div>
                 </div>
 
-                <div className="summary-stat-box" style={{ marginTop: "1rem" }}>
+                <div className="summary-stat-box">
                   <div className="stat-item">
                     <span className="stat-label">المجموع الفرعي</span>
                     <span id="item-subtotal" className="stat-value highlight">
@@ -1238,6 +1236,6 @@ export default function DeferredSalesPage() {
         confirmText="نعم، أضف المنتج"
         confirmVariant="danger"
       />
-    </ModuleLayout>
+    </MainLayout>
   );
 }

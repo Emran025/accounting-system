@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert , Button } from "@/components/ui";
+import { MainLayout, PageSubHeader } from "@/components/layout";
+import { Table, Dialog, ConfirmDialog, showToast, Column, showAlert, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatDate, parseNumber } from "@/lib/utils";
@@ -390,24 +390,22 @@ export default function RecurringTransactionsPage() {
 
     return (
         <MainLayout requiredModule="recurring_transactions">
-            <PageHeader
-                title="المعاملات المتكررة"
-                user={user}
-                showDate={true}
-                actions={
-                    <Button
-                        variant="primary"
-                        onClick={openCreateDialog}
-                        icon="plus"
-                    >
-                        قالب جديد
-                    </Button>
-                }
-            />
+
 
             <div id="alert-container"></div>
 
             <div className="sales-card animate-fade">
+                <PageSubHeader
+                    actions={
+                        <Button
+                            variant="primary"
+                            onClick={openCreateDialog}
+                            icon="plus"
+                        >
+                            قالب جديد
+                        </Button>
+                    }
+                />
                 <Table
                     columns={columns}
                     data={templates}

@@ -1,6 +1,6 @@
 "use client";
 
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { AssetForm } from "../../AssetForm";
 import { getStoredUser } from "@/lib/auth";
 import { useState, useEffect } from "react";
@@ -32,13 +32,12 @@ export default function EditAssetPage({ params }: { params: { id: string } }) {
     };
 
     return (
-        <ModuleLayout groupKey="hr" requiredModule="employee-assets">
-            <PageHeader title="تعديل الأصل" user={user} showDate={true} />
+        <MainLayout >
             {isLoading ? (
                 <div className="text-center p-8">جاري التحميل...</div>
             ) : (
                 asset && <AssetForm asset={asset} />
             )}
-        </ModuleLayout>
+        </MainLayout>
     );
 }

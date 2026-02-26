@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, Button, ActionButtons } from "@/components/ui";
 import { formatCurrency } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
@@ -161,29 +161,28 @@ export default function SalesRepresentativesPage() {
     ];
 
     return (
-        <ModuleLayout groupKey="sales" requiredModule="representatives">
-            <PageHeader
-                title="مناديب المبيعات / التسويق"
-                user={user}
-                searchInput={
-                    <input
-                        type="text"
-                        placeholder="بحث بالاسم أو الهاتف..."
-                        value={searchTerm}
-                        onChange={handleSearch}
-                        className="search-control"
-                    />
-                }
-                actions={
-                    canAccess(permissions, "representatives", "create") && (
-                        <Button variant="primary" icon="plus" onClick={openAddDialog}>
-                            إضافة مندوب
-                        </Button>
-                    )
-                }
-            />
+        <MainLayout >
 
             <div className="sales-card animate-fade">
+                <PageSubHeader
+                    title=""
+                    searchInput={
+                        <input
+                            type="text"
+                            placeholder="بحث بالاسم أو الهاتف..."
+                            value={searchTerm}
+                            onChange={handleSearch}
+                            className="search-control"
+                        />
+                    }
+                    actions={
+                        canAccess(permissions, "representatives", "create") && (
+                            <Button variant="primary" icon="plus" onClick={openAddDialog}>
+                                إضافة مندوب
+                            </Button>
+                        )
+                    }
+                />
                 <Table
                     columns={columns}
                     data={representatives}
@@ -325,6 +324,6 @@ export default function SalesRepresentativesPage() {
                 title="تأكيد الحذف"
                 message="هل أنت متأكد من حذف هذا المندوب؟"
             />
-        </ModuleLayout>
+        </MainLayout>
     );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { getStoredUser } from "@/lib/auth";
 import { ExpatManagement } from "./ExpatManagement";
 
@@ -13,10 +13,9 @@ export default function ExpatManagementPage() {
   }, []);
 
   return (
-    <ModuleLayout groupKey="hr" requiredModule="employees">
-      <PageHeader title="إدارة العمالة الأجنبية" user={user} showDate={true} />
+    <MainLayout >
       <ExpatManagement />
-    </ModuleLayout>
+    </MainLayout>
   );
 }
 

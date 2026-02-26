@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, Button, SearchableSelect, SelectOption, showToast, Column } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -322,9 +322,11 @@ export default function PurchasesPage() {
     ];
 
     return (
-        <ModuleLayout groupKey="purchases" requiredModule="purchases">
-            <PageHeader
-                title="المشتريات"
+        <MainLayout >
+
+            <div className="sales-card animate-fade">
+            <PageSubHeader
+                title=""
                 user={user}
                 searchInput={
                     <SearchableSelect
@@ -360,8 +362,6 @@ export default function PurchasesPage() {
                     </>
                 }
             />
-
-            <div className="sales-card animate-fade">
                 <Table
                     columns={columns}
                     data={purchases}
@@ -549,6 +549,6 @@ export default function PurchasesPage() {
                 title="تأكيد الحذف"
                 message="هل أنت متأكد من حذف هذا المشترى؟ سيتم خصم الكمية من المخزون."
             />
-        </ModuleLayout>
+        </MainLayout>
     );
 }

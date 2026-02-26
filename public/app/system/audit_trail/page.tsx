@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { Table, showToast, Column, FilterSection, FilterGroup, DateRangePicker, FilterActions, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -143,18 +143,15 @@ export default function AuditTrailPage() {
 
   return (
     <MainLayout requiredModule="audit_trail">
-      <PageHeader
-        title="سجل المراجعة"
-        user={user}
-        showDate={true}
-        actions={
-          <Button variant="secondary" onClick={handleExport} icon="download">
-            تصدير
-          </Button>
-        }
-      />
 
       <div className="sales-card animate-fade">
+        <PageSubHeader
+          actions={
+            <Button variant="secondary" onClick={handleExport} icon="download">
+              تصدير
+            </Button>
+          }
+        />
         {/* Filters */}
         <FilterSection>
           <DateRangePicker

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { TabMiniNavigation } from "@/components/ui";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess } from "@/lib/auth";
 
@@ -22,7 +22,6 @@ export default function SettingsPage() {
 
   return (
     <MainLayout requiredModule="currency">
-      <PageHeader title="إدارة العملات" user={user} showDate={true} />
 
 
       {/* Inner Tab Navigation */}

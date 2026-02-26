@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ModuleLayout, PageHeader, PageSubHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { Table, showToast, Column, TabNavigation, FilterSection, FilterGroup, DateRangePicker, FilterActions, Button } from "@/components/ui";
 import { Select } from "@/components/ui/select";
 import { fetchAPI } from "@/lib/api";
@@ -290,23 +290,21 @@ export default function GeneralLedgerPage() {
   ];
 
   return (
-    <ModuleLayout groupKey="finance" requiredModule="general_ledger">
-      <PageHeader
-        title="دفتر الأستاذ العام"
-        user={user}
-        actions={
-          <>
-            <Button variant="secondary" onClick={handleExport} icon="download">
-              تصدير
-            </Button>
-            <Button variant="primary" onClick={handleRefresh} icon="refresh">
-              تحديث
-            </Button>
-          </>
-        }
-      />
-
+    <MainLayout>
       <div className="settings-wrapper animate-fade">
+        <PageSubHeader
+          user={user}
+          actions={
+            <>
+              <Button variant="secondary" onClick={handleExport} icon="download">
+                تصدير
+              </Button>
+              <Button variant="primary" onClick={handleRefresh} icon="refresh">
+                تحديث
+              </Button>
+            </>
+          }
+        />
         <TabNavigation
           tabs={[
             { key: "journal", label: "القيود اليومية", icon: "fa-book" },
@@ -438,6 +436,6 @@ export default function GeneralLedgerPage() {
           </div>
         </div>
       </div>
-    </ModuleLayout>
+    </MainLayout>
   );
 }

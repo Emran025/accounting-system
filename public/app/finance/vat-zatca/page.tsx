@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { TabMiniNavigation } from "@/components/ui";
 import { User, getStoredUser, getStoredPermissions, Permission } from "@/lib/auth";
 
@@ -22,8 +22,6 @@ export default function VatZatcaPage() {
 
     return (
         <MainLayout requiredModule="dashboard">
-            <PageHeader title="إدارة الضرائب والزكاة" user={user} showDate={true} />
-
             <div className="settings-wrapper animate-fade">
                 <TabMiniNavigation
                     title="إعدادات الضرائب (VAT) والربط مع زاتكا (ZATCA)"
@@ -36,7 +34,7 @@ export default function VatZatcaPage() {
                     onTabChange={setActiveTab}
                 />
 
-                <div style={{ marginTop: "1rem" }}>
+                <div >
                     {activeTab === "fees" && <GovernmentFeesTab />}
                     {activeTab === "zatca" && <ZatcaSettingsTab />}
                 </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, Button, ActionButtons } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
@@ -163,29 +163,27 @@ export default function ARCustomersPage() {
     ];
 
     return (
-        <ModuleLayout groupKey="sales" requiredModule="ar_customers">
-            <PageHeader
-                title="عملاء الآجل (Accounts Receivable)"
-                user={user}
-                searchInput={
-                    <input
-                        type="text"
-                        placeholder="بحث بالاسم أو الهاتف..."
-                        value={searchTerm}
-                        onChange={handleSearch}
-                        className="search-control"
-                    />
-                }
-                actions={
-                    canAccess(permissions, "ar_customers", "create") && (
-                        <Button variant="primary" icon="plus" onClick={openAddDialog}>
-                            إضافة عميل
-                        </Button>
-                    )
-                }
-            />
-
+        <MainLayout>
             <div className="sales-card animate-fade">
+                <PageSubHeader
+                    user={user}
+                    searchInput={
+                        <input
+                            type="text"
+                            placeholder="بحث بالاسم أو الهاتف..."
+                            value={searchTerm}
+                            onChange={handleSearch}
+                            className="search-control"
+                        />
+                    }
+                    actions={
+                        canAccess(permissions, "ar_customers", "create") && (
+                            <Button variant="primary" icon="plus" onClick={openAddDialog}>
+                                إضافة عميل
+                            </Button>
+                        )
+                    }
+                />
                 <Table
                     columns={columns}
                     data={customers}
@@ -332,6 +330,6 @@ export default function ARCustomersPage() {
                 title="تأكيد الحذف"
                 message="هل أنت متأكد من حذف هذا العميل؟ سيتم حذف جميع الفواتير المرتبطة به."
             />
-        </ModuleLayout>
+        </MainLayout>
     );
 }

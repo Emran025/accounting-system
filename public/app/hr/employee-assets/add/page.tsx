@@ -1,6 +1,6 @@
 "use client";
 
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { AssetForm } from "../AssetForm";
 import { getStoredUser } from "@/lib/auth";
 import { useState, useEffect } from "react";
@@ -13,9 +13,8 @@ export default function AddAssetPage() {
     }, []);
 
     return (
-        <ModuleLayout groupKey="hr" requiredModule="employee-assets">
-            <PageHeader title="إضافة أصل جديد" user={user} showDate={true} />
+        <MainLayout >
             <AssetForm />
-        </ModuleLayout>
+        </MainLayout>
     );
 }

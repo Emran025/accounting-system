@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, SearchableSelect, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -210,33 +210,33 @@ export default function RevenuesPage() {
     ];
 
     return (
-        <ModuleLayout groupKey="sales" requiredModule="revenues">
-            <PageHeader
-                title="الإيرادات"
-                user={user}
-                searchInput={
-                    <SearchableSelect
-                        options={[]}
-                        value={null}
-                        onChange={() => { }}
-                        onSearch={(val) => {
-                            setSearchTerm(val);
-                            loadRevenues(1, val);
-                        }}
-                        placeholder="بحث سريع..."
-                        className="header-search-bar"
-                    />
-                }
-                actions={
-                    canAccess(permissions, "revenues", "create") && (
-                        <Button icon="plus" onClick={openAddDialog}>
-                            إضافة إيراد
-                        </Button>
-                    )
-                }
-            />
+        <MainLayout>
 
             <div className="sales-card animate-fade">
+                <PageSubHeader
+                    title=""
+                    user={user}
+                    searchInput={
+                        <SearchableSelect
+                            options={[]}
+                            value={null}
+                            onChange={() => { }}
+                            onSearch={(val) => {
+                                setSearchTerm(val);
+                                loadRevenues(1, val);
+                            }}
+                            placeholder="بحث سريع..."
+                            className="header-search-bar"
+                        />
+                    }
+                    actions={
+                        canAccess(permissions, "revenues", "create") && (
+                            <Button icon="plus" onClick={openAddDialog}>
+                                إضافة إيراد
+                            </Button>
+                        )
+                    }
+                />
                 <Table
                     columns={columns}
                     data={revenues}
@@ -332,7 +332,7 @@ export default function RevenuesPage() {
                 confirmText="حذف"
                 confirmVariant="danger"
             />
-        </ModuleLayout>
+        </MainLayout>
     );
 }
 

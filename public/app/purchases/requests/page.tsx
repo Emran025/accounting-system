@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { Button, ConfirmDialog, showToast } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -103,35 +103,34 @@ export default function PurchaseRequestsPage() {
     };
 
     return (
-        <ModuleLayout groupKey="purchases" requiredModule="purchases">
-            <PageHeader
-                title="إدارة طلبات الشراء"
-                user={user}
-                actions={
-                    <>
-                        {canAccess(permissions, "purchases", "create") && (
-                            <Button
-                                variant="secondary"
-                                icon="refresh"
-                                onClick={() => setIsAutoOpen(true)}
-                            >
-                                توليد طلبات للنواقص
-                            </Button>
-                        )}
-                        {canAccess(permissions, "purchases", "create") && (
-                            <Button
-                                variant="primary"
-                                icon="plus"
-                                onClick={() => setIsAddOpen(true)}
-                            >
-                                طلب جديد
-                            </Button>
-                        )}
-                    </>
-                }
-            />
+        <MainLayout >
 
             <div className="sales-card animate-fade">
+                <PageSubHeader
+                    user={user}
+                    actions={
+                        <>
+                            {canAccess(permissions, "purchases", "create") && (
+                                <Button
+                                    variant="secondary"
+                                    icon="refresh"
+                                    onClick={() => setIsAutoOpen(true)}
+                                >
+                                    توليد طلبات للنواقص
+                                </Button>
+                            )}
+                            {canAccess(permissions, "purchases", "create") && (
+                                <Button
+                                    variant="primary"
+                                    icon="plus"
+                                    onClick={() => setIsAddOpen(true)}
+                                >
+                                    طلب جديد
+                                </Button>
+                            )}
+                        </>
+                    }
+                />
                 <RequestsTable
                     requests={requests}
                     isLoading={isLoading}
@@ -156,6 +155,6 @@ export default function PurchaseRequestsPage() {
                 cancelText="إلغاء"
                 onConfirm={handleAutoGenerate}
             />
-        </ModuleLayout>
+        </MainLayout>
     );
 }

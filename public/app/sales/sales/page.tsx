@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
-import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, showToast, SegmentedToggle, SelectableInvoiceTable, SalesReturnDialog, SelectedItem, SelectableInvoiceItem as UiInvoiceItem, InvoiceTableColumn, SelectableInvoice, ReturnData } from "@/components/ui";
+import { MainLayout } from "@/components/layout";
+import { Table, Dialog, ConfirmDialog, Column, showAlert, NumberInput, SearchableSelect, SelectOption, showToast, SegmentedToggle, SelectableInvoiceTable, SalesReturnDialog, SelectedItem, SelectableInvoiceItem as UiInvoiceItem, InvoiceTableColumn, SelectableInvoice, ReturnData, Label } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { formatCurrency, formatDateTime, parseNumber } from "@/lib/utils";
@@ -772,8 +772,7 @@ export default function SalesPage() {
     ];
 
     return (
-        <ModuleLayout groupKey="sales" requiredModule="sales">
-            <PageHeader title="المبيعات النقدية / نقطة البيع" user={user} />
+        <MainLayout>
 
             <div id="alert-container"></div>
 
@@ -926,8 +925,9 @@ export default function SalesPage() {
                                 />
 
                                 <div className="form-group" style={{ marginBottom: 0, minWidth: '250px' }}>
-                                    <label>المندوب (اختياري)</label>
+                                    <Label title="المندوب (اختياري)" />
                                     <SearchableSelect
+
                                         options={salesRepresentatives.map((r) => ({
                                             value: r.id,
                                             label: r.name,
@@ -1174,6 +1174,6 @@ export default function SalesPage() {
                 confirmText="نعم، متابعة"
                 confirmVariant="primary"
             />
-        </ModuleLayout>
+        </MainLayout>
     );
 }

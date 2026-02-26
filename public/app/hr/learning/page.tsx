@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { getStoredUser } from "@/lib/auth";
 import { Learning } from "./Learning";
 
@@ -13,10 +13,9 @@ export default function LearningPage() {
   }, []);
 
   return (
-    <ModuleLayout groupKey="hr" requiredModule="learning">
-      <PageHeader title="التدريب والتعلم" user={user} showDate={true} />
+    <MainLayout >
       <Learning />
-    </ModuleLayout>
+    </MainLayout>
   );
 }
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { ConfirmDialog, showToast, showAlert, Button, SalesReturnDialog, SelectedItem, SelectableInvoiceItem } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -263,9 +263,8 @@ function LedgerPageContent() {
     if (!representativeId) return null;
 
     return (
-        <ModuleLayout groupKey="finance" requiredModule="finance">
-            <PageHeader
-                title="كشف حساب المندوب"
+        <MainLayout >
+            <PageSubHeader
                 user={user}
                 actions={
                     <>
@@ -374,7 +373,7 @@ function LedgerPageContent() {
                 message="هل أنت متأكد من حذف هذه العملية؟ سيؤثر هذا على رصيد المندوب."
                 confirmVariant="danger"
             />
-        </ModuleLayout>
+        </MainLayout>
     );
 }
 

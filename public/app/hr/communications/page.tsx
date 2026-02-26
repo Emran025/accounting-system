@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { getStoredUser } from "@/lib/auth";
 import { CorporateCommunications } from "./CorporateCommunications";
 
@@ -13,9 +13,8 @@ export default function CommunicationsPage() {
     }, []);
 
     return (
-        <ModuleLayout groupKey="hr" requiredModule="communications">
-            <PageHeader title="الاتصالات المؤسسية" user={user} showDate={true} />
+        <MainLayout >
             <CorporateCommunications />
-        </ModuleLayout>
+        </MainLayout>
     );
 }

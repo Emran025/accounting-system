@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, Button } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -387,22 +387,21 @@ export default function BatchProcessingPage() {
 
   return (
     <MainLayout requiredModule="batch_processing">
-      <PageHeader
-        title="المعالجة الدفعية"
-        user={user}
-        showDate={true}
-        actions={
-          <Button
-          variant="primary"
-          onClick={openCreateDialog}
-          icon="plus"
-          >
-            دفعة جديدة
-          </Button>
-        }
-      />
 
       <div className="sales-card animate-fade">
+        <PageSubHeader
+          user={user}
+          showDate={true}
+          actions={
+            <Button
+              variant="primary"
+              onClick={openCreateDialog}
+              icon="plus"
+            >
+              دفعة جديدة
+            </Button>
+          }
+        />
         <Table
           columns={columns}
           data={batches}

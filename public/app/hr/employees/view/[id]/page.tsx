@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import dynamic from "next/dynamic";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout } from "@/components/layout";
 import { getStoredUser, User } from "@/lib/auth";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -49,18 +49,18 @@ export default function ViewEmployeePage({ params }: { params: Promise<{ id: str
 
     if (isLoading) {
         return (
-            <ModuleLayout groupKey="hr" requiredModule="hr">
+            <MainLayout >
                 <div className="flex flex-col items-center justify-center p-20 min-h-[60vh] text-center">
                     <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: 'var(--primary-color)', borderTopColor: 'transparent' }}></div>
                     <p className="text-muted" style={{ fontSize: '1.1rem' }}>جاري تحميل بيانات الموظف...</p>
                 </div>
-            </ModuleLayout>
+            </MainLayout>
         );
     }
 
     if (!employee) {
         return (
-            <ModuleLayout groupKey="hr" requiredModule="hr">
+            <MainLayout >
                 <div className="empty-state animate-fade" style={{ minHeight: '60vh', padding: '4rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{
                         width: '100px', height: '100px', borderRadius: '50%',
@@ -85,17 +85,12 @@ export default function ViewEmployeePage({ params }: { params: Promise<{ id: str
                         </Button>
                     </div>
                 </div>
-            </ModuleLayout>
+            </MainLayout>
         );
     }
 
     return (
-        <ModuleLayout groupKey="hr" requiredModule="hr">
-            <PageHeader
-                title={`ملف الموظف: ${employee.full_name}`}
-                user={user}
-                showDate={true}
-            />
+        <MainLayout >
 
             <div className="settings-wrapper animate-fade">
                 <TabNavigation
@@ -114,6 +109,6 @@ export default function ViewEmployeePage({ params }: { params: Promise<{ id: str
                     {activeTab === 'financial' && <FinancialTab employee={employee} />}
                 </div>
             </div>
-        </ModuleLayout>
+        </MainLayout>
     );
 }

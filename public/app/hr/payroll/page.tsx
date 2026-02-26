@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
-import { getStoredUser } from "@/lib/auth";
+import { MainLayout, } from "@/components/layout";
 
 import { Payroll } from "./Payroll";
 
@@ -10,16 +8,9 @@ import { Payroll } from "./Payroll";
 // Assuming it exists as per plan.
 
 export default function HRPage() {
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    setUser(getStoredUser());
-  }, []);
-
   return (
-    <ModuleLayout groupKey="hr" requiredModule="payroll">
-      <PageHeader title="الرواتب والمستحقات" user={user} showDate={true} />
+    <MainLayout >
       <Payroll />
-    </ModuleLayout>
+    </MainLayout>
   );
 }

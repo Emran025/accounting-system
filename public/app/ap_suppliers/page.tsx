@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MainLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, Button } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { User, getStoredUser, getStoredPermissions, Permission, canAccess, checkAuth } from "@/lib/auth";
@@ -153,8 +153,10 @@ export default function SuppliersPage() {
 
     return (
         <MainLayout requiredModule="ap_suppliers">
-            <PageHeader
-                title="الموردين (Accounts Payable)"
+
+
+            <div className="sales-card animate-fade">
+                            <PageSubHeader
                 user={user}
                 searchInput={
                     <input
@@ -173,8 +175,6 @@ export default function SuppliersPage() {
                     )
                 }
             />
-
-            <div className="sales-card animate-fade">
                 <Table
                     columns={columns}
                     data={suppliers}

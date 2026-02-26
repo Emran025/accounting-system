@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { ActionButtons, Table, Dialog, ConfirmDialog, showToast, Column, showAlert, Button } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { fetchAPI } from "@/lib/api";
@@ -291,20 +291,20 @@ export default function FiscalPeriodsPage() {
   ];
 
   return (
-    <ModuleLayout groupKey="finance" requiredModule="fiscal_periods">
-      <PageHeader
-        title="الفترات المالية"
-        user={user}
-        actions={
-          <Button variant="primary" icon="plus" onClick={openCreateDialog}>
-            فترة جديدة
-          </Button>
-        }
-      />
+    < MainLayout>
+
 
       <div id="alert-container"></div>
 
       <div className="sales-card animate-fade">
+        <PageSubHeader
+          user={user}
+          actions={
+            <Button variant="primary" icon="plus" onClick={openCreateDialog}>
+              فترة جديدة
+            </Button>
+          }
+        />
         <Table
           columns={columns}
           data={periods}
@@ -392,7 +392,7 @@ export default function FiscalPeriodsPage() {
         confirmText="تأكيد"
         confirmVariant={confirmAction?.type === "close" ? "danger" : "primary"}
       />
-    </ModuleLayout>
+    </MainLayout>
   );
 }
 

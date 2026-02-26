@@ -1,122 +1,48 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { NavigationCard, NavigationGrid, NavigationSidebar } from "@/components/navigation";
-import { navigationGroups, getNavigationGroup } from "@/lib/navigation-config";
-import { checkAuth, Permission, canAccess, User } from "@/lib/auth";
-import { initSystemSettings } from "@/lib/settings";
-import { PageHeader } from "@/components/layout";
+import { useSearchParams } from "next/navigation";
+import { NavigationCard, NavigationGrid } from "@/components/navigation";
+import { getNavigationGroup } from "@/lib/navigation-config";
+import { canAccess } from "@/lib/auth";
+import { MainLayout } from "@/components/layout";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { Suspense } from "react";
 
-export default function NavigationPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [activeGroup, setActiveGroup] = useState("dashboard");
-  const [isContentExpanded, setIsContentExpanded] = useState(false);
+function NavigationContent() {
+  const searchParams = useSearchParams();
+  const { permissions } = useAuthStore();
 
-  useEffect(() => {
-    const verifyAuth = async () => {
-      await initSystemSettings();
-      const authState = await checkAuth();
-
-      if (!authState.isAuthenticated) {
-        router.push("/auth/login");
-        return;
-      }
-
-      setPermissions(authState.permissions);
-      setIsLoading(false);
-
-      // Check saved sidebar state
-      const savedCollapsed = localStorage.getItem("navSidebarCollapsed");
-      if (savedCollapsed === "true") {
-        setIsContentExpanded(true);
-        document.body.classList.add("nav-sidebar-is-collapsed");
-      }
-    };
-
-    verifyAuth();
-  }, [router]);
-
-  const handleSidebarCollapse = (collapsed: boolean) => {
-    setIsContentExpanded(collapsed);
-  };
-
-  // Filter groups based on permissions (show group if user has access to at least one link)
-  const accessibleGroups = navigationGroups.filter((group) =>
-    group.links.some((link) => canAccess(permissions, link.module, "view"))
-  );
+  // Read the active group from the query string, defaulting to "dashboard"
+  const activeGroup = searchParams.get("group") || "dashboard";
 
   const currentGroup = getNavigationGroup(activeGroup);
   const accessibleLinks = currentGroup
     ? currentGroup.links.filter((link) => canAccess(permissions, link.module, "view"))
     : [];
 
-  if (isLoading) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: "100vh",
-          background: "var(--bg-color)",
-        }}
-      >
-        <div style={{ textAlign: "center" }}>
-          <div
-            style={{
-              width: "40px",
-              height: "40px",
-              border: "3px solid var(--border-color)",
-              borderTopColor: "var(--primary-color)",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-              margin: "0 auto 1rem",
-            }}
-          />
-          <p style={{ color: "var(--text-secondary)" }}>جاري التحميل...</p>
-        </div>
-        <style jsx>{`
-          @keyframes spin {
-            to {
-              transform: rotate(360deg);
-            }
-          }
-        `}</style>
-      </div>
-    );
-  }
-
   return (
-    <div className="navigation-page">
-      <NavigationSidebar
-        groups={accessibleGroups}
-        activeGroup={activeGroup}
-        onGroupSelect={setActiveGroup}
-        onCollapsedChange={handleSidebarCollapse}
-      />
+    <>
+      <NavigationGrid>
+        {accessibleLinks.map((link) => (
+          <NavigationCard
+            key={link.href + link.label}
+            href={link.href}
+            icon={link.icon}
+            label={link.label}
+            description={link.description}
+          />
+        ))}
+      </NavigationGrid>
+    </>
+  );
+}
 
-      <main className={`navigation-content ${isContentExpanded ? "expanded" : ""}`}>
-        <PageHeader
-          title={currentGroup?.label || "التنقل"}
-          user={user}
-        />
-
-        <NavigationGrid>
-          {accessibleLinks.map((link) => (
-            <NavigationCard
-              key={link.href + link.label}
-              href={link.href}
-              icon={link.icon}
-              label={link.label}
-              description={link.description}
-            />
-          ))}
-        </NavigationGrid>
-      </main>
-    </div>
+export default function NavigationPage() {
+  return (
+    <MainLayout>
+      <Suspense fallback={<div style={{ textAlign: "center", padding: "2rem", color: "var(--text-secondary)" }}>جاري التحميل...</div>}>
+        <NavigationContent />
+      </Suspense>
+    </MainLayout>
   );
 }

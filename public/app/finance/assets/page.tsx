@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { ActionButtons, Table, Dialog, ConfirmDialog, Button, Column, showAlert, SearchableSelect, NumberInput } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { Textarea } from "@/components/ui/Textarea";
@@ -268,37 +268,37 @@ export default function AssetsPage() {
     ];
 
     return (
-        <ModuleLayout groupKey="finance" requiredModule="assets">
-            <PageHeader
-                title="إدارة الأصول"
-                user={user}
-                searchInput={
-                    <SearchableSelect
-                        placeholder="بحث في الاسم أو الوصف..."
-                        value={searchTerm}
-                        options={assets.map((asset) => ({ value: asset.name, label: asset.name }))}
-                        onChange={(val) => setSearchTerm(val?.toString() || "")}
-                        onSearch={(term) => setSearchTerm(term)}
-                        className="header-search-bar"
-                        id="params-search"
-                    />
-                }
-                actions={
-                    canAccess(permissions, "assets", "create") && (
-                        <Button
-                            variant="primary"
-                            onClick={openAddDialog}
-                            icon="plus"
-                        >
-                            أصل جديد
-                        </Button>
-                    )
-                }
-            />
+        <MainLayout>
+
 
             <div id="alert-container"></div>
 
             <div className="sales-card animate-fade">
+                <PageSubHeader
+                    user={user}
+                    searchInput={
+                        <SearchableSelect
+                            placeholder="بحث في الاسم أو الوصف..."
+                            value={searchTerm}
+                            options={assets.map((asset) => ({ value: asset.name, label: asset.name }))}
+                            onChange={(val) => setSearchTerm(val?.toString() || "")}
+                            onSearch={(term) => setSearchTerm(term)}
+                            className="header-search-bar"
+                            id="params-search"
+                        />
+                    }
+                    actions={
+                        canAccess(permissions, "assets", "create") && (
+                            <Button
+                                variant="primary"
+                                onClick={openAddDialog}
+                                icon="plus"
+                            >
+                                أصل جديد
+                            </Button>
+                        )
+                    }
+                />
                 <Table
                     columns={columns}
                     data={assets}
@@ -410,7 +410,7 @@ export default function AssetsPage() {
                 confirmText="حذف"
                 confirmVariant="danger"
             />
-        </ModuleLayout>
+        </MainLayout>
     );
 }
 

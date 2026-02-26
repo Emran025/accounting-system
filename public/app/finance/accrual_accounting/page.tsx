@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { TabNavigation, Button} from "@/components/ui";
 import { User, getStoredUser, checkAuth } from "@/lib/auth";
 import { getIcon } from "@/lib/icons";
@@ -37,9 +37,8 @@ export default function AccrualAccountingPage() {
   };
 
   return (
-    <ModuleLayout groupKey="finance" requiredModule="accrual_accounting">
-      <PageHeader
-        title="المحاسبة الاستحقاقية"
+    <MainLayout>
+      <PageSubHeader
         user={user}
         actions={
           <Button
@@ -51,7 +50,6 @@ export default function AccrualAccountingPage() {
           </Button>
         }
       />
-
       <div id="alert-container"></div>
 
       <div className="settings-wrapper animate-fade">
@@ -65,7 +63,7 @@ export default function AccrualAccountingPage() {
           onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}
         />
 
-        <div style={{ marginTop: "1rem" }}>
+        <div>
             {activeTab === "payroll" && <PayrollTab key={`payroll-${refreshKey}`} />}
             {activeTab === "prepayments" && <PrepaymentsTab key={`prepayments-${refreshKey}`} />}
             {activeTab === "unearned" && <UnearnedRevenueTab key={`unearned-${refreshKey}`} />}
@@ -77,6 +75,6 @@ export default function AccrualAccountingPage() {
         onClose={() => setAccrualDialog(false)} 
         onSuccess={handleCreateSuccess}
       />
-    </ModuleLayout>
+    </MainLayout>
   );
 }

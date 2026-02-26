@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { Table, Dialog, ConfirmDialog, showToast, Column, Button, ActionButtons, NumberInput } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { Textarea } from "@/components/ui/Textarea";
@@ -254,29 +254,29 @@ export default function ProductsPage() {
     ];
 
     return (
-        <ModuleLayout groupKey="inventory" requiredModule="products">
-            <PageHeader
-                title="المنتجات / المخزون"
-                user={user}
-                searchInput={
-                    <input
-                        type="text"
-                        placeholder="بحث بالاسم أو الباركود..."
-                        value={searchTerm}
-                        onChange={handleSearch}
-                        className="search-control"
-                    />
-                }
-                actions={
-                    canAccess(permissions, "products", "create") && (
-                        <Button variant="primary" icon="plus" onClick={openAddDialog}>
-                            إضافة منتج
-                        </Button>
-                    )
-                }
-            />
+        <MainLayout >
+
 
             <div className="sales-card animate-fade">
+                <PageSubHeader
+                    title=""
+                    searchInput={
+                        <input
+                            type="text"
+                            placeholder="بحث بالاسم أو الباركود..."
+                            value={searchTerm}
+                            onChange={handleSearch}
+                            className="search-control"
+                        />
+                    }
+                    actions={
+                        canAccess(permissions, "products", "create") && (
+                            <Button variant="primary" icon="plus" onClick={openAddDialog}>
+                                إضافة منتج
+                            </Button>
+                        )
+                    }
+                />
                 <Table
                     columns={columns}
                     data={products}
@@ -459,6 +459,6 @@ export default function ProductsPage() {
                 title="تأكيد الحذف"
                 message="هل أنت متأكد من حذف هذا المنتج؟ سيتم حذف جميع السجلات المتعلقة به."
             />
-        </ModuleLayout>
+        </MainLayout>
     );
 }

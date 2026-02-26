@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { ActionButtons, Table, Dialog, ConfirmDialog, showToast, Column, showAlert, NumberInput, Button } from "@/components/ui";
 import { TextInput } from "@/components/ui/TextInput";
 import { Textarea } from "@/components/ui/Textarea";
@@ -228,20 +228,19 @@ export default function ReconciliationPage() {
   ];
 
   return (
-    <ModuleLayout groupKey="finance" requiredModule="reconciliation">
-      <PageHeader
-        title="التسوية البنكية"
-        user={user}
-        actions={
-          <Button variant="primary" icon="plus" onClick={openCreateDialog}>
-            تسوية جديدة
-          </Button>
-        }
-      />
+    <MainLayout>
 
       <div id="alert-container"></div>
 
       <div className="sales-card animate-fade">
+        <PageSubHeader
+          user={user}
+          actions={
+            <Button variant="primary" icon="plus" onClick={openCreateDialog}>
+              تسوية جديدة
+            </Button>
+          }
+        />
         <Table
           columns={columns}
           data={reconciliations}
@@ -355,7 +354,7 @@ export default function ReconciliationPage() {
           </div>
         )}
       </Dialog>
-    </ModuleLayout>
+    </MainLayout>
   );
 }
 

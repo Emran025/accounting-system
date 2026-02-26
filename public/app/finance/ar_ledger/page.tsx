@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ModuleLayout, PageHeader } from "@/components/layout";
+import { MainLayout, PageSubHeader } from "@/components/layout";
 import { ConfirmDialog, showToast, showAlert, Button, SelectedItem, SalesReturnDialog, SelectableInvoice, SelectableInvoiceItem, ReturnData } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
@@ -378,9 +378,8 @@ function ARLedgerPageContent() {
   }
 
   return (
-    <ModuleLayout groupKey="sales" requiredModule="ar_customers">
-      <PageHeader
-        title={`كشف حساب: ${customer?.name || ""}`}
+    <MainLayout>
+      <PageSubHeader
         user={user}
         actions={
           <>
@@ -493,7 +492,7 @@ function ARLedgerPageContent() {
           loadCustomerDetails();
         }}
       />
-    </ModuleLayout>
+    </MainLayout>
   );
 }
 
