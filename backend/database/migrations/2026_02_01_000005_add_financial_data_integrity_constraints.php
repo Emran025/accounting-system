@@ -26,17 +26,17 @@ return new class extends Migration
             }
         });
 
-        // Add check constraint for non-negative amounts in general_ledgers
+        // Add check constraint for non-negative amounts in general_ledger
         // Note: MySQL 8.0.16+ supports CHECK constraints
         // For older MySQL versions, this will need to be handled at application level
         if (DB::getDriverName() === 'mysql') {
             $version = DB::select('SELECT VERSION() as version')[0]->version;
             if (version_compare($version, '8.0.16', '>=')) {
-                DB::statement('ALTER TABLE general_ledgers ADD CONSTRAINT chk_amount_positive CHECK (amount > 0)');
+                DB::statement('ALTER TABLE general_ledger ADD CONSTRAINT chk_amount_positive CHECK (amount > 0)');
             }
         } elseif (DB::getDriverName() === 'pgsql') {
             // PostgreSQL supports CHECK constraints
-            DB::statement('ALTER TABLE general_ledgers ADD CONSTRAINT chk_amount_positive CHECK (amount > 0)');
+            DB::statement('ALTER TABLE general_ledger ADD CONSTRAINT chk_amount_positive CHECK (amount > 0)');
         } elseif (DB::getDriverName() === 'sqlite') {
             // SQLite supports CHECK constraints since 3.3.0
             // Note: In SQLite, adding a CHECK constraint via ALTER TABLE is restricted.
@@ -61,11 +61,11 @@ return new class extends Migration
         if (DB::getDriverName() === 'mysql') {
             $version = DB::select('SELECT VERSION() as version')[0]->version;
             if (version_compare($version, '8.0.16', '>=')) {
-                DB::statement('ALTER TABLE general_ledgers DROP CHECK chk_amount_positive');
+                DB::statement('ALTER TABLE general_ledger DROP CHECK chk_amount_positive');
                 DB::statement('ALTER TABLE inventory_costing DROP CHECK chk_quantity_positive');
             }
         } elseif (DB::getDriverName() === 'pgsql') {
-            DB::statement('ALTER TABLE general_ledgers DROP CONSTRAINT chk_amount_positive');
+            DB::statement('ALTER TABLE general_ledger DROP CONSTRAINT chk_amount_positive');
             DB::statement('ALTER TABLE inventory_costing DROP CONSTRAINT chk_quantity_positive');
         }
 
@@ -77,9 +77,9 @@ return new class extends Migration
         });
 
         // Remove index
-        Schema::table('general_ledgers', function (Blueprint $table) {
-            if ($this->indexExists('general_ledgers', 'general_ledgers_reference_index')) {
-                $table->dropIndex('general_ledgers_reference_index');
+        Schema::table('general_ledger', function (Blueprint $table) {
+            if ($this->indexExists('general_ledger', 'general_ledger_reference_index')) {
+                $table->dropIndex('general_ledger_reference_index');
             }
         });
     }

@@ -11,8 +11,8 @@
 
 1. [System Overview](#1-system-overview)
 2. [Architecture & Technology Stack](#2-architecture--technology-stack)
-3. [Backend Documentation (`/src`)](#3-backend-documentation-src)
-4. [Frontend Documentation (`/public`)](#4-frontend-documentation-public)
+3. [Backend Documentation (`/backend`)](#3-backend-documentation-backend)
+4. [Frontend Documentation (`/frontend`)](#4-frontend-documentation-frontend)
 5. [Database Schema & Models](#5-database-schema--models)
 6. [API Surface & Contracts](#6-api-surface--contracts)
 7. [Business Logic & Services](#7-business-logic--services)
@@ -86,7 +86,7 @@ The system implements a comprehensive ERP solution with the following modules:
 
 ## 2. Architecture & Technology Stack
 
-### 2.1 Backend Stack (`/src`)
+### 2.1 Backend Stack (`/backend`)
 
 | Component | Technology | Version |
 | ----------- | ----------- | --------- |
@@ -108,7 +108,7 @@ The system implements a comprehensive ERP solution with the following modules:
 - **Form Request Validation** (Strict input validation and sanitization)
 - **Middleware Pipeline** (Authentication, CORS, Permission enforcement)
 
-### 2.2 Frontend Stack (`/public`)
+### 2.2 Frontend Stack (`/frontend`)
 
 | Component | Technology | Version |
 | ----------- | ----------- | --------- |
@@ -133,7 +133,7 @@ The system implements a comprehensive ERP solution with the following modules:
 
 ```txt
 accsystem/
-├── src/                          # Laravel Backend
+├── backend/                          # Laravel Backend
 │   ├── app/
 │   │   ├── Http/
 │   │   │   ├── Controllers/Api/  # 35 API Controllers
@@ -152,9 +152,9 @@ accsystem/
 │   │   └── console.php          # Artisan commands
 │   ├── config/                   # Configuration files
 │   ├── storage/                  # File storage, logs, cache
-│   └── public/                   # Public assets entry point
+│   └── frontend/                   # frontend assets entry point
 │
-└── public/                       # Next.js Frontend
+└── frontend/                       # Next.js Frontend
     ├── app/                      # App Router pages
     │   ├── auth/login/          # Authentication
     │   ├── system/              # System management
@@ -179,12 +179,12 @@ accsystem/
     │   ├── types.ts            # TypeScript interfaces
     │   ├── auth.ts             # Auth utilities
     │   └── [more...]
-    └── public/                  # Static assets
+    └── frontend/                  # Static assets
 ```
 
 ---
 
-## 3. Backend Documentation (`/src`)
+## 3. Backend Documentation (`/backend`)
 
 ### 3.1 Prerequisites
 
@@ -203,7 +203,7 @@ accsystem/
 
 ```bash
 # Navigate to backend directory
-cd src
+cd backend
 
 # Install PHP dependencies
 composer install
@@ -278,7 +278,7 @@ php artisan queue:listen
 
 ### 3.5 Key Controllers
 
-Located in `src/app/Http/Controllers/Api/`:
+Located in `backend/app/Http/Controllers/Api/`:
 
 | Controller | Purpose | Key Methods |
 | ------------ | --------- | ------------- |
@@ -299,7 +299,7 @@ Located in `src/app/Http/Controllers/Api/`:
 
 ### 3.6 Service Layer
 
-Located in `src/app/Services/`:
+Located in `backend/app/Services/`:
 
 | Service | Responsibility |
 | --------- | --------------- |
@@ -330,7 +330,7 @@ composer run test
 
 ### 3.8 Middleware
 
-Located in `src/app/Http/Middleware/`:
+Located in `backend/app/Http/Middleware/`:
 
 - **`ApiAuth.php`**: Session-based authentication for API routes
   - Checks for `X-Session-Token` header or session token
@@ -339,7 +339,7 @@ Located in `src/app/Http/Middleware/`:
 
 ---
 
-## 4. Frontend Documentation (`/public`)
+## 4. Frontend Documentation (`/frontend`)
 
 ### 4.1 Prerequisites
 
@@ -350,7 +350,7 @@ Located in `src/app/Http/Middleware/`:
 
 ```bash
 # Navigate to frontend directory
-cd public
+cd frontend
 
 # Install dependencies
 npm install
@@ -360,7 +360,7 @@ npm install
 
 The frontend needs to know where the backend API is located:
 
-Create a `.env.local` file in the `public/` directory:
+Create a `.env.local` file in the `frontend/` directory:
 
 ```env
 NEXT_PUBLIC_API_BASE=http://127.0.0.1:8000/api
@@ -1813,7 +1813,7 @@ cd accsystem
 - **Step 2: Backend Setup**
 
 ```bash
-cd src
+cd backend
 
 # Install dependencies
 composer install
@@ -1834,7 +1834,7 @@ php artisan --version
 - **Step 3: Frontend Setup**
 
 ```bash
-  cd ../public
+  cd ../frontend
 
   # Install dependencies
   npm install
@@ -1851,7 +1851,7 @@ php artisan --version
   - **Terminal 1 (Backend):**
 
 ```bash
-  cd src
+  cd backend
   php artisan serve
   # Backend running on http://localhost:8000
 ```
@@ -1859,14 +1859,14 @@ php artisan --version
 - **Terminal 2 (Queue Worker):**
 
 ```bash
-    cd src
+    cd backend
     php artisan queue:listen
 ```
 
 - **Terminal 3 (Frontend):**
 
 ```bash
-    cd public
+    cd frontend
     npm run dev
     # Frontend running on http://localhost:3000
 ```
@@ -1882,15 +1882,15 @@ php artisan --version
 **Making Changes:**
 
 1. **Backend Changes:**
-   - Modify models, controllers, services in `/src/app`
+   - Modify models, controllers, services in `/backend/app`
    - Create migrations: `php artisan make:migration`
    - Run migrations: `php artisan migrate`
    - Clear cache: `php artisan config:clear`
 
 2. **Frontend Changes:**
-   - Modify pages in `/public/app`
-   - Add components in `/public/components`
-   - Update types in `/public/lib/types.ts`
+   - Modify pages in `/frontend/app`
+   - Add components in `/frontend/components`
+   - Update types in `/frontend/lib/types.ts`
    - Next.js auto-reloads on save
 
 3. **Database Changes:**
@@ -1933,7 +1933,7 @@ php artisan --version
 **Backend Tests:**
 
 ```bash
-cd src
+cd backend
 php artisan test
 ```
 
@@ -2178,7 +2178,7 @@ server {
 ### Backend Key Files
 
 ```txt
-src/
+backend/
 ├── app/Http/Controllers/Api/
 │   ├── SalesController.php          # Invoice operations
 │   ├── PurchasesController.php      # Purchase management
@@ -2237,6 +2237,6 @@ public/
 
 For issues or questions:
 
-1. Check logs: `src/storage/logs/laravel.log`
+1. Check logs: `backend/storage/logs/laravel.log`
 2. Review this documentation
 3. Submit issue with detailed error logs

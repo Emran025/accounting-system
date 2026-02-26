@@ -8,7 +8,7 @@
 **Action:** Audit and finalize all creation forms in the HR module.
 
 *   **Audit Scope:**
-    *   Review every module in `public/app/hr/` (Recruitment, Onboarding, Employee Relations, etc.).
+    *   Review every module in `frontend/app/hr/` (Recruitment, Onboarding, Employee Relations, etc.).
     *   Identify missing or incomplete "Add" forms (where buttons lead to dead links or unfinished modals).
 *   **Endpoint Compatibility:**
     *   For each form, cross-reference the form fields with the backend API parameters.

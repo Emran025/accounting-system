@@ -13,8 +13,7 @@ return new class extends Migration
             $table->string('name_ar', 100);
             $table->string('name_en', 100)->nullable();
             $table->text('description')->nullable();
-            // Circular dependency with employees table, constraint will be added in a later migration
-            $table->foreignId('manager_id')->nullable()->constrained('employees')->onDelete('set null');
+            $table->unsignedBigInteger('manager_id')->nullable()->index();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

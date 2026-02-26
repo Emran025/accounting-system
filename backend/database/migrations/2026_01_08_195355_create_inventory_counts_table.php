@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('inventory_counts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade')->index();
-            $table->foreignId('fiscal_period_id')->constrained('fiscal_periods')->onDelete('restrict')->index();
+            $table->foreignId('fiscal_period_id')->constrained('fiscal_periods')->onDelete('restrict');
             $table->date('count_date');
             $table->integer('book_quantity')->comment('Quantity from perpetual system');
             $table->integer('counted_quantity')->comment('Physical count');

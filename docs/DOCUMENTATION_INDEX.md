@@ -62,7 +62,7 @@ Start here to get up and running:
 
 Deep dive into the Laravel backend:
 
-1. [TECHNICAL_DOCUMENTATION.md - Section 3](./TECHNICAL_DOCUMENTATION.md#3-backend-documentation-src)
+1. [TECHNICAL_DOCUMENTATION.md - Section 3](./TECHNICAL_DOCUMENTATION.md#3-backend-documentation-backend)
 2. [TECHNICAL_DOCUMENTATION.md - Section 7](./TECHNICAL_DOCUMENTATION.md#7-business-logic--services)
 3. [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)
 4. [API_REFERENCE.md](./API_REFERENCE.md)
@@ -71,9 +71,9 @@ Deep dive into the Laravel backend:
 
 Master the Next.js frontend:
 
-1. [TECHNICAL_DOCUMENTATION.md - Section 4](./TECHNICAL_DOCUMENTATION.md#4-frontend-documentation-public)
+1. [TECHNICAL_DOCUMENTATION.md - Section 4](./TECHNICAL_DOCUMENTATION.md#4-frontend-documentation-frontend)
 2. [API_REFERENCE.md](./API_REFERENCE.md) for API integration
-3. TypeScript interfaces in `public/lib/types.ts`
+3. TypeScript interfaces in `frontend/lib/types.ts`
 
 ### For System Architects
 
@@ -185,7 +185,7 @@ Integrate with the ERP system:
 **Business Logic & ERP Workflows:**
 
 - [TECHNICAL_DOCUMENTATION.md - Section 7](./TECHNICAL_DOCUMENTATION.md#7-business-logic--services)
-- Backend service files in `src/app/Services/`
+- Backend service files in `backend/app/Services/`
 
 **Deployment:**
 
@@ -253,13 +253,13 @@ Integrate with the ERP system:
 3. **Build backend:**
    - Create model, controller, service
    - Implement GL posting if financial
-   - Follow patterns in [TECHNICAL_DOCUMENTATION.md - Section 3](./TECHNICAL_DOCUMENTATION.md#3-backend-documentation-src)
+   - Follow patterns in [TECHNICAL_DOCUMENTATION.md - Section 3](./TECHNICAL_DOCUMENTATION.md#3-backend-documentation-backend)
 
 4. **Build frontend:**
    - Create page component
    - Add API integration
    - Add to navigation
-   - Follow [TECHNICAL_DOCUMENTATION.md - Section 4](./TECHNICAL_DOCUMENTATION.md#4-frontend-documentation-public)
+   - Follow [TECHNICAL_DOCUMENTATION.md - Section 4](./TECHNICAL_DOCUMENTATION.md#4-frontend-documentation-frontend)
 
 5. **Document API:**
    - Add to [API_REFERENCE.md](./API_REFERENCE.md)
@@ -270,7 +270,7 @@ Integrate with the ERP system:
 ### Scenario: "I'm getting an error"
 
 1. Check [TECHNICAL_DOCUMENTATION.md - Section 10](./TECHNICAL_DOCUMENTATION.md#10-troubleshooting--common-issues)
-2. Review logs: `src/storage/logs/laravel.log`
+2. Review logs: `backend/storage/logs/laravel.log`
 3. Consult relevant section based on error type
 
 ### Scenario: "I need to deploy to production"
@@ -336,9 +336,9 @@ Documentation should be updated when:
 
 **Quick Reference:**
 
-- Backend: `src/app/Http/Controllers/Api/`
-- Frontend: `public/app/`
-- Database: `src/database/migrations/`
+- Backend: `backend/app/Http/Controllers/Api/`
+- Frontend: `frontend/app/`
+- Database: `backend/database/migrations/`
 - API: [API_REFERENCE.md](./API_REFERENCE.md)
 
 ---

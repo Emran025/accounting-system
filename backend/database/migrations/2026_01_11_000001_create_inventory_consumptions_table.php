@@ -23,7 +23,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('inventory_costing_id')->references('id')->on('inventory_costing');
-            $table->index(['inventory_costing_id', 'consumption_type']);
+            $table->index(['inventory_costing_id', 'consumption_type'], 'idx_costing_consumption');
         });
     }
 

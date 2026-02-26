@@ -10,8 +10,11 @@ return new class extends Migration
     {
         Schema::create('sales_representative_transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('sales_representative_id')->constrained('sales_representatives')->onDelete('cascade');
-            $table->enum('type', ['commission', 'payment', 'return', 'adjustment']);
+            $table->unsignedBigInteger('sales_representative_id');
+            $table->foreign('sales_representative_id', 'sr_trans_sales_rep_fk')
+                ->references('id')
+                ->on('sales_representatives')
+                ->onDelete('cascade');            $table->enum('type', ['commission', 'payment', 'return', 'adjustment']);
             $table->decimal('amount', 15, 2);
             $table->text('description')->nullable();
             $table->string('reference_type')->nullable(); // invoices, sales_returns

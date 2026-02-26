@@ -20,7 +20,7 @@ return new class extends Migration
             $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();
 
-            $table->unique(['source_node_uuid', 'target_node_uuid', 'link_type']);
+            $table->unique(['source_node_uuid', 'target_node_uuid', 'link_type'], 'sl_source_target_type_unique');
             $table->foreign('source_node_uuid')
                 ->references('node_uuid')
                 ->on('structure_nodes')

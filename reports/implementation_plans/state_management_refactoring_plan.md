@@ -3,7 +3,7 @@
 ## ACCSYSTEM Frontend — Next.js 16 / React 19
 
 > **Date:** February 11, 2026  
-> **Scope:** `C:\xampp\htdocs\accsystem\public`  
+> **Scope:** `C:\xampp\htdocs\accsystem\frontend`  
 > **Current Stack:** Next.js 16.1.6, React 19.2.3, TypeScript 5  
 
 ---
@@ -748,7 +748,7 @@ export function LeaveRequests() {
 ### New Files to Create
 
 ```
-public/
+frontend/
 ├── stores/
 │   ├── index.ts                          # Barrel exports
 │   ├── useAuthStore.ts                   # Phase 1

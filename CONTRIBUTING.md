@@ -86,14 +86,14 @@ Before contributing, ensure you have:
 
    ```bash
    # Backend
-   cd src
+   cd backend
    composer install
    cp .env.example .env
    php artisan key:generate
    php artisan migrate
    
    # Frontend
-   cd ../public
+   cd ../frontend
    npm install
    ```
 
@@ -101,10 +101,10 @@ Before contributing, ensure you have:
 
    ```bash
    # Terminal 1 - Backend
-   cd src && php artisan serve
+   cd backend && php artisan serve
    
    # Terminal 2 - Frontend
-   cd public && npm run dev
+   cd frontend && npm run dev
    ```
 
 ---
@@ -208,11 +208,11 @@ main (production-ready)
 
    ```bash
    # Backend tests
-   cd src
+   cd backend
    php artisan test
    
    # Frontend (if tests are set up)
-   cd public
+   cd frontend
    npm run test
    ```
 
@@ -302,7 +302,7 @@ class InvoiceService
 **Rules:**
 
 - Use type hints for parameters and return values
-- Add PHPDoc comments for public methods
+- Add PHPDoc comments for frontend methods
 - Keep methods focused (Single Responsibility)
 - Use dependency injection
 - Use Services for business logic (not in Controllers)
@@ -569,7 +569,7 @@ When adding features, update:
 1. **Push your branch**
 
    ```bash
-   git push origin feature/your-feature-name
+      git push origin feature/your-feature-name
    ```
 
 2. **Create PR on GitHub**
@@ -694,20 +694,20 @@ Paste relevant logs from storage/logs/laravel.log
 Use the feature request template:
 
 ```markdown
-**ERP Module**
-[e.g., Sales, Purchases, GL, HR, Payroll]
+   **ERP Module**
+   [e.g., Sales, Purchases, GL, HR, Payroll]
 
-**Is your feature related to a problem?**
-A clear description of the problem.
+   **Is your feature related to a problem?**
+   A clear description of the problem.
 
-**Describe the solution**
-What you want to happen.
+   **Describe the solution**
+   What you want to happen.
 
-**Describe alternatives**
-Other solutions you've considered.
+   **Describe alternatives**
+   Other solutions you've considered.
 
-**Additional context**
-Any other context or screenshots.
+   **Additional context**
+   Any other context or screenshots.
 ```
 
 ---

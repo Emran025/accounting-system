@@ -132,7 +132,7 @@ return new class extends Migration
             
             // Ensure one context per transaction
             $table->unique(['transaction_type', 'transaction_id'], 'unique_transaction_context');
-            $table->index(['transaction_currency_id', 'created_at']);
+            $table->index(['transaction_currency_id', 'created_at'], 'tcc_currency_date_index');
         });
 
         // Multi-Currency Ledger Extension
@@ -165,7 +165,7 @@ return new class extends Migration
             
             $table->timestamps();
             
-            $table->index(['general_ledger_id', 'currency_id']);
+            $table->index(['general_ledger_id', 'currency_id'], 'cle_ledger_currency_index');
             $table->index(['currency_id', 'created_at']);
         });
 

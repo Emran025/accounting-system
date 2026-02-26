@@ -17,7 +17,7 @@ return new class extends Migration
             $table->text('error_message')->nullable();
             $table->timestamps();
             
-            $table->foreignId('batch_id')->constrained('batch_processing')->onDelete('cascade')->index();
+            $table->foreignId('batch_id')->constrained('batch_processing')->onDelete('cascade');
         });
     }
 

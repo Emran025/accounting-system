@@ -45,7 +45,7 @@ git clone <your-repo-url> ACCSYSTEM-erp
 cd ACCSYSTEM-erp
 
 # 2. Backend Setup
-cd src
+cd backend
 composer install
 cp .env.example .env
 php artisan key:generate
@@ -57,15 +57,15 @@ php artisan db:seed
 php artisan migrate:fresh --seed
 
 # 3. Frontend Setup
-cd ../public
+cd ../frontend
 npm install
 
 # 4. Run the application
 # Terminal 1 - Backend
-cd src && php artisan serve
+cd backend && php artisan serve
 
 # Terminal 2 - Frontend
-cd public && npm run dev
+cd frontend && npm run dev
 
 # 5. Access the ERP
 # Open http://localhost:3000
@@ -151,7 +151,7 @@ For **complete documentation**, see the `/docs` folder:
 ```txt
 ACCSYSTEM-erp/
 │
-├── src/                      # Laravel Backend (API)
+├── backend/                      # Laravel Backend (API)
 │   ├── app/
 │   │   ├── Http/Controllers/Api/  # 35 Controllers
 │   │   ├── Models/                # 50 Eloquent Models
@@ -161,7 +161,7 @@ ACCSYSTEM-erp/
 │   ├── routes/api.php             # API Routes
 │   └── ...
 │
-├── public/                   # Next.js Frontend
+├── frontend/                   # Next.js Frontend
 │   ├── app/                  # App Router Pages
 │   │   ├── auth/             # Authentication
 │   │   ├── system/           # Dashboard, Settings, Reports
@@ -192,22 +192,22 @@ ACCSYSTEM-erp/
 
 ```bash
 # Terminal 1 - Backend
-cd src
+cd backend
 php artisan serve
 
 # Terminal 2 - Queue Worker (for background jobs)
-cd src
+cd backend
 php artisan queue:listen
 
 # Terminal 3 - Frontend
-cd public
+cd frontend
 npm run dev
 ```
 
 **With Composer Script (Backend only):**
 
 ```bash
-cd src
+cd backend
 composer dev
 # Runs: API, Queue, Logs concurrently
 ```
@@ -232,7 +232,7 @@ php artisan config:clear
 
 **Frontend (Next.js):**
 
-- Edit files in `public/app/`
+- Edit files in `frontend/app/`
 - Auto-reloads on save
 - Add types to `lib/types.ts`
 - Build: `npm run build`
@@ -244,7 +244,7 @@ php artisan config:clear
 **Backend:**
 
 ```bash
-cd src
+cd backend
 php artisan test
 ```
 
@@ -356,7 +356,7 @@ See [API_REFERENCE.md](./docs/API_REFERENCE.md) for complete API documentation.
 
 ## Tech Stack
 
-### Backend (`/src`)
+### Backend (`/backend`)
 
 | Component | Technology |
 | --------- | ---------- |
@@ -367,7 +367,7 @@ See [API_REFERENCE.md](./docs/API_REFERENCE.md) for complete API documentation.
 | **Queue** | Database driver |
 | **Cache** | Database driver |
 
-### Frontend (`/public`)
+### Frontend (`/frontend`)
 
 | Component | Technology |
 | --------- | ---------- |
@@ -418,7 +418,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
 
 - **Documentation:** See `/docs` folder
 - **Issues:** Submit via GitHub Issues with detailed logs
-- **Logs:** Check `src/storage/logs/laravel.log`
+- **Logs:** Check `backend/storage/logs/laravel.log`
 
 ---
 
