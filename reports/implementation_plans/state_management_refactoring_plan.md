@@ -44,7 +44,7 @@ This report recommends **Zustand** as the optimal state management solution for 
 |---------|-----------|-------------|
 | Local `useState` hooks | All page components | ~70+ files |
 | Custom data-fetching hooks | Products, Customers, Purchases, Suppliers | 4 files |
-| React Context (Auth) | `MainLayout.tsx`, `ModuleLayout.tsx` | 2 files |
+| React Context (Auth) | `MainLayout.tsx`,| 2 files |
 | Module-level variable cache | `api.ts` (`systemSettings`) | 1 file |
 | `localStorage` for auth | `auth.ts` | 1 file |
 
@@ -60,7 +60,7 @@ AuthContext (created but NOT provided to children via <AuthContext.Provider>)
 Sidebar receives permissions as props
 ```
 
-**Critical Issue:** The `AuthContext` is defined in `MainLayout.tsx` (line 140) and `ModuleLayout.tsx` (line 143) but **never wrapped with a `<Provider>`**. The `useAuth()` hook always returns `{ user: null, permissions: [] }`.
+**Critical Issue:** The `AuthContext` is defined in `MainLayout.tsx` (line 140) and  (line 143) but **never wrapped with a `<Provider>`**. The `useAuth()` hook always returns `{ user: null, permissions: [] }`.
 
 ### 2.3 Data Fetching Pattern (Typical Component)
 
@@ -275,7 +275,7 @@ useEmployeeStore = create(
 | 1.3 | Create `stores/useSettingsStore.ts` | New file | P0 |
 | 1.4 | Create `stores/useUIStore.ts` | New file | P0 |
 | 1.5 | Refactor `MainLayout.tsx` to use `useAuthStore` | `components/layout/MainLayout.tsx` | P0 |
-| 1.6 | Refactor `ModuleLayout.tsx` to use `useAuthStore` | `components/layout/ModuleLayout.tsx` | P0 |
+
 | 1.7 | Remove dead `AuthContext` / `ModuleAuthContext` | Both layout files | P0 |
 | 1.8 | Refactor `Sidebar.tsx` to read from `useAuthStore` | `components/layout/Sidebar.tsx` | P0 |
 | 1.9 | Replace module-level `systemSettings` in `api.ts` with `useSettingsStore` | `lib/api.ts` | P1 |
@@ -772,7 +772,6 @@ public/
 | File | Changes |
 |------|---------|
 | `components/layout/MainLayout.tsx` | Replace all `useState` + dead context with `useAuthStore` + `useUIStore` |
-| `components/layout/ModuleLayout.tsx` | Same as above |
 | `components/layout/Sidebar.tsx` | Read permissions from `useAuthStore` instead of props |
 | `lib/api.ts` | Remove `systemSettings` module-level variable, use `useSettingsStore` |
 | `lib/auth.ts` | Simplify to thin wrappers around `useAuthStore` (backward compat) |
@@ -808,7 +807,6 @@ public/
 - [x] `useSettingsStore` created and tested
 - [x] `useUIStore` created and tested
 - [x] `MainLayout.tsx` refactored — no more dead `AuthContext`
-- [x] `ModuleLayout.tsx` refactored — no more dead `ModuleAuthContext`
 - [x] `Sidebar.tsx` uses `useAuthStore` directly
 - [x] `api.ts` `systemSettings` replaced with store
 - [x] `localStorage` sidebar state replaced with `useUIStore`
