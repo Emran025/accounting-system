@@ -1,33 +1,234 @@
-name: Feature Request
-description: Have an idea for a new feature?
+name: "✨ Feature Request"
+description: "Propose a new feature or enhancement for the ACCSYSTEM ERP platform. Clearly articulate the problem being solved and the desired outcome."
 title: "[Feature]: "
-labels: ["enhancement", "good first issue"]
+labels: ["type: enhancement", "status: needs-triage"]
+assignees: []
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for sharing your awesome idea!
+        ## Thank you for proposing a feature!
+
+        **Before submitting**, please confirm that:
+        - You have searched the [existing feature requests](https://github.com/Emran025/accounting-system/issues?q=label%3A%22type%3A+enhancement%22) for duplicates.
+        - Your request aligns with the scope of the ACCSYSTEM ERP project (enterprise resource planning for small-to-medium businesses).
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: "Target Module"
+      description: "Which ERP module would this feature belong to? Select all that apply."
+      multiple: true
+      options:
+        # ── Core Platform ──
+        - "Authentication / Sessions"
+        - "User & Role Management (RBAC)"
+        - "System Settings & Configuration"
+        - "Dashboard / KPIs"
+        - "Audit Logs / Audit Trail"
+        # ── Finance & Accounting ──
+        - "General Ledger / Journal Vouchers"
+        - "Chart of Accounts"
+        - "Fiscal Periods"
+        - "Accounts Receivable (AR)"
+        - "Accounts Payable (AP)"
+        - "Bank Reconciliation"
+        - "Accrual Accounting"
+        - "Recurring Transactions"
+        - "Financial Reports"
+        - "Multi-Currency / Exchange Rates"
+        - "Expenses / Revenues"
+        - "Prepayments / Unearned Revenue"
+        # ── Sales & Distribution ──
+        - "Sales / POS / Invoicing"
+        - "Sales Returns"
+        - "Sales Representatives / Commissions"
+        # ── Procurement & Inventory ──
+        - "Purchases / Procurement"
+        - "Purchase Requests"
+        - "Inventory / Products"
+        - "Periodic Inventory / Stock Counts"
+        - "Batch Management"
+        - "Categories"
+        # ── Human Resources ──
+        - "HR Administration / Employee Management"
+        - "Employee Contracts"
+        - "Employee Loans"
+        - "Employee Assets"
+        - "Employee Relations / Disciplinary"
+        - "Departments / Job Titles"
+        - "Recruitment / Applicants / Interviews"
+        - "Onboarding Workflows"
+        - "Performance Management / Appraisals"
+        - "Learning & Development"
+        - "Benefits / Compensation"
+        - "Succession Planning"
+        # ── Workforce Management ──
+        - "Attendance / Biometrics"
+        - "Leave Management"
+        - "Workforce Scheduling / Shifts"
+        # ── Additional Modules ──
+        - "Payroll / Salary Calculation"
+        - "Post-Payroll Integration"
+        - "Payroll Components"
+        - "End of Service Benefits (EOSB)"
+        - "Fixed Assets / Depreciation"
+        - "EHS / Incidents / PPE"
+        - "Wellness Programs"
+        - "Travel & Expenses"
+        - "Expat Management / Government Fees"
+        - "ZATCA E-Invoicing"
+        - "Document Templates / Sequences"
+        - "Organisational Structure"
+        - "Corporate Communications"
+        - "Knowledge Management / Expertise"
+        - "QA & Compliance"
+        - "Pulse Surveys"
+        # ── Technical Infrastructure ──
+        - "Frontend UI / Components (Next.js)"
+        - "API / Backend Infrastructure (Laravel)"
+        - "Database / Migrations"
+        - "CI/CD Pipeline / GitHub Actions"
+        - "Tauri Desktop App"
+        - "New Module (describe below)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "Suggested Priority"
+      description: "How important is this feature to your workflow?"
+      multiple: false
+      options:
+        - "🔴 Critical — Cannot use the system effectively without it"
+        - "🟠 High — Significantly improves daily operations"
+        - "🟡 Medium — Useful enhancement, not blocking"
+        - "🟢 Low — Nice to have, quality-of-life improvement"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: "Feature Category"
+      description: "What type of feature is this?"
+      multiple: false
+      options:
+        - "New Functionality — Something the system does not do today"
+        - "Enhancement — Improvement to existing functionality"
+        - "Integration — Connection to an external system or service"
+        - "Compliance — Regulatory or legal requirement (e.g., ZATCA, labor law)"
+        - "Performance — Speed or scalability improvement"
+        - "Accessibility — Improved usability for all users"
+        - "Localisation — Language, currency, or regional support"
+        - "Security — Authentication, authorisation, or data protection improvement"
+        - "Analytics / Reporting — New reports, dashboards, or data insights"
+        - "Automation — Workflow automation or scheduled task"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: "Estimated Scope"
+      description: "How large is this change expected to be?"
+      multiple: false
+      options:
+        - "Small — Single component or endpoint change"
+        - "Medium — Multiple components, may span backend and frontend"
+        - "Large — Significant feature, new module, or architectural change"
+        - "Unknown — Not sure about the scope"
+    validations:
+      required: false
+
   - type: textarea
     id: problem
     attributes:
-      label: "Is your feature request related to a problem?"
-      description: "A clear and concise description of what the problem is. e.g., I'm always frustrated when..."
+      label: "Problem Statement"
+      description: "Describe the problem or limitation that this feature would address. Be specific about the pain point and who experiences it (end users, accountants, HR officers, administrators, developers)."
+      placeholder: |
+        Example: When processing payroll for employees with multiple allowance types,
+        the current system requires each allowance to be entered individually on every
+        payroll cycle. For organisations with 50+ employees and 5+ allowance types,
+        this manual process takes approximately 3 hours and is prone to data entry errors.
     validations:
       required: true
+
   - type: textarea
     id: solution
     attributes:
-      label: "What is your proposed solution?"
-      description: "Describe the solution you'd like. Be as detailed as possible!"
+      label: "Proposed Solution"
+      description: "Describe the solution you would like to see implemented. Be as detailed as possible: what the feature does, how the user interacts with it, and what the expected output is."
+      placeholder: |
+        Example: Introduce an "Allowance Template" feature that allows administrators
+        to define a set of default allowances per department or job title. When generating
+        a payroll cycle, the system should automatically apply the configured template
+        allowances to each employee, while still allowing per-employee overrides.
+
+        Expected workflow:
+        1. Administrator creates a template under Settings > Payroll > Allowance Templates
+        2. Template is linked to one or more departments
+        3. During payroll generation, the system pre-populates allowances from the template
+        4. Payroll operators review and adjust individual entries as needed
     validations:
       required: true
+
   - type: textarea
     id: alternatives
     attributes:
-      label: "Have you considered any alternatives?"
-      description: "A clear and concise description of any alternative solutions or features you've considered."
+      label: "Alternatives Considered"
+      description: "Describe any alternative approaches you have considered and explain why they are less suitable than your proposed solution."
+    validations:
+      required: false
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: "Impact Assessment"
+      description: "Describe the impact of implementing this feature. Consider: how many users would benefit, how frequently the feature would be used, and whether it affects financial data integrity, compliance, or audit trails."
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "Acceptance Criteria"
+      description: "Define the specific, measurable conditions that must be met for this feature to be considered complete. Use a checklist format."
+      placeholder: |
+        - [ ] Administrator can create, edit, and delete allowance templates
+        - [ ] Templates can be linked to departments and/or job titles
+        - [ ] Payroll generation applies template allowances automatically
+        - [ ] Individual employee allowances can be overridden after template application
+        - [ ] Audit log records template application events
+        - [ ] API endpoint documented in API_REFERENCE.md
+        - [ ] Unit and feature tests cover template CRUD and payroll integration
+    validations:
+      required: false
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: "Mockups or References"
+      description: "If you have UI mockups, wireframes, screenshots from other systems (e.g., SAP, Oracle HCM, Odoo), or reference documents, attach them here."
+    validations:
+      required: false
+
   - type: textarea
     id: context
     attributes:
       label: "Additional Context"
-      description: "Add any other context, mockups, or screenshots about the feature request here."
+      description: "Any other information that would help evaluate this request — links to relevant standards or regulations, references to similar features in other ERP systems, or technical constraints."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Submission Checklist"
+      description: "Confirm the following before submitting."
+      options:
+        - label: "I have searched existing issues and confirmed this is not a duplicate."
+          required: true
+        - label: "I have described the problem clearly and the proposed solution in detail."
+          required: true

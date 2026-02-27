@@ -1,39 +1,77 @@
 ---
-name: " Bug Report"
-description: "Create a report to help us improve."
-labels: ["bug", "needs triage"]
+name: "🐛 Bug Report (Markdown)"
+about: "Report a defect. Use this template if the YAML form templates are not available in your workflow."
+labels: ["type: bug", "status: needs-triage"]
 ---
 
-### **Describe the Bug**
-A clear and concise description of what the bug is.
+## Bug Description
 
-### **Steps To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+Provide a clear, precise description of the defect. Explain what is happening and why it is incorrect.
 
-### **Expected Behavior**
-A clear and concise description of what you expected to happen.
+## Affected Module
 
-### **Screenshots**
-If applicable, add screenshots to help explain your problem.
+Identify which ERP module(s) are affected (e.g., General Ledger, Sales/POS, Payroll, HR, Inventory, AR/AP, ZATCA, Dashboard, Authentication, Organisational Structure, Bank Reconciliation).
 
-### **Environment (please complete the following information):**
-- **OS:** [e.g. macOS, Windows, Linux]
-- **PHP Version:** [e.g. 8.2.5]
-- **Database Type & Version:** [e.g. MySQL 8.0]
-- **Browser:** [e.g. Chrome, Firefox, Safari]
+## Severity
 
-### **Additional Context**
-Add any other context about the problem here.
+- [ ] 🔴 Critical — System crash, data loss, or security breach
+- [ ] 🟠 High — Major feature broken, no workaround
+- [ ] 🟡 Medium — Feature partially broken, workaround exists
+- [ ] 🟢 Low — Minor inconvenience, cosmetic issue
+
+## Steps to Reproduce
+
+Provide the exact, minimal sequence of steps to reproduce the bug, starting from a known state.
+
+1. ...
+2. ...
+3. ...
+4. ...
+
+## Expected Behaviour
+
+Describe what should happen instead.
+
+## Actual Behaviour
+
+Describe what currently happens.
+
+## Is This a Regression?
+
+- [ ] Yes — This previously worked
+- [ ] No — This has never worked
+- [ ] Unknown
+
+## Environment
+
+- **Operating System:**
+- **PHP Version:**
+- **Laravel Version:**
+- **Node.js Version:**
+- **MySQL Version:**
+- **Browser (if frontend issue):**
+- **ACCSYSTEM Version / Commit:**
+
+## Error Logs
+
+If applicable, paste relevant error output from `backend/storage/logs/laravel.log` or the browser console.
+
+```
+(paste logs here)
+```
+
+## Screenshots
+
+If applicable, attach screenshots that demonstrate the problem.
+
+## Additional Context
+
+Any other information that may help diagnose the issue.
 
 ---
 
-### **Bug Report Checklist**
-- [ ] I have searched for existing issues.
-- [ ] I have provided all necessary information above.
-- [ ] I am using a supported version of the project.
+## Checklist
 
-Thank you for helping us improve! 🙏
+- [ ] I have searched existing issues and confirmed this is not a duplicate.
+- [ ] I am using a supported version of ACCSYSTEM ERP.
+- [ ] I have provided all the information requested above.

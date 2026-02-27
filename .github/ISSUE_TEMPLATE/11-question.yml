@@ -1,0 +1,61 @@
+name: "💬 Question / Discussion"
+description: "Ask a question about the codebase architecture, implementation patterns, or development approach."
+title: "[Question]: "
+labels: ["type: question"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Question / Discussion
+
+        > **Note**: For general usage questions, consider using the [Q&A Discussions](https://github.com/Emran025/accounting-system/discussions/categories/q-a) instead. This template is for technical questions about the codebase that benefit from being tracked as issues.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Topic Area"
+      description: "What is your question about?"
+      multiple: true
+      options:
+        - "Architecture / Design Patterns"
+        - "API Design / Endpoints"
+        - "Database Schema / Relationships"
+        - "Frontend Components / State Management"
+        - "Business Logic / Domain Rules"
+        - "Authentication / Authorisation"
+        - "Financial Calculations / Accounting Rules"
+        - "Payroll / HR Processes"
+        - "ZATCA / Compliance Requirements"
+        - "Testing Strategy"
+        - "Deployment / DevOps"
+        - "Contributing / Code Standards"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: "Your Question"
+      description: "Describe your question in detail. Include context about what you're trying to understand or accomplish."
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Context / What You've Already Tried"
+      description: "Describe what documentation or code you've already reviewed and what remains unclear."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Submission Checklist"
+      options:
+        - label: "I have searched existing issues and discussions for answers."
+          required: true
+        - label: "I have reviewed the documentation (docs/, README, CONTRIBUTING)."
+          required: true

@@ -1,0 +1,83 @@
+name: "Security Concern"
+description: "Report a non-critical security concern. For critical vulnerabilities, use the private disclosure process described in SECURITY.md."
+title: "[Security]: "
+labels: ["type: security", "priority: high", "status: needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Security Concern Report
+
+        > **IMPORTANT**: If you are reporting a **critical security vulnerability** (e.g., SQL injection, authentication bypass, data exposure), **DO NOT** use this public template. Instead, follow the [private disclosure process](../../SECURITY.md).
+
+        This template is for **non-critical** security improvements and hardening suggestions — input validation gaps, permission inconsistencies, missing rate limiting, etc.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: "Security Category"
+      description: "What category does this concern fall into?"
+      multiple: false
+      options:
+        - "Authentication — Login, session management, token handling"
+        - "Authorisation — RBAC, policies, permission bypass"
+        - "Input Validation — Missing or insufficient input sanitisation"
+        - "Data Exposure — Sensitive data visible in responses or logs"
+        - "Rate Limiting — Missing or insufficient throttling"
+        - "CORS / CSRF — Cross-origin or cross-site request issues"
+        - "Dependency Vulnerability — Known CVE in a dependency"
+        - "Encryption — Data-at-rest or data-in-transit concerns"
+        - "Audit Trail — Missing or incomplete audit logging"
+        - "Compliance — ZATCA, GDPR, or regulatory concern"
+        - "Other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: "Affected Module"
+      description: "Which module is affected?"
+      multiple: true
+      options:
+        - "Authentication / Sessions"
+        - "User & Role Management (RBAC)"
+        - "API / Backend Infrastructure"
+        - "Frontend UI / Components"
+        - "General Ledger / Financial Data"
+        - "Payroll / Employee Data"
+        - "HR / Personal Information"
+        - "ZATCA E-Invoicing"
+        - "System Settings"
+        - "Database"
+        - "CI/CD Pipeline"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description"
+      description: "Describe the security concern. Explain what the current behaviour is and why it poses a security risk."
+    validations:
+      required: true
+
+  - type: textarea
+    id: recommendation
+    attributes:
+      label: "Recommended Fix"
+      description: "If you have a suggestion for how to fix or mitigate this concern, describe it here."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Submission Checklist"
+      options:
+        - label: "I confirm this is NOT a critical security vulnerability requiring private disclosure."
+          required: true
+        - label: "I have searched existing issues for duplicates."
+          required: true

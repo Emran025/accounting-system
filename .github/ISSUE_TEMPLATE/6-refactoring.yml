@@ -1,0 +1,116 @@
+name: "Refactoring / Technical Debt"
+description: "Propose a code refactoring, architecture improvement, or technical debt reduction effort."
+title: "[Refactor]: "
+labels: ["type: refactor", "status: needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Refactoring / Technical Debt Proposal
+
+        Use this template to propose internal code quality improvements that do **not** change user-facing behaviour. If the change adds new functionality, use the **Feature Request** template instead.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Affected Area"
+      description: "What part of the codebase is this refactoring targeting?"
+      multiple: true
+      options:
+        # ── Backend ──
+        - "Controllers (Laravel API)"
+        - "Services / Business Logic"
+        - "Models / Eloquent Relationships"
+        - "Migrations / Database Schema"
+        - "Middleware / Policies"
+        - "Request Validation / Form Requests"
+        - "Helpers / Utilities"
+        - "Enums / Constants"
+        - "Routes / API Structure"
+        - "Tests (PHPUnit / Feature)"
+        # ── Frontend ──
+        - "React Components (Next.js)"
+        - "State Management (Stores)"
+        - "API Client / HTTP Layer"
+        - "Styles / CSS"
+        - "TypeScript Types / Interfaces"
+        - "Tests (Vitest)"
+        # ── Infrastructure ──
+        - "CI/CD / GitHub Actions Workflows"
+        - "Build Configuration"
+        - "Docker / Environment Setup"
+        - "Tauri Desktop Configuration"
+        - "Dependency Management (Composer / npm)"
+        # ── Other ──
+        - "Documentation"
+        - "Other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: "Refactoring Type"
+      description: "What kind of improvement is this?"
+      multiple: true
+      options:
+        - "Code Organisation — Moving, splitting, or consolidating files"
+        - "Naming — Improving variable, function, or class names"
+        - "DRY — Removing code duplication"
+        - "Pattern Alignment — Conforming to established project patterns"
+        - "Type Safety — Adding or improving type annotations"
+        - "Error Handling — Improving error handling and recovery"
+        - "Performance — Internal optimisation (no user-facing change)"
+        - "Testability — Making code easier to test"
+        - "Dependency Update — Upgrading or replacing dependencies"
+        - "Architecture — Structural or design pattern change"
+        - "Dead Code Removal — Removing unused code"
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-state
+    attributes:
+      label: "Current State"
+      description: "Describe what the code currently looks like and why it is problematic. Include file paths and code snippets if relevant."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-change
+    attributes:
+      label: "Proposed Change"
+      description: "Describe the desired end state and the approach you would take to get there."
+    validations:
+      required: true
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: "Risks and Breaking Changes"
+      description: "Identify any risks — API contract changes, migration requirements, or areas where the refactoring could introduce regressions."
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: "Acceptance Criteria"
+      description: "Define how we know this refactoring is complete and correct."
+      placeholder: |
+        - [ ] All existing tests pass without modification (or with justified updates)
+        - [ ] No user-facing behaviour changes
+        - [ ] Code follows established project patterns
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Submission Checklist"
+      options:
+        - label: "I have searched existing issues for duplicates."
+          required: true
+        - label: "This change does not alter user-facing behaviour."
+          required: true

@@ -1,0 +1,152 @@
+name: "Database / Migration Issue"
+description: "Report or propose a change to the database schema, migrations, seeders, or data integrity."
+title: "[Database]: "
+labels: ["type: database", "status: needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Database / Migration Issue
+
+        Use this template for issues related to database schema, migrations, seeders, foreign key constraints, indexing, or data integrity. For performance-related query issues, use the **Performance Issue** template.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: "Category"
+      description: "What kind of database issue is this?"
+      multiple: false
+      options:
+        - "Migration Error — A migration fails to run"
+        - "Schema Change — Proposing a table or column modification"
+        - "Foreign Key Constraint — Constraint conflict or ordering issue"
+        - "Indexing — Missing or inefficient index"
+        - "Seeder / Factory — Issue with test data generation"
+        - "Data Integrity — Orphaned records, inconsistent data"
+        - "Data Migration — Moving or transforming existing data"
+        - "MySQL Compatibility — SQLite-to-MySQL migration concern"
+        - "Naming Convention — Column or table naming inconsistency"
+        - "Other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tables
+    attributes:
+      label: "Affected Tables / Models"
+      description: "Which database tables or Eloquent models are involved?"
+      multiple: true
+      options:
+        # ── Core ──
+        - "users / sessions / login_attempts"
+        - "roles / role_permissions / permission_templates"
+        - "settings / modules"
+        - "audit_logs"
+        # ── Finance ──
+        - "chart_of_accounts"
+        - "general_ledger"
+        - "journal_vouchers"
+        - "fiscal_periods"
+        - "invoices / invoice_items / invoice_fees"
+        - "purchases / purchase_requests"
+        - "expenses / revenues"
+        - "ar_customers / ar_transactions"
+        - "ap_suppliers / ap_transactions"
+        - "reconciliations"
+        - "prepayments / unearned_revenues"
+        - "recurring_transactions"
+        # ── Currency ──
+        - "currencies / denominations / exchange_rates"
+        - "currency_policies / ledger_entries / revaluations"
+        # ── Sales ──
+        - "sales_representatives / transactions"
+        - "sales_returns / sales_return_items"
+        # ── Inventory ──
+        - "products / categories"
+        - "batches / batch_items"
+        - "inventory_counts"
+        # ── HR ──
+        - "employees / departments / job_titles"
+        - "employee_contracts / documents / certifications"
+        - "employee_allowances / deductions"
+        - "employee_loans / loan_repayments"
+        - "employee_assets"
+        - "employee_relations_cases / disciplinary_actions"
+        # ── Recruitment & Onboarding ──
+        - "recruitment_requisitions / job_applicants / interviews"
+        - "onboarding_workflows / tasks / documents"
+        # ── Workforce ──
+        - "attendance_records / biometric_devices / sync_logs"
+        - "leave_requests"
+        - "workforce_schedules / schedule_shifts"
+        # ── Payroll ──
+        - "payroll_cycles / entries / items / transactions"
+        - "payroll_components"
+        - "post_payroll_integrations"
+        # ── Performance & Development ──
+        - "performance_appraisals / goals / continuous_feedback"
+        - "learning_courses / enrollments"
+        - "succession_plans / candidates"
+        # ── Benefits & Compensation ──
+        - "benefits_plans / enrollments"
+        - "compensation_plans / entries"
+        # ── Assets ──
+        - "assets / asset_depreciations"
+        # ── Other ──
+        - "ehs_incidents / ppe_management"
+        - "wellness_programs / participations"
+        - "travel_expenses / travel_requests"
+        - "expat_management / expat_documents / government_fees"
+        - "zatca_einvoices"
+        - "document_templates / template_histories / document_sequences"
+        - "structure_nodes / structure_links / topology_rules"
+        - "org_meta_types / org_meta_type_attributes / org_change_histories"
+        - "corporate_announcements"
+        - "knowledge_bases / expertise_directories"
+        - "qa_compliances / capas"
+        - "pulse_surveys / survey_responses"
+        - "contingent_workers / contingent_contracts"
+        - "Other (specify in description)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description"
+      description: "Describe the database issue in detail. Include migration file names, error messages, and the expected schema state."
+      placeholder: |
+        Example:
+        Migration 2024_01_15_create_products_table fails with "Foreign key constraint
+        is incorrectly formed" because it references the `categories` table which is
+        created in a later migration file.
+    validations:
+      required: true
+
+  - type: textarea
+    id: sql
+    attributes:
+      label: "SQL / Migration Code"
+      description: "If relevant, paste the SQL or migration code that demonstrates the issue."
+      render: php
+    validations:
+      required: false
+
+  - type: textarea
+    id: proposed-fix
+    attributes:
+      label: "Proposed Fix"
+      description: "If you have a proposed solution, describe it here."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Submission Checklist"
+      options:
+        - label: "I have tested this with `php artisan migrate:fresh --seed` on MySQL."
+          required: false
+        - label: "I have searched existing issues for duplicates."
+          required: true

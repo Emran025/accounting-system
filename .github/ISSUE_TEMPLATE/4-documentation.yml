@@ -1,0 +1,91 @@
+name: "📖 Documentation Improvement"
+description: "Report an error, omission, or improvement opportunity in the project documentation."
+title: "[Docs]: "
+labels: ["type: documentation", "status: needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Documentation Improvement
+
+        Use this template to report issues with documentation accuracy, completeness, or clarity. This includes README files, the `/docs` directory, API reference, inline code comments, component READMEs, and `.github` policy documents.
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: "Documentation Area"
+      description: "Which documentation is affected?"
+      multiple: true
+      options:
+        - "README.md (root)"
+        - "docs/API_REFERENCE.md"
+        - "docs/DATABASE_SCHEMA.md"
+        - "docs/TECHNICAL_DOCUMENTATION.md"
+        - "docs/USER_GUIDE.md"
+        - "docs/DOCUMENTATION_INDEX.md"
+        - ".github/CONTRIBUTING.md"
+        - ".github/COMMIT_GUIDELINES.md"
+        - ".github/SECURITY.md"
+        - ".github/CODE_OF_CONDUCT.md"
+        - ".github/PULL_REQUEST_TEMPLATE.md"
+        - ".github/ISSUE_TEMPLATE/*"
+        - "Inline Code Comments (PHPDoc / JSDoc / TSDoc)"
+        - "Component README files (frontend)"
+        - "Migration Comments (backend)"
+        - "OpenAPI / Swagger Specification"
+        - "Other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: "Issue Type"
+      description: "What kind of documentation issue is this?"
+      multiple: false
+      options:
+        - "Inaccuracy — The documentation states something that is incorrect"
+        - "Omission — A feature, endpoint, or process is not documented"
+        - "Outdated — The documentation does not reflect current behaviour"
+        - "Unclear — The documentation is confusing or ambiguous"
+        - "Improvement — The documentation could be better organised or more detailed"
+        - "Localisation — Translation or language-specific issue"
+        - "Missing Example — A code example or usage sample is needed"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description"
+      description: "Describe the documentation issue in detail. If reporting an inaccuracy, state what the documentation says and what the correct information is."
+      placeholder: |
+        Example:
+        The API_REFERENCE.md states that POST /api/invoices accepts a `tax_rate` field
+        as a percentage (e.g., 15), but the actual implementation expects a decimal
+        (e.g., 0.15). This has caused confusion during integration testing.
+
+        File: docs/API_REFERENCE.md
+        Section: Sales Endpoints > Create Invoice
+        Line: approximately 245
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: "Suggested Correction or Improvement"
+      description: "If you know what the documentation should say, describe the correction here. If you are willing to submit a pull request with the fix, mention that as well."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Submission Checklist"
+      options:
+        - label: "I have verified that this documentation issue exists in the latest version of the codebase."
+          required: true
+        - label: "I have searched existing issues for duplicates."
+          required: true

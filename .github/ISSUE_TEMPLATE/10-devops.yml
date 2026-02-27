@@ -1,0 +1,82 @@
+name: "DevOps / CI/CD Issue"
+description: "Report an issue or propose an improvement to the build pipeline, deployment process, or development environment."
+title: "[DevOps]: "
+labels: ["type: devops", "status: needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## DevOps / CI/CD Issue
+
+        Use this template for issues related to GitHub Actions workflows, build processes, development environment setup, Docker, or deployment configuration.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Affected Area"
+      description: "Which area is this about?"
+      multiple: true
+      options:
+        - "GitHub Actions Workflows"
+        - "Build Process (Composer / npm)"
+        - "Linting / Code Style (ESLint / Pint)"
+        - "Test Pipeline"
+        - "Deployment / Release Process"
+        - "Docker / Containerisation"
+        - "XAMPP / Local Development Environment"
+        - "Environment Variables / Configuration"
+        - "Dependency Management"
+        - "Tauri Build Pipeline"
+        - "Other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: "Issue Type"
+      description: "What kind of issue is this?"
+      multiple: false
+      options:
+        - "Pipeline Failure — CI/CD workflow is broken"
+        - "Performance — Pipeline is too slow"
+        - "New Workflow — Requesting a new automation"
+        - "Configuration — Environment or config file issue"
+        - "Dependency — Package installation or version conflict"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description"
+      description: "Describe the DevOps issue in detail. Include workflow file names, job names, and error messages."
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Pipeline Logs / Error Output"
+      description: "Paste any relevant error output from the CI/CD pipeline or build process."
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: proposed-fix
+    attributes:
+      label: "Proposed Fix"
+      description: "If you have a solution in mind, describe it here."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Submission Checklist"
+      options:
+        - label: "I have searched existing issues for duplicates."
+          required: true

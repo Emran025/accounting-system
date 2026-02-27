@@ -1,59 +1,230 @@
-name: Bug Report
-description: Found something wrong? Let us know!
+name: "Bug Report"
+description: "Report a defect in the ACCSYSTEM ERP platform. Provide sufficient detail for the issue to be reproduced and diagnosed."
 title: "[Bug]: "
-labels: ["bug", "needs triage"]
+labels: ["type: bug", "status: needs-triage"]
+assignees: []
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report! Please provide as much detail as possible.
+        ## Thank you for taking the time to report a bug!
+
+        **Before submitting**, please confirm that:
+        - You are running a [supported version](../../SECURITY.md) of ACCSYSTEM ERP.
+        - You have searched the [existing issues](https://github.com/Emran025/ACCSYSTEM/issues?q=label%3A%22type%3A+bug%22) for duplicates.
+        - You have consulted the [Troubleshooting section](../../docs/TECHNICAL_DOCUMENTATION.md) in the documentation.
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: "Affected Module"
+      description: "Select the ERP module(s) where the bug occurs."
+      multiple: true
+      options:
+        # ── Core Platform ──
+        - "Authentication / Sessions"
+        - "User & Role Management (RBAC)"
+        - "System Settings & Configuration"
+        - "Dashboard / KPIs"
+        - "Audit Logs / Audit Trail"
+        # ── Finance & Accounting ──
+        - "General Ledger / Journal Vouchers"
+        - "Chart of Accounts"
+        - "Fiscal Periods"
+        - "Accounts Receivable (AR)"
+        - "Accounts Payable (AP)"
+        - "Bank Reconciliation"
+        - "Accrual Accounting"
+        - "Recurring Transactions"
+        - "Financial Reports"
+        - "Multi-Currency / Exchange Rates"
+        - "Expenses / Revenues"
+        - "Prepayments / Unearned Revenue"
+        # ── Sales & Distribution ──
+        - "Sales / POS / Invoicing"
+        - "Sales Returns"
+        - "Sales Representatives / Commissions"
+        # ── Procurement & Inventory ──
+        - "Purchases / Procurement"
+        - "Purchase Requests"
+        - "Inventory / Products"
+        - "Periodic Inventory / Stock Counts"
+        - "Batch Management"
+        - "Categories"
+        # ── Human Resources ──
+        - "HR Administration / Employee Management"
+        - "Employee Contracts"
+        - "Employee Loans"
+        - "Employee Assets"
+        - "Employee Relations / Disciplinary"
+        - "Departments / Job Titles"
+        - "Recruitment / Applicants / Interviews"
+        - "Onboarding Workflows"
+        - "Performance Management / Appraisals"
+        - "Learning & Development"
+        - "Benefits / Compensation"
+        - "Succession Planning"
+        # ── Workforce Management ──
+        - "Attendance / Biometrics"
+        - "Leave Management"
+        - "Workforce Scheduling / Shifts"
+        # ── Additional Modules ──
+        - "Payroll / Salary Calculation"
+        - "Post-Payroll Integration"
+        - "Payroll Components"
+        - "End of Service Benefits (EOSB)"
+        - "Fixed Assets / Depreciation"
+        - "EHS / Incidents / PPE"
+        - "Wellness Programs"
+        - "Travel & Expenses"
+        - "Expat Management / Government Fees"
+        - "ZATCA E-Invoicing"
+        - "Document Templates / Sequences"
+        - "Organisational Structure"
+        - "Corporate Communications"
+        - "Knowledge Management / Expertise"
+        - "QA & Compliance"
+        - "Pulse Surveys"
+        # ── Technical Infrastructure ──
+        - "Frontend UI / Components (Next.js)"
+        - "API / Backend Infrastructure (Laravel)"
+        - "Database / Migrations"
+        - "CI/CD Pipeline / GitHub Actions"
+        - "Tauri Desktop App"
+        - "Other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "Severity"
+      description: "How severely does this bug affect the system or your workflow?"
+      multiple: false
+      options:
+        - "🔴 Critical — System crash, data loss, data corruption, or security breach"
+        - "🟠 High — Major feature broken, no workaround available"
+        - "🟡 Medium — Feature partially broken, workaround exists"
+        - "🟢 Low — Minor inconvenience, cosmetic issue"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: "Affected Layer"
+      description: "Where does the bug manifest?"
+      multiple: true
+      options:
+        - "Backend — Laravel API / PHP"
+        - "Frontend — Next.js / React UI"
+        - "Database — MySQL / Migrations / Queries"
+        - "Desktop — Tauri / Native Shell"
+        - "CI/CD — GitHub Actions / Workflows"
+        - "Documentation"
+        - "Unknown / Not Sure"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: regression
+    attributes:
+      label: "Is this a regression?"
+      description: "Did this work correctly before and is now broken?"
+      multiple: false
+      options:
+        - "Yes — This previously worked and is now broken"
+        - "No — This has never worked correctly"
+        - "Unknown — I am not sure"
+    validations:
+      required: true
+
   - type: textarea
     id: description
     attributes:
-      label: " Describe the Bug"
-      description: "A clear and concise description of what the bug is."
-    validations:
-      required: true
-  - type: textarea
-    id: reproduction
-    attributes:
-      label: " Steps To Reproduce"
-      description: "Please provide detailed steps to reproduce the behavior."
+      label: "Bug Description"
+      description: "Provide a clear, precise description of the defect. Explain what is happening and why it is incorrect."
       placeholder: |
-        1. Go to '...'
-        2. Click on '....'
-        3. See error
+        Describe the bug in detail. Include:
+        - What you were trying to do
+        - What actually happened
+        - Why the observed behaviour is incorrect
     validations:
       required: true
+
   - type: textarea
     id: expected
     attributes:
-      label: "Expected Behavior"
-      description: "What did you expect to happen?"
+      label: "Expected Behaviour"
+      description: "Describe what should happen instead."
     validations:
       required: true
-  - type: dropdown
-    id: php-version
+
+  - type: textarea
+    id: reproduction
     attributes:
-      label: "PHP Version"
-      multiple: false
-      options:
-        - 8.3
-        - 8.2
+      label: "Steps to Reproduce"
+      description: "Provide the exact, minimal sequence of steps to reproduce the bug. Start from a known state (e.g., after a fresh login, or after running `migrate:fresh --seed`)."
+      placeholder: |
+        1. Log in as admin (admin / admin)
+        2. Navigate to Sales > Invoices
+        3. Click "New Invoice"
+        4. Add a product with quantity -1
+        5. Click "Save"
+        6. Observe that the invoice total is negative, which should not be allowed
     validations:
       required: true
-  - type: dropdown
-    id: laravel-version
+
+  - type: textarea
+    id: environment
     attributes:
-      label: "Laravel Version"
-      multiple: false
-      options:
-        - "11.x"
-        - "10.x"
+      label: "Environment"
+      description: "Provide your environment details."
+      value: |
+        - **Operating System:**
+        - **PHP Version:**
+        - **Laravel Version:**
+        - **Node.js Version:**
+        - **MySQL Version:**
+        - **Browser (if frontend issue):**
+        - **ACCSYSTEM Version / Commit Hash:**
     validations:
       required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Error Logs and Stack Traces"
+      description: "Paste any relevant error output. **Backend:** check `backend/storage/logs/laravel.log`. **Frontend:** check browser console. Wrap long output in a code block."
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "Screenshots or Screen Recordings"
+      description: "Attach screenshots or recordings that demonstrate the issue. Drag and drop images directly into this field."
+    validations:
+      required: false
+
   - type: textarea
     id: context
     attributes:
       label: "Additional Context"
-      description: "Add any other context, screenshots, or logs about the problem here."
+      description: "Any other information that may help diagnose the issue — database state, specific data values, related configuration settings, whether the bug is intermittent, linked issues or PRs."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Submission Checklist"
+      description: "Confirm the following before submitting."
+      options:
+        - label: "I have searched existing issues and confirmed this is not a duplicate."
+          required: true
+        - label: "I am using a supported version of ACCSYSTEM ERP."
+          required: true
+        - label: "I have provided all the information requested above."
+          required: true

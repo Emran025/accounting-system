@@ -1,0 +1,448 @@
+# ACCSYSTEM ERP — GitHub Labels Configuration
+#
+# This file documents the standard labels used across the project.
+# Apply these labels via GitHub Settings > Labels, or use the GitHub CLI:
+#
+#   gh label create "label-name" --color "HEXCODE" --description "Description"
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+# TYPE LABELS — What kind of issue is this?
+# ═══════════════════════════════════════════════════════════════════════════════
+
+- name: "type: bug"
+  color: "d73a4a"
+  description: "Something is not working correctly"
+
+- name: "type: enhancement"
+  color: "a2eeef"
+  description: "New feature or improvement to existing functionality"
+
+- name: "type: performance"
+  color: "f9d0c4"
+  description: "Performance degradation, slow response, or resource issue"
+
+- name: "type: documentation"
+  color: "0075ca"
+  description: "Documentation improvement, correction, or addition"
+
+- name: "type: security"
+  color: "e11d48"
+  description: "Security concern or hardening improvement"
+
+- name: "type: refactor"
+  color: "d4c5f9"
+  description: "Code quality improvement with no user-facing change"
+
+- name: "type: testing"
+  color: "bfd4f2"
+  description: "New tests, test coverage improvement, or test infrastructure"
+
+- name: "type: ui/ux"
+  color: "7057ff"
+  description: "User interface or user experience improvement"
+
+- name: "type: database"
+  color: "fbca04"
+  description: "Database schema, migration, or data integrity issue"
+
+- name: "type: devops"
+  color: "0e8a16"
+  description: "CI/CD, build process, or deployment issue"
+
+- name: "type: question"
+  color: "d876e3"
+  description: "Technical question about the codebase"
+
+- name: "type: chore"
+  color: "ededed"
+  description: "Maintenance task, dependency update, or housekeeping"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STATUS LABELS — What is the current state of this issue?
+# ═══════════════════════════════════════════════════════════════════════════════
+
+- name: "status: needs-triage"
+  color: "e4e669"
+  description: "Awaiting initial review and classification by a maintainer"
+
+- name: "status: confirmed"
+  color: "0e8a16"
+  description: "Issue has been reviewed and confirmed as valid"
+
+- name: "status: in-progress"
+  color: "1d76db"
+  description: "Currently being worked on"
+
+- name: "status: blocked"
+  color: "b60205"
+  description: "Cannot proceed due to a dependency or blocker"
+
+- name: "status: needs-info"
+  color: "fbca04"
+  description: "More information is needed from the reporter"
+
+- name: "status: needs-design"
+  color: "c5def5"
+  description: "Requires UI/UX design before implementation"
+
+- name: "status: needs-discussion"
+  color: "d4c5f9"
+  description: "Requires team discussion before proceeding"
+
+- name: "status: on-hold"
+  color: "ffffff"
+  description: "Intentionally paused — will be resumed later"
+
+- name: "status: wontfix"
+  color: "ffffff"
+  description: "Will not be addressed — by design or out of scope"
+
+- name: "status: duplicate"
+  color: "cfd3d7"
+  description: "This issue is a duplicate of another"
+
+- name: "status: stale"
+  color: "ededed"
+  description: "No activity for an extended period"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRIORITY LABELS — How urgent is this?
+# ═══════════════════════════════════════════════════════════════════════════════
+
+- name: "priority: critical"
+  color: "b60205"
+  description: "Must be fixed immediately — system-breaking or data loss"
+
+- name: "priority: high"
+  color: "d93f0b"
+  description: "Important issue, should be addressed in the current sprint"
+
+- name: "priority: medium"
+  color: "fbca04"
+  description: "Should be addressed soon but is not blocking"
+
+- name: "priority: low"
+  color: "0e8a16"
+  description: "Nice to have, address when time permits"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SEVERITY LABELS — How bad is the impact? (for bugs)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+- name: "severity: critical"
+  color: "b60205"
+  description: "System crash, data loss, or complete feature failure"
+
+- name: "severity: high"
+  color: "d93f0b"
+  description: "Major feature broken, no workaround available"
+
+- name: "severity: medium"
+  color: "fbca04"
+  description: "Feature partially broken, workaround exists"
+
+- name: "severity: low"
+  color: "0e8a16"
+  description: "Minor inconvenience or cosmetic issue"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MODULE LABELS — Which ERP module is affected?
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Core Platform ──
+- name: "module: auth"
+  color: "c2e0c6"
+  description: "Authentication, sessions, and login"
+
+- name: "module: rbac"
+  color: "c2e0c6"
+  description: "Roles, permissions, and access control"
+
+- name: "module: settings"
+  color: "c2e0c6"
+  description: "System settings and configuration"
+
+- name: "module: dashboard"
+  color: "c2e0c6"
+  description: "Dashboard, KPIs, and analytics widgets"
+
+- name: "module: audit"
+  color: "c2e0c6"
+  description: "Audit logs and audit trail"
+
+# ── Finance & Accounting ──
+- name: "module: general-ledger"
+  color: "bfdadc"
+  description: "General Ledger, journal vouchers, and postings"
+
+- name: "module: chart-of-accounts"
+  color: "bfdadc"
+  description: "Chart of Accounts management"
+
+- name: "module: fiscal-periods"
+  color: "bfdadc"
+  description: "Fiscal period management and closing"
+
+- name: "module: ar"
+  color: "bfdadc"
+  description: "Accounts Receivable — customers and transactions"
+
+- name: "module: ap"
+  color: "bfdadc"
+  description: "Accounts Payable — suppliers and transactions"
+
+- name: "module: bank-reconciliation"
+  color: "bfdadc"
+  description: "Bank reconciliation"
+
+- name: "module: accruals"
+  color: "bfdadc"
+  description: "Accrual accounting, prepayments, unearned revenue"
+
+- name: "module: recurring-transactions"
+  color: "bfdadc"
+  description: "Recurring and scheduled transactions"
+
+- name: "module: reports"
+  color: "bfdadc"
+  description: "Financial reports (trial balance, income statement, etc.)"
+
+- name: "module: multi-currency"
+  color: "bfdadc"
+  description: "Multi-currency, exchange rates, and revaluations"
+
+- name: "module: expenses"
+  color: "bfdadc"
+  description: "Expenses and revenue tracking"
+
+# ── Sales & Distribution ──
+- name: "module: sales"
+  color: "d4e8c2"
+  description: "Sales, POS, and invoicing"
+
+- name: "module: sales-returns"
+  color: "d4e8c2"
+  description: "Sales returns and credit notes"
+
+- name: "module: sales-reps"
+  color: "d4e8c2"
+  description: "Sales representatives and commissions"
+
+# ── Procurement & Inventory ──
+- name: "module: purchases"
+  color: "fef2c0"
+  description: "Purchases, procurement, and purchase requests"
+
+- name: "module: inventory"
+  color: "fef2c0"
+  description: "Inventory, products, and stock management"
+
+- name: "module: batch-management"
+  color: "fef2c0"
+  description: "Batch tracking and management"
+
+# ── Human Resources ──
+- name: "module: hr"
+  color: "f9d0c4"
+  description: "HR administration and employee management"
+
+- name: "module: contracts"
+  color: "f9d0c4"
+  description: "Employee contracts"
+
+- name: "module: loans"
+  color: "f9d0c4"
+  description: "Employee loans and repayments"
+
+- name: "module: employee-relations"
+  color: "f9d0c4"
+  description: "Employee relations and disciplinary actions"
+
+- name: "module: recruitment"
+  color: "f9d0c4"
+  description: "Recruitment, applicants, and interviews"
+
+- name: "module: onboarding"
+  color: "f9d0c4"
+  description: "Onboarding workflows and tasks"
+
+- name: "module: performance"
+  color: "f9d0c4"
+  description: "Performance appraisals, goals, and feedback"
+
+- name: "module: learning"
+  color: "f9d0c4"
+  description: "Learning and development courses"
+
+- name: "module: benefits"
+  color: "f9d0c4"
+  description: "Benefits and compensation plans"
+
+- name: "module: succession"
+  color: "f9d0c4"
+  description: "Succession planning"
+
+# ── Workforce Management ──
+- name: "module: attendance"
+  color: "e6ccb2"
+  description: "Attendance, biometrics, and time tracking"
+
+- name: "module: leave"
+  color: "e6ccb2"
+  description: "Leave requests and management"
+
+- name: "module: scheduling"
+  color: "e6ccb2"
+  description: "Workforce scheduling and shifts"
+
+# ── Payroll ──
+- name: "module: payroll"
+  color: "fef2c0"
+  description: "Payroll cycles, salary calculation, and components"
+
+- name: "module: eosb"
+  color: "fef2c0"
+  description: "End of Service Benefits"
+
+# ── Compliance & Regulatory ──
+- name: "module: zatca"
+  color: "d4e8c2"
+  description: "ZATCA e-invoicing and Saudi tax compliance"
+
+- name: "module: qa-compliance"
+  color: "d4e8c2"
+  description: "Quality assurance and compliance (CAPA)"
+
+# ── Assets & Operations ──
+- name: "module: fixed-assets"
+  color: "c5def5"
+  description: "Fixed assets and depreciation"
+
+- name: "module: ehs"
+  color: "c5def5"
+  description: "EHS incidents, PPE, and workplace safety"
+
+- name: "module: wellness"
+  color: "c5def5"
+  description: "Wellness programs and employee health"
+
+- name: "module: travel"
+  color: "c5def5"
+  description: "Travel requests and expense management"
+
+- name: "module: expat"
+  color: "c5def5"
+  description: "Expatriate management and government fees"
+
+# ── Organisation & Communication ──
+- name: "module: org-structure"
+  color: "d4c5f9"
+  description: "Organisational structure, nodes, and topology"
+
+- name: "module: document-templates"
+  color: "d4c5f9"
+  description: "Document templates and document sequences"
+
+- name: "module: communications"
+  color: "d4c5f9"
+  description: "Corporate communications and announcements"
+
+- name: "module: knowledge-base"
+  color: "d4c5f9"
+  description: "Knowledge management and expertise directory"
+
+- name: "module: surveys"
+  color: "d4c5f9"
+  description: "Pulse surveys and responses"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LAYER LABELS — Which technical layer is affected?
+# ═══════════════════════════════════════════════════════════════════════════════
+
+- name: "layer: backend"
+  color: "5319e7"
+  description: "Laravel PHP backend (API, services, models)"
+
+- name: "layer: frontend"
+  color: "1d76db"
+  description: "Next.js React frontend (components, pages, stores)"
+
+- name: "layer: database"
+  color: "fbca04"
+  description: "MySQL database, migrations, and queries"
+
+- name: "layer: desktop"
+  color: "0e8a16"
+  description: "Tauri desktop application shell"
+
+- name: "layer: ci-cd"
+  color: "ededed"
+  description: "GitHub Actions, build, and deployment pipeline"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SCOPE LABELS — How large is the effort?
+# ═══════════════════════════════════════════════════════════════════════════════
+
+- name: "scope: small"
+  color: "c2e0c6"
+  description: "Small change — a few lines or a single component"
+
+- name: "scope: medium"
+  color: "fef2c0"
+  description: "Medium change — multiple files or components"
+
+- name: "scope: large"
+  color: "f9d0c4"
+  description: "Large change — significant feature or architectural work"
+
+- name: "scope: epic"
+  color: "d93f0b"
+  description: "Epic — multi-sprint effort, may need to be broken down"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SPECIAL LABELS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+- name: "good first issue"
+  color: "7057ff"
+  description: "Good for newcomers — well-defined, limited scope"
+
+- name: "help wanted"
+  color: "008672"
+  description: "Community contributions welcome"
+
+- name: "breaking-change"
+  color: "b60205"
+  description: "Introduces a breaking change to the API or data model"
+
+- name: "regression"
+  color: "d93f0b"
+  description: "A previously working feature is now broken"
+
+- name: "compliance"
+  color: "e11d48"
+  description: "Related to regulatory or legal compliance (ZATCA, labour law, etc.)"
+
+- name: "data-integrity"
+  color: "b60205"
+  description: "Risk of data corruption or financial calculation error"
+
+- name: "accessibility"
+  color: "0075ca"
+  description: "Accessibility (a11y) improvement"
+
+- name: "i18n"
+  color: "0075ca"
+  description: "Internationalisation — RTL, Arabic, locale support"
+
+- name: "tech-debt"
+  color: "ededed"
+  description: "Technical debt requiring cleanup"
+
+- name: "dependency"
+  color: "ededed"
+  description: "Dependency update or vulnerability fix"
+
+- name: "needs-reproduction"
+  color: "fbca04"
+  description: "Cannot reproduce — needs more details or repro steps"

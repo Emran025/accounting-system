@@ -1,82 +1,129 @@
-# Our Code of Conduct 
+# Code of Conduct -- ACCSYSTEM ERP
 
-## Our Pledge
+## 1. Purpose
 
-We, as members, contributors, and leaders, pledge to make participation in our community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
-
-We pledge to act and interact in ways that contribute to an open, welcoming, diverse, inclusive, and healthy community.
+This Code of Conduct establishes the behavioural standards expected of every person who participates in the ACCSYSTEM ERP project, whether as a contributor, maintainer, reviewer, or community member. It exists to ensure that participation in this project is a productive and respectful experience for everyone, regardless of background, identity, or level of experience.
 
 ---
 
-##  Our Standards
+## 2. Scope
 
-###  Examples of Positive Behavior:
+This Code of Conduct applies to all project spaces, including but not limited to:
 
--  Demonstrating empathy and kindness toward other people.
--  Being respectful of differing opinions, viewpoints, and experiences.
--  Giving and gracefully accepting constructive feedback.
--  Accepting responsibility, apologizing to those affected by our mistakes, and learning from the experience.
--  Focusing on what is best not just for us as individuals, but for the overall community.
+- The GitHub repository (issues, pull requests, discussions, code reviews, wiki).
+- Any communication channels associated with the project (email, chat platforms, forums).
+- Public events or presentations where an individual represents the project.
 
-###  Examples of Unacceptable Behavior:
-
--  The use of sexualized language or imagery, and sexual attention or advances of any kind.
--  Trolling, insulting or derogatory comments, and personal or political attacks.
--  Public or private harassment.
--  Publishing others' private information, such as a physical or email address, without their explicit permission.
--  Other conduct which could reasonably be considered inappropriate in a professional setting.
+It also applies when an individual is officially representing the project community in public spaces, such as using an official project email address or acting as an appointed representative.
 
 ---
 
-##  Enforcement Responsibilities
+## 3. Standards of Expected Behaviour
 
-Community leaders are responsible for clarifying and enforcing our standards. They will take appropriate and fair corrective action in response to any behavior that they deem inappropriate, threatening, offensive, or harmful.
+All participants are expected to:
 
-Community leaders have the right and responsibility to remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct. They will communicate reasons for moderation decisions when appropriate.
-
-## 🌐 Scope
-
-This Code of Conduct applies within all community spaces (like GitHub, Slack, etc.) and also applies when an individual is officially representing the community in public spaces.
-
----
-
-##  How to Report
-
-If you witness or experience abusive, harassing, or otherwise unacceptable behavior, please report it immediately.
-
-> **Report incidents to the project team at: amrannaser3@gmail.com**
-
-All complaints will be reviewed and investigated promptly, fairly, and with respect for the privacy and security of the reporter.
-
-## 🚦 Enforcement Guidelines
-
-Community leaders will follow these guidelines to determine the consequences for actions that violate this Code:
-
-### 1. Correction 
-
-- **Community Impact**: Use of inappropriate language or other behavior deemed unprofessional or unwelcome.
-- **Consequence**: A private, written warning from community leaders, providing clarity around the violation. A public apology may be requested.
-
-### 2. Warning 
-
-- **Community Impact**: A violation through a single incident or a series of actions.
-- **Consequence**: A warning with consequences for continued behavior. No interaction with the people involved for a specified period.
-
-### 3. Temporary Ban 
-
-- **Community Impact**: A serious violation of community standards, including sustained inappropriate behavior.
-- **Consequence**: A temporary ban from any sort of interaction or public communication with the community.
-
-### 4. Permanent Ban 
-
-- **Community Impact**: Demonstrating a pattern of violation, including sustained inappropriate behavior, harassment, or aggression.
-- **Consequence**: A permanent ban from any sort of public interaction within the community.
+- **Treat others with respect.** Address disagreements with professionalism. Critique ideas, not people.
+- **Communicate constructively.** Provide actionable, specific feedback in code reviews and discussions. Explain the reasoning behind your position.
+- **Assume good intent.** When a message or action could be interpreted multiple ways, choose the most charitable interpretation before responding.
+- **Accept responsibility.** If you make an error, acknowledge it, correct it, and move forward. If your actions have negatively affected another participant, offer a sincere apology.
+- **Respect differing perspectives.** Contributors come from varied professional and cultural backgrounds. Differences in opinion, approach, and experience are valuable to the project.
+- **Prioritise the community.** Decisions should account for the long-term health of the project and its user base, not solely individual preferences.
 
 ---
 
-## Attribution
+## 4. Unacceptable Behaviour
 
-This Code of Conduct is adapted from the [Contributor Covenant][homepage], version 2.1. We are grateful for their work in establishing community standards.
+The following behaviours are prohibited:
 
-[homepage]: https://www.contributor-covenant.org
-[v2.1]: https://www.contributor-covenant.org/version/2/1/code_of_conduct.html
+- **Harassment.** This includes offensive comments related to gender, gender identity, sexual orientation, disability, physical appearance, body size, race, ethnicity, age, religion, or nationality. It also includes deliberate intimidation, stalking, sustained disruption of discussions, and unwelcome sexual attention.
+- **Personal attacks.** Insults, derogatory comments, or ad hominem arguments directed at individuals rather than their contributions.
+- **Trolling.** Deliberately provocative, off-topic, or inflammatory remarks intended to derail productive conversation.
+- **Doxxing.** Publishing another person's private information (physical address, email address, phone number, employer) without their explicit, documented consent.
+- **Sexualised language or imagery.** In any project space, regardless of context.
+- **Abuse of authority.** Maintainers must not use their position to silence, punish, or retaliate against contributors who raise legitimate concerns.
+
+---
+
+## 5. Enforcement Responsibilities
+
+Project maintainers are responsible for:
+
+- Clarifying the standards described in this document when questions arise.
+- Taking appropriate, measured, and fair corrective action in response to behaviour that violates this Code of Conduct.
+- Removing, editing, or rejecting comments, commits, code, wiki edits, issues, and other contributions that do not align with this Code of Conduct.
+- Communicating the reasons for moderation decisions when appropriate.
+
+Enforcement decisions should be proportional to the severity and context of the violation.
+
+---
+
+## 6. Reporting Violations
+
+If you experience or witness behaviour that violates this Code of Conduct, report it to the project maintainer:
+
+**Emran Nasser**
+**Email: amrannaser3@gmail.com**
+
+### What to Include in a Report
+
+- Your contact information (so we can follow up with you).
+- The names or identifiers of the individuals involved.
+- A description of the behaviour you are reporting, including dates, times, and locations (e.g., the URL of the relevant issue, pull request, or comment).
+- Any supporting evidence (screenshots, links, email threads).
+- Whether you have already attempted to address the situation directly, and if so, what the outcome was.
+
+### Confidentiality
+
+All reports will be handled with discretion. The identity of the reporter will not be disclosed to the accused party or to the general community without the reporter's explicit consent, except where required by law.
+
+---
+
+## 7. Enforcement Process
+
+The following graduated response framework will be applied. The appropriate level depends on the severity of the violation, the context, and whether the individual has prior incidents.
+
+### Level 1 -- Correction
+
+- **Trigger:** A single instance of using inappropriate language or engaging in behaviour deemed unprofessional.
+- **Response:** A private, written message from a project maintainer explaining the violation and why the behaviour was inappropriate. A public apology may be requested.
+- **Duration:** No restricted participation period.
+
+### Level 2 -- Formal Warning
+
+- **Trigger:** A violation through a single serious incident, or a pattern of minor incidents after a Level 1 correction.
+- **Response:** A formal warning with clearly stated consequences for continued behaviour. The individual must refrain from interacting with the affected parties for a specified period, including in external channels.
+- **Duration:** Minimum 30 days of restricted interaction.
+
+### Level 3 -- Temporary Suspension
+
+- **Trigger:** A serious violation of community standards, including sustained inappropriate behaviour or a single incident of significant harm.
+- **Response:** A temporary suspension from all participation in the project (issues, pull requests, discussions, code reviews). The duration will be commensurate with the severity.
+- **Duration:** Minimum 90 days.
+
+### Level 4 -- Permanent Exclusion
+
+- **Trigger:** A demonstrated pattern of violation, sustained harassment, or a single incident of extreme severity (threats, doxxing, discrimination).
+- **Response:** Permanent removal from all project spaces. No further contributions will be accepted.
+
+---
+
+## 8. Appeals
+
+An individual who has been subject to enforcement action may appeal the decision by sending an email to `amrannaser3@gmail.com` with the subject line "Code of Conduct Appeal". The appeal must include:
+
+- The enforcement action being appealed.
+- The grounds for the appeal (e.g., factual error, disproportionate response, mitigating circumstances).
+
+Appeals will be reviewed within 14 calendar days. The decision on appeal is final.
+
+---
+
+## 9. Attribution
+
+This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org/), version 2.1, available at [https://www.contributor-covenant.org/version/2/1/code_of_conduct.html](https://www.contributor-covenant.org/version/2/1/code_of_conduct.html).
+
+The enforcement framework draws on the Contributor Covenant's recommended enforcement guidelines and has been adapted to the governance structure of the ACCSYSTEM ERP project.
+
+---
+
+*Last updated: February 2026*

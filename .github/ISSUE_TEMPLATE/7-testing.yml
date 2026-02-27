@@ -1,0 +1,89 @@
+name: "Testing Improvement"
+description: "Propose new tests, improve existing test coverage, or report a testing infrastructure issue."
+title: "[Testing]: "
+labels: ["type: testing", "status: needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Testing Improvement
+
+        Use this template to propose new tests, report flaky tests, or suggest improvements to the testing infrastructure.
+
+  - type: dropdown
+    id: test-type
+    attributes:
+      label: "Test Type"
+      description: "What kind of testing is this about?"
+      multiple: true
+      options:
+        - "Unit Tests — Isolated function/method tests"
+        - "Feature / Integration Tests — API endpoint tests"
+        - "Component Tests — Frontend component tests (Vitest)"
+        - "End-to-End (E2E) Tests — Full user workflow tests"
+        - "Regression Test — Test to prevent a specific bug from recurring"
+        - "Performance / Load Test — Response time and scalability tests"
+        - "Testing Infrastructure — Test helpers, factories, fixtures"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: "Layer"
+      description: "Which layer of the application needs test improvements?"
+      multiple: true
+      options:
+        - "Backend — Laravel PHP (PHPUnit)"
+        - "Frontend — Next.js React (Vitest)"
+        - "API Contracts — Request/Response validation"
+        - "Database — Migrations, seeders, factories"
+        - "CI/CD — Test pipeline configuration"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: "Category"
+      description: "What kind of improvement is this?"
+      multiple: false
+      options:
+        - "Missing Coverage — No tests exist for this area"
+        - "Flaky Test — An existing test fails intermittently"
+        - "Broken Test — An existing test consistently fails"
+        - "Inadequate Coverage — Tests exist but don't cover edge cases"
+        - "Infrastructure — Testing framework, helpers, or setup improvements"
+        - "Documentation — Test documentation or conventions"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description"
+      description: "Describe what needs to be tested or what testing issue needs to be resolved. Include file paths and module names."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-tests
+    attributes:
+      label: "Proposed Tests"
+      description: "Describe the tests that should be added or modified. Include test scenarios and expected outcomes."
+      placeholder: |
+        Example:
+        - Test that payroll calculation correctly applies GOSI deductions for Saudi employees
+        - Test that payroll rejects negative salary amounts
+        - Test that the payroll cycle cannot be finalised if there are unresolved errors
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Submission Checklist"
+      options:
+        - label: "I have searched existing issues for duplicates."
+          required: true

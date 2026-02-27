@@ -1,11 +1,21 @@
 blank_issues_enabled: false
 contact_links:
-  - name:  Ask a Question
-    url: https://github.com/Emran025/ACCSYSTEM/issues/new?category=q-a
-    about: Please ask and answer questions here.
-  - name:  Feature Idea
-    url: https://github.com/Emran025/ACCSYSTEM/issues/new?category=ideas
-    about: Share your ideas for new features.
-  - name:  Report a Security Vulnerability
-    url: ../../SECURITY.md
-    about: Please review our security policy for reporting vulnerabilities.
+  - name: "💬 Ask a Question"
+    url: https://github.com/Emran025/accounting-system/discussions/categories/q-a
+    about: "For general questions about using, configuring, or developing ACCSYSTEM ERP, please use the Q&A discussion category. This keeps questions searchable for others."
+
+  - name: "💡 Propose an Architectural Change"
+    url: https://github.com/Emran025/accounting-system/discussions/categories/ideas
+    about: "For proposals that affect the system architecture, module design, or technology stack, start a discussion so the community can evaluate the approach before implementation begins."
+
+  - name: "🔐 Report a Security Vulnerability"
+    url: https://github.com/Emran025/accounting-system/blob/main/.github/SECURITY.md
+    about: "Critical security vulnerabilities must be reported privately. Do NOT create a public issue. Review the Security Policy for instructions on how to report securely."
+
+  - name: "📋 View Contributing Guidelines"
+    url: https://github.com/Emran025/accounting-system/blob/main/.github/CONTRIBUTING.md
+    about: "Read the contributing guidelines before submitting your first issue or pull request. Includes coding standards, commit conventions, and branch naming rules."
+
+  - name: "📖 Browse Documentation"
+    url: https://github.com/Emran025/accounting-system/tree/main/docs
+    about: "Check the project documentation for API references, database schema, technical documentation, and user guides before opening an issue."

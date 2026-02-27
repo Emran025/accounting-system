@@ -1,35 +1,64 @@
 ---
-name: ' Feature Request'
-description: 'Suggest an idea to make ACCSYSTEM even better!'
-labels: ['enhancement', 'needs triage']
+name: "✨ Feature Request (Markdown)"
+about: "Propose a new feature or enhancement. Use this template if the YAML form templates are not available in your workflow."
+labels: ["type: enhancement", "status: needs-triage"]
 ---
 
-### **Describe the Feature**
+## Problem Statement
 
-A clear and concise description of the feature or enhancement you are requesting.
+Describe the problem or limitation that this feature would address. Be specific about who experiences the problem and how frequently.
 
-### **Why Is This Needed?**
+## Target Module
 
-Explain why this feature would be useful for you and others.
+Identify which ERP module(s) this feature belongs to (e.g., General Ledger, Sales/POS, Payroll, HR, Inventory, AR/AP, ZATCA, Dashboard, Authentication, Organisational Structure, or a new module).
 
-### **Proposed Solution**
+## Feature Category
 
-If you have ideas about how this could be implemented, share them here!
+- [ ] New Functionality
+- [ ] Enhancement to Existing Feature
+- [ ] Integration with External System
+- [ ] Compliance / Regulatory Requirement
+- [ ] Performance Improvement
+- [ ] Accessibility
+- [ ] Localisation (Language / Currency / RTL)
+- [ ] Security Improvement
+- [ ] Analytics / Reporting
+- [ ] Automation / Workflow
 
-### **Related Issues or Discussions**
+## Proposed Solution
 
-Link to any related issues, pull requests, or discussions.
+Describe the solution you would like to see implemented. Include:
+- What the feature does
+- How the user interacts with it
+- What the expected output or behaviour is
 
-### **Additional Context**
+## Alternatives Considered
 
-Add any other context, mockups, or screenshots here.
+Describe any alternative approaches you have considered and why they are less suitable.
+
+## Acceptance Criteria
+
+Define the specific, measurable conditions for this feature to be considered complete.
+
+- [ ] ...
+- [ ] ...
+- [ ] ...
+
+## Impact Assessment
+
+Describe the impact: how many users benefit, how frequently the feature would be used, and whether it affects financial data integrity or compliance.
+
+## Mockups or References
+
+Attach any UI mockups, wireframes, or references to similar features in other ERP systems (SAP, Oracle, Odoo, etc.).
+
+## Additional Context
+
+Any other relevant information.
 
 ---
 
-### **Feature Request Checklist**
+## Checklist
 
-- [ ] I have checked for similar feature requests.
-- [ ] I have described the feature clearly and concisely.
-- [ ] I have explained why this would benefit the project.
-
-Thank you for helping us grow!
+- [ ] I have searched existing issues and confirmed this is not a duplicate.
+- [ ] I have described the problem and proposed solution clearly.

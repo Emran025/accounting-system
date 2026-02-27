@@ -1,0 +1,155 @@
+name: "🐌 Performance Issue"
+description: "Report a performance degradation, slow response, or excessive resource consumption in the ACCSYSTEM ERP platform."
+title: "[Performance]: "
+labels: ["type: performance", "status: needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Performance Issue Report
+
+        Use this template to report **measurable** performance problems. If the system is functionally broken (producing incorrect results), use the **Bug Report** template instead.
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: "Affected Module"
+      description: "Which module exhibits the performance issue?"
+      multiple: true
+      options:
+        - "Authentication / Sessions"
+        - "General Ledger / Journal Vouchers"
+        - "Chart of Accounts"
+        - "Fiscal Periods"
+        - "Accounts Receivable (AR)"
+        - "Accounts Payable (AP)"
+        - "Bank Reconciliation"
+        - "Financial Reports"
+        - "Multi-Currency / Exchange Rates"
+        - "Sales / POS / Invoicing"
+        - "Sales Returns"
+        - "Sales Representatives"
+        - "Purchases / Procurement"
+        - "Inventory / Products"
+        - "Periodic Inventory"
+        - "HR / Employee Management"
+        - "Payroll / Salary Calculation"
+        - "Attendance / Biometrics"
+        - "Recruitment"
+        - "Dashboard / KPIs"
+        - "ZATCA E-Invoicing"
+        - "Organisational Structure"
+        - "Document Templates"
+        - "API / Backend Infrastructure"
+        - "Frontend UI / Components"
+        - "Database / Queries"
+        - "Other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: bottleneck
+    attributes:
+      label: "Performance Bottleneck Layer"
+      description: "Where does the bottleneck appear to be?"
+      multiple: false
+      options:
+        - "Backend API Response Time"
+        - "Database Query Execution"
+        - "Frontend Rendering / JavaScript"
+        - "Network / Data Transfer"
+        - "Memory Consumption"
+        - "CPU Usage"
+        - "Disk I/O"
+        - "Unknown / Not Determined"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact-level
+    attributes:
+      label: "User Impact"
+      description: "How does this performance issue affect users?"
+      multiple: false
+      options:
+        - "Blocking — Page/endpoint is unusable (timeout or >30s response)"
+        - "Severe — Noticeable delay causing significant user friction (10–30s)"
+        - "Moderate — Slower than expected but still usable (3–10s)"
+        - "Minor — Slightly slower than ideal (<3s but noticeable)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Performance Issue Description"
+      description: "Describe the problem. Include the specific action or endpoint, the observed response time or behaviour, and the expected performance."
+      placeholder: |
+        Example:
+        The GET /api/reports/trial-balance endpoint takes approximately 12 seconds
+        to respond when the general_ledger table contains 100,000+ entries. The
+        expected response time for this endpoint is under 2 seconds.
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: "Measurements and Metrics"
+      description: "Provide quantitative data if available. Include response times, query execution times, memory consumption, CPU usage, record counts, or any profiling output (e.g., Laravel Telescope, Clockwork, `EXPLAIN` output)."
+      placeholder: |
+        - Endpoint: GET /api/reports/trial-balance
+        - Response time: 12.3 seconds (average of 5 requests)
+        - Slowest query: SELECT ... FROM general_ledger ... (8.7 seconds)
+        - Record count: 127,000 rows in general_ledger
+        - Server memory: 256MB allocated to PHP
+    validations:
+      required: false
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "Steps to Reproduce"
+      description: "Describe how to reproduce the performance issue."
+      placeholder: |
+        1. Seed the database with the large dataset: php artisan db:seed --class=LargeDatasetSeeder
+        2. Log in as admin
+        3. Navigate to Finance > Trial Balance
+        4. Observe the loading time
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: "Environment"
+      description: "Provide your environment details."
+      value: |
+        - **Operating System:**
+        - **PHP Version:**
+        - **MySQL Version:**
+        - **Node.js Version:**
+        - **Available RAM:**
+        - **Database Record Count (approximate):**
+        - **ACCSYSTEM Version / Commit Hash:**
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Additional Context"
+      description: "Any other relevant information — recent changes that may have caused the degradation, whether the issue is intermittent, profiling tool output, `EXPLAIN` query plans, or Telescope/Clockwork traces."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Submission Checklist"
+      options:
+        - label: "I have verified this is a performance issue, not a functional bug."
+          required: true
+        - label: "I have searched existing issues for duplicates."
+          required: true

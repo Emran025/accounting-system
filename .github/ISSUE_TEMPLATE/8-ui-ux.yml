@@ -1,0 +1,92 @@
+name: "UI/UX Improvement"
+description: "Propose a user interface or user experience improvement for the ACCSYSTEM ERP frontend."
+title: "[UI/UX]: "
+labels: ["type: ui/ux", "status: needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## UI/UX Improvement
+
+        Use this template to propose visual, interaction, or accessibility improvements to the ACCSYSTEM ERP frontend application.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: "UI Area"
+      description: "Which part of the interface is this about?"
+      multiple: true
+      options:
+        - "Navigation — Side bar, top bar, breadcrumbs"
+        - "Dashboard / KPI Cards"
+        - "Data Tables / Lists"
+        - "Forms / Inputs / Dropdowns"
+        - "Modals / Dialogs"
+        - "Notifications / Alerts / Toasts"
+        - "Charts / Graphs / Visualisations"
+        - "Reports / Print Layouts"
+        - "Organisational Structure Viewer"
+        - "Calendar / Scheduling Views"
+        - "Search / Filtering"
+        - "Layout / Spacing / Grid"
+        - "Typography / Fonts"
+        - "Colors / Theming / Dark Mode"
+        - "Icons / Illustrations"
+        - "Loading States / Skeletons"
+        - "Error States / Empty States"
+        - "Responsive / Mobile Layout"
+        - "Accessibility (a11y)"
+        - "Animations / Transitions"
+        - "Other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: "Improvement Type"
+      description: "What type of UI/UX improvement is this?"
+      multiple: false
+      options:
+        - "Visual Design — Appearance, colors, spacing, typography"
+        - "Interaction Design — Workflow, navigation flow, user journey"
+        - "Accessibility — Screen readers, keyboard navigation, contrast"
+        - "Responsiveness — Mobile/tablet layout adaptation"
+        - "Consistency — Aligning with design system patterns"
+        - "Performance — Perceived speed, loading indicators, lazy loading"
+        - "Internationalisation — RTL support, Arabic layout, locale handling"
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: "Current Behaviour"
+      description: "Describe the current UI/UX and what is problematic. Attach screenshots if possible."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: "Proposed Improvement"
+      description: "Describe the desired UI/UX. Attach mockups, wireframes, or references to other systems if available."
+    validations:
+      required: true
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: "Mockups / Screenshots"
+      description: "Attach any visual references. Drag and drop images directly."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Submission Checklist"
+      options:
+        - label: "I have searched existing issues for duplicates."
+          required: true
