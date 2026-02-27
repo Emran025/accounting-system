@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 💬 Ask a Question
-    url: https://github.com/Emran025/shafeea/discussions/new?category=q-a
+  - name:  Ask a Question
+    url: https://github.com/Emran025/ACCSYSTEM/issues/new?category=q-a
     about: Please ask and answer questions here.
-  - name: 💡 Feature Idea
-    url: https://github.com/Emran025/shafeea/discussions/new?category=ideas
+  - name:  Feature Idea
+    url: https://github.com/Emran025/ACCSYSTEM/issues/new?category=ideas
     about: Share your ideas for new features.
-  - name: 🛡️ Report a Security Vulnerability
+  - name:  Report a Security Vulnerability
     url: ../../SECURITY.md
     about: Please review our security policy for reporting vulnerabilities.

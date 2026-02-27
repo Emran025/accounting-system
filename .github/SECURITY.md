@@ -1,6 +1,6 @@
 # 🛡️ Security Policy
 
-The security of the **Shafeea** project is our highest priority. We deeply appreciate the efforts of security researchers and the community to help us keep our project safe. 🫶
+The security of the **ACCSYSTEM** project is our highest priority. We deeply appreciate the efforts of security researchers and the community to help us keep our project safe. 🫶
 
 ## ✅ Supported Versions
 
@@ -54,4 +54,4 @@ After you submit your report, here is what you can expect from us:
 
 ---
 
-Thank you for helping keep **Shafeea** and its users safe. We truly appreciate your contribution! 🙏
+Thank you for helping keep **ACCSYSTEM** and its users safe. We truly appreciate your contribution! 🙏

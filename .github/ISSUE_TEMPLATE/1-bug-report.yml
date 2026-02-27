@@ -1,4 +1,4 @@
-name: 🐛 Bug Report
+name: Bug Report
 description: Found something wrong? Let us know!
 title: "[Bug]: "
 labels: ["bug", "needs triage"]
@@ -10,14 +10,14 @@ body:
   - type: textarea
     id: description
     attributes:
-      label: "🔍 Describe the Bug"
+      label: " Describe the Bug"
       description: "A clear and concise description of what the bug is."
     validations:
       required: true
   - type: textarea
     id: reproduction
     attributes:
-      label: "🔁 Steps To Reproduce"
+      label: " Steps To Reproduce"
       description: "Please provide detailed steps to reproduce the behavior."
       placeholder: |
         1. Go to '...'
@@ -28,7 +28,7 @@ body:
   - type: textarea
     id: expected
     attributes:
-      label: "✅ Expected Behavior"
+      label: "Expected Behavior"
       description: "What did you expect to happen?"
     validations:
       required: true

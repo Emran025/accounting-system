@@ -1,28 +1,28 @@
-# 🚀✨ Git Workflow & Commit Message Guidelines
+# Git Workflow & Commit Message Guidelines
 
-To keep our Git history clean, clear, and collaborative, please follow these rules for branching and writing commit messages. **Every contribution counts!** 🙌
+To keep our Git history clean, clear, and collaborative, please follow these rules for branching and writing commit messages. **Every contribution counts!** 
 
 ---
 
-## 🌱 Branching Strategy
+## Branching Strategy
 
 > ** Never commit directly to `main`!**  
 > Always work on a new branch.
 
-1. **Sync with `main`** 🔄  
+1. **Sync with `main`**  
    Make sure your local `main` is up-to-date:
    ```bash
    git checkout main
    git pull upstream main
    ```
 
-2. **Create a Descriptive Branch** 🌟  
+2. **Create a Descriptive Branch**  
    Use a prefix to describe your change:
-   - `feat/...` ✨ — New features (`feat/user-avatars`)
-   - `fix/...` 🐛 — Bug fixes (`fix/login-redirect-loop`)
-   - `docs/...` 📚 — Documentation (`docs/update-readme`)
-   - `chore/...` 🧹 — Maintenance (`chore/upgrade-laravel-pint`)
-   - `refactor/...` ♻️ — Code improvements (`refactor/user-service-logic`)
+   - `feat/...` — New features (`feat/user-avatars`)
+   - `fix/...` — Bug fixes (`fix/login-redirect-loop`)
+   - `docs/...` — Documentation (`docs/update-readme`)
+   - `chore/...` — Maintenance (`chore/upgrade-laravel-pint`)
+   - `refactor/...` — Code improvements (`refactor/user-service-logic`)
 
    ```bash
    # Example: new feature
@@ -31,12 +31,12 @@ To keep our Git history clean, clear, and collaborative, please follow these rul
 
 ---
 
-## ✍️ Commit Message Style Guide
+## Commit Message Style Guide
 
 We use [Conventional Commits](https://www.conventionalcommits.org/) for clarity and automation.  
 A commit message has a **header**, optional **body**, and optional **footer**.
 
-### 🏷️ Header Format
+### Header Format
 
 ```
 <type>(<optional scope>): <description>
@@ -44,31 +44,31 @@ A commit message has a **header**, optional **body**, and optional **footer**.
 
 - **`<type>`**: What kind of change?  
 
-| Type        |  Emoji | Description                                                        |
-|-------------|:------:|--------------------------------------------------------------------|
-| `feat`      | ✨     | New feature                                                        |
-| `fix`       | 🐛     | Bug fix                                                            |
-| `docs`      | 📚     | Documentation only                                                 |
-| `style`     | 🎨     | Code style (formatting, whitespace, etc.)                          |
-| `refactor`  | ♻️     | Refactor code (no feature/bug)                                     |
-| `perf`      | ⚡️     | Performance improvement                                            |
-| `test`      | ✅     | Add/correct tests                                                  |
-| `build`     | 📦     | Build system/dependencies                                          |
-| `ci`        | 🛠️     | CI/CD config/scripts                                               |
-| `chore`     | 🧹     | Other changes (e.g., `.gitignore`)                                 |
+| Type        | Description                                                        |
+|-------------:|--------------------------------------------------------------------|
+| `feat`      | New feature                                                        |
+| `fix`       | Bug fix                                                            |
+| `docs`      | Documentation only                                                 |
+| `style`     | Code style (formatting, whitespace, etc.)                          |
+| `refactor`  | Refactor code (no feature/bug)                                     |
+| `perf`      | Performance improvement                                            |
+| `test`      | Add/correct tests                                                  |
+| `build`     | Build system/dependencies                                          |
+| `ci`        | CI/CD config/scripts                                               |
+| `chore`     | Other changes (e.g., `.gitignore`)                                 |
 
 - **`<scope>`** (optional): What part is affected?  
   _Examples_: `feat(auth): ...`, `fix(reports): ...`, `docs(contributing): ...`
 
 - **`<description>`**: Short, imperative summary  
-  - ✅ Use present tense: "Add", "Fix", "Change"
-  - ✅ Capitalize first letter
-  - ❌ No period at the end
-  - ⏳ Keep under 72 characters
+  - Use present tense: "Add", "Fix", "Change"
+  - Capitalize first letter
+  - No period at the end
+  - Keep under 72 characters
 
 ---
 
-### 📝 Body (Optional)
+### Body (Optional)
 
 Explain **what** and **why** (not just how).  
 Start after a blank line.
@@ -78,7 +78,7 @@ Start after a blank line.
 
 ---
 
-### 🦶 Footer (Optional)
+### Footer (Optional)
 
 - **Breaking Changes**:  
   `BREAKING CHANGE: ...`  
@@ -90,7 +90,7 @@ Start after a blank line.
 
 ---
 
-## 🧑‍💻 Real-World Examples
+## Real-World Examples
 
 **Simple Feature:**
 ```
@@ -129,11 +129,11 @@ BREAKING CHANGE: The `status` column on the `users` table has been renamed to `a
 
 ## Golden Rules
 
-- 1️⃣ **One Change, One Commit:**  
+- **One Change, One Commit:**  
   Don’t mix bug fixes and features.
-- 🧪 **Test Before You Commit:**  
+- **Test Before You Commit:**  
   Never commit broken code or failing tests.
-- 🕰️ **Write for Your Future Self:**  
+- **Write for Your Future Self:**  
   Clear history helps everyone!
 
 ---

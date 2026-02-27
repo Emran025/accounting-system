@@ -1,15 +1,15 @@
-### 🎯 **What is the purpose of this Pull Request?**
+### **What is the purpose of this Pull Request?**
 
-### 🔗 **Related Issue(s)**
+### **Related Issue(s)**
 
-### ✨ **What's New?**
+### **What's New?**
 - 
 - 
 - 
 
 ---
 
-### ✅ **Self-Review Checklist**
+### **Self-Review Checklist**
 Please check all the boxes that apply.
 <details>
   <summary>Click to expand</summary>
@@ -24,11 +24,11 @@ Please check all the boxes that apply.
 - [ ] I have checked for accessibility and responsiveness (if UI changes).
 </details>
 
-### 🧪 **How to Test**
+### **How to Test**
 _Describe how reviewers can test your changes locally. Include commands, test cases, or steps as needed._
 
-### 📸 **Screenshots or Demos (if applicable)**
+### **Screenshots or Demos (if applicable)**
 
 ---
 
-Thank you for your contribution! 🚀🙌
+Thank you for your contribution!
