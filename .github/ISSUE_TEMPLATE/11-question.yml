@@ -1,4 +1,4 @@
-name: "💬 Question / Discussion"
+name: "Question / Discussion"
 description: "Ask a question about the codebase architecture, implementation patterns, or development approach."
 title: "[Question]: "
 labels: ["type: question"]

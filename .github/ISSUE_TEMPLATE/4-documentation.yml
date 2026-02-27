@@ -1,4 +1,4 @@
-name: "📖 Documentation Improvement"
+name: "Documentation Improvement"
 description: "Report an error, omission, or improvement opportunity in the project documentation."
 title: "[Docs]: "
 labels: ["type: documentation", "status: needs-triage"]

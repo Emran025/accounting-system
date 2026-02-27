@@ -1,5 +1,5 @@
 ---
-name: "🐛 Bug Report (Markdown)"
+name: "Bug Report (Markdown)"
 about: "Report a defect. Use this template if the YAML form templates are not available in your workflow."
 labels: ["type: bug", "status: needs-triage"]
 ---

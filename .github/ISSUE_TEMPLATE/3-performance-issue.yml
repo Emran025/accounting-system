@@ -1,4 +1,4 @@
-name: "🐌 Performance Issue"
+name: "Performance Issue"
 description: "Report a performance degradation, slow response, or excessive resource consumption in the ACCSYSTEM ERP platform."
 title: "[Performance]: "
 labels: ["type: performance", "status: needs-triage"]

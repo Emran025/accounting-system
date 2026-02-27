@@ -1,5 +1,5 @@
 ---
-name: "✨ Feature Request (Markdown)"
+name: "Feature Request (Markdown)"
 about: "Propose a new feature or enhancement. Use this template if the YAML form templates are not available in your workflow."
 labels: ["type: enhancement", "status: needs-triage"]
 ---

@@ -1,4 +1,4 @@
-name: "✨ Feature Request"
+name: "Feature Request"
 description: "Propose a new feature or enhancement for the ACCSYSTEM ERP platform. Clearly articulate the problem being solved and the desired outcome."
 title: "[Feature]: "
 labels: ["type: enhancement", "status: needs-triage"]
