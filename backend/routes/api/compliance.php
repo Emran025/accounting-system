@@ -11,12 +11,12 @@ use App\Http\Controllers\Api\ComplianceProfileController;
 
 // ── External Pull Endpoint (No internal auth – uses bearer token) ──
 // External entities call this to retrieve compliance data using their access token.
-Route::middleware(['throttle:10,1'])
+Route::middleware(['throttle:api-sensitive'])
     ->get('/compliance-pull/{code}/{path?}', [ComplianceProfileController::class, 'servePullData'])
     ->name('api.compliance_pull.serve');
 
 // ── Management Routes (Requires internal auth) ──
-Route::middleware(['api.auth', 'throttle:60,1'])->group(function () {
+Route::middleware(['api.auth', 'throttle:api'])->group(function () {
     
     // Compliance Profiles
     Route::group(['middleware' => ['can:settings,view'], 'prefix' => 'compliance-profiles'], function () {
@@ -33,7 +33,7 @@ Route::middleware(['api.auth', 'throttle:60,1'])->group(function () {
         Route::post('/validate-structure', [ComplianceProfileController::class, 'validateStructure'])->name('api.compliance_profiles.validate_structure');
     });
 
-    Route::middleware('can:settings,delete')
+    Route::middleware(['can:settings,delete', 'throttle:api-delete'])
         ->delete('/compliance-profiles/{id}', [ComplianceProfileController::class, 'destroy'])
         ->name('api.compliance_profiles.destroy');
 });

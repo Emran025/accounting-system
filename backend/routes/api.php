@@ -15,8 +15,8 @@ require __DIR__ . '/api/auth.php';
 // Compliance & Tax Transmission (Handles both public pull-endpoints & management)
 require __DIR__ . '/api/compliance.php';
 
-// Protected Routes
-Route::middleware(['api.auth', 'throttle:60,1'])->group(function () {
+// Protected Routes (tiered rate limiting defined in AppServiceProvider)
+Route::middleware(['api.auth', 'throttle:api'])->group(function () {
     require __DIR__ . '/api/system.php';
     require __DIR__ . '/api/finance.php';
     require __DIR__ . '/api/hr.php';
