@@ -106,7 +106,7 @@ class SalesReturnController extends Controller
             return $this->errorResponse('Return ID is required', 400);
         }
 
-        $return = SalesReturn::with(['invoice.customer', 'user', 'items.product'])
+        $return = SalesReturn::with(['invoice.customer', 'invoice.taxLines', 'user', 'items.product', 'taxLines'])
             ->withCount('items')
             ->findOrFail($id);
 

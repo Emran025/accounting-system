@@ -40,5 +40,12 @@ export interface DetailedInvoice extends SelectableInvoice {
     customer_tax?: string;
     amount_paid?: number;
     vat_rate?: number;
+    tax_lines?: Array<{
+        tax_type_code: string;
+        tax_authority_code: string;
+        rate: number;
+        taxable_amount: number;
+        tax_amount: number;
+    }>;
     items: Array<SelectableInvoiceItem & { product_name?: string }>;
 }

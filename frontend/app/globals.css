@@ -3,13 +3,14 @@
 
 :root {
   /* Brand Palette - "Professional Blue & Slate" */
-  --primary-color: #3b82f6;
+  --primary-color: #556681;
   /* Blue 500 */
-  --primary-dark: #1d4ed8;
+  --primary-dark: #30374c;
   /* Blue 700 */
-  --primary-light: #93c5fd;
+  --primary-light: #8192a580;
   /* Blue 300 */
-  --primary-subtle: #1e293b;
+  --primary-subtle: #ffffff73;
+  
   /* Blue 50 */
 
   --secondary-color: #10b981;
@@ -446,7 +447,7 @@ textarea {
   padding: 0.5rem 1rem;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  font-family: inherit;
+  font-family: "Cairo";
   font-size: 0.95rem;
   outline: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2274,11 +2275,10 @@ tbody tr:hover {
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 1.75rem;
-  background: var(--primary-subtle);
+  background: var(--bg-color);
   border-radius: var(--radius-md);
   margin-top: 1.5rem;
-  border: 1px solid var(--primary-light);
-  box-shadow: var(--shadow-sm);
+  border: 1px dashed var(--primary-light);
 }
 
 .sales-summary-bar .summary-stat {
@@ -4271,10 +4271,10 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
   gap: 0.4rem;
   flex: 1;
   padding: 0.5rem 1rem;
-  background: transparent;
+  /* background: transparent; */
   border: none;
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.45);
+  font-size: 0.84rem;
   font-weight: 700;
   font-family: "cairo";
   text-transform: uppercase;
@@ -4963,7 +4963,7 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
   height: 100%;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  background: var(--bg-color);
+  background: var(--primary-subtle);
   padding: 0 0.25rem;
   cursor: text;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
@@ -5186,7 +5186,7 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
   justify-content: space-between;
   padding: 0.25rem 1.5rem;
   font-size: 0.75rem;
-  background: var(--primary-subtle);
+  background: var(--grad-primary);
   color: #e5e7eb;
   box-shadow: 0 -1px 0 rgba(15, 23, 42, 0.7);
   flex-shrink: 0;

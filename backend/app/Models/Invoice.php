@@ -112,6 +112,15 @@ class Invoice extends Model
         return $this->hasOne(ZatcaEinvoice::class);
     }
 
+    /**
+     * Tax lines (audit trail) - when Tax Engine is enabled.
+     * Part of EPIC #1: Tax Engine Transformation.
+     */
+    public function taxLines()
+    {
+        return $this->morphMany(\App\Models\TaxLine::class, 'taxable');
+    }
+
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class);

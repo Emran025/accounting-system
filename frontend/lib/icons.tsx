@@ -15,7 +15,7 @@ import {
     FileText, FileCheck, Scroll, Globe, Laptop, Book, HardHat, HeartPulse,
     CalendarDays, UserCheck, Plane, Megaphone, GraduationCap, Heart, EyeOff,
     Send, Filter, Handshake, CheckCheck, Play, Star, Pause, ThumbsUp, Upload,
-    Delete, PanelRight, LucideGalleryHorizontalEnd, ArrowUp
+    Delete, PanelRight, LucideGalleryHorizontalEnd, ArrowUp,
 } from 'lucide-react';
 
 interface IconProps {

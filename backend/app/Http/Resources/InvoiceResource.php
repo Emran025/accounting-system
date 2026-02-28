@@ -14,6 +14,7 @@ class InvoiceResource extends JsonResource
             'item_count' => $this->items_count ?? 0,
             'total_amount' => (float)$this->total_amount,
             'subtotal' => (float)$this->subtotal,
+            'vat_rate' => $this->vat_rate !== null ? (float)$this->vat_rate : null,
             'vat_amount' => (float)$this->vat_amount,
             'discount_amount' => (float)$this->discount_amount,
             'payment_type' => $this->payment_type,
@@ -40,6 +41,15 @@ class InvoiceResource extends JsonResource
                         'unit_type' => $item->unit_type,
                     ];
                 });
+            }),
+            'tax_lines' => $this->whenLoaded('taxLines', function () {
+                return $this->taxLines->sortBy('line_order')->map(fn ($tl) => [
+                    'tax_type_code' => $tl->tax_type_code,
+                    'tax_authority_code' => $tl->tax_authority_code,
+                    'rate' => (float) $tl->rate,
+                    'taxable_amount' => (float) $tl->taxable_amount,
+                    'tax_amount' => (float) $tl->tax_amount,
+                ]);
             }),
             'zatca_status' => $this->whenLoaded('zatcaEinvoice', fn() => $this->zatcaEinvoice->status),
             'zatca_qr_code' => $this->when(app(\App\Services\ZATCAService::class)->isEnabled(), function() {

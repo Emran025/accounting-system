@@ -6,10 +6,10 @@ use App\Http\Controllers\Api\UsersController;
 use App\Http\Controllers\Api\RolesController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\SessionsController;
-use App\Http\Controllers\Api\GovernmentFeesController;
 use App\Http\Controllers\Api\AuditTrailController;
 use App\Http\Controllers\Api\SystemTemplateController;
 use App\Http\Controllers\Api\OrgStructureController;
+use App\Http\Controllers\Api\TaxEngineController;
 
 // Organizational Structure (SAP SPRO-style)
 Route::prefix('org-structure')->group(function () {
@@ -51,12 +51,16 @@ Route::middleware('can:settings,view')->get('/settings/zatca', [SettingsControll
 Route::middleware('can:settings,edit')->put('/settings/zatca', [SettingsController::class, 'updateZatcaSettings'])->name('api.settings.zatca.update');
 Route::middleware('can:settings,edit')->post('/zatca/onboard', [SettingsController::class, 'onboardZatca'])->name('api.zatca.onboard');
 
-// Government Fees (Kharaaj)
-Route::middleware('can:settings,view')->get('/government_fees', [GovernmentFeesController::class, 'index'])->name('government_fees.index');
-Route::middleware('can:settings,edit')->post('/government_fees', [GovernmentFeesController::class, 'store'])->name('government_fees.store');
-Route::middleware('can:settings,view')->get('/government_fees/{id}', [GovernmentFeesController::class, 'show'])->name('government_fees.show');
-Route::middleware('can:settings,edit')->put('/government_fees/{id}', [GovernmentFeesController::class, 'update'])->name('government_fees.update');
-Route::middleware('can:settings,delete')->delete('/government_fees/{id}', [GovernmentFeesController::class, 'destroy'])->name('government_fees.destroy');
+// Unified Tax Engine
+Route::group(['middleware' => ['can:settings,view']], function () {
+    Route::get('/tax-engine/setup', [TaxEngineController::class, 'getSetup'])->name('api.tax_engine.setup');
+});
+Route::group(['middleware' => ['can:settings,edit']], function () {
+    Route::put('/tax-engine/authorities/{id}', [TaxEngineController::class, 'updateAuthority'])->name('api.tax_engine.authorities.update');
+    Route::post('/tax-engine/types', [TaxEngineController::class, 'storeTaxType'])->name('api.tax_engine.types.store');
+    Route::put('/tax-engine/types/{id}', [TaxEngineController::class, 'updateTaxType'])->name('api.tax_engine.types.update');
+});
+Route::middleware('can:settings,delete')->delete('/tax-engine/types/{id}', [TaxEngineController::class, 'destroyTaxType'])->name('api.tax_engine.types.destroy');
 
 // Audit Logs
 Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('api.audit_logs.index');

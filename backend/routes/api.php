@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -10,6 +11,9 @@ use Illuminate\Support\Facades\Route;
 
 // Auth
 require __DIR__ . '/api/auth.php';
+
+// Compliance & Tax Transmission (Handles both public pull-endpoints & management)
+require __DIR__ . '/api/compliance.php';
 
 // Protected Routes
 Route::middleware(['api.auth', 'throttle:60,1'])->group(function () {

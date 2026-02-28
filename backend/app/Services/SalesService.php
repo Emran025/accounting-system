@@ -16,7 +16,10 @@ use App\Models\SalesReturn;
 use App\Models\SalesReturnItem;
 use App\Models\SalesRepresentative;
 use App\Models\SalesRepresentativeTransaction;
-
+use App\Services\Tax\TaxCalculator;
+use App\Models\Setting;
+use App\Models\TaxLine;
+use App\Models\TaxType;
 /**
  * Service for handling sales operations, including invoice creation, returns, and inventory integration.
  * Implements "Server Sovereignty" principles for tax calculation and pricing floors.
@@ -139,41 +142,59 @@ class SalesService
             }
 
             // Fix BUG-002: Enforce Server Sovereignty for Tax Rates
-            // We strictly use the system configuration and ignore any client-provided rate.
-            // Config stores VAT as decimal (0.15 = 15%)
-            $vatRate = (float)config('accounting.vat_rate', 0.0); 
+            // Tax Engine (EPIC #1): Use TaxCalculator when enabled, else legacy config.
             $taxableAmount = $subtotal - $discountAmount;
-            $vatAmount = round($taxableAmount * $vatRate, 2);
+            $taxResult = null;
 
-            // Calculate Government Fees (Kharaaj)
-            // Fetch active fees
-            $activeFees = GovernmentFee::where('is_active', true)->with('account')->get();
-            $totalFees = 0;
-            $calculatedFees = [];
-
-            foreach ($activeFees as $fee) {
-                // Calculate percentage based fee on Taxable Amount (Revenue post-discount)
-                $feeVal = 0;
-                if ($fee->percentage > 0) {
-                    $feeVal += round($taxableAmount * ($fee->percentage / 100), 2);
-                }
-                if ($fee->fixed_amount > 0) {
-                    $feeVal += $fee->fixed_amount; // Per Invoice Fee
-                }
-                
-                if ($feeVal > 0) {
-                    $totalFees += $feeVal;
-                    $calculatedFees[] = [
-                        'fee_id' => $fee->id,
-                        'fee_name' => $fee->name,
-                        'fee_percentage' => $fee->percentage,
-                        'amount' => $feeVal,
-                        'account_code' => $fee->account->account_code ?? null 
-                    ];
-                }
+            if (TaxCalculator::isTaxEngineEnabled()) {
+                $taxCalculator = app(TaxCalculator::class);
+                $countryCode = Setting::where('setting_key', 'company_country')->value('setting_value') ?? config('tax.default_country', 'SA');
+                $taxResult = $taxCalculator->calculate(
+                    $taxableAmount,
+                    $countryCode,
+                    null,
+                   Invoice::class,
+                    null // Will persist after invoice created
+                );
+                $vatRate = $taxResult->getPrimaryVatRate();
+                $vatAmount = $taxResult->getTotalTax();
+            } else {
+                $vatRate = (float) config('accounting.vat_rate', 0.0);
+                $vatAmount = round($taxableAmount * $vatRate, 2);
             }
 
-            $totalAmount = $taxableAmount + $vatAmount + $totalFees;
+            // Calculate Government Fees (Kharaaj)
+            // Fees are now integrated seamlessly into the Tax Engine Result!
+            $totalFees = 0;
+            $calculatedFees = []; // Kept to not break subsequent code, but we will phase out `InvoiceFee`
+
+            if ($taxResult !== null) {
+                foreach ($taxResult->lines as $line) {
+                    if (strtoupper($line['tax_type_code']) !== 'VAT') {
+                        $totalFees += $line['tax_amount'];
+                        $calculatedFees[] = [
+                            'fee_id' => $line['tax_type_id'],
+                            'fee_name' => $line['tax_type_name'] ?? $line['tax_type_code'],
+                            'fee_percentage' => $line['rate'] * 100, // percentage display
+                            'amount' => $line['tax_amount'],
+                            'account_code' => $line['gl_account_code'] 
+                        ];
+                    }
+                }
+            }
+            
+            // To prevent polluting legacy vat_amount with Kharaaj, isolate actual VAT sum
+            $isolatedVatAmount = 0;
+            if ($taxResult !== null) {
+                foreach ($taxResult->lines as $line) {
+                    if (strtoupper($line['tax_type_code']) === 'VAT') {
+                        $isolatedVatAmount += $line['tax_amount'];
+                    }
+                }
+                $vatAmount = round($isolatedVatAmount, 2);
+            }
+
+            $totalAmount = $taxableAmount + $taxResult->getTotalTax(); // Total tax encompasses VAT + Fees
 
             // Default amount_paid for cash sales
             if ($paymentType === 'cash' && (!isset($data['amount_paid']) || $data['amount_paid'] === null)) {
@@ -196,6 +217,11 @@ class SalesService
                 'currency_id' => $currencyId,
                 'exchange_rate' => $exchangeRate,
             ]);
+
+            // Persist tax lines for audit trail when Tax Engine is enabled
+            if ($taxResult !== null && TaxCalculator::isTaxEngineEnabled()) {
+                app(TaxCalculator::class)->persistTaxLines($taxResult, \App\Models\Invoice::class, $invoice->id);
+            }
 
             // Insert invoice items
             // Insert invoice items and Calculate Real COGS
@@ -222,16 +248,8 @@ class SalesService
                 ]);
             }
 
-            // Save Invoice Fees
-            foreach ($calculatedFees as $calcFee) {
-                InvoiceFee::create([
-                    'invoice_id' => $invoice->id,
-                    'fee_id' => $calcFee['fee_id'],
-                    'fee_name' => $calcFee['fee_name'],
-                    'fee_percentage' => $calcFee['fee_percentage'],
-                    'amount' => $calcFee['amount']
-                ]);
-            }
+            // Save Invoice Fees (Deprecated, gracefully phasing out in favor of taxLines, but kept for UI sync for now)
+            // Do nothing here since invoice_fees table is scheduled for destruction in unified model.
 
             // Update customer balance (if credit)
             // Update customer balance (if credit)
@@ -281,22 +299,27 @@ class SalesService
                     'description' => "Sales Revenue - Invoice #$invoiceNumber"
                 ];
 
-                if ($vatAmount > 0) {
-                    $invoiceEntries[] = [
-                        'account_code' => $this->coaService->getStandardAccounts()['output_vat'],
-                        'entry_type' => 'CREDIT',
-                        'amount' => $vatAmount,
-                        'description' => "VAT Output - Invoice #$invoiceNumber"
-                    ];
-                }
-
-                foreach ($calculatedFees as $calcFee) {
-                    if ($calcFee['account_code']) {
-                         $invoiceEntries[] = [
-                            'account_code' => $calcFee['account_code'],
+                if ($taxResult !== null) {
+                    foreach ($taxResult->lines as $line) {
+                        $actCode = $line['gl_account_code'] ?? ($line['tax_type_code'] === 'VAT' ? $this->coaService->getStandardAccounts()['output_vat'] : null);
+                        
+                        if ($actCode && $line['tax_amount'] > 0) {
+                             $invoiceEntries[] = [
+                                'account_code' => $actCode,
+                                'entry_type' => 'CREDIT',
+                                'amount' => $line['tax_amount'],
+                                'description' => "Tax/Fee: {$line['tax_type_code']} - Invoice #$invoiceNumber"
+                            ];
+                        }
+                    }
+                } else {
+                    // Legacy Fallback
+                    if ($vatAmount > 0) {
+                        $invoiceEntries[] = [
+                            'account_code' => $this->coaService->getStandardAccounts()['output_vat'],
                             'entry_type' => 'CREDIT',
-                            'amount' => $calcFee['amount'],
-                            'description' => "Fee: {$calcFee['fee_name']} - Invoice #$invoiceNumber"
+                            'amount' => $vatAmount,
+                            'description' => "VAT Output - Invoice #$invoiceNumber"
                         ];
                     }
                 }
@@ -386,24 +409,27 @@ class SalesService
                     'description' => "Sales Revenue - Invoice #$invoiceNumber"
                 ];
 
-                // VAT Payable (Credit)
-                if ($vatAmount > 0) {
-                    $glEntries[] = [
-                        'account_code' => $this->coaService->getStandardAccounts()['output_vat'],
-                        'entry_type' => 'CREDIT',
-                        'amount' => $vatAmount,
-                        'description' => "VAT Output - Invoice #$invoiceNumber"
-                    ];
-                }
-
-                // Government Fees (Credit)
-                foreach ($calculatedFees as $calcFee) {
-                    if ($calcFee['account_code']) {
-                         $glEntries[] = [
-                            'account_code' => $calcFee['account_code'],
+                // Engine mapping
+                if ($taxResult !== null) {
+                    foreach ($taxResult->lines as $line) {
+                        $actCode = $line['gl_account_code'] ?? ($line['tax_type_code'] === 'VAT' ? $this->coaService->getStandardAccounts()['output_vat'] : null);
+                        if ($actCode && $line['tax_amount'] > 0) {
+                             $glEntries[] = [
+                                'account_code' => $actCode,
+                                'entry_type' => 'CREDIT',
+                                'amount' => $line['tax_amount'],
+                                'description' => "Tax/Fee: {$line['tax_type_code']} - Invoice #$invoiceNumber"
+                            ];
+                        }
+                    }
+                } else {
+                    // VAT Payable (Credit) fallback
+                    if ($vatAmount > 0) {
+                        $glEntries[] = [
+                            'account_code' => $this->coaService->getStandardAccounts()['output_vat'],
                             'entry_type' => 'CREDIT',
-                            'amount' => $calcFee['amount'],
-                            'description' => "Fee: {$calcFee['fee_name']} - Invoice #$invoiceNumber"
+                            'amount' => $vatAmount,
+                            'description' => "VAT Output - Invoice #$invoiceNumber"
                         ];
                     }
                 }
@@ -629,8 +655,48 @@ class SalesService
 
             // Calculate proportional VAT, Fees, and Discounts
             $proportion = $invoice->subtotal > 0 ? $returnSubtotal / $invoice->subtotal : 0;
-            $returnVat = round($invoice->vat_amount * $proportion, 2);
-            $returnFees = round($invoice->fees->sum('amount') * $proportion, 2);
+            
+            $returnVat = 0;
+            $taxLinesToInsert = [];
+            
+            if (TaxCalculator::isTaxEngineEnabled() && $invoice->taxLines && $invoice->taxLines->count() > 0) {
+                foreach ($invoice->taxLines as $taxLine) {
+                    $taxAmount = round($taxLine->tax_amount * $proportion, 4);
+                    $taxableAmount = round($taxLine->taxable_amount * $proportion, 4);
+                    $returnVat += $taxAmount;
+                    
+                    $taxLinesToInsert[] = [
+                        'tax_authority_id' => $taxLine->tax_authority_id,
+                        'tax_type_id' => $taxLine->tax_type_id,
+                        'tax_rate_id' => $taxLine->tax_rate_id,
+                        'rate' => $taxLine->rate,
+                        'taxable_amount' => $taxableAmount,
+                        'tax_amount' => $taxAmount,
+                        'tax_type_code' => $taxLine->tax_type_code,
+                        'tax_authority_code' => $taxLine->tax_authority_code,
+                        'metadata' => $taxLine->metadata ? json_encode($taxLine->metadata) : null,
+                        'line_order' => $taxLine->line_order,
+                        'taxable_type' => \App\Models\SalesReturn::class,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                $returnVat = round($returnVat, 2);
+            } else {
+                $returnVat = round($invoice->vat_amount * $proportion, 2);
+            }
+            
+            $returnFees = 0;
+            if (TaxCalculator::isTaxEngineEnabled() && $invoice->taxLines && $invoice->taxLines->count() > 0) {
+                 foreach ($invoice->taxLines as $taxLine) {
+                     if (strtoupper($taxLine->tax_type_code) !== 'VAT') {
+                         $returnFees += round($taxLine->tax_amount * $proportion, 4);
+                     }
+                 }
+                 $returnFees = round($returnFees, 2);
+            } else {
+                 $returnFees = round($invoice->fees->sum('amount') * $proportion, 2);
+            }
             $returnDiscount = round(($invoice->discount_amount ?? 0) * $proportion, 2);
             $returnTotal = ($returnSubtotal - $returnDiscount) + $returnVat + $returnFees;
 
@@ -653,6 +719,14 @@ class SalesService
                 'reason' => $reason,
                 'user_id' => $userId,
             ]);
+
+            if (!empty($taxLinesToInsert)) {
+                $taxLinesToInsert = array_map(function($line) use ($return) {
+                    $line['taxable_id'] = $return->id;
+                    return $line;
+                }, $taxLinesToInsert);
+                TaxLine::insert($taxLinesToInsert);
+            }
 
             // Create return items and restore stock
             foreach ($returnItems as $item) {
@@ -696,8 +770,32 @@ class SalesService
                 ];
             }
 
-            // Reverse Government Fees proportionally (Debit)
-            if ($returnFees > 0 && $invoice->fees->count() > 0) {
+            // Reverse Government Fees or other non-VAT Taxes proportionally (Debit)
+            if ($returnFees > 0 && TaxCalculator::isTaxEngineEnabled() && $invoice->taxLines && $invoice->taxLines->count() > 0) {
+                foreach ($invoice->taxLines as $taxLine) {
+                    if (strtoupper($taxLine->tax_type_code) !== 'VAT') {
+                        $feeReturn = round($taxLine->tax_amount * $proportion, 2);
+                        
+                        // Parse metadata dynamically for the original code or fall back to tax type query
+                        $accountCode = null;
+                        if ($taxLine->metadata && isset($taxLine->metadata['gl_account_code'])) {
+                            $accountCode = $taxLine->metadata['gl_account_code'];
+                        } else {
+                            // Fallback to querying the TaxType's GL directly logic (assuming it exists)
+                            $accountCode = TaxType::find($taxLine->tax_type_id)?->gl_account_code;
+                        }
+
+                        if ($feeReturn > 0 && $accountCode) {
+                            $glEntries[] = [
+                                'account_code' => $accountCode,
+                                'entry_type' => 'DEBIT',
+                                'amount' => $feeReturn,
+                                'description' => "Fee/Tax Reversal: {$taxLine->tax_type_code} - Return #$returnNumber"
+                            ];
+                        }
+                    }
+                }
+            } elseif ($returnFees > 0 && $invoice->fees->count() > 0) {
                 foreach ($invoice->fees as $fee) {
                     $feeReturn = round($fee->amount * $proportion, 2);
                     $accountCode = $fee->feeDefinition?->account?->account_code;

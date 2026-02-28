@@ -1,4 +1,5 @@
 import { Dialog } from "@/components/ui";
+import { TaxBreakdown } from "@/components/tax/TaxBreakdown";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { DetailedInvoice } from "../types";
 
@@ -106,6 +107,16 @@ export function InvoiceDetailsDialog({ isOpen, onClose, selectedInvoice }: Invoi
                             </div>
                         ))}
                     </div>
+
+                    {(selectedInvoice.tax_lines?.length ?? 0) > 0 || (selectedInvoice.vat_amount ?? 0) > 0 ? (
+                        <div style={{ marginTop: "1.5rem", padding: "1rem", background: "var(--surface-hover)", borderRadius: "var(--radius-md)" }}>
+                            <TaxBreakdown
+                                taxLines={selectedInvoice.tax_lines}
+                                vatAmount={selectedInvoice.vat_amount}
+                                vatRate={selectedInvoice.vat_rate != null ? (typeof selectedInvoice.vat_rate === 'number' && selectedInvoice.vat_rate <= 1 ? selectedInvoice.vat_rate : selectedInvoice.vat_rate / 100) : undefined}
+                            />
+                        </div>
+                    ) : null}
 
                     <div
                         className="sales-summary-bar"

@@ -191,12 +191,33 @@ export default function DeferredSalesPage() {
 
   const loadFees = useCallback(async () => {
     try {
-      const response: any = await fetchAPI(API_ENDPOINTS.SYSTEM.GOVERNMENT_FEES.BASE);
-      if (response.success && response.data && response.data.fees) {
-        setGovernmentFees(response.data.fees.filter((f: GovernmentFee) => f.is_active));
+      const response: any = await fetchAPI(API_ENDPOINTS.SYSTEM.TAX_ENGINE.SETUP);
+      if (response.data && response.data.authorities) {
+        const activeFees: any[] = [];
+        response.data.authorities.forEach((auth: any) => {
+          if (auth.tax_types) {
+            auth.tax_types.forEach((type: any) => {
+              let areas = [];
+              try { areas = typeof type.applicable_areas === 'string' ? JSON.parse(type.applicable_areas) : type.applicable_areas; } catch { }
+
+              if (type.is_active && type.code !== 'VAT' && (areas.includes('sales') || areas.length === 0)) {
+                const defaultRate = type.tax_rates?.find((r: any) => r.is_default) || type.tax_rates?.[0];
+                activeFees.push({
+                  id: type.id,
+                  name: type.name,
+                  percentage: defaultRate?.rate ? defaultRate.rate * 100 : 0,
+                  fixed_amount: defaultRate?.fixed_amount || 0,
+                  is_active: type.is_active,
+                  calculation_type: type.calculation_type
+                });
+              }
+            });
+          }
+        });
+        setGovernmentFees(activeFees);
       }
     } catch (e) {
-      console.error("Failed to load fees", e);
+      console.error("Failed to load tax engine logic", e);
     }
   }, []);
 

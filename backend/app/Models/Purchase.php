@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\TaxLine;
 
 class Purchase extends Model
 {
@@ -56,6 +57,11 @@ class Purchase extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function taxLines()
+    {
+        return $this->morphMany(TaxLine::class, 'taxable');
     }
 
     public function user(): BelongsTo

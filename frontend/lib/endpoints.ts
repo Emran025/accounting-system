@@ -21,9 +21,23 @@ export const API_ENDPOINTS = {
             INVOICE: "/settings/invoice",
             ZATCA: "/settings/zatca",
         },
-        GOVERNMENT_FEES: {
-            BASE: "/government_fees",
-            withId: (id: string | number) => `/government_fees/${id}`,
+        TAX_ENGINE: {
+            SETUP: "/tax-engine/setup",
+            AUTHORITIES: {
+                UPDATE: (id: string | number) => `/tax-engine/authorities/${id}`,
+            },
+            TYPES: {
+                BASE: "/tax-engine/types",
+                withId: (id: string | number) => `/tax-engine/types/${id}`,
+            },
+        },
+        COMPLIANCE_PROFILES: {
+            BASE: "/compliance-profiles",
+            withId: (id: string | number) => `/compliance-profiles/${id}`,
+            SYSTEM_KEYS: "/compliance-profiles/system-keys",
+            GENERATE_TOKEN: (id: string | number) => `/compliance-profiles/${id}/generate-token`,
+            REVOKE_TOKEN: (id: string | number) => `/compliance-profiles/${id}/revoke-token`,
+            VALIDATE_STRUCTURE: "/compliance-profiles/validate-structure",
         },
         AUDIT: {
             LOGS: "/audit-logs",

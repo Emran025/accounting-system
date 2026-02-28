@@ -69,6 +69,9 @@ class UBLGeneratorService
             $invoiceElement->appendChild($customerParty);
         }
 
+        // Allowances and Charges (Discounts and Fees)
+        $this->buildAllowanceCharges($doc, $invoiceElement, $invoice);
+
         // Tax Total
         if ($invoice->vat_amount > 0) {
             $taxTotal = $this->createTaxTotal($doc, $invoice);
@@ -148,6 +151,54 @@ class UBLGeneratorService
         }
 
         return $customerParty;
+    }
+
+    /**
+     * Create document level allowances and charges (discounts and fees)
+     */
+    private function buildAllowanceCharges(DOMDocument $doc, DOMElement $invoiceElement, Invoice $invoice): void
+    {
+        $currencyCode = $invoice->currency ? $invoice->currency->code : 'SAR';
+
+        // 1. Discount (Allowance)
+        if ($invoice->discount_amount > 0) {
+            $allowanceCharge = $doc->createElementNS(self::CAC_NAMESPACE, 'cac:AllowanceCharge');
+            
+            $chargeIndicator = $doc->createElementNS(self::CBC_NAMESPACE, 'cbc:ChargeIndicator', 'false');
+            $allowanceCharge->appendChild($chargeIndicator);
+
+            $reason = $doc->createElementNS(self::CBC_NAMESPACE, 'cbc:AllowanceChargeReason', 'Discount');
+            $allowanceCharge->appendChild($reason);
+
+            $amount = $doc->createElementNS(self::CBC_NAMESPACE, 'cbc:Amount');
+            $amount->setAttribute('currencyID', $currencyCode);
+            $amount->nodeValue = number_format($invoice->discount_amount, 2, '.', '');
+            $allowanceCharge->appendChild($amount);
+
+            $invoiceElement->appendChild($allowanceCharge);
+        }
+
+        // 2. Fees (Charges from TaxLines where tax_type != VAT)
+        if (\App\Services\Tax\TaxCalculator::isTaxEngineEnabled() && $invoice->taxLines) {
+            foreach ($invoice->taxLines as $line) {
+                if (strtoupper($line->tax_type_code) !== 'VAT' && $line->tax_amount > 0) {
+                    $allowanceCharge = $doc->createElementNS(self::CAC_NAMESPACE, 'cac:AllowanceCharge');
+                    
+                    $chargeIndicator = $doc->createElementNS(self::CBC_NAMESPACE, 'cbc:ChargeIndicator', 'true');
+                    $allowanceCharge->appendChild($chargeIndicator);
+
+                    $reason = $doc->createElementNS(self::CBC_NAMESPACE, 'cbc:AllowanceChargeReason', htmlspecialchars($line->tax_type_code));
+                    $allowanceCharge->appendChild($reason);
+
+                    $amount = $doc->createElementNS(self::CBC_NAMESPACE, 'cbc:Amount');
+                    $amount->setAttribute('currencyID', $currencyCode);
+                    $amount->nodeValue = number_format($line->tax_amount, 2, '.', '');
+                    $allowanceCharge->appendChild($amount);
+
+                    $invoiceElement->appendChild($allowanceCharge);
+                }
+            }
+        }
     }
 
     /**

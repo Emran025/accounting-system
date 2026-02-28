@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\TaxLine;
 
 class SalesReturn extends Model
 {
@@ -38,6 +39,11 @@ class SalesReturn extends Model
     public function items(): HasMany
     {
         return $this->hasMany(SalesReturnItem::class);
+    }
+
+    public function taxLines()
+    {
+        return $this->morphMany(TaxLine::class, 'taxable');
     }
 
     public function user(): BelongsTo

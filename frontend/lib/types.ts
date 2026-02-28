@@ -90,6 +90,14 @@ export interface Invoice {
   vat_amount?: number;
   subtotal?: number;
   discount_amount?: number;
+  /** Tax lines from Tax Engine (multi-jurisdiction) */
+  tax_lines?: Array<{
+    tax_type_code: string;
+    tax_authority_code: string;
+    rate: number;
+    taxable_amount: number;
+    tax_amount: number;
+  }>;
 }
 
 

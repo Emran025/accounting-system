@@ -8,6 +8,7 @@ use App\Models\ApSupplier;
 use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\Tax\TaxCalculator;
 
 /**
  * Service for managing Purchases, including creation, approval workflow,
@@ -57,36 +58,61 @@ class PurchaseService
                 ? ($data['quantity'] * $itemsPerUnit) 
                 : $data['quantity'];
 
-            // Fix BUG-005: Enforce Server Sovereignty for VAT Rate
-            // Config stores VAT as decimal (0.15 = 15%), clients may send as percentage (15)
-            // Always use server config as the authoritative source
-            $serverVatRateDecimal = (float)config('accounting.vat_rate', 0.15); // Decimal form
-            $serverVatRatePercent = $serverVatRateDecimal * 100; // Percentage form for comparison
+            // Fix BUG-005 & BUG-007 and integrate Tax Engine (EPIC #1)
+            $serverVatRateDecimal = (float)config('accounting.vat_rate', 0.15);
+            $serverVatRatePercent = $serverVatRateDecimal * 100;
             
-            if (isset($data['vat_rate'])) {
-                // Client provided a VAT rate - validate it matches server config
-                $clientVatRate = (float)$data['vat_rate'];
-                
-                // Check if client sent percentage (15) or decimal (0.15)
-                $clientAsPercent = $clientVatRate > 1 ? $clientVatRate : $clientVatRate * 100;
-                
-                if (abs($clientAsPercent - $serverVatRatePercent) > 0.01) {
-                    // Client is attempting to manipulate VAT rate - reject
-                    throw new \Exception(
-                        "VAT rate mismatch: Submitted rate ({$clientAsPercent}%) " .
-                        "does not match system configuration ({$serverVatRatePercent}%). " .
-                        "Please refresh and try again."
-                    );
-                }
-            }
-            
-            // Always use server config (store as percentage for database consistency with existing code)
+            $vatAmount = 0;
+            $subtotal = 0;
+            $taxResult = null;
             $vatRate = $serverVatRatePercent;
-            $vatRateDecimal = $serverVatRateDecimal;
-            
-            // Fix BUG-007: Calculate VAT from Gross Price
-            $vatAmount = $data['vat_amount'] ?? ($data['invoice_price'] - ($data['invoice_price'] / (1 + $vatRateDecimal)));
-            $subtotal = $data['invoice_price'] - $vatAmount;
+
+            if (TaxCalculator::isTaxEngineEnabled()) {
+                $taxCalculator = app(TaxCalculator::class);
+                $countryCode = \App\Models\Setting::where('setting_key', 'company_country')->value('setting_value') ?? config('tax.default_country', 'SA');
+                
+                // For Purchases, the client sends $data['invoice_price'] which includes taxes
+                // We need to reverse calculate based on the combined effective rates
+                $combinedRate = 0;
+                $authority = \App\Models\TaxAuthority::getPrimaryForCountry($countryCode);
+                if ($authority) {
+                    foreach ($authority->taxTypes()->where('is_active', true)->get() as $taxType) {
+                        $rate = $taxType->getEffectiveRate(now()) ?? $taxType->taxRates()->where('is_default', true)->value('rate') ?? 0;
+                        $combinedRate += (float)$rate;
+                    }
+                } else {
+                    $combinedRate = $serverVatRateDecimal;
+                }
+
+                if (isset($data['vat_amount']) && $data['vat_amount'] !== null) {
+                    // Client explicitly provided VAT amount
+                    $vatAmount = (float) $data['vat_amount'];
+                    $subtotal = $data['invoice_price'] - $vatAmount;
+                } else {
+                    $subtotal = $data['invoice_price'] / (1 + $combinedRate);
+                }
+
+                $taxResult = $taxCalculator->calculate($subtotal, $countryCode, null, \App\Models\Purchase::class, null);
+                
+                $vatAmount = $taxResult->getTotalTax();
+                $vatRate = $taxResult->getPrimaryVatRate() * 100;
+
+                // Adjust precision diffs if any
+                $subtotal = $data['invoice_price'] - $vatAmount;
+
+            } else {
+                if (isset($data['vat_rate'])) {
+                    $clientVatRate = (float)$data['vat_rate'];
+                    $clientAsPercent = $clientVatRate > 1 ? $clientVatRate : $clientVatRate * 100;
+                    if (abs($clientAsPercent - $serverVatRatePercent) > 0.01) {
+                        throw new \Exception(
+                            "VAT rate mismatch: Submitted rate ({$clientAsPercent}%) does not match system configuration ({$serverVatRatePercent}%)."
+                        );
+                    }
+                }
+                $vatAmount = $data['vat_amount'] ?? ($data['invoice_price'] - ($data['invoice_price'] / (1 + $serverVatRateDecimal)));
+                $subtotal = $data['invoice_price'] - $vatAmount;
+            }
 
             // Unit Cost should be based on Net Price (Subtotal) excluding recoverable VAT
             $unitCost = $subtotal / ($actualQuantity > 0 ? $actualQuantity : 1);
@@ -133,6 +159,10 @@ class PurchaseService
                 'voucher_number' => $this->ledgerService->getNextVoucherNumber('PUR'),
                 'notes' => $data['notes'] ?? null,
             ]);
+
+            if ($taxResult !== null && TaxCalculator::isTaxEngineEnabled()) {
+                app(TaxCalculator::class)->persistTaxLines($taxResult, \App\Models\Purchase::class, $purchase->id);
+            }
 
             if ($approvalStatus === 'approved') {
                 $this->processPurchaseImpact($purchase, $actualQuantity, $unitCost, $subtotal);
@@ -316,7 +346,17 @@ class PurchaseService
             // Calculate proportional values
             $proportion = $totalReturnQty / $purchase->quantity;
             $totalReturnAmount = round($purchase->invoice_price * $proportion, 2);
-            $totalReturnVat = round($purchase->vat_amount * $proportion, 2);
+            $totalReturnVat = 0;
+            
+            if (TaxCalculator::isTaxEngineEnabled() && $purchase->taxLines && $purchase->taxLines->count() > 0) {
+                 foreach ($purchase->taxLines as $taxLine) {
+                      $totalReturnVat += round($taxLine->tax_amount * $proportion, 4);
+                 }
+                 $totalReturnVat = round($totalReturnVat, 2);
+            } else {
+                 $totalReturnVat = round($purchase->vat_amount * $proportion, 2);
+            }
+            
             $netReturnAmount = $totalReturnAmount - $totalReturnVat;
 
             // 1. Decrement Stock
