@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ApSupplier;
 use App\Models\ApTransaction;
+use App\Models\GeneralLedger;
+use App\Models\ChartOfAccount;
 use App\Services\PermissionService;
 use App\Services\TelescopeService;
 use App\Services\LedgerService;
@@ -185,7 +187,7 @@ class ApController extends Controller
     }
 
     /**
-     * Create AP transaction
+     * Create AP transaction — amount flows only to GL.
      */
     public function storeTransaction(Request $request): JsonResponse
     {
@@ -194,7 +196,7 @@ class ApController extends Controller
         $validated = $request->validate([
             'supplier_id' => 'required|exists:ap_suppliers,id',
             'type' => 'required|in:invoice,payment,return',
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:0.01', // Accepted for GL posting only
             'description' => 'nullable|string',
             'reference_type' => 'nullable|string',
             'reference_id' => 'nullable|integer',
@@ -202,62 +204,50 @@ class ApController extends Controller
         ]);
 
         return DB::transaction(function () use ($validated) {
-            $transaction = ApTransaction::create([
-                'supplier_id' => $validated['supplier_id'],
-                'type' => $validated['type'],
-                'amount' => $validated['amount'],
-                'description' => $validated['description'] ?? '',
-                'reference_type' => $validated['reference_type'] ?? null,
-                'reference_id' => $validated['reference_id'] ?? null,
-                'transaction_date' => $validated['date'] ?? now(),
-                'created_by' => auth()->id() ?? session('user_id'),
-            ]);
+            $amount = $validated['amount']; // Used for GL only
 
-            // GL Posting
+            // GL Posting FIRST to get the voucher number
             $mappings = $this->coaService->getStandardAccounts();
             $glEntries = [];
             $supplier = ApSupplier::find($validated['supplier_id']);
 
             if ($validated['type'] === 'invoice') {
-                // Supplier Invoice: Debit Expense/Inventory, Credit AP
                 $glEntries[] = [
-                    'account_code' => $mappings['operating_expenses'], // Simplified default
+                    'account_code' => $mappings['operating_expenses'],
                     'entry_type' => 'DEBIT',
-                    'amount' => $validated['amount'],
+                    'amount' => $amount,
                     'description' => "Invoice from supplier: {$supplier->name} - " . ($validated['description'] ?? '')
                 ];
                 $glEntries[] = [
                     'account_code' => $mappings['accounts_payable'],
                     'entry_type' => 'CREDIT',
-                    'amount' => $validated['amount'],
+                    'amount' => $amount,
                     'description' => "Invoice from supplier: {$supplier->name} (AP Update)"
                 ];
             } elseif ($validated['type'] === 'payment') {
-                // Payment to Supplier: Debit AP, Credit Cash
                 $glEntries[] = [
                     'account_code' => $mappings['accounts_payable'],
                     'entry_type' => 'DEBIT',
-                    'amount' => $validated['amount'],
+                    'amount' => $amount,
                     'description' => "Payment to supplier: {$supplier->name} - " . ($validated['description'] ?? '')
                 ];
                 $glEntries[] = [
                     'account_code' => $mappings['cash'],
                     'entry_type' => 'CREDIT',
-                    'amount' => $validated['amount'],
+                    'amount' => $amount,
                     'description' => "Payment to supplier: {$supplier->name} (AP Update)"
                 ];
             } else {
-                // Return: Debit AP, Credit Expense
                 $glEntries[] = [
                     'account_code' => $mappings['accounts_payable'],
                     'entry_type' => 'DEBIT',
-                    'amount' => $validated['amount'],
+                    'amount' => $amount,
                     'description' => "Return to supplier: {$supplier->name} (AP Update)"
                 ];
                 $glEntries[] = [
                     'account_code' => $mappings['operating_expenses'],
                     'entry_type' => 'CREDIT',
-                    'amount' => $validated['amount'],
+                    'amount' => $amount,
                     'description' => "Return to supplier: {$supplier->name} - " . ($validated['description'] ?? '')
                 ];
             }
@@ -265,14 +255,29 @@ class ApController extends Controller
             $voucherNumber = $this->ledgerService->postTransaction(
                 $glEntries,
                 'ap_transactions',
-                $transaction->id,
+                null, // Will update after creating record
                 null,
                 $validated['date'] ?? now()->format('Y-m-d')
             );
 
-            $transaction->update(['description' => ($validated['description'] ?? '') . " [Voucher: $voucherNumber]"]);
+            // Create AP transaction (operational metadata only — NO amount)
+            $transaction = ApTransaction::create([
+                'supplier_id' => $validated['supplier_id'],
+                'type' => $validated['type'],
+                'voucher_number' => $voucherNumber, // Link to GL
+                'description' => ($validated['description'] ?? '') . " [Voucher: $voucherNumber]",
+                'reference_type' => $validated['reference_type'] ?? null,
+                'reference_id' => $validated['reference_id'] ?? null,
+                'transaction_date' => $validated['date'] ?? now(),
+                'created_by' => auth()->id() ?? session('user_id'),
+            ]);
 
-            // Update supplier balance
+            // Update GL reference_id
+            GeneralLedger::where('voucher_number', $voucherNumber)
+                ->where('reference_type', 'ap_transactions')
+                ->update(['reference_id' => $transaction->id]);
+
+            // Update supplier balance from GL
             $this->updateSupplierBalance($validated['supplier_id']);
 
             TelescopeService::logOperation('CREATE', 'ap_transactions', $transaction->id, null, $validated);
@@ -282,7 +287,7 @@ class ApController extends Controller
     }
 
     /**
-     * Record supplier payment
+     * Record supplier payment — amount flows only to GL.
      */
     public function recordPayment(Request $request): JsonResponse
     {
@@ -290,24 +295,16 @@ class ApController extends Controller
 
         $validated = $request->validate([
             'supplier_id' => 'required|exists:ap_suppliers,id',
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:0.01', // Accepted for GL posting only
             'payment_method' => 'nullable|in:cash,bank_transfer,check',
             'description' => 'nullable|string',
             'date' => 'nullable|date',
         ]);
 
         return DB::transaction(function () use ($validated) {
-            // Create payment transaction
-            $transaction = ApTransaction::create([
-                'supplier_id' => $validated['supplier_id'],
-                'type' => 'payment',
-                'amount' => $validated['amount'],
-                'description' => $validated['description'] ?? 'Supplier payment',
-                'transaction_date' => $validated['date'] ?? now(),
-                'created_by' => auth()->id() ?? session('user_id'),
-            ]);
+            $amount = $validated['amount']; // Used for GL only
 
-            // Post to GL
+            // Post to GL FIRST
             $accounts = $this->coaService->getStandardAccounts();
             $voucherNumber = $this->ledgerService->getNextVoucherNumber('APP');
 
@@ -315,16 +312,26 @@ class ApController extends Controller
                 [
                     'account_code' => $accounts['accounts_payable'],
                     'entry_type' => 'DEBIT',
-                    'amount' => $validated['amount'],
+                    'amount' => $amount,
                     'description' => "Supplier payment - Voucher #$voucherNumber"
                 ],
                 [
                     'account_code' => $accounts['cash'],
                     'entry_type' => 'CREDIT',
-                    'amount' => $validated['amount'],
+                    'amount' => $amount,
                     'description' => "Supplier payment - Voucher #$voucherNumber"
                 ],
             ];
+
+            // Create payment transaction (operational metadata only — NO amount)
+            $transaction = ApTransaction::create([
+                'supplier_id' => $validated['supplier_id'],
+                'type' => 'payment',
+                'voucher_number' => $voucherNumber, // Link to GL
+                'description' => $validated['description'] ?? 'Supplier payment',
+                'transaction_date' => $validated['date'] ?? now(),
+                'created_by' => auth()->id() ?? session('user_id'),
+            ]);
 
             $this->ledgerService->postTransaction(
                 $glEntries,
@@ -334,7 +341,7 @@ class ApController extends Controller
                 $validated['date'] ?? now()->format('Y-m-d')
             );
 
-            // Update supplier balance
+            // Update supplier balance from GL
             $this->updateSupplierBalance($validated['supplier_id']);
 
             TelescopeService::logOperation('CREATE', 'ap_transactions', $transaction->id, null, $validated);
@@ -347,7 +354,7 @@ class ApController extends Controller
     }
 
     /**
-     * Get supplier ledger with aging
+     * Get supplier ledger with aging — financial stats derived from GL.
      */
     public function supplierLedger(Request $request): JsonResponse
     {
@@ -375,7 +382,7 @@ class ApController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%$search%")
                   ->orWhere('reference_id', 'like', "%$search%")
-                  ->orWhere('amount', 'like', "%$search%");
+                  ->orWhere('voucher_number', 'like', "%$search%");
             });
         }
 
@@ -391,14 +398,35 @@ class ApController extends Controller
             $query->whereDate('transaction_date', '<=', $dateTo);
         }
 
-        // Stats calculation for the summary cards
-        $statsData = (clone $query)->selectRaw('
-            SUM(CASE WHEN type = "invoice" THEN amount ELSE 0 END) as total_debit,
-            SUM(CASE WHEN type IN ("payment", "return") THEN amount ELSE 0 END) as total_credit,
-            SUM(CASE WHEN type = "return" THEN amount ELSE 0 END) as total_returns,
-            SUM(CASE WHEN type = "payment" THEN amount ELSE 0 END) as total_payments,
-            COUNT(*) as transaction_count
-        ')->first();
+        // Financial stats derived from GL (single source of truth)
+        $glStats = ['total_debit' => 0, 'total_credit' => 0, 'total_returns' => 0, 'total_payments' => 0];
+        
+        $apAccountId = ChartOfAccount::where('account_code', $this->coaService->getStandardAccounts()['accounts_payable'])->value('id');
+        
+        $invoiceVouchers = (clone $query)->where('type', 'invoice')->whereNotNull('voucher_number')->pluck('voucher_number')->toArray();
+        $paymentVouchers = (clone $query)->where('type', 'payment')->whereNotNull('voucher_number')->pluck('voucher_number')->toArray();
+        $returnVouchers = (clone $query)->where('type', 'return')->whereNotNull('voucher_number')->pluck('voucher_number')->toArray();
+
+        if (!empty($invoiceVouchers) && $apAccountId) {
+            $glStats['total_debit'] = (float) GeneralLedger::whereIn('voucher_number', $invoiceVouchers)
+                ->where('account_id', $apAccountId)
+                ->where('entry_type', 'CREDIT')
+                ->sum('amount');
+        }
+        if (!empty($paymentVouchers) && $apAccountId) {
+            $glStats['total_payments'] = (float) GeneralLedger::whereIn('voucher_number', $paymentVouchers)
+                ->where('account_id', $apAccountId)
+                ->where('entry_type', 'DEBIT')
+                ->sum('amount');
+            $glStats['total_credit'] += $glStats['total_payments'];
+        }
+        if (!empty($returnVouchers) && $apAccountId) {
+            $glStats['total_returns'] = (float) GeneralLedger::whereIn('voucher_number', $returnVouchers)
+                ->where('account_id', $apAccountId)
+                ->where('entry_type', 'DEBIT')
+                ->sum('amount');
+            $glStats['total_credit'] += $glStats['total_returns'];
+        }
 
         $total = $query->count();
         $transactions = $query->with('createdBy')
@@ -407,32 +435,42 @@ class ApController extends Controller
             ->take($perPage)
             ->get();
 
-        // Calculate aging using a targeted query for efficiency
+        // Aging from GL: join AP transactions with GL amounts
         $today = now();
         $todayStr = $today->format('Y-m-d');
         $date30 = $today->copy()->subDays(30)->format('Y-m-d');
         $date60 = $today->copy()->subDays(60)->format('Y-m-d');
         $date90 = $today->copy()->subDays(90)->format('Y-m-d');
 
-        $agingData = ApTransaction::where('supplier_id', $supplierId)
+        // Get invoice vouchers with their dates for aging
+        $invoiceTxns = ApTransaction::where('supplier_id', $supplierId)
             ->where('is_deleted', false)
             ->where('type', 'invoice')
-            ->selectRaw('
-                SUM(CASE WHEN transaction_date >= ? THEN amount ELSE 0 END) as current,
-                SUM(CASE WHEN transaction_date < ? AND transaction_date >= ? THEN amount ELSE 0 END) as `1_30`,
-                SUM(CASE WHEN transaction_date < ? AND transaction_date >= ? THEN amount ELSE 0 END) as `31_60`,
-                SUM(CASE WHEN transaction_date < ? AND transaction_date >= ? THEN amount ELSE 0 END) as `61_90`,
-                SUM(CASE WHEN transaction_date < ? THEN amount ELSE 0 END) as `over_90`
-            ', [$todayStr, $todayStr, $date30, $date30, $date60, $date60, $date90, $date90])
-            ->first();
+            ->whereNotNull('voucher_number')
+            ->get(['voucher_number', 'transaction_date']);
 
-        $aging = [
-            'current' => (float)($agingData->current ?? 0),
-            '1_30' => (float)($agingData->{'1_30'} ?? 0),
-            '31_60' => (float)($agingData->{'31_60'} ?? 0),
-            '61_90' => (float)($agingData->{'61_90'} ?? 0),
-            'over_90' => (float)($agingData->over_90 ?? 0),
-        ];
+        $aging = ['current' => 0, '1_30' => 0, '31_60' => 0, '61_90' => 0, 'over_90' => 0];
+        foreach ($invoiceTxns as $txn) {
+            $txnAmount = $apAccountId
+                ? (float) GeneralLedger::where('voucher_number', $txn->voucher_number)
+                    ->where('account_id', $apAccountId)
+                    ->where('entry_type', 'CREDIT')
+                    ->sum('amount')
+                : 0;
+
+            $txnDate = $txn->transaction_date->format('Y-m-d');
+            if ($txnDate >= $todayStr) {
+                $aging['current'] += $txnAmount;
+            } elseif ($txnDate >= $date30) {
+                $aging['1_30'] += $txnAmount;
+            } elseif ($txnDate >= $date60) {
+                $aging['31_60'] += $txnAmount;
+            } elseif ($txnDate >= $date90) {
+                $aging['61_90'] += $txnAmount;
+            } else {
+                $aging['over_90'] += $txnAmount;
+            }
+        }
 
         return $this->successResponse([
             'supplier' => [
@@ -443,12 +481,12 @@ class ApController extends Controller
             'aging' => $aging,
             'data' => ApTransactionResource::collection($transactions),
             'stats' => [
-                'total_debit' => (float)($statsData->total_debit ?? 0),
-                'total_credit' => (float)($statsData->total_credit ?? 0),
-                'total_returns' => (float)($statsData->total_returns ?? 0),
-                'total_payments' => (float)($statsData->total_payments ?? 0),
+                'total_debit' => $glStats['total_debit'],
+                'total_credit' => $glStats['total_credit'],
+                'total_returns' => $glStats['total_returns'],
+                'total_payments' => $glStats['total_payments'],
                 'balance' => (float)$supplier->current_balance,
-                'transaction_count' => (int)($statsData->transaction_count ?? 0),
+                'transaction_count' => $total,
             ],
             'pagination' => [
                 'current_page' => $page,
@@ -475,12 +513,8 @@ class ApController extends Controller
 
         return DB::transaction(function () use ($transaction) {
             // Reverse GL entries
-            $voucherNumber = \App\Models\GeneralLedger::where('reference_type', 'ap_transactions')
-                ->where('reference_id', $transaction->id)
-                ->value('voucher_number');
-            
-            if ($voucherNumber) {
-                $this->ledgerService->reverseTransaction($voucherNumber, "Reversal of AP Transaction #{$transaction->id}");
+            if ($transaction->voucher_number) {
+                $this->ledgerService->reverseTransaction($transaction->voucher_number, "Reversal of AP Transaction #{$transaction->id}");
             }
 
             // Soft delete
@@ -489,7 +523,7 @@ class ApController extends Controller
                 'deleted_at' => now(),
             ]);
 
-            // Update supplier balance
+            // Update supplier balance from GL
             $this->updateSupplierBalance($transaction->supplier_id);
 
             TelescopeService::logOperation('DELETE', 'ap_transactions', $transaction->id, $transaction->toArray(), null);
@@ -499,7 +533,7 @@ class ApController extends Controller
     }
 
     /**
-     * Update/restore AP transaction
+     * Update/restore AP transaction — amount derived from GL.
      */
     public function updateTransaction(Request $request): JsonResponse
     {
@@ -522,42 +556,52 @@ class ApController extends Controller
                     return $this->errorResponse('Transaction is not deleted', 400);
                 }
 
-                // Trigger NEW GL Posting to recognize the movement again
+                // Get amount from original GL entries
+                $amount = 0;
+                if ($transaction->voucher_number) {
+                    $amount = (float) GeneralLedger::where('voucher_number', $transaction->voucher_number)
+                        ->where('entry_type', 'DEBIT')
+                        ->sum('amount') / max(1, GeneralLedger::where('voucher_number', $transaction->voucher_number)->where('entry_type', 'DEBIT')->count());
+                }
+
+                if ($amount <= 0) {
+                    return $this->errorResponse('Cannot determine original amount from GL', 400);
+                }
+
+                // Trigger NEW GL Posting
                 $mappings = $this->coaService->getStandardAccounts();
                 $glEntries = [];
                 $supplier = ApSupplier::find($transaction->supplier_id);
 
                 if ($transaction->type === 'payment') {
-                    // Payment to Supplier: Debit AP, Credit Cash
                     $glEntries[] = [
                         'account_code' => $mappings['accounts_payable'],
                         'entry_type' => 'DEBIT',
-                        'amount' => $transaction->amount,
+                        'amount' => $amount,
                         'description' => "Restored Payment to: {$supplier->name} [Original ID: {$transaction->id}]"
                     ];
                     $glEntries[] = [
                         'account_code' => $mappings['cash'],
                         'entry_type' => 'CREDIT',
-                        'amount' => $transaction->amount,
+                        'amount' => $amount,
                         'description' => "Restored Payment to: {$supplier->name} (AP Reference)"
                     ];
                 } else {
-                    // Return: Debit AP, Credit Expense
                     $glEntries[] = [
                         'account_code' => $mappings['accounts_payable'],
                         'entry_type' => 'DEBIT',
-                        'amount' => $transaction->amount,
+                        'amount' => $amount,
                         'description' => "Restored Return to: {$supplier->name} [Original ID: {$transaction->id}]"
                     ];
                     $glEntries[] = [
                         'account_code' => $mappings['operating_expenses'],
                         'entry_type' => 'CREDIT',
-                        'amount' => $transaction->amount,
+                        'amount' => $amount,
                         'description' => "Restored Return to: {$supplier->name} (AP Reference)"
                     ];
                 }
 
-                $this->ledgerService->postTransaction(
+                $newVoucher = $this->ledgerService->postTransaction(
                     $glEntries,
                     'ap_transactions',
                     $transaction->id,
@@ -568,14 +612,15 @@ class ApController extends Controller
                 $transaction->update([
                     'is_deleted' => false,
                     'deleted_at' => null,
+                    'voucher_number' => $newVoucher, // Update to new voucher
                 ]);
 
-                // Update supplier balance
+                // Update supplier balance from GL
                 $this->updateSupplierBalance($transaction->supplier_id);
 
                 TelescopeService::logOperation('RESTORE', 'ap_transactions', $transaction->id, ['is_deleted' => true], ['is_deleted' => false]);
 
-                return $this->successResponse(['status' => 'restored']);
+                return $this->successResponse(['status' => 'restored', 'voucher_number' => $newVoucher]);
             });
         }
 
@@ -583,20 +628,41 @@ class ApController extends Controller
     }
 
     /**
-     * Update supplier balance
+     * Update supplier balance — derived from GL (single source of truth).
+     * Calculates the net AP balance from GL entries referencing this supplier's transactions.
      */
     private function updateSupplierBalance(int $supplierId): void
     {
-        $balance = ApTransaction::where('supplier_id', $supplierId)
+        $apAccountId = ChartOfAccount::where('account_code', $this->coaService->getStandardAccounts()['accounts_payable'])->value('id');
+
+        if (!$apAccountId) {
+            return;
+        }
+
+        // Get all active voucher numbers for this supplier
+        $voucherNumbers = ApTransaction::where('supplier_id', $supplierId)
             ->where('is_deleted', false)
-            ->selectRaw('
-                SUM(CASE 
-                    WHEN type = "invoice" THEN amount 
-                    WHEN type IN ("payment", "return") THEN -amount 
-                    ELSE 0 
-                END) as balance
-            ')
-            ->value('balance') ?? 0;
+            ->whereNotNull('voucher_number')
+            ->pluck('voucher_number')
+            ->toArray();
+
+        if (empty($voucherNumbers)) {
+            ApSupplier::where('id', $supplierId)->update(['current_balance' => 0]);
+            return;
+        }
+
+        // Balance = Credits to AP (invoices) - Debits to AP (payments/returns)
+        $credits = (float) GeneralLedger::whereIn('voucher_number', $voucherNumbers)
+            ->where('account_id', $apAccountId)
+            ->where('entry_type', 'CREDIT')
+            ->sum('amount');
+
+        $debits = (float) GeneralLedger::whereIn('voucher_number', $voucherNumbers)
+            ->where('account_id', $apAccountId)
+            ->where('entry_type', 'DEBIT')
+            ->sum('amount');
+
+        $balance = $credits - $debits;
 
         ApSupplier::where('id', $supplierId)->update([
             'current_balance' => $balance

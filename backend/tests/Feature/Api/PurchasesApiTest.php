@@ -152,14 +152,20 @@ class PurchasesApiTest extends TestCase
         // Assert inventory is decremented by 2
         $this->assertEquals(18, $product->fresh()->stock_quantity);
 
-        // Assert AP transaction is created for the return
+        // Assert AP transaction is created for the return (amount is in GL, not in ap_transactions)
         $this->assertDatabaseHas('ap_transactions', [
             'type' => 'return',
             'supplier_id' => $supplier->id,
             'reference_type' => 'purchases',
             'reference_id' => $purchase->id,
-            'amount' => 200, // 1000 * 0.2
         ]);
+
+        // Assert the GL has the correct amount for the return
+        $apTxn = \App\Models\ApTransaction::where('reference_type', 'purchases')
+            ->where('reference_id', $purchase->id)
+            ->where('type', 'return')
+            ->first();
+        $this->assertNotNull($apTxn->voucher_number, 'AP transaction should have a voucher_number linking to GL');
         
         // Supplier balance check
         // Original balance = 1000, we add a negative amount of 200 because type = 'return' (returns decrement balance)

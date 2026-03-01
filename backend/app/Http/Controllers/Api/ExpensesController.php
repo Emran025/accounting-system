@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
+use App\Models\GeneralLedger;
 use App\Services\PermissionService;
 use App\Services\TelescopeService;
 use App\Services\LedgerService;
@@ -41,7 +42,15 @@ class ExpensesController extends Controller
         $expenses = $query->orderBy('expense_date', 'desc')
             ->skip(($page - 1) * $perPage)
             ->take($perPage)
-            ->get();
+            ->get()
+            ->map(function ($expense) {
+                // Derive amount from GL (single source of truth)
+                $glAmount = GeneralLedger::where('voucher_number', $expense->voucher_number)
+                    ->where('entry_type', 'DEBIT')
+                    ->sum('amount');
+                $expense->setAttribute('gl_amount', (float) $glAmount);
+                return $expense;
+            });
 
         return $this->paginatedResponse($expenses, $total, $page, $perPage);
     }
@@ -53,7 +62,7 @@ class ExpensesController extends Controller
         $validated = $request->validate([
             'category' => 'required|string|max:100',
             'account_code' => 'nullable|string|max:20',
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:0.01', // Accepted for GL posting only
             'expense_date' => 'nullable|date',
             'description' => 'nullable|string',
             'payment_type' => 'nullable|in:cash,credit',
@@ -63,6 +72,7 @@ class ExpensesController extends Controller
         return DB::transaction(function () use ($validated) {
             $category = $validated['category'];
             $accountCode = $validated['account_code'] ?? null;
+            $amount = $validated['amount']; // Used for GL only
             
             if (!$accountCode) {
                 // Try to find a leaf account matching the category
@@ -91,10 +101,14 @@ class ExpensesController extends Controller
                 return $this->errorResponse("Invalid account code: $accountCode", 400);
             }
 
+            // Generate voucher number FIRST
+            $voucherNumber = $this->ledgerService->getNextVoucherNumber('EXP');
+
+            // Create expense record (operational metadata only — NO amount)
             $expense = Expense::create([
                 'category' => $validated['category'],
                 'account_code' => $accountCode,
-                'amount' => $validated['amount'],
+                'voucher_number' => $voucherNumber, // Link to GL
                 'expense_date' => $validated['expense_date'] ?? now(),
                 'description' => $validated['description'] ?? null,
                 'payment_type' => $validated['payment_type'] ?? 'cash',
@@ -102,22 +116,20 @@ class ExpensesController extends Controller
                 'user_id' => auth()->id() ?? session('user_id'),
             ]);
 
-            // Generate voucher number
-            $voucherNumber = $this->ledgerService->getNextVoucherNumber('EXP');
-
-            // Post to GL
+            // Post to GL — GL is the SINGLE SOURCE OF TRUTH for the amount
             $accounts = $this->coaService->getStandardAccounts();
+            $paymentType = $validated['payment_type'] ?? 'cash';
             $glEntries = [
                 [
                     'account_code' => $accountCode,
                     'entry_type' => 'DEBIT',
-                    'amount' => $expense->amount,
+                    'amount' => $amount,
                     'description' => "Expense: {$expense->category} - Voucher #$voucherNumber"
                 ],
                 [
-                    'account_code' => $expense->payment_type === 'cash' ? $accounts['cash'] : $accounts['accounts_payable'],
+                    'account_code' => $paymentType === 'cash' ? $accounts['cash'] : $accounts['accounts_payable'],
                     'entry_type' => 'CREDIT',
-                    'amount' => $expense->amount,
+                    'amount' => $amount,
                     'description' => "Expense Payment - Voucher #$voucherNumber"
                 ],
             ];
@@ -127,7 +139,7 @@ class ExpensesController extends Controller
                 'expenses',
                 $expense->id,
                 $voucherNumber,
-                $expense->expense_date->format('Y-m-d')
+                ($validated['expense_date'] ?? now()->format('Y-m-d'))
             );
 
             TelescopeService::logOperation('CREATE', 'expenses', $expense->id, null, $validated);
@@ -147,7 +159,6 @@ class ExpensesController extends Controller
             'id' => 'required|exists:expenses,id',
             'category' => 'required|string|max:100',
             'account_code' => 'nullable|string|max:20',
-            'amount' => 'required|numeric|min:0.01',
             'expense_date' => 'nullable|date',
             'description' => 'nullable|string',
         ]);
@@ -168,6 +179,15 @@ class ExpensesController extends Controller
         $id = $request->input('id');
         $expense = Expense::findOrFail($id);
         $oldValues = $expense->toArray();
+
+        // Reverse GL entries if voucher exists
+        if ($expense->voucher_number) {
+            $this->ledgerService->reverseTransaction(
+                $expense->voucher_number,
+                "Reversal for deleted Expense #{$expense->id}"
+            );
+        }
+
         $expense->delete();
 
         TelescopeService::logOperation('DELETE', 'expenses', $id, $oldValues, null);

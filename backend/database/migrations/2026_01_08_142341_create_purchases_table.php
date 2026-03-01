@@ -24,8 +24,7 @@ return new class extends Migration
             $table->string('payment_type', 50)->default('credit'); // cash, credit
             $table->string('voucher_number', 50)->nullable()->index();
             $table->text('notes')->nullable();
-            $table->decimal('vat_rate', 5, 2)->default(0.00);
-            $table->decimal('vat_amount', 10, 2)->default(0.00);
+            // vat_rate, vat_amount → tax_lines table (Tax Engine). SAP FI: tax data in Tax sub-system.
             $table->string('approval_status', 20)->default('approved'); // pending, approved, rejected
             $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
             $table->dateTime('approved_at')->nullable();
@@ -34,8 +33,7 @@ return new class extends Migration
             $table->foreignId('reversed_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('purchase_date')->useCurrent();
             $table->timestamp('created_at')->useCurrent();
-            $table->foreignId('currency_id')->nullable()->constrained('currencies')->nullOnDelete();
-            $table->decimal('exchange_rate', 12, 4)->nullable();
+
             $table->index('approval_status');
         });
     }

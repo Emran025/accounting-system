@@ -71,7 +71,9 @@ class LedgerService
         ?int $referenceId = null,
         ?string $voucherNumber = null,
         ?string $voucherDate = null,
-        string $entrySource = 'AUTOMATIC'
+        string $entrySource = 'AUTOMATIC',
+        ?int $currencyId = null,
+        ?float $exchangeRate = null
     ): string {
         if (empty($entries) || count($entries) < 2) {
             throw new \Exception("At least two entries required for double-entry accounting");
@@ -134,7 +136,7 @@ class LedgerService
 
         $userId = auth()->id() ?? session('user_id');
 
-        return DB::transaction(function () use ($entries, $voucherNumber, $voucherDate, $referenceType, $referenceId, $fiscalPeriodId, $userId, $entrySource) {
+        return DB::transaction(function () use ($entries, $voucherNumber, $voucherDate, $referenceType, $referenceId, $fiscalPeriodId, $userId, $entrySource, $currencyId, $exchangeRate) {
             foreach ($entries as $entry) {
                 $account = ChartOfAccount::where('account_code', $entry['account_code'])->first();
                 if (!$account) {
@@ -160,6 +162,8 @@ class LedgerService
                     'reference_type' => $referenceType,
                     'reference_id' => $referenceId,
                     'fiscal_period_id' => $fiscalPeriodId,
+                    'currency_id' => $currencyId,
+                    'exchange_rate' => $exchangeRate,
                     'created_by' => $userId,
                 ]);
             }

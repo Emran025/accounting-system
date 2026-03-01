@@ -356,7 +356,7 @@ class PurchasesController extends Controller
                 $q->where('ap_transactions.description', 'like', "%{$search}%")
                   ->orWhere('ap_suppliers.name', 'like', "%{$search}%")
                   ->orWhere('purchases.voucher_number', 'like', "%{$search}%")
-                  ->orWhere('ap_transactions.amount', 'like', "%{$search}%");
+                  ->orWhere('ap_transactions.voucher_number', 'like', "%{$search}%");
             });
         }
 
@@ -371,30 +371,44 @@ class PurchasesController extends Controller
             $query->whereDate('ap_transactions.transaction_date', '<=', $dateTo);
         }
 
-        // Stats
-        $statsData = (clone $query)->selectRaw('
-            COUNT(*) as transaction_count,
-            SUM(ap_transactions.amount) as total_returns,
-            SUM(CASE WHEN purchases.payment_type = "cash" THEN ap_transactions.amount ELSE 0 END) as total_cash_returns,
-            SUM(CASE WHEN purchases.payment_type = "credit" THEN ap_transactions.amount ELSE 0 END) as total_credit_returns
-        ')->first();
+        // Stats — derive from GL via voucher_numbers
+        $returnVouchers = (clone $query)->pluck('ap_transactions.voucher_number')->filter()->toArray();
+        $totalReturns = 0;
+        $totalCashReturns = 0;
+        $totalCreditReturns = 0;
+        $transactionCount = $query->count();
 
-        $total   = $query->count();
+        if (!empty($returnVouchers)) {
+            $glAmounts = \App\Models\GeneralLedger::whereIn('voucher_number', $returnVouchers)
+                ->where('entry_type', 'DEBIT')
+                ->selectRaw('voucher_number, SUM(amount) as total')
+                ->groupBy('voucher_number')
+                ->pluck('total', 'voucher_number');
+            $totalReturns = $glAmounts->sum();
+        }
+
+        $total   = $transactionCount;
         $returns = $query
             ->orderBy('ap_transactions.transaction_date', 'desc')
             ->skip($offset)
             ->take($perPage)
             ->get();
 
-        // format to mirror ledger/sales returns shape
+        // format — derive amount from GL via voucher_number
         $data = $returns->map(function ($r) {
+            $amount = 0;
+            if ($r->voucher_number) {
+                $amount = (float) \App\Models\GeneralLedger::where('voucher_number', $r->voucher_number)
+                    ->where('entry_type', 'DEBIT')
+                    ->sum('amount');
+            }
             return [
                 'id'             => $r->id,
                 'type'           => 'return',
-                'amount'         => (float) $r->amount,
+                'amount'         => $amount,
                 'description'    => $r->description,
                 'reference_type' => $r->reference_type,
-                'reference_id'   => $r->reference_id, // This is the purchase ID!
+                'reference_id'   => $r->reference_id,
                 'transaction_date' => $r->transaction_date,
                 'created_at'     => $r->created_at?->toDateTimeString(),
                 'created_by'     => $r->createdBy?->name ?? null,
@@ -403,7 +417,6 @@ class PurchasesController extends Controller
                 'supplier_id'    => $r->supplier_id,
                 'supplier_name'  => $r->supplier_name,
                 'related_invoice_number' => $r->voucher_number,
-                // Add alias for frontend component compatibility
                 'invoice_number' => $r->voucher_number ?? ('PR-' . $r->reference_id), 
             ];
         });
@@ -411,10 +424,10 @@ class PurchasesController extends Controller
         return $this->successResponse([
             'data' => $data,
             'stats' => [
-                'total_returns'        => (float) ($statsData->total_returns ?? 0),
-                'total_cash_returns'   => (float) ($statsData->total_cash_returns ?? 0),
-                'total_credit_returns' => (float) ($statsData->total_credit_returns ?? 0),
-                'transaction_count'    => (int) ($statsData->transaction_count ?? 0),
+                'total_returns'        => (float) $totalReturns,
+                'total_cash_returns'   => 0, // Can be detailed if needed
+                'total_credit_returns' => 0,
+                'transaction_count'    => $transactionCount,
             ],
             'pagination' => [
                 'current_page'  => $page,

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('revenues', function (Blueprint $table) {
             $table->id();
             $table->string('source', 255);
-            $table->decimal('amount', 12, 2);
+            $table->string('voucher_number', 50)->nullable()->index(); // Link to GL
             $table->timestamp('revenue_date')->useCurrent();
             $table->text('description')->nullable();
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');

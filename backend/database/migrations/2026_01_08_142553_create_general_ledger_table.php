@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('reference_type', 50)->nullable(); // table name e.g. 'invoices', 'purchases'
             $table->unsignedBigInteger('reference_id')->nullable(); // record id in reference table
             $table->foreignId('fiscal_period_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('currency_id')->nullable()->constrained('currencies')->nullOnDelete();
+            $table->decimal('exchange_rate', 12, 4)->nullable();
             $table->boolean('is_closed')->default(false);
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('created_at')->useCurrent();

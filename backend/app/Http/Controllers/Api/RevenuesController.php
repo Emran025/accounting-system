@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Revenue;
+use App\Models\GeneralLedger;
 use App\Services\PermissionService;
 use App\Services\TelescopeService;
 use App\Services\LedgerService;
@@ -41,7 +42,15 @@ class RevenuesController extends Controller
         $revenues = $query->orderBy('revenue_date', 'desc')
             ->skip(($page - 1) * $perPage)
             ->take($perPage)
-            ->get();
+            ->get()
+            ->map(function ($revenue) {
+                // Derive amount from GL (single source of truth)
+                $glAmount = GeneralLedger::where('voucher_number', $revenue->voucher_number)
+                    ->where('entry_type', 'CREDIT')
+                    ->sum('amount');
+                $revenue->setAttribute('gl_amount', (float) $glAmount);
+                return $revenue;
+            });
 
         return $this->paginatedResponse($revenues, $total, $page, $perPage);
     }
@@ -52,36 +61,39 @@ class RevenuesController extends Controller
 
         $validated = $request->validate([
             'source' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:0.01', // Accepted for GL posting only
             'revenue_date' => 'nullable|date',
             'description' => 'nullable|string',
         ]);
 
         return DB::transaction(function () use ($validated) {
+            $amount = $validated['amount']; // Used for GL only
+
+            // Generate voucher number FIRST
+            $voucherNumber = $this->ledgerService->getNextVoucherNumber('REV');
+
+            // Create revenue record (operational metadata only — NO amount)
             $revenue = Revenue::create([
                 'source' => $validated['source'],
-                'amount' => $validated['amount'],
+                'voucher_number' => $voucherNumber, // Link to GL
                 'revenue_date' => $validated['revenue_date'] ?? now(),
                 'description' => $validated['description'] ?? null,
                 'user_id' => auth()->id() ?? session('user_id'),
             ]);
 
-            // Generate voucher number
-            $voucherNumber = $this->ledgerService->getNextVoucherNumber('REV');
-
-            // Post to GL
+            // Post to GL — GL is the SINGLE SOURCE OF TRUTH for the amount
             $accounts = $this->coaService->getStandardAccounts();
             $glEntries = [
                 [
                     'account_code' => $accounts['cash'],
                     'entry_type' => 'DEBIT',
-                    'amount' => $revenue->amount,
+                    'amount' => $amount,
                     'description' => "Revenue: {$revenue->source} - Voucher #$voucherNumber"
                 ],
                 [
                     'account_code' => $accounts['other_revenue'],
                     'entry_type' => 'CREDIT',
-                    'amount' => $revenue->amount,
+                    'amount' => $amount,
                     'description' => "Other Revenue - Voucher #$voucherNumber"
                 ],
             ];
@@ -91,7 +103,7 @@ class RevenuesController extends Controller
                 'revenues',
                 $revenue->id,
                 $voucherNumber,
-                $revenue->revenue_date->format('Y-m-d')
+                ($validated['revenue_date'] ?? now()->format('Y-m-d'))
             );
 
             TelescopeService::logOperation('CREATE', 'revenues', $revenue->id, null, $validated);
@@ -110,7 +122,6 @@ class RevenuesController extends Controller
         $validated = $request->validate([
             'id' => 'required|exists:revenues,id',
             'source' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0.01',
             'revenue_date' => 'nullable|date',
             'description' => 'nullable|string',
         ]);
@@ -131,6 +142,15 @@ class RevenuesController extends Controller
         $id = $request->input('id');
         $revenue = Revenue::findOrFail($id);
         $oldValues = $revenue->toArray();
+
+        // Reverse GL entries if voucher exists
+        if ($revenue->voucher_number) {
+            $this->ledgerService->reverseTransaction(
+                $revenue->voucher_number,
+                "Reversal for deleted Revenue #{$revenue->id}"
+            );
+        }
+
         $revenue->delete();
 
         TelescopeService::logOperation('DELETE', 'revenues', $id, $oldValues, null);

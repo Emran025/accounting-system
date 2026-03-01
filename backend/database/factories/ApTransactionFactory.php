@@ -24,7 +24,7 @@ class ApTransactionFactory extends Factory
         return [
             'supplier_id' => ApSupplier::factory(),
             'type' => fake()->randomElement(['invoice', 'payment', 'return']),
-            'amount' => fake()->randomFloat(2, 10, 5000),
+            'voucher_number' => 'APT-' . fake()->unique()->numberBetween(1000, 9999),
             'description' => fake()->sentence(),
             'transaction_date' => now(),
             'created_by' => User::factory(),

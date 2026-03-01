@@ -4,9 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\TaxLine;
+use App\Models\GeneralLedger;
 
+/**
+ * Purchase model — SAP FI pattern.
+ * Tax data (vat_rate, vat_amount) lives in tax_lines (Tax Engine).
+ * Currency lives on GL entries.
+ */
 class Purchase extends Model
 {
     const UPDATED_AT = null;
@@ -25,8 +32,6 @@ class Purchase extends Model
         'payment_type',
         'voucher_number',
         'notes',
-        'vat_rate',
-        'vat_amount',
         'approval_status',
         'approved_by',
         'approved_at',
@@ -34,8 +39,6 @@ class Purchase extends Model
         'reversed_at',
         'reversed_by',
         'purchase_date',
-        'currency_id',
-        'exchange_rate',
     ];
 
     protected function casts(): array
@@ -43,8 +46,6 @@ class Purchase extends Model
         return [
             'quantity' => 'integer',
             'invoice_price' => 'decimal:2',
-            'vat_rate' => 'decimal:2',
-            'vat_amount' => 'decimal:2',
             'is_reversed' => 'boolean',
             'production_date' => 'date',
             'expiry_date' => 'date',
@@ -59,6 +60,9 @@ class Purchase extends Model
         return $this->belongsTo(Product::class);
     }
 
+    /**
+     * Tax lines — Tax Engine is the authoritative source for tax data.
+     */
     public function taxLines()
     {
         return $this->morphMany(TaxLine::class, 'taxable');
@@ -84,8 +88,68 @@ class Purchase extends Model
         return $this->belongsTo(User::class, 'reversed_by');
     }
 
-    public function currency(): BelongsTo
+    /**
+     * GL entries for this purchase.
+     */
+    public function glEntries(): HasMany
     {
-        return $this->belongsTo(Currency::class);
+        return $this->hasMany(GeneralLedger::class, 'voucher_number', 'voucher_number');
+    }
+
+    /**
+     * VAT amount — derived from tax_lines (Tax Engine), fallback to GL.
+     */
+    public function getVatAmountAttribute(): float
+    {
+        // Primary: Tax Engine
+        $fromTaxLines = $this->relationLoaded('taxLines')
+            ? (float) $this->taxLines->sum('tax_amount')
+            : (float) $this->taxLines()->sum('tax_amount');
+
+        if ($fromTaxLines > 0) {
+            return $fromTaxLines;
+        }
+
+        // Fallback: GL (input_vat account)
+        if (!$this->voucher_number) {
+            return 0;
+        }
+
+        $coaService = app(\App\Services\ChartOfAccountsMappingService::class);
+        $vatAccountCode = $coaService->getStandardAccounts()['input_vat'] ?? null;
+        if (!$vatAccountCode) {
+            return 0;
+        }
+
+        $vatAccountId = ChartOfAccount::where('account_code', $vatAccountCode)->value('id');
+        if (!$vatAccountId) {
+            return 0;
+        }
+
+        return (float) GeneralLedger::where('voucher_number', $this->voucher_number)
+            ->where('account_id', $vatAccountId)
+            ->where('entry_type', 'DEBIT')
+            ->sum('amount');
+    }
+
+    /**
+     * VAT rate — derived from tax_lines (Tax Engine).
+     */
+    public function getVatRateAttribute(): float
+    {
+        $vatLine = $this->relationLoaded('taxLines')
+            ? $this->taxLines->first()
+            : $this->taxLines()->first();
+
+        return $vatLine ? (float) $vatLine->rate * 100 : 0;
+    }
+
+    /**
+     * Currency from GL entries (SAP FI pattern).
+     */
+    public function getCurrencyAttribute()
+    {
+        $glEntry = $this->glEntries()->whereNotNull('currency_id')->first();
+        return $glEntry ? Currency::find($glEntry->currency_id) : null;
     }
 }

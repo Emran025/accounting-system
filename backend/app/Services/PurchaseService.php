@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Models\Purchase;
 use App\Models\Product;
 use App\Models\ApSupplier;
+use App\Models\ApTransaction;
+use App\Models\GeneralLedger;
+use App\Models\ChartOfAccount;
 use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -69,12 +72,12 @@ class PurchaseService
 
             if (TaxCalculator::isTaxEngineEnabled()) {
                 $taxCalculator = app(TaxCalculator::class);
-                $countryCode = \App\Models\Setting::where('setting_key', 'company_country')->value('setting_value') ?? config('tax.default_country', 'SA');
+                $countryCode = Setting::where('setting_key', 'company_country')->value('setting_value') ?? config('tax.default_country', 'SA');
                 
                 // For Purchases, the client sends $data['invoice_price'] which includes taxes
                 // We need to reverse calculate based on the combined effective rates
                 $combinedRate = 0;
-                $authority = \App\Models\TaxAuthority::getPrimaryForCountry($countryCode);
+                $authority = TaxAuthority::getPrimaryForCountry($countryCode);
                 if ($authority) {
                     foreach ($authority->taxTypes()->where('is_active', true)->get() as $taxType) {
                         $rate = $taxType->getEffectiveRate(now()) ?? $taxType->taxRates()->where('is_default', true)->value('rate') ?? 0;
@@ -92,7 +95,7 @@ class PurchaseService
                     $subtotal = $data['invoice_price'] / (1 + $combinedRate);
                 }
 
-                $taxResult = $taxCalculator->calculate($subtotal, $countryCode, null, \App\Models\Purchase::class, null);
+                $taxResult = $taxCalculator->calculate($subtotal, $countryCode, null, Purchase::class, null);
                 
                 $vatAmount = $taxResult->getTotalTax();
                 $vatRate = $taxResult->getPrimaryVatRate() * 100;
@@ -143,29 +146,29 @@ class PurchaseService
                 throw new \Exception("Credit purchases require a valid Supplier. Please select or enter a supplier.");
             }
 
+            // SAP FI: Purchase stores NO tax data — tax lives in tax_lines (Tax Engine)
             $purchase = Purchase::create([
                 'product_id' => $data['product_id'],
                 'quantity' => $data['quantity'],
                 'invoice_price' => $data['invoice_price'],
-                'unit_type' => $data['unit_type'], // We keep original unit_type string ('package' or 'main') for display
+                'unit_type' => $data['unit_type'],
                 'production_date' => $data['production_date'] ?? null,
                 'expiry_date' => $data['expiry_date'] ?? null,
                 'supplier_id' => $supplierId,
                 'payment_type' => $paymentType,
-                'vat_rate' => $vatRate,
-                'vat_amount' => $vatAmount,
                 'user_id' => $userId,
                 'approval_status' => $approvalStatus,
                 'voucher_number' => $this->ledgerService->getNextVoucherNumber('PUR'),
                 'notes' => $data['notes'] ?? null,
             ]);
 
+            // Persist tax lines BEFORE processing impact (so accessors work)
             if ($taxResult !== null && TaxCalculator::isTaxEngineEnabled()) {
-                app(TaxCalculator::class)->persistTaxLines($taxResult, \App\Models\Purchase::class, $purchase->id);
+                app(TaxCalculator::class)->persistTaxLines($taxResult, Purchase::class, $purchase->id);
             }
 
             if ($approvalStatus === 'approved') {
-                $this->processPurchaseImpact($purchase, $actualQuantity, $unitCost, $subtotal);
+                $this->processPurchaseImpact($purchase, $actualQuantity, $unitCost, $subtotal, $vatAmount);
                 
                 // Fix BUG-001: Ensure AP Transaction is created for auto-approved credit purchases
                 if ($paymentType === 'credit' && $supplierId) {
@@ -187,8 +190,13 @@ class PurchaseService
      * @param float $subtotal The purchase amount excluding VAT
      * @return void
      */
-    public function processPurchaseImpact(Purchase $purchase, int $actualQuantity, float $unitCost, float $subtotal): void
+    public function processPurchaseImpact(Purchase $purchase, int $actualQuantity, float $unitCost, float $subtotal, ?float $vatAmount = null): void
     {
+        // If vatAmount not passed, derive from tax_lines (Tax Engine)
+        if ($vatAmount === null) {
+            $vatAmount = (float) $purchase->taxLines()->sum('tax_amount');
+        }
+
         // Update stock
         $purchase->product->increment('stock_quantity', $actualQuantity);
 
@@ -206,7 +214,7 @@ class PurchaseService
         $this->updateProductWAC($purchase->product, $actualQuantity, $purchase->invoice_price);
 
         // Post to GL
-        $this->postPurchaseToGL($purchase, $subtotal);
+        $this->postPurchaseToGL($purchase, $subtotal, $vatAmount);
     }
 
     /**
@@ -229,7 +237,7 @@ class PurchaseService
     /**
      * Post purchase transaction to General Ledger
      */
-    private function postPurchaseToGL(Purchase $purchase, float $subtotal): void
+    private function postPurchaseToGL(Purchase $purchase, float $subtotal, float $vatAmount = 0): void
     {
         $accounts = $this->coaService->getStandardAccounts();
         $glEntries = [
@@ -241,11 +249,11 @@ class PurchaseService
             ],
         ];
 
-        if ($purchase->vat_amount > 0) {
+        if ($vatAmount > 0) {
             $glEntries[] = [
                 'account_code' => $accounts['input_vat'],
                 'entry_type' => 'DEBIT',
-                'amount' => $purchase->vat_amount,
+                'amount' => $vatAmount,
                 'description' => "VAT Input - Voucher #{$purchase->voucher_number}"
             ];
         }
@@ -301,10 +309,11 @@ class PurchaseService
                 ? ($purchase->quantity * $itemsPerUnit) 
                 : $purchase->quantity;
 
-            $unitCost = $purchase->invoice_price / ($actualQuantity > 0 ? $actualQuantity : 1);
-            $subtotal = $purchase->invoice_price - $purchase->vat_amount;
+            // Derive vat from tax_lines (Tax Engine is source of truth)
+            $vatAmount = (float) $purchase->taxLines()->sum('tax_amount');
+            $subtotal = $purchase->invoice_price - $vatAmount;
 
-            $this->processPurchaseImpact($purchase, $actualQuantity, $unitCost, $subtotal);
+            $this->processPurchaseImpact($purchase, $actualQuantity, $unitCost, $subtotal, $vatAmount);
 
             // If credit purchase, create AP transaction
             if ($purchase->supplier_id && $purchase->payment_type === 'credit') {
@@ -362,19 +371,7 @@ class PurchaseService
             // 1. Decrement Stock
             $purchase->product->decrement('stock_quantity', $actualReturnQty);
 
-            // 2. Create AP Transaction (Return)
-            $transaction = \App\Models\ApTransaction::create([
-                'supplier_id' => $purchase->supplier_id,
-                'type' => 'return',
-                'amount' => $totalReturnAmount,
-                'description' => "إرجاع مشتريات (Voucher #{$purchase->voucher_number}) - " . ($reason ?? "Reason: $totalReturnQty units"),
-                'reference_type' => 'purchases',
-                'reference_id' => $purchase->id,
-                'created_by' => $userId,
-                'transaction_date' => now(),
-            ]);
-
-            // 3. Post to GL
+            // 2. Post to GL FIRST to get voucher number
             $accounts = $this->coaService->getStandardAccounts();
             $glEntries = [
                 [
@@ -400,15 +397,32 @@ class PurchaseService
                 ];
             }
 
-            $this->ledgerService->postTransaction(
+            $returnVoucherNumber = $this->ledgerService->postTransaction(
                 $glEntries,
                 'ap_transactions',
-                $transaction->id,
+                null, // Will update after creating record
                 null,
                 now()->format('Y-m-d')
             );
 
-            // 4. Update Supplier Balance
+            // 3. Create AP Transaction (operational metadata only — NO amount)
+            $transaction = ApTransaction::create([
+                'supplier_id' => $purchase->supplier_id,
+                'type' => 'return',
+                'voucher_number' => $returnVoucherNumber, // Link to GL
+                'description' => "إرجاع مشتريات (Voucher #{$purchase->voucher_number}) - " . ($reason ?? "Reason: $totalReturnQty units"),
+                'reference_type' => 'purchases',
+                'reference_id' => $purchase->id,
+                'created_by' => $userId,
+                'transaction_date' => now(),
+            ]);
+
+            // Update GL reference_id
+            GeneralLedger::where('voucher_number', $returnVoucherNumber)
+                ->where('reference_type', 'ap_transactions')
+                ->update(['reference_id' => $transaction->id]);
+
+            // 4. Update Supplier Balance from GL
             if ($purchase->supplier_id) {
                 $this->updateSupplierBalance($purchase->supplier_id);
             }
@@ -418,19 +432,42 @@ class PurchaseService
     }
 
     /**
-     * Update supplier balance based on transactions
+     * Update supplier balance — derived from GL (single source of truth).
      */
     public function updateSupplierBalance(int $supplierId): void
     {
-        $balance = DB::table('ap_transactions')
-            ->where('supplier_id', $supplierId)
-            ->where('is_deleted', 0)
-            ->sum(DB::raw("CASE 
-                WHEN type = 'invoice' THEN amount 
-                WHEN type IN ('payment', 'return') THEN -amount 
-                ELSE 0 
-            END"));
-        
+        $apAccountCode = $this->coaService->getStandardAccounts()['accounts_payable'];
+        $apAccountId = ChartOfAccount::where('account_code', $apAccountCode)->value('id');
+
+        if (!$apAccountId) {
+            return;
+        }
+
+        // Get all active voucher numbers for this supplier
+        $voucherNumbers = ApTransaction::where('supplier_id', $supplierId)
+            ->where('is_deleted', false)
+            ->whereNotNull('voucher_number')
+            ->pluck('voucher_number')
+            ->toArray();
+
+        if (empty($voucherNumbers)) {
+            ApSupplier::where('id', $supplierId)->update(['current_balance' => 0]);
+            return;
+        }
+
+        // Balance = Credits to AP (invoices) - Debits to AP (payments/returns)
+        $credits = (float) GeneralLedger::whereIn('voucher_number', $voucherNumbers)
+            ->where('account_id', $apAccountId)
+            ->where('entry_type', 'CREDIT')
+            ->sum('amount');
+
+        $debits = (float) GeneralLedger::whereIn('voucher_number', $voucherNumbers)
+            ->where('account_id', $apAccountId)
+            ->where('entry_type', 'DEBIT')
+            ->sum('amount');
+
+        $balance = $credits - $debits;
+
         ApSupplier::where('id', $supplierId)->update(['current_balance' => $balance]);
     }
 
@@ -494,7 +531,7 @@ class PurchaseService
                           $this->ledgerService->reverseTransaction($purchase->voucher_number, "Reversal of Purchase #" . $purchase->voucher_number);
                      } else {
                           // Partial GL Reversal
-                          $entries = \App\Models\GeneralLedger::where('voucher_number', $purchase->voucher_number)->with('account')->get();
+                          $entries = GeneralLedger::where('voucher_number', $purchase->voucher_number)->with('account')->get();
                           $reversalEntries = [];
                           foreach ($entries as $entry) {
                                $reversedType = $entry->entry_type === 'DEBIT' ? 'CREDIT' : 'DEBIT';
@@ -521,20 +558,23 @@ class PurchaseService
                             ->where('reference_id', $purchase->id)
                             ->update(['is_deleted' => true]);
                     } else {
-                        // Partial Return Logic
-                        $reversedAmount = round($purchase->invoice_price * $ratio, 2);
-                         if ($reversedAmount > 0) {
-                            \App\Models\ApTransaction::create([
-                                'supplier_id' => $purchase->supplier_id,
-                                'type' => 'return',
-                                'amount' => $reversedAmount,
-                                'description' => "Partial Return ($qtyToReverse/$actualQty) - Purchase #{$purchase->voucher_number}",
-                                'reference_type' => 'purchases',
-                                'reference_id' => $purchase->id,
-                                'created_by' => $userId,
-                                'transaction_date' => now(),
-                            ]);
-                        }
+                        // Partial Return — GL entries were already created above via partial GL reversal
+                        // Create AP transaction with voucher link (NO amount)
+                        $partialVoucher = GeneralLedger::where('reference_type', 'purchases')
+                            ->where('reference_id', $purchase->id)
+                            ->orderBy('created_at', 'desc')
+                            ->value('voucher_number');
+
+                        ApTransaction::create([
+                            'supplier_id' => $purchase->supplier_id,
+                            'type' => 'return',
+                            'voucher_number' => $partialVoucher, // Link to GL
+                            'description' => "Partial Return ($qtyToReverse/$actualQty) - Purchase #{$purchase->voucher_number}",
+                            'reference_type' => 'purchases',
+                            'reference_id' => $purchase->id,
+                            'created_by' => $userId,
+                            'transaction_date' => now(),
+                        ]);
                     }
                     $this->updateSupplierBalance($purchase->supplier_id);
                 }
@@ -544,7 +584,8 @@ class PurchaseService
         });
     }
     /**
-     * Record Account Payable Transaction
+     * Record Account Payable Transaction (operational metadata only — NO amount).
+     * The financial amount is already in the GL via postPurchaseToGL.
      */
     private function recordApTransaction(Purchase $purchase, int $userId): void
     {
@@ -559,10 +600,10 @@ class PurchaseService
             return;
         }
 
-        \App\Models\ApTransaction::create([
+        ApTransaction::create([
             'supplier_id' => $purchase->supplier_id,
             'type' => 'invoice',
-            'amount' => $purchase->invoice_price,
+            'voucher_number' => $purchase->voucher_number, // Link to GL
             'description' => "Purchase Invoice #" . $purchase->voucher_number,
             'reference_type' => 'purchases',
             'reference_id' => $purchase->id,

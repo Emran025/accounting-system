@@ -17,8 +17,7 @@ return new class extends Migration
             $table->foreignId('invoice_id')->constrained('invoices')->onDelete('restrict');
             $table->decimal('total_amount', 15, 2);
             $table->decimal('subtotal', 15, 2);
-            $table->decimal('vat_amount', 15, 2)->default(0);
-            $table->decimal('fees_amount', 15, 2)->default(0);
+            // vat_amount, fees_amount → tax_lines table (Tax Engine). SAP FI: tax data in Tax sub-system.
             $table->text('reason')->nullable();
             $table->foreignId('user_id')->constrained('users');
             $table->string('voucher_number')->nullable();

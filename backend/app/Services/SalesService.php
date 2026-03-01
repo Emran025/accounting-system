@@ -9,7 +9,6 @@ use App\Models\ArCustomer;
 use App\Models\ArTransaction;
 use App\Models\GeneralLedger;
 use App\Models\GovernmentFee;
-use App\Models\InvoiceFee;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\SalesReturn;
@@ -19,7 +18,7 @@ use App\Models\SalesRepresentativeTransaction;
 use App\Services\Tax\TaxCalculator;
 use App\Models\Setting;
 use App\Models\TaxLine;
-use App\Models\TaxType;
+
 /**
  * Service for handling sales operations, including invoice creation, returns, and inventory integration.
  * Implements "Server Sovereignty" principles for tax calculation and pricing floors.
@@ -166,7 +165,7 @@ class SalesService
             // Calculate Government Fees (Kharaaj)
             // Fees are now integrated seamlessly into the Tax Engine Result!
             $totalFees = 0;
-            $calculatedFees = []; // Kept to not break subsequent code, but we will phase out `InvoiceFee`
+            $calculatedFees = []; // Kept to not break subsequent code, but we will phase out ``
 
             if ($taxResult !== null) {
                 foreach ($taxResult->lines as $line) {
@@ -201,26 +200,19 @@ class SalesService
                 $amountPaid = $totalAmount;
             }
 
-            // Create invoice header
+            // SAP FI: Invoice is a DOCUMENT — stores NO amounts.
+            // Amounts live in: GL (via voucher_number), tax_lines, invoice_items.
             $invoice = Invoice::create([
                 'invoice_number' => $invoiceNumber,
-                'total_amount' => $totalAmount,
-                'subtotal' => $subtotal,
-                'vat_rate' => $vatRate,
-                'vat_amount' => $vatAmount,
-                'discount_amount' => $discountAmount,
-                'amount_paid' => $amountPaid,
                 'payment_type' => $paymentType,
                 'customer_id' => $customerId,
                 'sales_representative_id' => $salesRepresentativeId,
                 'user_id' => $userId,
-                'currency_id' => $currencyId,
-                'exchange_rate' => $exchangeRate,
             ]);
 
             // Persist tax lines for audit trail when Tax Engine is enabled
             if ($taxResult !== null && TaxCalculator::isTaxEngineEnabled()) {
-                app(TaxCalculator::class)->persistTaxLines($taxResult, \App\Models\Invoice::class, $invoice->id);
+                app(TaxCalculator::class)->persistTaxLines($taxResult, Invoice::class, $invoice->id);
             }
 
             // Insert invoice items
@@ -254,31 +246,31 @@ class SalesService
             // Update customer balance (if credit)
             // Update customer balance (if credit)
             if ($paymentType === 'credit' && $customerId) {
-                // 1. Record the full invoice amount as a debt
-                ArTransaction::create([
+                // Note: AR transaction voucher_number will be set after GL posting below
+                // Store the AR data to link after GL
+                $arInvoiceData = [
                     'customer_id' => $customerId,
                     'type' => 'invoice',
-                    'amount' => $totalAmount,
                     'description' => "Invoice #$invoiceNumber",
                     'reference_type' => 'invoices',
                     'reference_id' => $invoice->id,
                     'created_by' => $userId,
-                ]);
+                ];
 
                 ArCustomer::where('id', $customerId)
                     ->increment('current_balance', $totalAmount);
 
                 // 2. Record the payment as a separate credit entry (Prepayment/Down Payment)
+                $arReceiptData = null;
                 if ($amountPaid > 0) {
-                     ArTransaction::create([
+                    $arReceiptData = [
                         'customer_id' => $customerId,
-                        'type' => 'receipt', // Using 'receipt' as per standard convention for incoming money
-                        'amount' => $amountPaid,
+                        'type' => 'receipt',
                         'description' => "Payment for Invoice #$invoiceNumber",
                         'reference_type' => 'invoices',
-                        'reference_id' => $invoice->id, // Linking to same invoice
+                        'reference_id' => $invoice->id,
                         'created_by' => $userId,
-                    ]);
+                    ];
 
                      ArCustomer::where('id', $customerId)
                         ->decrement('current_balance', $amountPaid);
@@ -359,13 +351,16 @@ class SalesService
                     ];
                 }
 
-                // Post Invoice GL
+                // Post Invoice GL (currency on GL per SAP FI)
                 $voucherNumber = $this->ledgerService->postTransaction(
                     $invoiceEntries,
                     'invoices',
                     $invoice->id,
                     null,
-                    now()->format('Y-m-d')
+                    now()->format('Y-m-d'),
+                    'AUTOMATIC',
+                    $currencyId ? (int)$currencyId : null,
+                    $exchangeRate ? (float)$exchangeRate : null
                 );
 
                 $invoice->update(['voucher_number' => $voucherNumber]);
@@ -388,13 +383,26 @@ class SalesService
                         'description' => "Payment Applied - Invoice #$invoiceNumber"
                     ];
 
-                    $this->ledgerService->postTransaction(
+                    $paymentVoucher = $this->ledgerService->postTransaction(
                         $paymentEntries,
                         'invoices',
                         $invoice->id,
                         null,
-                        now()->format('Y-m-d')
+                        now()->format('Y-m-d'),
+                        'AUTOMATIC',
+                        $currencyId ? (int)$currencyId : null,
+                        $exchangeRate ? (float)$exchangeRate : null
                     );
+                }
+
+                // Create AR transactions with voucher_number links (NO amount — GL is source of truth)
+                if (isset($arInvoiceData)) {
+                    $arInvoiceData['voucher_number'] = $voucherNumber; // Link to invoice GL posting
+                    ArTransaction::create($arInvoiceData);
+                }
+                if (isset($arReceiptData) && $arReceiptData !== null) {
+                    $arReceiptData['voucher_number'] = $paymentVoucher ?? $voucherNumber;
+                    ArTransaction::create($arReceiptData);
                 }
 
             } else {
@@ -481,13 +489,16 @@ class SalesService
                     ];
                 }
 
-                // Post GL
+                // Post GL (currency on GL per SAP FI)
                 $voucherNumber = $this->ledgerService->postTransaction(
                     $glEntries,
                     'invoices',
                     $invoice->id,
                     null,
-                    now()->format('Y-m-d')
+                    now()->format('Y-m-d'),
+                    'AUTOMATIC',
+                    $currencyId ? (int)$currencyId : null,
+                    $exchangeRate ? (float)$exchangeRate : null
                 );
 
                 $invoice->update(['voucher_number' => $voucherNumber]);
@@ -676,7 +687,7 @@ class SalesService
                         'tax_authority_code' => $taxLine->tax_authority_code,
                         'metadata' => $taxLine->metadata ? json_encode($taxLine->metadata) : null,
                         'line_order' => $taxLine->line_order,
-                        'taxable_type' => \App\Models\SalesReturn::class,
+                        'taxable_type' => SalesReturn::class,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
@@ -708,14 +719,12 @@ class SalesService
                 STR_PAD_LEFT
             );
 
-            // Create return record
+            // Create return record (SAP FI: NO tax/fee amounts — those live in tax_lines)
             $return = SalesReturn::create([
                 'return_number' => $returnNumber,
                 'invoice_id' => $invoiceId,
                 'total_amount' => $returnTotal,
                 'subtotal' => $returnSubtotal,
-                'vat_amount' => $returnVat,
-                'fees_amount' => $returnFees,
                 'reason' => $reason,
                 'user_id' => $userId,
             ]);
@@ -885,7 +894,7 @@ class SalesService
                 ArTransaction::create([
                     'customer_id' => $invoice->customer_id,
                     'type' => 'return',
-                    'amount' => $returnTotal,
+                    'voucher_number' => $voucherNumber, // Link to GL — NO amount stored
                     'description' => "مرتجع مبيعات - فاتورة #{$invoiceNumber} (مرتجع #{$returnNumber})",
                     'reference_type' => 'sales_returns',
                     'reference_id' => $return->id,

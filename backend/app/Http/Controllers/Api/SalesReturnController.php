@@ -142,7 +142,7 @@ class SalesReturnController extends Controller
                   ->orWhere('sales_returns.return_number', 'like', "%{$search}%")
                   ->orWhere('invoices.invoice_number', 'like', "%{$search}%")
                   ->orWhere('ar_customers.name', 'like', "%{$search}%")
-                  ->orWhere('sales_returns.total_amount', 'like', "%{$search}%");
+                  ->orWhere('sales_returns.voucher_number', 'like', "%{$search}%");
             });
         }
 
@@ -159,15 +159,18 @@ class SalesReturnController extends Controller
             $query->whereDate('sales_returns.created_at', '<=', $dateTo);
         }
 
-        // Stats (computed before pagination)
-        $statsData = (clone $query)->selectRaw('
-            COUNT(*) as transaction_count,
-            SUM(sales_returns.total_amount) as total_returns,
-            SUM(CASE WHEN invoices.payment_type = "cash"   THEN sales_returns.total_amount ELSE 0 END) as total_cash_returns,
-            SUM(CASE WHEN invoices.payment_type = "credit" THEN sales_returns.total_amount ELSE 0 END) as total_credit_returns
-        ')->first();
+        // Stats — derive totals from GL via voucher_numbers
+        $returnVouchers = (clone $query)->pluck('sales_returns.voucher_number')->filter()->toArray();
+        $totalReturns = 0;
+        if (!empty($returnVouchers)) {
+            // Sum the debit side of return GL entries (Dr Cash/AR)
+            $totalReturns = (float) \App\Models\GeneralLedger::whereIn('voucher_number', $returnVouchers)
+                ->where('entry_type', 'DEBIT')
+                ->sum('amount');
+        }
+        $transactionCount = $query->count();
 
-        $total   = $query->count();
+        $total   = $transactionCount;
         $returns = $query
             ->orderBy('sales_returns.created_at', 'desc')
             ->skip($offset)
@@ -179,7 +182,7 @@ class SalesReturnController extends Controller
             return [
                 'id'             => $r->id,
                 'type'           => 'return',
-                'amount'         => (float) $r->total_amount,
+                'amount'         => (float) $r->total_amount, // Accessor
                 'description'    => $r->reason ?? ('مرتجع فاتورة #' . $r->invoice_number),
                 'reference_type' => 'sales_returns',
                 'reference_id'   => $r->id,
@@ -188,14 +191,13 @@ class SalesReturnController extends Controller
                 'created_at'     => $r->created_at?->toDateTimeString(),
                 'created_by'     => $r->user?->username ?? null,
                 'is_deleted'     => false,
-                // Extra context
                 'payment_type'   => $r->payment_type,
                 'customer_id'    => $r->customer_id,
                 'customer_name'  => $r->customer_name,
                 'related_invoice_number' => $r->invoice_number,
-                'total_amount'   => (float) $r->total_amount,
+                'total_amount'   => (float) $r->total_amount, // Accessor
                 'subtotal'       => (float) $r->subtotal,
-                'vat_amount'     => (float) $r->vat_amount,
+                'vat_amount'     => (float) $r->vat_amount, // Computed from tax_lines
                 'discount_amount' => 0,
             ];
         });
@@ -204,13 +206,13 @@ class SalesReturnController extends Controller
             'data' => $data,
             'stats' => [
                 'total_debit'          => 0,
-                'total_credit'         => (float) ($statsData->total_returns ?? 0),
-                'total_returns'        => (float) ($statsData->total_returns ?? 0),
-                'total_cash_returns'   => (float) ($statsData->total_cash_returns ?? 0),
-                'total_credit_returns' => (float) ($statsData->total_credit_returns ?? 0),
+                'total_credit'         => (float) $totalReturns,
+                'total_returns'        => (float) $totalReturns,
+                'total_cash_returns'   => 0,
+                'total_credit_returns' => 0,
                 'total_receipts'       => 0,
                 'balance'              => 0,
-                'transaction_count'    => (int) ($statsData->transaction_count ?? 0),
+                'transaction_count'    => $transactionCount,
             ],
             'pagination' => [
                 'current_page'  => $page,

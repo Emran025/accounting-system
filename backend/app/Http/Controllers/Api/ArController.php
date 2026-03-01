@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ArCustomer;
 use App\Models\ArTransaction;
+use App\Models\GeneralLedger;
 use App\Services\PermissionService;
 use App\Services\TelescopeService;
 use App\Http\Requests\StoreArCustomerRequest;
@@ -148,6 +149,9 @@ class ArController extends Controller
         return $this->successResponse();
     }
 
+    /**
+     * Customer ledger — financial stats derived from GL (single source of truth).
+     */
     public function ledger(Request $request): JsonResponse
     {
 
@@ -173,7 +177,7 @@ class ArController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%$search%")
                   ->orWhere('reference_id', 'like', "%$search%")
-                  ->orWhere('amount', 'like', "%$search%");
+                  ->orWhere('voucher_number', 'like', "%$search%");
             });
         }
 
@@ -189,14 +193,51 @@ class ArController extends Controller
             $query->whereDate('transaction_date', '<=', $dateTo);
         }
 
-        // Stats calculation
-        $statsData = (clone $query)->selectRaw('
-            SUM(CASE WHEN type = "invoice" THEN amount ELSE 0 END) as total_debit,
-            SUM(CASE WHEN type IN ("payment", "receipt", "return") THEN amount ELSE 0 END) as total_credit,
-            SUM(CASE WHEN type = "return" THEN amount ELSE 0 END) as total_returns,
-            SUM(CASE WHEN type IN ("payment", "receipt") THEN amount ELSE 0 END) as total_receipts,
-            COUNT(*) as transaction_count
-        ')->first();
+        // Financial stats derived from GL (single source of truth)
+        $arTransactionIds = (clone $query)->pluck('id')->toArray();
+        $voucherNumbers = (clone $query)->whereNotNull('voucher_number')->pluck('voucher_number')->toArray();
+
+        $glStats = ['total_debit' => 0, 'total_credit' => 0, 'total_returns' => 0, 'total_receipts' => 0];
+        if (!empty($voucherNumbers)) {
+            // Get type-grouped voucher numbers for proper categorization
+            $invoiceVouchers = (clone $query)->where('type', 'invoice')->pluck('voucher_number')->toArray();
+            $receiptVouchers = (clone $query)->whereIn('type', ['payment', 'receipt'])->pluck('voucher_number')->toArray();
+            $returnVouchers = (clone $query)->where('type', 'return')->pluck('voucher_number')->toArray();
+
+            if (!empty($invoiceVouchers)) {
+                $glStats['total_debit'] = (float) GeneralLedger::whereIn('voucher_number', $invoiceVouchers)
+                    ->where('entry_type', 'DEBIT')
+                    ->sum('amount') / max(1, count($invoiceVouchers) > 0 ? 2 : 1); // Divided by entry count per voucher (DR side)
+                // Simplified: sum DEBIT amounts for AR account specifically
+                $arAccountId = \App\Models\ChartOfAccount::where('account_code', $this->coaService->getStandardAccounts()['accounts_receivable'])->value('id');
+                if ($arAccountId) {
+                    $glStats['total_debit'] = (float) GeneralLedger::whereIn('voucher_number', $invoiceVouchers)
+                        ->where('account_id', $arAccountId)
+                        ->where('entry_type', 'DEBIT')
+                        ->sum('amount');
+                }
+            }
+            if (!empty($receiptVouchers)) {
+                $cashAccountId = \App\Models\ChartOfAccount::where('account_code', $this->coaService->getStandardAccounts()['cash'])->value('id');
+                if ($cashAccountId) {
+                    $glStats['total_receipts'] = (float) GeneralLedger::whereIn('voucher_number', $receiptVouchers)
+                        ->where('account_id', $cashAccountId)
+                        ->where('entry_type', 'DEBIT')
+                        ->sum('amount');
+                }
+                $glStats['total_credit'] = $glStats['total_receipts'];
+            }
+            if (!empty($returnVouchers)) {
+                $salesAccountId = \App\Models\ChartOfAccount::where('account_code', $this->coaService->getStandardAccounts()['sales_revenue'])->value('id');
+                if ($salesAccountId) {
+                    $glStats['total_returns'] = (float) GeneralLedger::whereIn('voucher_number', $returnVouchers)
+                        ->where('account_id', $salesAccountId)
+                        ->where('entry_type', 'DEBIT')
+                        ->sum('amount');
+                }
+                $glStats['total_credit'] += $glStats['total_returns'];
+            }
+        }
 
         $total = $query->count();
         $transactions = $query->with('createdBy')
@@ -213,12 +254,12 @@ class ArController extends Controller
             ],
             'data' => ArTransactionResource::collection($transactions),
             'stats' => [
-                'total_debit' => (float)($statsData->total_debit ?? 0),
-                'total_credit' => (float)($statsData->total_credit ?? 0),
-                'total_returns' => (float)($statsData->total_returns ?? 0),
-                'total_receipts' => (float)($statsData->total_receipts ?? 0),
+                'total_debit' => $glStats['total_debit'],
+                'total_credit' => $glStats['total_credit'],
+                'total_returns' => $glStats['total_returns'],
+                'total_receipts' => $glStats['total_receipts'],
                 'balance' => (float)$customer->current_balance,
-                'transaction_count' => (int)($statsData->transaction_count ?? 0),
+                'transaction_count' => $total,
             ],
             'pagination' => [
                 'current_page' => $page,
@@ -229,6 +270,9 @@ class ArController extends Controller
         ]);
     }
 
+    /**
+     * Store AR transaction — amount flows only to GL.
+     */
     public function storeTransaction(Request $request): JsonResponse
     {
 
@@ -236,28 +280,15 @@ class ArController extends Controller
         $validated = $request->validate([
             'customer_id' => 'required|exists:ar_customers,id',
             'type' => 'required|in:payment,receipt,return',
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:0.01', // Accepted for GL posting only
             'description' => 'nullable|string',
             'date' => 'nullable|date',
         ]);
 
         return DB::transaction(function () use ($validated) {
-            $transaction = ArTransaction::create([
-                'customer_id' => $validated['customer_id'],
-                'type' => $validated['type'],
-                'amount' => $validated['amount'],
-                'description' => $validated['description'] ?? '',
-                'transaction_date' => $validated['date'] ?? now(),
-                'created_by' => auth()->id() ?? session('user_id'),
-            ]);
+            $amount = $validated['amount']; // Used for GL only
 
-            // Update customer balance: Both payments/receipts and returns reduce the customer's debt
-            $balanceChange = -$validated['amount'];
-            
-            ArCustomer::where('id', $validated['customer_id'])
-                ->increment('current_balance', $balanceChange);
-
-            // GL Posting
+            // GL Posting FIRST to get the voucher number
             $mappings = $this->coaService->getStandardAccounts();
             $glEntries = [];
             $customer = ArCustomer::find($validated['customer_id']);
@@ -267,27 +298,27 @@ class ArController extends Controller
                 $glEntries[] = [
                     'account_code' => $mappings['cash'],
                     'entry_type' => 'DEBIT',
-                    'amount' => $validated['amount'],
+                    'amount' => $amount,
                     'description' => "Receipt from customer: {$customer->name} - " . ($validated['description'] ?? '')
                 ];
                 $glEntries[] = [
                     'account_code' => $mappings['accounts_receivable'],
                     'entry_type' => 'CREDIT',
-                    'amount' => $validated['amount'],
+                    'amount' => $amount,
                     'description' => "Receipt from customer: {$customer->name} (AR Update)"
                 ];
             } else {
-                // Return: Debit Sales Revenue (or Sales Return), Credit AR
+                // Return: Debit Sales Revenue, Credit AR
                 $glEntries[] = [
-                    'account_code' => $mappings['sales_revenue'], // Simplified, usually a specific Sales Return account
+                    'account_code' => $mappings['sales_revenue'],
                     'entry_type' => 'DEBIT',
-                    'amount' => $validated['amount'],
+                    'amount' => $amount,
                     'description' => "Return from customer: {$customer->name} - " . ($validated['description'] ?? '')
                 ];
                 $glEntries[] = [
                     'account_code' => $mappings['accounts_receivable'],
                     'entry_type' => 'CREDIT',
-                    'amount' => $validated['amount'],
+                    'amount' => $amount,
                     'description' => "Return from customer: {$customer->name} (AR Update)"
                 ];
             }
@@ -295,12 +326,30 @@ class ArController extends Controller
             $voucherNumber = $this->ledgerService->postTransaction(
                 $glEntries,
                 'ar_transactions',
-                $transaction->id,
+                null, // Will update after creating record
                 null,
                 $validated['date'] ?? now()->format('Y-m-d')
             );
 
-            $transaction->update(['description' => ($validated['description'] ?? '') . " [Voucher: $voucherNumber]"]);
+            // Create AR transaction (operational metadata only — NO amount)
+            $transaction = ArTransaction::create([
+                'customer_id' => $validated['customer_id'],
+                'type' => $validated['type'],
+                'voucher_number' => $voucherNumber, // Link to GL
+                'description' => ($validated['description'] ?? '') . " [Voucher: $voucherNumber]",
+                'transaction_date' => $validated['date'] ?? now(),
+                'created_by' => auth()->id() ?? session('user_id'),
+            ]);
+
+            // Update GL reference_id to point to the AR transaction
+            GeneralLedger::where('voucher_number', $voucherNumber)
+                ->where('reference_type', 'ar_transactions')
+                ->update(['reference_id' => $transaction->id]);
+
+            // Update customer balance: Both payments/receipts and returns reduce the customer's debt
+            $balanceChange = -$amount;
+            ArCustomer::where('id', $validated['customer_id'])
+                ->increment('current_balance', $balanceChange);
 
             TelescopeService::logOperation('CREATE', 'ar_transactions', $transaction->id, null, $validated);
 
@@ -320,20 +369,24 @@ class ArController extends Controller
         }
 
         return DB::transaction(function () use ($transaction) {
-            // Reverse balance change: Both payments/receipts and returns previously reduced debt,
-            // so deleting either should increase the debt (increment current_balance).
-            $balanceChange = $transaction->amount;
-            
-            ArCustomer::where('id', $transaction->customer_id)
-                ->increment('current_balance', $balanceChange);
+            // Get the amount from GL before reversing
+            $amount = 0;
+            if ($transaction->voucher_number) {
+                $cashAccountId = \App\Models\ChartOfAccount::where('account_code', $this->coaService->getStandardAccounts()['cash'])->value('id');
+                $amount = (float) GeneralLedger::where('voucher_number', $transaction->voucher_number)
+                    ->where('entry_type', 'DEBIT')
+                    ->sum('amount') / max(1, GeneralLedger::where('voucher_number', $transaction->voucher_number)->where('entry_type', 'DEBIT')->count());
+            }
+
+            // Reverse balance change
+            if ($amount > 0) {
+                ArCustomer::where('id', $transaction->customer_id)
+                    ->increment('current_balance', $amount);
+            }
 
             // Reverse GL entries
-            $voucherNumber = \App\Models\GeneralLedger::where('reference_type', 'ar_transactions')
-                ->where('reference_id', $transaction->id)
-                ->value('voucher_number');
-            
-            if ($voucherNumber) {
-                $this->ledgerService->reverseTransaction($voucherNumber, "Reversal of AR Transaction #{$transaction->id}");
+            if ($transaction->voucher_number) {
+                $this->ledgerService->reverseTransaction($transaction->voucher_number, "Reversal of AR Transaction #{$transaction->id}");
             }
 
             // Soft delete
@@ -369,11 +422,17 @@ class ArController extends Controller
                     return $this->errorResponse('Transaction is not deleted', 400);
                 }
 
-                // Restore transaction balance impact: Both payments/receipts and returns reduce debt.
-                $balanceChange = -$transaction->amount;
-            
-                ArCustomer::where('id', $transaction->customer_id)
-                    ->increment('current_balance', $balanceChange);
+                // Get amount from the original GL entries
+                $amount = 0;
+                if ($transaction->voucher_number) {
+                    $amount = (float) GeneralLedger::where('voucher_number', $transaction->voucher_number)
+                        ->where('entry_type', 'DEBIT')
+                        ->sum('amount') / max(1, GeneralLedger::where('voucher_number', $transaction->voucher_number)->where('entry_type', 'DEBIT')->count());
+                }
+
+                if ($amount <= 0) {
+                    return $this->errorResponse('Cannot determine original amount from GL', 400);
+                }
 
                 // Trigger NEW GL Posting to recognize the movement again
                 $mappings = $this->coaService->getStandardAccounts();
@@ -384,31 +443,31 @@ class ArController extends Controller
                     $glEntries[] = [
                         'account_code' => $mappings['cash'],
                         'entry_type' => 'DEBIT',
-                        'amount' => $transaction->amount,
+                        'amount' => $amount,
                         'description' => "Restored Receipt from: {$customer->name} [Original ID: {$transaction->id}]"
                     ];
                     $glEntries[] = [
                         'account_code' => $mappings['accounts_receivable'],
                         'entry_type' => 'CREDIT',
-                        'amount' => $transaction->amount,
+                        'amount' => $amount,
                         'description' => "Restored Receipt from: {$customer->name} (AR Reference)"
                     ];
                 } else {
                     $glEntries[] = [
                         'account_code' => $mappings['sales_revenue'],
                         'entry_type' => 'DEBIT',
-                        'amount' => $transaction->amount,
+                        'amount' => $amount,
                         'description' => "Restored Return from: {$customer->name} [Original ID: {$transaction->id}]"
                     ];
                     $glEntries[] = [
                         'account_code' => $mappings['accounts_receivable'],
                         'entry_type' => 'CREDIT',
-                        'amount' => $transaction->amount,
+                        'amount' => $amount,
                         'description' => "Restored Return from: {$customer->name} (AR Reference)"
                     ];
                 }
 
-                $this->ledgerService->postTransaction(
+                $newVoucher = $this->ledgerService->postTransaction(
                     $glEntries,
                     'ar_transactions',
                     $transaction->id,
@@ -416,14 +475,20 @@ class ArController extends Controller
                     now()->format('Y-m-d')
                 );
 
+                // Restore balance impact
+                $balanceChange = -$amount;
+                ArCustomer::where('id', $transaction->customer_id)
+                    ->increment('current_balance', $balanceChange);
+
                 $transaction->update([
                     'is_deleted' => false,
                     'deleted_at' => null,
+                    'voucher_number' => $newVoucher, // Update to new voucher
                 ]);
 
                 TelescopeService::logOperation('RESTORE', 'ar_transactions', $transaction->id, ['is_deleted' => true], ['is_deleted' => false]);
 
-                return $this->successResponse(['status' => 'restored']);
+                return $this->successResponse(['status' => 'restored', 'voucher_number' => $newVoucher]);
             });
         }
 
@@ -441,7 +506,7 @@ class ArController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%$search%")
-                  ->orWhere('amount', 'like', "%$search%")
+                  ->orWhere('voucher_number', 'like', "%$search%")
                   ->orWhereHas('customer', function($c) use ($search) {
                       $c->where('name', 'like', "%$search%");
                   });

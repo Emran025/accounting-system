@@ -6,92 +6,65 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\GeneralLedger;
+use App\Models\TaxLine;
 
 /**
- * Model representing a sales invoice.
- * Core entity for the Sales module with GL integration, ZATCA e-invoicing,
- * and multi-currency support.
- * 
+ * SAP FI Pattern — Invoice as a DOCUMENT, not a store of amounts.
+ *
+ * The invoice references entries (via voucher_number). All financial
+ * data is derived from the authoritative sub-systems:
+ *   - total_amount  → GL (AR debit for credit, Cash debit for cash)
+ *   - subtotal      → invoice_items (SUM of line subtotals)
+ *   - vat_rate/amt  → tax_lines (Tax Engine)
+ *   - discount      → GL (sales_discount account entries)
+ *   - amount_paid   → AR transactions (receipts linked to this invoice)
+ *   - currency      → GL entries
+ *
  * @property int $id
- * @property string $invoice_number Unique invoice identifier
- * @property string $voucher_number GL voucher reference
- * @property float $total_amount Final invoice total (including VAT)
- * @property float $subtotal Pre-VAT subtotal
- * @property float $vat_rate VAT percentage applied
- * @property float $vat_amount Calculated VAT amount
- * @property float $discount_amount Applied discount
+ * @property string $invoice_number
+ * @property string|null $voucher_number GL voucher reference
  * @property string $payment_type ('cash', 'credit')
- * @property int|null $customer_id AR Customer FK
- * @property float $amount_paid For installment tracking
- * @property int $user_id Cashier/Creator
- * @property bool $is_reversed Whether invoice has been reversed
- * @property \Carbon\Carbon|null $reversed_at Reversal timestamp
- * @property int|null $reversed_by User who performed reversal
- * @property int|null $currency_id Multi-currency FK
- * @property float $exchange_rate Exchange rate at time of sale
+ * @property int|null $customer_id
+ * @property int|null $user_id
+ * @property bool $is_reversed
  */
 class Invoice extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'invoice_number',
         'voucher_number',
-        'total_amount',
-        'subtotal',
-        'vat_rate',
-        'vat_amount',
-        'discount_amount',
         'payment_type',
         'customer_id',
         'sales_representative_id',
-        'amount_paid',
         'user_id',
         'is_reversed',
         'reversed_at',
         'reversed_by',
-        'currency_id',
-        'exchange_rate',
     ];
 
     protected function casts(): array
     {
         return [
-            'total_amount' => 'decimal:2',
-            'subtotal' => 'decimal:2',
-            'vat_rate' => 'decimal:2',
-            'vat_amount' => 'decimal:2',
-            'discount_amount' => 'decimal:2',
-            'amount_paid' => 'decimal:2',
             'is_reversed' => 'boolean',
             'reversed_at' => 'datetime',
         ];
     }
 
-    /**
-     * Get the user (cashier) who created this invoice.
-     * 
-     * @return BelongsTo
-     */
+    // ─── Relationships ───────────────────────────────────────────
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Get the customer associated with this invoice (for credit sales).
-     * 
-     * @return BelongsTo
-     */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(ArCustomer::class, 'customer_id');
     }
 
-    /**
-     * Get the line items for this invoice.
-     * 
-     * @return HasMany
-     */
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class);
@@ -102,32 +75,189 @@ class Invoice extends Model
         return $this->belongsTo(User::class, 'reversed_by');
     }
 
-    public function fees(): HasMany
-    {
-        return $this->hasMany(InvoiceFee::class);
-    }
-
     public function zatcaEinvoice()
     {
         return $this->hasOne(ZatcaEinvoice::class);
     }
 
-    /**
-     * Tax lines (audit trail) - when Tax Engine is enabled.
-     * Part of EPIC #1: Tax Engine Transformation.
-     */
     public function taxLines()
     {
-        return $this->morphMany(\App\Models\TaxLine::class, 'taxable');
+        return $this->morphMany(TaxLine::class, 'taxable');
     }
 
-    public function currency(): BelongsTo
+    public function glEntries(): HasMany
     {
-        return $this->belongsTo(Currency::class);
+        return $this->hasMany(GeneralLedger::class, 'voucher_number', 'voucher_number');
     }
+
+
 
     public function salesRepresentative(): BelongsTo
     {
         return $this->belongsTo(SalesRepresentative::class, 'sales_representative_id');
+    }
+
+    // ─── Computed Accessors (SAP FI — derived from entries) ─────
+
+    /**
+     * Subtotal — SUM of invoice_items line totals (commercial data).
+     */
+    public function getSubtotalAttribute(): float
+    {
+        if ($this->relationLoaded('items')) {
+            return (float) $this->items->sum('subtotal');
+        }
+        return (float) $this->items()->sum('subtotal');
+    }
+
+    /**
+     * Total amount — derived from GL.
+     * For credit sales: AR debit entry.
+     * For cash sales: Cash debit entry.
+     */
+    public function getTotalAmountAttribute(): float
+    {
+        if (!$this->voucher_number) {
+            return $this->getSubtotalAttribute(); // Fallback before GL posting
+        }
+
+        $coaService = app(\App\Services\ChartOfAccountsMappingService::class);
+        $accounts = $coaService->getStandardAccounts();
+
+        // Try AR account first (credit sales), then Cash (cash sales)
+        $targetCodes = $this->payment_type === 'credit'
+            ? [$accounts['accounts_receivable']]
+            : [$accounts['cash']];
+
+        $accountIds = ChartOfAccount::whereIn('account_code', $targetCodes)->pluck('id')->toArray();
+        if (empty($accountIds)) {
+            return 0;
+        }
+
+        $total = (float) GeneralLedger::where('voucher_number', $this->voucher_number)
+            ->whereIn('account_id', $accountIds)
+            ->where('entry_type', 'DEBIT')
+            ->sum('amount');
+
+        return $total > 0 ? $total : (float) $this->items()->sum('subtotal');
+    }
+
+    /**
+     * Amount paid — derived from AR receipt transactions (via GL).
+     * Cash sales = total_amount (always fully paid).
+     * Credit sales = sum of receipt voucher amounts from GL.
+     */
+    public function getAmountPaidAttribute(): float
+    {
+        if ($this->payment_type === 'cash' && !$this->is_reversed) {
+            return $this->getTotalAmountAttribute();
+        }
+
+        // For credit: check AR receipt transactions linked to this invoice
+        $receiptVouchers = ArTransaction::where('reference_type', 'invoices')
+            ->where('reference_id', $this->id)
+            ->whereIn('type', ['receipt', 'payment'])
+            ->where('is_deleted', false)
+            ->whereNotNull('voucher_number')
+            ->pluck('voucher_number')
+            ->toArray();
+
+        if (empty($receiptVouchers)) {
+            return 0;
+        }
+
+        $coaService = app(\App\Services\ChartOfAccountsMappingService::class);
+        $cashAccountId = ChartOfAccount::where('account_code', $coaService->getStandardAccounts()['cash'])->value('id');
+
+        if (!$cashAccountId) {
+            return 0;
+        }
+
+        return (float) GeneralLedger::whereIn('voucher_number', $receiptVouchers)
+            ->where('account_id', $cashAccountId)
+            ->where('entry_type', 'DEBIT')
+            ->sum('amount');
+    }
+
+    /**
+     * VAT amount — derived from tax_lines (Tax Engine), fallback to GL.
+     */
+    public function getVatAmountAttribute(): float
+    {
+        // Primary: Tax Engine (tax_lines)
+        $fromTaxLines = $this->relationLoaded('taxLines')
+            ? (float) $this->taxLines->where('tax_type_code', 'VAT')->sum('tax_amount')
+            : (float) $this->taxLines()->where('tax_type_code', 'VAT')->sum('tax_amount');
+
+        if ($fromTaxLines > 0) {
+            return $fromTaxLines;
+        }
+
+        // Fallback: GL (output_vat account)
+        if (!$this->voucher_number) {
+            return 0;
+        }
+
+        $coaService = app(\App\Services\ChartOfAccountsMappingService::class);
+        $vatAccountCode = $coaService->getStandardAccounts()['output_vat'] ?? null;
+        if (!$vatAccountCode) {
+            return 0;
+        }
+
+        $vatAccountId = ChartOfAccount::where('account_code', $vatAccountCode)->value('id');
+        if (!$vatAccountId) {
+            return 0;
+        }
+
+        return (float) GeneralLedger::where('voucher_number', $this->voucher_number)
+            ->where('account_id', $vatAccountId)
+            ->where('entry_type', 'CREDIT')
+            ->sum('amount');
+    }
+
+    /**
+     * VAT rate — derived from tax_lines (Tax Engine).
+     */
+    public function getVatRateAttribute(): float
+    {
+        $vatLine = $this->relationLoaded('taxLines')
+            ? $this->taxLines->firstWhere('tax_type_code', 'VAT')
+            : $this->taxLines()->where('tax_type_code', 'VAT')->first();
+
+        return $vatLine ? (float) $vatLine->rate * 100 : 0;
+    }
+
+    /**
+     * Discount amount — derived from GL (sales_discount account entries).
+     */
+    public function getDiscountAmountAttribute(): float
+    {
+        if (!$this->voucher_number) {
+            return 0;
+        }
+
+        $coaService = app(\App\Services\ChartOfAccountsMappingService::class);
+        $discountAccountCode = $coaService->getStandardAccounts()['sales_discount'] ?? null;
+        if (!$discountAccountCode) {
+            return 0;
+        }
+
+        $discountAccountId = ChartOfAccount::where('account_code', $discountAccountCode)->value('id');
+        if (!$discountAccountId) {
+            return 0;
+        }
+
+        return (float) GeneralLedger::where('voucher_number', $this->voucher_number)
+            ->where('account_id', $discountAccountId)
+            ->sum('amount');
+    }
+
+    /**
+     * Currency — from GL entries (SAP FI: currency on GL, not document).
+     */
+    public function getCurrencyAttribute()
+    {
+        $glEntry = $this->glEntries()->whereNotNull('currency_id')->first();
+        return $glEntry ? Currency::find($glEntry->currency_id) : null;
     }
 }
