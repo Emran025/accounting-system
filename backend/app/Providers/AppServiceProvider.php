@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use App\Services\SalaryCalculatorInterface;
 use App\Services\SalaryCalculatorService;
 use App\Models\Invoice;
-use App\Models\JournalVoucher;
+use App\Models\GeneralLedger;
 use App\Models\Purchase;
 use App\Policies\InvoicePolicy;
 use App\Policies\JournalVoucherPolicy;
@@ -36,7 +36,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Register policies for resource-level authorization
         Gate::policy(Invoice::class, InvoicePolicy::class);
-        Gate::policy(JournalVoucher::class, JournalVoucherPolicy::class);
+        Gate::policy(GeneralLedger::class, JournalVoucherPolicy::class);
         Gate::policy(Purchase::class, PurchasePolicy::class);
 
         // Grant all permissions to admin users, and check specific permissions for others

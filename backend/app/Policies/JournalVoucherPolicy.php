@@ -3,7 +3,6 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Models\JournalVoucher;
 use App\Models\FiscalPeriod;
 use App\Models\GeneralLedger;
 
@@ -12,7 +11,7 @@ class JournalVoucherPolicy
     /**
      * Determine if the user can view the journal voucher.
      */
-    public function view(User $user, JournalVoucher $voucher): bool
+    public function view(User $user, GeneralLedger $voucher): bool
     {
         if ($user->can('journal_vouchers.view_all')) {
             return true;
@@ -33,14 +32,8 @@ class JournalVoucherPolicy
     /**
      * Determine if the user can update the journal voucher.
      */
-    public function update(User $user, JournalVoucher $voucher): bool
+    public function update(User $user, GeneralLedger $voucher): bool
     {
-        // Check if voucher has been posted to GL (check if GL entries exist)
-        $hasGlEntries = GeneralLedger::where('voucher_number', $voucher->voucher_number)->exists();
-        if ($hasGlEntries) {
-            return false; // Cannot update posted vouchers
-        }
-
         // Check fiscal period based on voucher date
         $period = FiscalPeriod::where('start_date', '<=', $voucher->voucher_date)
             ->where('end_date', '>=', $voucher->voucher_date)
@@ -60,14 +53,8 @@ class JournalVoucherPolicy
     /**
      * Determine if the user can delete the journal voucher.
      */
-    public function delete(User $user, JournalVoucher $voucher): bool
+    public function delete(User $user, GeneralLedger $voucher): bool
     {
-        // Check if voucher has been posted to GL
-        $hasGlEntries = GeneralLedger::where('voucher_number', $voucher->voucher_number)->exists();
-        if ($hasGlEntries) {
-            return false; // Cannot delete posted vouchers
-        }
-
         // Check fiscal period based on voucher date
         $period = FiscalPeriod::where('start_date', '<=', $voucher->voucher_date)
             ->where('end_date', '>=', $voucher->voucher_date)
@@ -87,15 +74,9 @@ class JournalVoucherPolicy
     /**
      * Determine if the user can post the journal voucher.
      */
-    public function post(User $user, JournalVoucher $voucher): bool
+    public function post(User $user, GeneralLedger $voucher): bool
     {
         if (!$user->can('journal_vouchers.post')) {
-            return false;
-        }
-
-        // Check if already posted
-        $hasGlEntries = GeneralLedger::where('voucher_number', $voucher->voucher_number)->exists();
-        if ($hasGlEntries) {
             return false;
         }
 

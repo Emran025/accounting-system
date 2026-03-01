@@ -14,6 +14,7 @@ return new class extends Migration
             $table->date('voucher_date');
             $table->foreignId('account_id')->constrained('chart_of_accounts')->onDelete('restrict');
             $table->string('entry_type', 10); // 'DEBIT' or 'CREDIT'
+            $table->string('entry_source', 50)->default('AUTOMATIC'); // To differentiate manual vs automatic
             $table->decimal('amount', 15, 2);
             $table->text('description')->nullable();
             $table->string('reference_type', 50)->nullable(); // table name e.g. 'invoices', 'purchases'

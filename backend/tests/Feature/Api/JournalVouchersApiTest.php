@@ -4,7 +4,7 @@ namespace Tests\Feature\Api;
 
 use Tests\TestCase;
 use App\Models\ChartOfAccount;
-use App\Models\JournalVoucher;
+use App\Models\GeneralLedger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class JournalVouchersApiTest extends TestCase
@@ -23,16 +23,18 @@ class JournalVouchersApiTest extends TestCase
         $account = ChartOfAccount::where('account_code', '1110')->first(); // Cash
         
         // Create a balanced JV (2 entries)
-        JournalVoucher::factory()->create([
+        GeneralLedger::factory()->create([
             'voucher_number' => 'JV-TEST',
             'account_id' => $account->id,
             'entry_type' => 'DEBIT',
+            'entry_source' => 'MANUAL',
             'amount' => 500
         ]);
-        JournalVoucher::factory()->create([
+        GeneralLedger::factory()->create([
             'voucher_number' => 'JV-TEST',
             'account_id' => $account->id, // Simplified: same account for test, typically different
             'entry_type' => 'CREDIT',
+            'entry_source' => 'MANUAL',
             'amount' => 500
         ]);
 
@@ -72,7 +74,7 @@ class JournalVouchersApiTest extends TestCase
         $this->assertSuccessResponse($response);
         
         $voucherNumber = $response->json('voucher_number');
-        $this->assertDatabaseHas('journal_vouchers', ['voucher_number' => $voucherNumber, 'amount' => 1000]);
+        $this->assertDatabaseHas('general_ledger', ['voucher_number' => $voucherNumber, 'amount' => 1000, 'entry_source' => 'MANUAL']);
         // Verify GL posting happened
         $this->assertDatabaseHas('general_ledger', ['reference_type' => 'journal_vouchers']);
     }

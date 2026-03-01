@@ -70,7 +70,8 @@ class LedgerService
         ?string $referenceType = null,
         ?int $referenceId = null,
         ?string $voucherNumber = null,
-        ?string $voucherDate = null
+        ?string $voucherDate = null,
+        string $entrySource = 'AUTOMATIC'
     ): string {
         if (empty($entries) || count($entries) < 2) {
             throw new \Exception("At least two entries required for double-entry accounting");
@@ -133,7 +134,7 @@ class LedgerService
 
         $userId = auth()->id() ?? session('user_id');
 
-        return DB::transaction(function () use ($entries, $voucherNumber, $voucherDate, $referenceType, $referenceId, $fiscalPeriodId, $userId) {
+        return DB::transaction(function () use ($entries, $voucherNumber, $voucherDate, $referenceType, $referenceId, $fiscalPeriodId, $userId, $entrySource) {
             foreach ($entries as $entry) {
                 $account = ChartOfAccount::where('account_code', $entry['account_code'])->first();
                 if (!$account) {
@@ -153,6 +154,7 @@ class LedgerService
                     'voucher_date' => $voucherDate,
                     'account_id' => $account->id,
                     'entry_type' => strtoupper($entry['entry_type']),
+                    'entry_source' => $entrySource,
                     'amount' => $entry['amount'],
                     'description' => $entry['description'] ?? '',
                     'reference_type' => $referenceType,
@@ -246,10 +248,11 @@ class LedgerService
         // Post reversal transaction
         return $this->postTransaction(
             $reversalEntries,
-            'general_ledger',
+            'general_ledger', // or 'journal_vouchers'
             null,
             null,
-            now()->format('Y-m-d')
+            now()->format('Y-m-d'),
+            $entries->first()->entry_source ?? 'AUTOMATIC'
         );
     }
 

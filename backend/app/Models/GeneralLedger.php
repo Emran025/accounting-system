@@ -36,6 +36,7 @@ class GeneralLedger extends Model
         'voucher_date',
         'account_id',
         'entry_type',
+        'entry_source',
         'amount',
         'description',
         'reference_type',

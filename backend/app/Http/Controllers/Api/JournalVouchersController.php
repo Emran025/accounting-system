@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\JournalVoucher;
+use App\Models\GeneralLedger;
 use App\Models\ChartOfAccount;
 use App\Services\PermissionService;
 use App\Services\TelescopeService;
@@ -37,7 +37,7 @@ class JournalVouchersController extends Controller
         $perPage = min(100, max(1, (int)$request->input('per_page', 20)));
         $voucherNumber = $request->input('voucher_number');
 
-        $query = JournalVoucher::query();
+        $query = GeneralLedger::query()->where('entry_source', 'MANUAL');
         if ($voucherNumber) {
             $query->where('voucher_number', 'like', "%$voucherNumber%");
         }
@@ -49,8 +49,8 @@ class JournalVouchersController extends Controller
             ->take($perPage)
             ->pluck('voucher_number');
 
-        $allEntries = JournalVoucher::whereIn('voucher_number', $pagedVoucherNumbers)
-            ->with(['account', 'creator'])
+        $allEntries = GeneralLedger::whereIn('voucher_number', $pagedVoucherNumbers)
+            ->with(['account', 'createdBy'])
             ->orderBy('voucher_number', 'desc')
             ->orderBy('id')
             ->get()
@@ -68,7 +68,7 @@ class JournalVouchersController extends Controller
                 'total_debit' => (float)$entries->where('entry_type', 'DEBIT')->sum('amount'),
                 'total_credit' => (float)$entries->where('entry_type', 'CREDIT')->sum('amount'),
                 'status' => 'posted', // In this system, they are posted immediately
-                'created_by_name' => $first->creator?->username,
+                'created_by_name' => $first->createdBy?->username,
                 'created_at' => $first->created_at?->toDateTimeString(),
                 'lines' => $entries->map(function($e) {
                     return [
@@ -94,8 +94,9 @@ class JournalVouchersController extends Controller
     {
 
 
-        $entries = JournalVoucher::where('voucher_number', $id)
-            ->with(['account', 'creator'])
+        $entries = GeneralLedger::where('voucher_number', $id)
+            ->where('entry_source', 'MANUAL')
+            ->with(['account', 'createdBy'])
             ->orderBy('id')
             ->get();
 
@@ -185,18 +186,7 @@ class JournalVouchersController extends Controller
             // Generate voucher number
             $voucherNumber = $this->ledgerService->getNextVoucherNumber('JV');
 
-            // Insert journal voucher entries
-            foreach ($validatedEntries as $entry) {
-                JournalVoucher::create([
-                    'voucher_number' => $voucherNumber,
-                    'voucher_date' => $validated['voucher_date'],
-                    'account_id' => $entry['account_id'],
-                    'entry_type' => $entry['entry_type'],
-                    'amount' => $entry['amount'],
-                    'description' => $entry['description'],
-                    'created_by' => auth()->id() ?? session('user_id') ?? 1,
-                ]);
-            }
+            // Insert journal voucher entries is no longer needed
 
             // Post to General Ledger
             $glEntries = array_map(function ($entry) {
@@ -213,7 +203,8 @@ class JournalVouchersController extends Controller
                 'journal_vouchers',
                 null,
                 $voucherNumber,
-                $validated['voucher_date']
+                $validated['voucher_date'],
+                'MANUAL'
             );
 
             TelescopeService::logOperation('CREATE', 'journal_vouchers', null, null, $validated);
@@ -229,7 +220,7 @@ class JournalVouchersController extends Controller
         $voucherNumber = $id;
 
         // Get voucher entry for authorization check
-        $voucher = JournalVoucher::where('voucher_number', $voucherNumber)->first();
+        $voucher = GeneralLedger::where('voucher_number', $voucherNumber)->where('entry_source', 'MANUAL')->first();
         if (!$voucher) {
             return $this->errorResponse('Voucher not found', 404);
         }
@@ -238,8 +229,9 @@ class JournalVouchersController extends Controller
         $this->authorize('delete', $voucher);
 
         // Check if already reversed
-        $reversed = \App\Models\GeneralLedger::where('voucher_number', $voucherNumber)
+        $reversed = GeneralLedger::where('voucher_number', $voucherNumber)
             ->where('description', 'like', '%Reversal%')
+            ->where('entry_source', 'MANUAL')
             ->exists();
 
         if ($reversed) {
