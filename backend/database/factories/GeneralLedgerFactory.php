@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\GeneralLedger;
 use App\Models\ChartOfAccount;
 use App\Models\User;
+use App\Models\UniversalJournal;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class GeneralLedgerFactory extends Factory
@@ -15,7 +16,9 @@ class GeneralLedgerFactory extends Factory
     {
         return [
             'account_id' => ChartOfAccount::factory(),
-            'voucher_number' => 'V-' . $this->faker->unique()->numberBetween(1000, 9999),
+            'voucher_number' => function () {
+                return UniversalJournal::factory()->create(['voucher_number' => 'V-' . $this->faker->unique()->numerify('#####')])->voucher_number;
+            },
             'voucher_date' => now()->toDateString(),
             'entry_type' => $this->faker->randomElement(['DEBIT', 'CREDIT']),
             'amount' => $this->faker->randomFloat(2, 10, 1000),

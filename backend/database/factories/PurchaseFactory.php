@@ -6,6 +6,7 @@ use App\Models\Purchase;
 use App\Models\Product;
 use App\Models\ApSupplier;
 use App\Models\User;
+use App\Models\UniversalJournal;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class PurchaseFactory extends Factory
@@ -27,7 +28,9 @@ class PurchaseFactory extends Factory
             'payment_type' => 'credit',
             'user_id' => User::factory(),
             'approval_status' => 'pending',
-            'voucher_number' => 'PUR-' . $this->faker->unique()->numberBetween(1000, 9999),
+            'voucher_number' => function () {
+                return UniversalJournal::factory()->create(['voucher_number' => 'PUR-' . $this->faker->unique()->numberBetween(10000, 99999)])->voucher_number;
+            },
             'notes' => $this->faker->sentence,
             'created_at' => now(),
         ];

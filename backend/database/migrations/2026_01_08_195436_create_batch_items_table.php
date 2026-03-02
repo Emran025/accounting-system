@@ -13,7 +13,8 @@ return new class extends Migration
             $table->integer('item_index');
             $table->string('status', 20)->default('pending')->comment('pending, success, error')->index();
             $table->unsignedBigInteger('reference_id')->nullable()->comment('ID of created record');
-            $table->string('voucher_number', 50)->nullable();
+            $table->string('voucher_number', 50)->nullable()->index();
+            $table->foreign('voucher_number')->references('voucher_number')->on('universal_journals')->onDelete('cascade');
             $table->text('error_message')->nullable();
             $table->timestamps();
             

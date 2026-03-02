@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Invoice;
 use App\Models\User;
+use App\Models\UniversalJournal;
 use App\Models\ArCustomer;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -21,7 +22,9 @@ class InvoiceFactory extends Factory
     {
         return [
             'invoice_number' => 'INV-' . fake()->unique()->numerify('######'),
-            'voucher_number' => 'VCH-' . fake()->unique()->numerify('######'),
+            'voucher_number' => function () {
+                return UniversalJournal::factory()->create(['voucher_number' => 'VCH-' . fake()->unique()->numerify('######')])->voucher_number;
+            },
             'payment_type' => fake()->randomElement(['cash', 'credit']),
             'customer_id' => ArCustomer::factory(),
             'user_id' => User::factory(),

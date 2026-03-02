@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('general_ledger', function (Blueprint $table) {
             $table->id();
             $table->string('voucher_number', 50)->index();
+            $table->foreign('voucher_number')->references('voucher_number')->on('universal_journals')->onDelete('cascade');
             $table->date('voucher_date');
             $table->foreignId('account_id')->constrained('chart_of_accounts')->onDelete('restrict');
             $table->string('entry_type', 10); // 'DEBIT' or 'CREDIT'

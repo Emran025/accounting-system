@@ -199,6 +199,7 @@ return new class extends Migration
             
             // Journal entry reference
             $table->string('voucher_number', 50)->nullable()->index();
+            $table->foreign('voucher_number')->references('voucher_number')->on('universal_journals')->onDelete('cascade');
             
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();

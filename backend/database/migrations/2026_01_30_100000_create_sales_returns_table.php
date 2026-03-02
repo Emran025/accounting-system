@@ -20,7 +20,8 @@ return new class extends Migration
             // vat_amount, fees_amount → tax_lines table (Tax Engine). SAP FI: tax data in Tax sub-system.
             $table->text('reason')->nullable();
             $table->foreignId('user_id')->constrained('users');
-            $table->string('voucher_number')->nullable();
+            $table->string('voucher_number', 50)->nullable()->index();
+            $table->foreign('voucher_number')->references('voucher_number')->on('universal_journals')->onDelete('cascade');
             $table->timestamps();
             
             $table->index('invoice_id');

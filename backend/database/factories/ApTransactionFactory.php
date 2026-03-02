@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\ApTransaction;
 use App\Models\ApSupplier;
 use App\Models\User;
+use App\Models\UniversalJournal;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -24,7 +25,9 @@ class ApTransactionFactory extends Factory
         return [
             'supplier_id' => ApSupplier::factory(),
             'type' => fake()->randomElement(['invoice', 'payment', 'return']),
-            'voucher_number' => 'APT-' . fake()->unique()->numberBetween(1000, 9999),
+            'voucher_number' => function () {
+                return UniversalJournal::factory()->create(['voucher_number' => 'APT-' . fake()->unique()->numerify('#####')])->voucher_number;
+            },
             'description' => fake()->sentence(),
             'transaction_date' => now(),
             'created_by' => User::factory(),

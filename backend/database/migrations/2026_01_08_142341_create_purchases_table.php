@@ -23,6 +23,7 @@ return new class extends Migration
             $table->foreignId('supplier_id')->nullable()->constrained('ap_suppliers')->onDelete('set null');
             $table->string('payment_type', 50)->default('credit'); // cash, credit
             $table->string('voucher_number', 50)->nullable()->index();
+            $table->foreign('voucher_number')->references('voucher_number')->on('universal_journals')->onDelete('cascade');
             $table->text('notes')->nullable();
             // vat_rate, vat_amount → tax_lines table (Tax Engine). SAP FI: tax data in Tax sub-system.
             $table->string('approval_status', 20)->default('approved'); // pending, approved, rejected

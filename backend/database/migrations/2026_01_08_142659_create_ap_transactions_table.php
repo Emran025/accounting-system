@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('supplier_id')->constrained('ap_suppliers')->onDelete('cascade');
             $table->string('type', 20); // 'invoice', 'payment', 'return'
             $table->string('voucher_number', 50)->nullable()->index(); // Link to GL
+            $table->foreign('voucher_number')->references('voucher_number')->on('universal_journals')->onDelete('cascade');
             $table->text('description')->nullable();
             $table->string('reference_type', 50)->nullable(); // table name e.g. 'purchases'
             $table->unsignedBigInteger('reference_id')->nullable(); // record id in reference table

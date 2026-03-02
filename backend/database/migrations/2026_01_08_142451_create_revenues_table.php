@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('source', 255);
             $table->string('voucher_number', 50)->nullable()->index(); // Link to GL
+            $table->foreign('voucher_number')->references('voucher_number')->on('universal_journals')->onDelete('cascade');
             $table->timestamp('revenue_date')->useCurrent();
             $table->text('description')->nullable();
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');

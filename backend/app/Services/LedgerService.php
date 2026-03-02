@@ -6,6 +6,7 @@ use App\Models\DocumentSequence;
 use App\Models\ChartOfAccount;
 use App\Models\GeneralLedger;
 use App\Models\FiscalPeriod;
+use App\Models\UniversalJournal;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -15,39 +16,25 @@ use Illuminate\Support\Str;
  */
 class LedgerService
 {
-    /**
-     * Generate the next available voucher number for a given document type.
-     * Uses database locking to ensure uniqueness in concurrent environments.
-     * 
-     * @param string $documentType The type of document (e.g., 'VOU', 'INV', 'RET')
-     * @return string The formatted voucher number
-     */
     public function getNextVoucherNumber(string $documentType): string
     {
         return DB::transaction(function () use ($documentType) {
-            $sequence = DocumentSequence::where('document_type', $documentType)
-                ->lockForUpdate()
-                ->first();
+            // Because UniversalJournal generation is the ONLY source of voucher numbers,
+            // we create an initial record. We use a UUID to satisfy the unique constraint temporarily.
+            $tempVoucherNumber = $documentType . '-' . Str::uuid()->toString();
 
-            if (!$sequence) {
-                // Create default sequence
-                $sequence = DocumentSequence::create([
-                    'document_type' => $documentType,
-                    'prefix' => $documentType,
-                    'current_number' => 0,
-                    'format' => '{PREFIX}-{NUMBER}',
-                ]);
-            }
+            $journal = UniversalJournal::create([
+                'voucher_number' => $tempVoucherNumber,
+                'document_type' => $documentType,
+                'document_summary' => 'Pending Document',
+            ]);
 
-            $currentNumber = $sequence->current_number + 1;
-            $sequence->update(['current_number' => $currentNumber]);
+            // Generate standard format using its incrementing ID
+            $voucherNumber = $documentType . '-' . str_pad($journal->id, 6, '0', STR_PAD_LEFT);
 
-            // Format voucher number
-            $voucherNumber = str_replace(
-                ['{PREFIX}', '{NUMBER}'],
-                [$sequence->prefix, str_pad($currentNumber, 6, '0', STR_PAD_LEFT)],
-                $sequence->format
-            );
+            $journal->update([
+                'voucher_number' => $voucherNumber
+            ]);
 
             return $voucherNumber;
         });
@@ -137,6 +124,14 @@ class LedgerService
         $userId = auth()->id() ?? session('user_id');
 
         return DB::transaction(function () use ($entries, $voucherNumber, $voucherDate, $referenceType, $referenceId, $fiscalPeriodId, $userId, $entrySource, $currencyId, $exchangeRate) {
+            UniversalJournal::updateOrCreate(
+                ['voucher_number' => $voucherNumber],
+                [
+                    'document_type' => $referenceType ?? 'JOURNAL',
+                    'document_summary' => "Journal Entry $voucherNumber",
+                ]
+            );
+
             foreach ($entries as $entry) {
                 $account = ChartOfAccount::where('account_code', $entry['account_code'])->first();
                 if (!$account) {

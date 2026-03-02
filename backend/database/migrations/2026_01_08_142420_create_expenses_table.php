@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('category', 100);
             $table->string('account_code', 20)->nullable()->index();
             $table->string('voucher_number', 50)->nullable()->index(); // Link to GL
+            $table->foreign('voucher_number')->references('voucher_number')->on('universal_journals')->onDelete('cascade');
             $table->timestamp('expense_date')->useCurrent();
             $table->text('description')->nullable();
             $table->enum('payment_type', ['cash', 'credit'])->default('cash');
