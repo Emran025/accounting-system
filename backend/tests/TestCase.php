@@ -46,6 +46,14 @@ abstract class TestCase extends BaseTestCase
             ]
         );
 
+        // Ensure a default user exists for created_by FKs
+        if (User::count() === 0) {
+            User::factory()->create([
+                'id' => 1,
+                'role_id' => Role::where('role_key', 'admin')->value('id')
+            ]);
+        }
+
         $this->seedFiscalPeriod();
     }
 
@@ -55,13 +63,12 @@ abstract class TestCase extends BaseTestCase
     protected function seedFiscalPeriod(): void
     {
         FiscalPeriod::firstOrCreate(
-            ['fiscal_year' => Carbon::now()->year],
+            ['period_name' => 'FY' . Carbon::now()->year],
             [
                 'start_date' => Carbon::now()->startOfYear()->format('Y-m-d'),
                 'end_date' => Carbon::now()->endOfYear()->format('Y-m-d'),
                 'is_closed' => false,
                 'is_locked' => false,
-                'period_name' => 'FY' . Carbon::now()->year
             ]
         );
     }
@@ -226,6 +233,10 @@ abstract class TestCase extends BaseTestCase
         ChartOfAccount::factory()->expense()->create([
             'account_code' => '5220',
             'account_name' => 'Salaries Expense',
+        ]);
+        ChartOfAccount::factory()->expense()->create([
+            'account_code' => '5007',
+            'account_name' => 'Sales Commission Expense',
         ]);
     }
 }

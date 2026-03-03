@@ -44,10 +44,6 @@ class UBLGeneratorServiceTest extends TestCase
         $product = Product::factory()->create(['name' => 'Test Product']);
         $invoice = Invoice::factory()->create([
             'invoice_number' => 'INV-001',
-            'total_amount' => 1150.00,
-            'subtotal' => 1000.00,
-            'vat_rate' => 0.15,
-            'vat_amount' => 150.00,
         ]);
 
         InvoiceItem::factory()->create([
@@ -89,13 +85,16 @@ class UBLGeneratorServiceTest extends TestCase
     public function test_xml_contains_tax_information(): void
     {
         $product = Product::factory()->create();
-        $invoice = Invoice::factory()->create([
-            'vat_rate' => 0.15,
-            'vat_amount' => 150.00,
-        ]);
+        $invoice = Invoice::factory()->create();
+        // VAT will be derived from config fallback in model accessor 
+        // Or we can seed a tax line if needed. 
+        // For simple UBL test, fallbacks should be enough.
         InvoiceItem::factory()->create([
             'invoice_id' => $invoice->id,
             'product_id' => $product->id,
+            'quantity' => 10,
+            'unit_price' => 100.00,
+            'subtotal' => 1000.00,
         ]);
 
         $xml = $this->ublGenerator->generate($invoice);

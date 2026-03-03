@@ -32,7 +32,7 @@ class UBLGeneratorService
      */
     public function generate(Invoice $invoice): string
     {
-        $invoice->load(['items.product', 'customer', 'fees', 'currency']);
+        $invoice->load(['items.product', 'customer', 'fees']);
 
         $doc = new DOMDocument('1.0', 'UTF-8');
         $doc->formatOutput = true;

@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use Tests\TestCase;
 use App\Models\Invoice;
 use App\Models\Setting;
+use App\Models\InvoiceItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class ZatcaApiTest extends TestCase
@@ -30,12 +31,10 @@ class ZatcaApiTest extends TestCase
     public function test_can_submit_invoice_to_zatca()
     {
         $invoice = Invoice::factory()->create([
-            'invoice_number' => 'INV-2024-001',
-            'vat_amount' => 15.00,
-            'total_amount' => 115.00
+            'invoice_number' => 'INV-2024-001'
         ]);
         
-        \App\Models\InvoiceItem::factory()->create([
+        InvoiceItem::factory()->create([
             'invoice_id' => $invoice->id,
             'quantity' => 1,
             'unit_price' => 100.00,
@@ -53,7 +52,7 @@ class ZatcaApiTest extends TestCase
         Setting::where('setting_key', 'zatca_enabled')->update(['setting_value' => 'false']);
         
         $invoice = Invoice::factory()->create();
-        \App\Models\InvoiceItem::factory()->create(['invoice_id' => $invoice->id]);
+        InvoiceItem::factory()->create(['invoice_id' => $invoice->id]);
 
         $response = $this->authPost(route('api.zatca.submit', ['invoice_id' => $invoice->id]));
         

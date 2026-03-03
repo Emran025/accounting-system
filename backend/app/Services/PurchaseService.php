@@ -313,6 +313,8 @@ class PurchaseService
             $vatAmount = (float) $purchase->taxLines()->sum('tax_amount');
             $subtotal = $purchase->invoice_price - $vatAmount;
 
+            $unitCost = $subtotal / ($actualQuantity > 0 ? $actualQuantity : 1);
+
             $this->processPurchaseImpact($purchase, $actualQuantity, $unitCost, $subtotal, $vatAmount);
 
             // If credit purchase, create AP transaction

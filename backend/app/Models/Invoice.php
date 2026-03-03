@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Services\ChartOfAccountsMappingService;
 use App\Models\GeneralLedger;
 use App\Models\TaxLine;
 
@@ -90,6 +91,17 @@ class Invoice extends Model
         return $this->hasMany(GeneralLedger::class, 'voucher_number', 'voucher_number');
     }
 
+    /**
+     * Legacy fees relationship — now mapped to taxLines (Tax Engine).
+     */
+    public function fees(): HasMany
+    {
+        // Return empty hasMany for now to keep compatibility if table still exists, 
+        // or a mock relationship if needed. 
+        // Better: link to taxLines if we can filter by non-VAT.
+        return $this->hasMany(TaxLine::class, 'taxable_id')->where('taxable_type', self::class)->where('tax_type_code', '!=', 'VAT');
+    }
+
 
 
     public function salesRepresentative(): BelongsTo
@@ -117,29 +129,29 @@ class Invoice extends Model
      */
     public function getTotalAmountAttribute(): float
     {
-        if (!$this->voucher_number) {
-            return $this->getSubtotalAttribute(); // Fallback before GL posting
+        if ($this->voucher_number) {
+            $coaService = app(ChartOfAccountsMappingService::class);
+            $accounts = $coaService->getStandardAccounts();
+
+            $targetCodes = $this->payment_type === 'credit'
+                ? [$accounts['accounts_receivable']]
+                : [$accounts['cash']];
+
+            $accountIds = ChartOfAccount::whereIn('account_code', $targetCodes)->pluck('id')->toArray();
+            if (!empty($accountIds)) {
+                $total = (float) GeneralLedger::where('voucher_number', $this->voucher_number)
+                    ->whereIn('account_id', $accountIds)
+                    ->where('entry_type', 'DEBIT')
+                    ->sum('amount');
+
+                if ($total > 0) {
+                    return $total;
+                }
+            }
         }
 
-        $coaService = app(\App\Services\ChartOfAccountsMappingService::class);
-        $accounts = $coaService->getStandardAccounts();
-
-        // Try AR account first (credit sales), then Cash (cash sales)
-        $targetCodes = $this->payment_type === 'credit'
-            ? [$accounts['accounts_receivable']]
-            : [$accounts['cash']];
-
-        $accountIds = ChartOfAccount::whereIn('account_code', $targetCodes)->pluck('id')->toArray();
-        if (empty($accountIds)) {
-            return 0;
-        }
-
-        $total = (float) GeneralLedger::where('voucher_number', $this->voucher_number)
-            ->whereIn('account_id', $accountIds)
-            ->where('entry_type', 'DEBIT')
-            ->sum('amount');
-
-        return $total > 0 ? $total : (float) $this->items()->sum('subtotal');
+        // Fallback: Subtotal + VAT
+        return $this->getSubtotalAttribute() + $this->getVatAmountAttribute();
     }
 
     /**
@@ -166,7 +178,7 @@ class Invoice extends Model
             return 0;
         }
 
-        $coaService = app(\App\Services\ChartOfAccountsMappingService::class);
+        $coaService = app(ChartOfAccountsMappingService::class);
         $cashAccountId = ChartOfAccount::where('account_code', $coaService->getStandardAccounts()['cash'])->value('id');
 
         if (!$cashAccountId) {
@@ -193,26 +205,27 @@ class Invoice extends Model
             return $fromTaxLines;
         }
 
-        // Fallback: GL (output_vat account)
-        if (!$this->voucher_number) {
-            return 0;
+        // Fallback 1: GL (output_vat account)
+        if ($this->voucher_number) {
+            $coaService = app(ChartOfAccountsMappingService::class);
+            $vatAccountCode = $coaService->getStandardAccounts()['output_vat'] ?? null;
+            if ($vatAccountCode) {
+                $vatAccountId = ChartOfAccount::where('account_code', $vatAccountCode)->value('id');
+                if ($vatAccountId) {
+                    $fromGl = (float) GeneralLedger::where('voucher_number', $this->voucher_number)
+                        ->where('account_id', $vatAccountId)
+                        ->where('entry_type', 'CREDIT')
+                        ->sum('amount');
+                    if ($fromGl > 0) {
+                        return $fromGl;
+                    }
+                }
+            }
         }
 
-        $coaService = app(\App\Services\ChartOfAccountsMappingService::class);
-        $vatAccountCode = $coaService->getStandardAccounts()['output_vat'] ?? null;
-        if (!$vatAccountCode) {
-            return 0;
-        }
-
-        $vatAccountId = ChartOfAccount::where('account_code', $vatAccountCode)->value('id');
-        if (!$vatAccountId) {
-            return 0;
-        }
-
-        return (float) GeneralLedger::where('voucher_number', $this->voucher_number)
-            ->where('account_id', $vatAccountId)
-            ->where('entry_type', 'CREDIT')
-            ->sum('amount');
+        // Fallback 2: On-the-fly calculation from items (using config rate)
+        $rate = (float) config('accounting.vat_rate', 0.15);
+        return round($this->getSubtotalAttribute() * $rate, 2);
     }
 
     /**
@@ -224,7 +237,7 @@ class Invoice extends Model
             ? $this->taxLines->firstWhere('tax_type_code', 'VAT')
             : $this->taxLines()->where('tax_type_code', 'VAT')->first();
 
-        return $vatLine ? (float) $vatLine->rate * 100 : 0;
+        return $vatLine ? (float) $vatLine->rate * 100 : (float)config('accounting.vat_rate', 0.15) * 100;
     }
 
     /**

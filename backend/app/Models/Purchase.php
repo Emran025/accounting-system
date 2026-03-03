@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\TaxLine;
 use App\Models\GeneralLedger;
+use App\Models\ChartOfAccount;
+use App\Models\Currency;
+use App\Services\ChartOfAccountsMappingService;
 
 /**
  * Purchase model — SAP FI pattern.
@@ -110,26 +113,27 @@ class Purchase extends Model
             return $fromTaxLines;
         }
 
-        // Fallback: GL (input_vat account)
-        if (!$this->voucher_number) {
-            return 0;
+        // Secondary: GL (input_vat account)
+        if ($this->voucher_number) {
+            $coaService = app(ChartOfAccountsMappingService::class);
+            $vatAccountCode = $coaService->getStandardAccounts()['input_vat'] ?? null;
+            if ($vatAccountCode) {
+                $vatAccountId = ChartOfAccount::where('account_code', $vatAccountCode)->value('id');
+                if ($vatAccountId) {
+                    $fromGl = (float) GeneralLedger::where('voucher_number', $this->voucher_number)
+                        ->where('account_id', $vatAccountId)
+                        ->where('entry_type', 'DEBIT')
+                        ->sum('amount');
+                    if ($fromGl > 0) {
+                        return $fromGl;
+                    }
+                }
+            }
         }
 
-        $coaService = app(\App\Services\ChartOfAccountsMappingService::class);
-        $vatAccountCode = $coaService->getStandardAccounts()['input_vat'] ?? null;
-        if (!$vatAccountCode) {
-            return 0;
-        }
-
-        $vatAccountId = ChartOfAccount::where('account_code', $vatAccountCode)->value('id');
-        if (!$vatAccountId) {
-            return 0;
-        }
-
-        return (float) GeneralLedger::where('voucher_number', $this->voucher_number)
-            ->where('account_id', $vatAccountId)
-            ->where('entry_type', 'DEBIT')
-            ->sum('amount');
+        // Tertiary: Calculate from invoice_price for PENDING or NO-GL docs
+        $rate = (float) config('accounting.vat_rate', 0.15);
+        return round((float)$this->invoice_price * ($rate / (1 + $rate)), 2);
     }
 
     /**
@@ -141,7 +145,7 @@ class Purchase extends Model
             ? $this->taxLines->first()
             : $this->taxLines()->first();
 
-        return $vatLine ? (float) $vatLine->rate * 100 : 0;
+        return $vatLine ? (float) $vatLine->rate * 100 : (float)config('accounting.vat_rate', 0.15) * 100;
     }
 
     /**

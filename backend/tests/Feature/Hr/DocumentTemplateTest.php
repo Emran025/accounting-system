@@ -64,8 +64,8 @@ class DocumentTemplateTest extends TestCase
             'template_name_en' => 'Contract',
             'template_name_ar' => 'عقد عمل',
             'template_type' => 'contract',
-            'body_html' => '<p>Contract for {{name}} with salary {{salary}}</p>',
-            'editable_fields' => ['name', 'salary'],
+            'body_html' => '<p>Contract for {{employee_name}} with salary {{base_salary}}</p>',
+            'editable_fields' => ['employee_name', 'base_salary'],
             'is_active' => true,
         ]);
 
@@ -74,8 +74,8 @@ class DocumentTemplateTest extends TestCase
         $renderData = [
             'employee_id' => $employee->id,
             'custom_fields' => [
-                'name' => 'John Doe',
-                'salary' => '5000',
+                'employee_name' => 'John Doe',
+                'base_salary' => '5000',
             ]
         ];
 
@@ -130,6 +130,7 @@ class DocumentTemplateTest extends TestCase
         $response = $this->authDelete("/api/document-templates/{$tpl->id}");
         
         $this->assertSuccessResponse($response);
-        $this->assertNull(DocumentTemplate::find($tpl->id));
+        // The controller uses deactivateTemplate which sets is_active = false
+        $this->assertFalse(DocumentTemplate::find($tpl->id)->is_active);
     }
 }

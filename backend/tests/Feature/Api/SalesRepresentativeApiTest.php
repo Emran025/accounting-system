@@ -7,6 +7,7 @@ use App\Models\SalesRepresentative;
 use App\Models\SalesRepresentativeTransaction;
 use App\Models\Invoice;
 use App\Models\FiscalPeriod;
+use App\Models\GeneralLedger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Carbon\Carbon;
 
@@ -94,11 +95,18 @@ class SalesRepresentativeApiTest extends TestCase
     public function test_can_get_representative_ledger()
     {
         $rep = SalesRepresentative::factory()->create();
-        SalesRepresentativeTransaction::factory()->count(2)->create([
+        $transactions = SalesRepresentativeTransaction::factory()->count(2)->create([
             'sales_representative_id' => $rep->id,
-            'type' => 'commission',
-            'amount' => 100
+            'type' => 'commission'
         ]);
+
+        foreach ($transactions as $transaction) {
+            GeneralLedger::factory()->create([
+                'voucher_number' => $transaction->voucher_number,
+                'entry_type' => 'DEBIT',
+                'amount' => 100
+            ]);
+        }
 
         $response = $this->authGet(route('api.sales_representatives.ledger', ['sales_representative_id' => $rep->id]));
 
@@ -130,8 +138,7 @@ class SalesRepresentativeApiTest extends TestCase
         $this->assertSuccessResponse($response);
         $this->assertDatabaseHas('sales_representative_transactions', [
             'sales_representative_id' => $rep->id,
-            'type' => 'payment',
-            'amount' => 100
+            'type' => 'payment'
         ]);
     }
 
@@ -140,8 +147,7 @@ class SalesRepresentativeApiTest extends TestCase
         $rep = SalesRepresentative::factory()->create();
         $transaction = SalesRepresentativeTransaction::factory()->create([
             'sales_representative_id' => $rep->id,
-            'type' => 'payment',
-            'amount' => 100
+            'type' => 'payment'
         ]);
 
         $response = $this->authDelete(route('api.sales_representatives.transactions.destroy'), ['id' => $transaction->id]);

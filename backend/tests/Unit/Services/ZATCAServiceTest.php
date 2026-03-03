@@ -135,10 +135,7 @@ class ZATCAServiceTest extends TestCase
         ]);
 
         $product = Product::factory()->create();
-        $invoice = Invoice::factory()->create([
-            'total_amount' => 1000.00,
-            'vat_amount' => 150.00,
-        ]);
+        $invoice = Invoice::factory()->create();
         InvoiceItem::factory()->create([
             'invoice_id' => $invoice->id,
             'product_id' => $product->id,
@@ -192,4 +189,3 @@ class ZATCAServiceTest extends TestCase
         $this->assertTrue($this->zatcaService->validateCertificate());
     }
 }
-

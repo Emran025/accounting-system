@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Models\Purchase;
 use App\Models\Product;
 use App\Models\ApSupplier;
+use App\Models\GeneralLedger;
+use App\Models\UniversalJournal;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -81,6 +83,7 @@ class PurchasesApiTest extends TestCase
     public function test_reverse_purchase_api() 
     {
         $this->authenticateUser();
+        UniversalJournal::factory()->create(['voucher_number' => 'PUR-TEST-REV', 'document_type' => 'purchases']);
         $purchase = Purchase::factory()->create([
             'approval_status' => 'approved',
             'user_id' => $this->authenticatedUser->id,
@@ -88,12 +91,12 @@ class PurchasesApiTest extends TestCase
         ]);
 
         // Create associated GL entries that the service looks for
-        \App\Models\GeneralLedger::factory()->create([
+        GeneralLedger::factory()->create([
             'voucher_number' => 'PUR-TEST-REV',
             'amount' => 100,
             'entry_type' => 'DEBIT' 
         ]);
-        \App\Models\GeneralLedger::factory()->create([
+        GeneralLedger::factory()->create([
             'voucher_number' => 'PUR-TEST-REV',
             'amount' => 100,
             'entry_type' => 'CREDIT' 
@@ -114,12 +117,12 @@ class PurchasesApiTest extends TestCase
         $product = Product::factory()->create(['stock_quantity' => 20, 'items_per_unit' => 1]);
         $supplier = ApSupplier::factory()->create(['current_balance' => 1000]);
 
+        \App\Models\UniversalJournal::factory()->create(['voucher_number' => 'PUR-RTN-TEST', 'document_type' => 'purchases']);
         $purchase = Purchase::factory()->create([
             'voucher_number' => 'PUR-RTN-TEST',
             'product_id' => $product->id,
             'quantity' => 10,
             'invoice_price' => 1000,
-            'vat_amount' => 130.43,
             'unit_type' => 'main',
             'supplier_id' => $supplier->id,
             'payment_type' => 'credit',

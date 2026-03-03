@@ -145,21 +145,22 @@ class SalesService
             $taxableAmount = $subtotal - $discountAmount;
             $taxResult = null;
 
+            $taxCalculator = app(TaxCalculator::class);
             if (TaxCalculator::isTaxEngineEnabled()) {
-                $taxCalculator = app(TaxCalculator::class);
                 $countryCode = Setting::where('setting_key', 'company_country')->value('setting_value') ?? config('tax.default_country', 'SA');
                 $taxResult = $taxCalculator->calculate(
                     $taxableAmount,
                     $countryCode,
                     null,
-                   Invoice::class,
+                    Invoice::class,
                     null // Will persist after invoice created
                 );
                 $vatRate = $taxResult->getPrimaryVatRate();
                 $vatAmount = $taxResult->getTotalTax();
             } else {
+                $taxResult = $taxCalculator->calculateLegacy($taxableAmount);
                 $vatRate = (float) config('accounting.vat_rate', 0.0);
-                $vatAmount = round($taxableAmount * $vatRate, 2);
+                $vatAmount = $taxResult->getTotalTax();
             }
 
             // Calculate Government Fees (Kharaaj)
@@ -509,7 +510,7 @@ class SalesService
                 SalesRepresentativeTransaction::create([
                     'sales_representative_id' => $salesRepresentativeId,
                     'type' => 'commission', // Marking as commission/invoice tracking
-                    'amount' => $totalAmount,
+                    'voucher_number' => $voucherNumber,
                     'description' => "Invoice #$invoiceNumber",
                     'reference_type' => 'invoices',
                     'reference_id' => $invoice->id,
@@ -911,7 +912,7 @@ class SalesService
                 SalesRepresentativeTransaction::create([
                     'sales_representative_id' => $invoice->sales_representative_id,
                     'type' => 'return',
-                    'amount' => $returnTotal,
+                    'voucher_number' => $voucherNumber,
                     'description' => "مرتجع مبيعات - فاتورة #{$invoiceNumber} (مرتجع #{$returnNumber})",
                     'reference_type' => 'sales_returns',
                     'reference_id' => $return->id,

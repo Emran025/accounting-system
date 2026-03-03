@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\PurchasesController;
 use App\Http\Controllers\Api\ApController;
+use App\Http\Controllers\Api\ApTransactionsController;
 
 // Purchases
 Route::middleware('can:purchases,view')->get('/purchases', [PurchasesController::class, 'index'])->name('api.purchases.index');
@@ -22,9 +23,9 @@ Route::middleware('can:ap_suppliers,view')->get('/ap/suppliers', [ApController::
 Route::middleware(['can:ap_suppliers,create', 'throttle:api-write'])->post('/ap/suppliers', [ApController::class, 'storeSupplier'])->name('api.ap.suppliers.store');
 Route::middleware(['can:ap_suppliers,edit', 'throttle:api-write'])->put('/ap/suppliers', [ApController::class, 'updateSupplier'])->name('api.ap.suppliers.update');
 Route::middleware(['can:ap_suppliers,delete', 'throttle:api-delete'])->delete('/ap/suppliers', [ApController::class, 'destroySupplier'])->name('api.ap.suppliers.destroy');
-Route::middleware('can:ap_suppliers,view')->get('/ap/transactions', [ApController::class, 'transactions'])->name('api.ap.transactions');
-Route::middleware(['can:ap_suppliers,create', 'throttle:api-write'])->post('/ap/transactions', [ApController::class, 'storeTransaction'])->name('api.ap.transactions.store');
-Route::middleware(['can:ap_suppliers,edit', 'throttle:api-write'])->put('/ap/transactions', [ApController::class, 'updateTransaction'])->name('api.ap.transactions.update');
-Route::middleware(['can:ap_suppliers,delete', 'throttle:api-delete'])->delete('/ap/transactions', [ApController::class, 'destroyTransaction'])->name('api.ap.transactions.destroy');
-Route::middleware(['can:ap_suppliers,create', 'throttle:api-sensitive'])->post('/ap/payment', [ApController::class, 'recordPayment'])->name('api.ap.payments.store');
+Route::middleware('can:ap_suppliers,view')->get('/ap/transactions', [ApTransactionsController::class, 'index'])->name('api.ap.transactions');
+Route::middleware(['can:ap_suppliers,create', 'throttle:api-write'])->post('/ap/transactions', [ApTransactionsController::class, 'store'])->name('api.ap.transactions.store');
+Route::middleware(['can:ap_suppliers,edit', 'throttle:api-write'])->put('/ap/transactions', [ApTransactionsController::class, 'update'])->name('api.ap.transactions.update');
+Route::middleware(['can:ap_suppliers,delete', 'throttle:api-delete'])->delete('/ap/transactions/{id}', [ApTransactionsController::class, 'destroy'])->name('api.ap.transactions.destroy');
+Route::middleware(['can:ap_suppliers,create', 'throttle:api-sensitive'])->post('/ap/payment', [ApTransactionsController::class, 'recordPayment'])->name('api.ap.payments.store');
 Route::middleware('can:ap_suppliers,view')->get('/ap/ledger', [ApController::class, 'supplierLedger'])->name('api.ap.ledger');

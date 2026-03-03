@@ -22,7 +22,7 @@ return new class extends Migration
             $table->id();
             $table->string('invoice_number', 50)->unique();
             $table->string('voucher_number', 50)->nullable()->index(); // Link to GL entries
-            $table->foreign('voucher_number')->references('voucher_number')->on('universal_journals')->onDelete('cascade');
+            $table->foreign('voucher_number')->references('voucher_number')->on('universal_journals')->onDelete('cascade')->onUpdate('cascade');
 
             // Operational metadata only — NO amounts
             $table->string('payment_type', 20)->default('cash'); // 'cash' or 'credit'

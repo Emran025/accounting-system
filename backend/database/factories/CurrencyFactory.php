@@ -29,7 +29,7 @@ class CurrencyFactory extends Factory
         $currency = fake()->randomElement($currencies);
         
         return [
-            'code' => $currency['code'] . fake()->unique()->randomNumber(3),
+            'code' => strtoupper(fake()->unique()->lexify('???')),
             'name' => $currency['name'],
             'symbol' => $currency['symbol'],
             'exchange_rate' => fake()->randomFloat(4, 0.1, 5),

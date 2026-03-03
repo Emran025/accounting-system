@@ -5,12 +5,16 @@ namespace Tests\Feature\Authorization;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Invoice;
+use App\Models\Module;
 use App\Models\FiscalPeriod;
 use App\Models\GeneralLedger;
+use App\Models\ChartOfAccount;
+use App\Models\ArTransaction;
+use App\Models\UniversalJournal;
 use App\Models\Role;
 use App\Policies\InvoicePolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-
+use App\Services\ChartOfAccountsMappingService;
 /**
  * Test InvoicePolicy authorization rules
  */
@@ -54,10 +58,11 @@ class InvoicePolicyTest extends TestCase
             'role_id' => $adminRole->id
         ]);
 
+        $this->seedChartOfAccounts();
+
         // Create invoice owned by owner
         $this->invoice = Invoice::factory()->create([
             'user_id' => $this->owner->id,
-            'amount_paid' => 0,
         ]);
     }
 
@@ -85,7 +90,7 @@ class InvoicePolicyTest extends TestCase
     public function test_user_with_view_all_can_view_any_invoice(): void
     {
         // Grant view_all permission via role
-        $permission = \App\Models\Module::firstOrCreate(
+        $permission = Module::firstOrCreate(
             ['module_key' => 'sales'],
             [
                 'module_name_ar' => 'المبيعات',
@@ -110,7 +115,25 @@ class InvoicePolicyTest extends TestCase
     {
         $invoiceWithPayment = Invoice::factory()->create([
             'user_id' => $this->owner->id,
-            'amount_paid' => 100.00,
+        ]);
+        
+        // Mock a payment by creating an AR transaction/GL entry
+        $voucher = UniversalJournal::factory()->create();
+        ArTransaction::factory()->create([
+            'reference_type' => 'invoices',
+            'reference_id' => $invoiceWithPayment->id,
+            'type' => 'receipt',
+            'voucher_number' => $voucher->voucher_number,
+        ]);
+        
+        $coaService = app(ChartOfAccountsMappingService::class);
+        $cashAccountId = ChartOfAccount::where('account_code', $coaService->getStandardAccounts()['cash'])->value('id');
+        
+        GeneralLedger::factory()->create([
+            'voucher_number' => $voucher->voucher_number,
+            'account_id' => $cashAccountId,
+            'entry_type' => 'DEBIT',
+            'amount' => 100,
         ]);
 
         // Even with delete permission, cannot delete invoice with payments
@@ -131,7 +154,6 @@ class InvoicePolicyTest extends TestCase
 
         $invoice = Invoice::factory()->create([
             'user_id' => $this->owner->id,
-            'amount_paid' => 0,
         ]);
 
         // Associate invoice with period via GL entry
@@ -152,7 +174,6 @@ class InvoicePolicyTest extends TestCase
     {
         $invoice = Invoice::factory()->create([
             'user_id' => $this->owner->id,
-            'amount_paid' => 0,
         ]);
 
         // Grant "sales.delete" permission to owner's role

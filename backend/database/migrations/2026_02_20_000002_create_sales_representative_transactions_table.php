@@ -14,8 +14,14 @@ return new class extends Migration
             $table->foreign('sales_representative_id', 'sr_trans_sales_rep_fk')
                 ->references('id')
                 ->on('sales_representatives')
-                ->onDelete('cascade');            $table->enum('type', ['commission', 'payment', 'return', 'adjustment']);
-            $table->decimal('amount', 15, 2);
+                ->onDelete('cascade');
+            $table->enum('type', ['commission', 'payment', 'return', 'adjustment']);
+            $table->string('voucher_number')->nullable(); // Link to GL — NO amount stored
+            $table->foreign('voucher_number', 'sr_trans_voucher_fk')
+                ->references('voucher_number')
+                ->on('universal_journals')
+                ->onDelete('cascade')
+                ->onUpdate('cascade');
             $table->text('description')->nullable();
             $table->string('reference_type')->nullable(); // invoices, sales_returns
             $table->unsignedBigInteger('reference_id')->nullable();

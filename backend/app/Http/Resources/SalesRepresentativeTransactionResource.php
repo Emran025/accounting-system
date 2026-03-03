@@ -12,7 +12,7 @@ class SalesRepresentativeTransactionResource extends JsonResource
             'id' => $this->id,
             'sales_representative_id' => $this->sales_representative_id,
             'type' => $this->type,
-            'amount' => (float)$this->amount,
+            'voucher_number' => $this->voucher_number,
             'description' => $this->description,
             'reference_type' => $this->reference_type,
             'reference_id' => $this->reference_id,

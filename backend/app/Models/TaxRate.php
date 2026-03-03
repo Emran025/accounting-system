@@ -6,12 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 /**
  * Tax rate with effective date range.
  * Part of EPIC #1: Tax Engine Transformation.
  */
 class TaxRate extends Model
 {
+    use HasFactory;
+    
     protected $fillable = [
         'tax_type_id', 'rate', 'fixed_amount', 'effective_from', 'effective_to',
         'description', 'is_default',

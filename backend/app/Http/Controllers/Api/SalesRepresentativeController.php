@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SalesRepresentative;
+use App\Models\GeneralLedger;
 use App\Models\SalesRepresentativeTransaction;
 use App\Services\PermissionService;
 use App\Services\TelescopeService;
+use App\Services\LedgerService;
+use App\Services\ChartOfAccountsMappingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -37,9 +40,14 @@ class SalesRepresentativeController extends Controller
         $representatives = $query->orderBy('name')
             ->skip(($page - 1) * $perPage)
             ->take($perPage)
-            ->withSum(['transactions as total_sales' => function ($query) {
-                $query->where('type', 'commission')->where('is_deleted', false);
-            }], 'amount')
+            ->addSelect([
+                'total_sales' => \App\Models\SalesRepresentativeTransaction::selectRaw('COALESCE(SUM(
+                    (SELECT SUM(amount) FROM general_ledger WHERE general_ledger.voucher_number = sales_representative_transactions.voucher_number AND general_ledger.entry_type = "DEBIT")
+                ), 0)')
+                    ->whereColumn('sales_representative_id', 'sales_representatives.id')
+                    ->where('type', 'commission')
+                    ->where('is_deleted', false)
+            ])
             ->get()
             ->map(function ($rep) {
                 $rep->total_sales = $rep->total_sales ?? 0;
@@ -138,11 +146,19 @@ class SalesRepresentativeController extends Controller
              $query->where('is_deleted', false);
         }
 
+        // Calculate amount from GeneralLedger where DEBITs equal the transaction volume
+        $query->addSelect([
+            'sales_representative_transactions.*',
+            'amount' => GeneralLedger::selectRaw('SUM(amount)')
+                ->whereColumn('voucher_number', 'sales_representative_transactions.voucher_number')
+                ->where('entry_type', 'DEBIT')
+                ->limit(1)
+        ]);
+
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%$search%")
-                  ->orWhere('reference_id', 'like', "%$search%")
-                  ->orWhere('amount', 'like', "%$search%");
+                  ->orWhere('reference_id', 'like', "%$search%");
             });
         }
 
@@ -158,7 +174,12 @@ class SalesRepresentativeController extends Controller
             $query->whereDate('transaction_date', '<=', $dateTo);
         }
 
-        $statsData = (clone $query)->selectRaw('
+        // Use a wrapper subquery or manual loop to get stats safely now that amount is dynamic
+        $statsQuery = DB::table(
+            DB::raw("({$query->toSql()}) as trans")
+        )->mergeBindings($query->getQuery());
+
+        $statsData = $statsQuery->selectRaw('
             SUM(CASE WHEN type = "commission" THEN amount ELSE 0 END) as total_commissions,
             SUM(CASE WHEN type IN ("payment", "return") THEN amount ELSE 0 END) as total_payments,
             SUM(CASE WHEN type = "return" THEN amount ELSE 0 END) as total_returns,
@@ -205,24 +226,73 @@ class SalesRepresentativeController extends Controller
             'date' => 'nullable|date',
         ]);
 
-        return DB::transaction(function () use ($validated) {
+        $ledgerService = app(LedgerService::class);
+        $coaService = app(ChartOfAccountsMappingService::class);
+
+        return DB::transaction(function () use ($validated, $ledgerService, $coaService) {
+            $amount = (float)$validated['amount'];
+            $glEntries = [];
+
+            // Debit/Credit accounts depending on the type of transaction
+            if ($validated['type'] === 'payment') {
+                // If it's a payment TO the sales rep (reducing our liability/their balance)
+                $glEntries[] = [
+                    'account_code' => $coaService->getStandardAccounts()['sales_commission_expense'] ?? '5007', // Example commission exp or payable
+                    'entry_type' => 'DEBIT',
+                    'amount' => $amount,
+                    'description' => $validated['description'] ?? 'Sales Representative Payment'
+                ];
+                $glEntries[] = [
+                    'account_code' => $coaService->getStandardAccounts()['cash'],
+                    'entry_type' => 'CREDIT',
+                    'amount' => $amount,
+                    'description' => $validated['description'] ?? 'Sales Representative Payment'
+                ];
+            } else {
+                // Adjustments can be complex, default to miscellaneous expense vs cash/payable for now
+                $glEntries[] = [
+                    'account_code' => $coaService->getStandardAccounts()['sales_commission_expense'] ?? '5007',
+                    'entry_type' => 'DEBIT',
+                    'amount' => $amount,
+                    'description' => $validated['description'] ?? 'Sales Representative Adjustment'
+                ];
+                $glEntries[] = [
+                    'account_code' => $coaService->getStandardAccounts()['accounts_payable'] ?? '2001',
+                    'entry_type' => 'CREDIT',
+                    'amount' => $amount,
+                    'description' => $validated['description'] ?? 'Sales Representative Adjustment'
+                ];
+            }
+
+            // Post to Universal Journal / GL
+            $voucherNumber = $ledgerService->postTransaction(
+                $glEntries,
+                'sales_representative_transactions',
+                null,
+                null,
+                $validated['date'] ?? now()->format('Y-m-d'),
+                'MANUAL'
+            );
+
+            // Record the transaction link
             $transaction = SalesRepresentativeTransaction::create([
                 'sales_representative_id' => $validated['sales_representative_id'],
                 'type' => $validated['type'],
-                'amount' => $validated['amount'],
+                'voucher_number' => $voucherNumber,
                 'description' => $validated['description'] ?? '',
                 'transaction_date' => $validated['date'] ?? now(),
                 'created_by' => auth()->id() ?? session('user_id'),
             ]);
 
-            $balanceChange = -$validated['amount'];
+            // Update balance
+            $balanceChange = ($validated['type'] === 'payment') ? -$amount : $amount;
             
             SalesRepresentative::where('id', $validated['sales_representative_id'])
                 ->increment('current_balance', $balanceChange);
 
             TelescopeService::logOperation('CREATE', 'sales_representative_transactions', $transaction->id, null, $validated);
 
-            return $this->successResponse(['id' => $transaction->id]);
+            return $this->successResponse(['id' => $transaction->id, 'voucher_number' => $voucherNumber]);
         });
     }
 

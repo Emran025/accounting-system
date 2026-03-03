@@ -5,12 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 /**
  * Tax Authority (ZATCA, FTA, etc.) - jurisdiction-level tax regulator.
  * Part of EPIC #1: Tax Engine Transformation.
  */
 class TaxAuthority extends Model
 {
+    use HasFactory;
+    
     protected $fillable = [
         'code', 'name', 'country_code', 'adapter_class', 'config',
         'connection_type', 'connection_credentials', 'endpoint_url',

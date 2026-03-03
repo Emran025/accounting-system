@@ -24,6 +24,12 @@ return new class extends Migration
                   ->constrained('tax_authorities')
                   ->cascadeOnDelete();
 
+            $table->foreignId('tax_type_id')
+                  ->nullable()
+                  ->constrained('tax_types')
+                  ->nullOnDelete()
+                  ->comment('Specific tax type this compliance affects (e.g. VAT)');
+
             $table->string('name', 150)->comment('Human-readable profile name');
             $table->string('code', 40)->unique()->comment('Unique identifier e.g. ZATCA_VAT_PUSH');
 

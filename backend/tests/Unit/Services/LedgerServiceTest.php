@@ -6,6 +6,7 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\ChartOfAccount;
 use App\Models\GeneralLedger;
+use App\Models\UniversalJournal;
 use App\Services\LedgerService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -25,15 +26,18 @@ class LedgerServiceTest extends TestCase
     {
         // First call
         $voucher1 = $this->ledgerService->getNextVoucherNumber('JV');
-        $this->assertEquals('JV-000001', $voucher1);
+        $id1 = (int)str_replace('JV-', '', $voucher1);
+        $this->assertGreaterThan(0, $id1);
 
         // Second call
         $voucher2 = $this->ledgerService->getNextVoucherNumber('JV');
-        $this->assertEquals('JV-000002', $voucher2);
+        $id2 = (int)str_replace('JV-', '', $voucher2);
+        $this->assertEquals($id1 + 1, $id2);
         
-        // Different sequence
+        // Different sequence sharing same ID pool (since ID is from UniversalJournal table pk)
         $inv1 = $this->ledgerService->getNextVoucherNumber('INV');
-        $this->assertEquals('INV-000001', $inv1);
+        $id3 = (int)str_replace('INV-', '', $inv1);
+        $this->assertGreaterThan($id2, $id3);
     }
 
     public function test_post_transaction_creates_ledger_entries()
@@ -56,6 +60,7 @@ class LedgerServiceTest extends TestCase
             ]
         ];
 
+        UniversalJournal::factory()->create(['voucher_number' => 'JV-TEST', 'document_type' => 'MANUAL']);
         $voucherNumber = $this->ledgerService->postTransaction($entries, 'MANUAL', 1, 'JV-TEST');
 
         $this->assertDatabaseHas('general_ledger', [
@@ -115,35 +120,27 @@ class LedgerServiceTest extends TestCase
     public function test_get_account_balance_calculates_correctly()
     {
         $account = ChartOfAccount::factory()->asset()->create();
+        $offsetAccount = ChartOfAccount::factory()->revenue()->create();
         
         // Add some debit entries
-        GeneralLedger::create([
-            'account_id' => $account->id,
-            'amount' => 500,
-            'entry_type' => 'DEBIT',
-            'voucher_date' => now(),
-            'voucher_number' => 'JV-001',
-            'description' => 'Debit 1'
-        ]);
+        \App\Models\UniversalJournal::factory()->create(['voucher_number' => 'JV-001', 'document_type' => 'MANUAL']);
+        $this->ledgerService->postTransaction([
+            ['account_code' => $account->account_code, 'entry_type' => 'DEBIT', 'amount' => 500],
+            ['account_code' => $offsetAccount->account_code, 'entry_type' => 'CREDIT', 'amount' => 500],
+        ], 'MANUAL', null, 'JV-001');
         
-        GeneralLedger::create([
-            'account_id' => $account->id,
-            'amount' => 300,
-            'entry_type' => 'DEBIT',
-            'voucher_date' => now(),
-            'voucher_number' => 'JV-002',
-            'description' => 'Debit 2'
-        ]);
+        \App\Models\UniversalJournal::factory()->create(['voucher_number' => 'JV-002', 'document_type' => 'MANUAL']);
+        $this->ledgerService->postTransaction([
+            ['account_code' => $account->account_code, 'entry_type' => 'DEBIT', 'amount' => 300],
+            ['account_code' => $offsetAccount->account_code, 'entry_type' => 'CREDIT', 'amount' => 300],
+        ], 'MANUAL', null, 'JV-002');
 
         // Add a credit entry
-        GeneralLedger::create([
-            'account_id' => $account->id,
-            'amount' => 200,
-            'entry_type' => 'CREDIT',
-            'voucher_date' => now(),
-            'voucher_number' => 'JV-003',
-            'description' => 'Credit 1'
-        ]);
+        \App\Models\UniversalJournal::factory()->create(['voucher_number' => 'JV-003', 'document_type' => 'MANUAL']);
+        $this->ledgerService->postTransaction([
+            ['account_code' => $account->account_code, 'entry_type' => 'CREDIT', 'amount' => 200],
+            ['account_code' => $offsetAccount->account_code, 'entry_type' => 'DEBIT', 'amount' => 200],
+        ], 'MANUAL', null, 'JV-003');
 
         // 500 + 300 - 200 = 600
         $balance = $this->ledgerService->getAccountBalance($account->account_code);

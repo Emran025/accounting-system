@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\SalesController;
 use App\Http\Controllers\Api\SalesReturnController;
 use App\Http\Controllers\Api\ZATCAInvoiceController;
 use App\Http\Controllers\Api\ArController;
+use App\Http\Controllers\Api\ArTransactionsController;
 
 // Sales/Invoices
 Route::middleware('can:sales,view')->get('/invoices', [SalesController::class, 'index'])->name('api.invoices.index');
@@ -29,10 +30,12 @@ Route::middleware(['can:ar_customers,create', 'throttle:api-write'])->post('/ar/
 Route::middleware(['can:ar_customers,edit', 'throttle:api-write'])->put('/ar/customers', [ArController::class, 'updateCustomer'])->name('api.ar.customers.update');
 Route::middleware(['can:ar_customers,delete', 'throttle:api-delete'])->delete('/ar/customers', [ArController::class, 'destroyCustomer'])->name('api.ar.customers.destroy');
 Route::middleware('can:ar_customers,view')->get('/ar/ledger', [ArController::class, 'ledger'])->name('api.ar.ledger');
-Route::middleware(['can:ar_customers,create', 'throttle:api-write'])->post('/ar/transactions', [ArController::class, 'storeTransaction'])->name('api.ar.transactions.store');
-Route::middleware(['can:ar_customers,edit', 'throttle:api-write'])->put('/ar/transactions', [ArController::class, 'updateTransaction'])->name('api.ar.transactions.update');
-Route::middleware(['can:ar_customers,delete', 'throttle:api-delete'])->delete('/ar/transactions', [ArController::class, 'destroyTransaction'])->name('api.ar.transactions.destroy');
-Route::middleware('can:ar_customers,view')->get('/ar/receipts', [ArController::class, 'receipts'])->name('api.ar.receipts');
+
+Route::middleware('can:ar_customers,view')->get('/ar/transactions', [ArTransactionsController::class, 'index'])->name('api.ar.transactions');
+Route::middleware(['can:ar_customers,create', 'throttle:api-write'])->post('/ar/transactions', [ArTransactionsController::class, 'store'])->name('api.ar.transactions.store');
+Route::middleware(['can:ar_customers,edit', 'throttle:api-write'])->put('/ar/transactions', [ArTransactionsController::class, 'update'])->name('api.ar.transactions.update');
+Route::middleware(['can:ar_customers,delete', 'throttle:api-delete'])->delete('/ar/transactions/{id}', [ArTransactionsController::class, 'destroy'])->name('api.ar.transactions.destroy');
+Route::middleware('can:ar_customers,view')->get('/ar/receipts', [ArTransactionsController::class, 'index'])->name('api.ar.receipts');
 
 
 // Sales Representatives

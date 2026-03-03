@@ -15,7 +15,7 @@ class SalesRepresentativeTransaction extends Model
     protected $fillable = [
         'sales_representative_id',
         'type', // commission, payment, return, adjustment
-        'amount',
+        'voucher_number',
         'description',
         'reference_type',
         'reference_id',
@@ -28,7 +28,6 @@ class SalesRepresentativeTransaction extends Model
     protected function casts(): array
     {
         return [
-            'amount' => 'decimal:2',
             'is_deleted' => 'boolean',
             'transaction_date' => 'datetime',
             'deleted_at' => 'datetime',
@@ -44,5 +43,19 @@ class SalesRepresentativeTransaction extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Financial amount — derived from General Ledger.
+     */
+    public function getAmountAttribute(): float
+    {
+        if (!$this->voucher_number) {
+            return 0;
+        }
+
+        return (float) GeneralLedger::where('voucher_number', $this->voucher_number)
+            ->where('entry_type', 'DEBIT')
+            ->sum('amount');
     }
 }

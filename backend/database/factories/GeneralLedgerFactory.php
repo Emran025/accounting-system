@@ -17,7 +17,7 @@ class GeneralLedgerFactory extends Factory
         return [
             'account_id' => ChartOfAccount::factory(),
             'voucher_number' => function () {
-                return UniversalJournal::factory()->create(['voucher_number' => 'V-' . $this->faker->unique()->numerify('#####')])->voucher_number;
+                return 'V-' . $this->faker->unique()->numerify('#####');
             },
             'voucher_date' => now()->toDateString(),
             'entry_type' => $this->faker->randomElement(['DEBIT', 'CREDIT']),
@@ -26,6 +26,17 @@ class GeneralLedgerFactory extends Factory
             'created_by' => User::factory(),
             'is_closed' => false,
         ];
+    }
+
+    public function configure()
+    {
+        return $this->afterMaking(function (GeneralLedger $gl) {
+            if ($gl->voucher_number && !UniversalJournal::where('voucher_number', $gl->voucher_number)->exists()) {
+                UniversalJournal::factory()->create([
+                    'voucher_number' => $gl->voucher_number
+                ]);
+            }
+        });
     }
 
     public function createWithDates(array $attributes, $date)
