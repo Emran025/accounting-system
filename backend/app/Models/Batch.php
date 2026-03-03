@@ -11,6 +11,7 @@ class Batch extends Model
     protected $table = 'batch_processing';
 
     protected $fillable = [
+        'batch_name',
         'batch_type',
         'description',
         'status',

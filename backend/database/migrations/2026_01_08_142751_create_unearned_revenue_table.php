@@ -16,6 +16,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('revenue_account_code', 20)->nullable();
             $table->decimal('recognized_amount', 15, 2)->default(0);
+            $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();
         });
     }

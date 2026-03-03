@@ -80,8 +80,8 @@ class ChartOfAccountsController extends Controller
             'account_code' => $validated['code'],
             'account_name' => $validated['name'],
             'account_type' => ucfirst($validated['type']),
-            'parent_id' => $validated['parent_id'],
-            'description' => $validated['description'],
+            'parent_id' => $validated['parent_id'] ?? null,
+            'description' => $validated['description'] ?? null,
             'is_active' => true,
             'created_by' => auth()->id() ?? session('user_id'),
         ]);
@@ -112,8 +112,8 @@ class ChartOfAccountsController extends Controller
         $account->update([
             'account_name' => $validated['name'],
             'account_type' => ucfirst($validated['type']),
-            'parent_id' => $validated['parent_id'],
-            'description' => $validated['description'],
+            'parent_id' => $validated['parent_id'] ?? null,
+            'description' => $validated['description'] ?? null,
             'is_active' => $validated['is_active'] ?? $account->is_active,
         ]);
 

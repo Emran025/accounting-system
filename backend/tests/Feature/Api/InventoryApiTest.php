@@ -49,6 +49,6 @@ class InventoryApiTest extends TestCase
 
         $this->assertSuccessResponse($response);
         // Expect a valuation structure
-        $response->assertJsonStructure(['success', 'total_value']);
+        $response->assertJsonStructure(['success', 'data' => ['total_value']]);
     }
 }

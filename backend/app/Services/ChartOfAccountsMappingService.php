@@ -92,7 +92,7 @@ class ChartOfAccountsMappingService
      */
     public function validateAccountCode(string $accountCode): ?string
     {
-        $account = \App\Models\ChartOfAccount::where('account_code', $accountCode)
+        $account = ChartOfAccount::where('account_code', $accountCode)
             ->where('is_active', true)
             ->first();
 

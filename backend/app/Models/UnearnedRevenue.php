@@ -10,12 +10,12 @@ class UnearnedRevenue extends Model
     protected $table = 'unearned_revenue';
 
     protected $fillable = [
-        'description', 'total_amount', 'received_date', 'revenue_account_code',
-        'recognized_amount', 'created_by'
+        'description', 'total_amount', 'receipt_date', 'revenue_account_code',
+        'months', 'recognized_amount', 'created_by'
     ];
 
     protected $casts = [
-        'received_date' => 'date',
+        'receipt_date' => 'date',
         'total_amount' => 'decimal:2',
         'recognized_amount' => 'decimal:2',
     ];

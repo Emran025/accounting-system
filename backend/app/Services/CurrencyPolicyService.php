@@ -76,15 +76,15 @@ class CurrencyPolicyService
         $policy = $this->getActivePolicy();
         $referenceCurrency = $this->getReferenceCurrency();
 
+        // If transaction is in reference currency, no conversion needed
+        if ($referenceCurrency && $transactionCurrencyId === $referenceCurrency->id) {
+            return ConversionDecision::SAME_CURRENCY;
+        }
+
         // If no policy configured, default to normalization behavior
         if (!$policy) {
             Log::warning('CurrencyPolicyService: No active policy configured, defaulting to POLICY_MANDATED');
             return ConversionDecision::POLICY_MANDATED;
-        }
-
-        // If transaction is in reference currency, no conversion needed
-        if ($referenceCurrency && $transactionCurrencyId === $referenceCurrency->id) {
-            return ConversionDecision::SAME_CURRENCY;
         }
 
         // If user explicitly requested conversion

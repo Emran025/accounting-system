@@ -85,10 +85,10 @@ class AttendanceRecord extends Model
         $checkIn = Carbon::parse($this->check_in);
         $checkOut = Carbon::parse($this->check_out);
         
-        $hours = $checkOut->diffInHours($checkIn);
-        $minutes = $checkOut->diffInMinutes($checkIn) % 60;
+        // Use total minutes difference (absolute) to avoid sign issues and calculate decimal hours
+        $totalMinutes = $checkOut->diffInMinutes($checkIn, true);
         
-        return $hours + ($minutes / 60);
+        return round($totalMinutes / 60, 2);
     }
 
     /**

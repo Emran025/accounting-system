@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class DocumentTemplate extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'template_key', 'template_name_ar', 'template_name_en', 'template_type',
         'body_html', 'editable_fields', 'description', 'is_active', 'created_by'

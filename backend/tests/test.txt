@@ -1,0 +1,507 @@
+Generated Voucher: PUR-000001
+Journal in DB? Yes (ID:1)
+
+   PASS  Tests\Unit\DebugTest
+  ✓ journal creation                                                                               18.55s  
+
+   PASS  Tests\Unit\Helpers\CurrencyHelperTest
+  ✓ get primary currency returns primary currency                                                   0.09s  
+  ✓ get primary currency falls back if no primary defined                                           0.06s  
+  ✓ get primary currency returns default object on exception                                        0.07s  
+  ✓ format currency with symbol                                                                     0.06s  
+  ✓ format currency uses primary symbol by default                                                  0.09s  
+  ✓ round rounds to two decimal places                                                              0.06s  
+  ✓ calculate vat uses config rate                                                                  0.05s  
+  ✓ calculate vat uses provided rate                                                                0.05s  
+
+   PASS  Tests\Unit\Helpers\DateHelperTest
+  ✓ get current timestamp format                                                                    0.10s  
+  ✓ get fiscal year start                                                                           0.09s  
+  ✓ get fiscal year end                                                                             0.10s  
+
+   PASS  Tests\Unit\Helpers\NumberToWordsTest
+  ✓ convert arabic defaults                                                                         0.09s  
+  ✓ convert english defaults                                                                        0.09s  
+  ✓ convert decimal arabic                                                                          0.08s  
+  ✓ convert decimal english                                                                         0.07s  
+  ✓ integer zero arabic                                                                             0.07s  
+  ✓ tamyeez rules arabic                                                                            0.08s  
+  ✓ negative numbers                                                                                0.07s  
+  ✓ throws exception on invalid input                                                               0.06s  
+  ✓ throws exception on large integer                                                               0.07s  
+
+   PASS  Tests\Unit\Services\AttendanceServiceTest
+  ✓ can record attendance                                                                           0.14s  
+  ✓ record attendance calculates hours                                                              0.09s  
+  ✓ record attendance detects late arrival                                                          0.13s  
+  ✓ record attendance updates existing record                                                       0.16s  
+  ✓ get attendance for period                                                                       0.09s  
+  ✓ calculate total hours                                                                           0.06s  
+  ✓ bulk import attendance                                                                          0.10s  
+
+   PASS  Tests\Unit\Services\AuthServiceTest
+  ✓ login success with valid credentials                                                            0.10s  
+  ✓ login fails with invalid password                                                               0.31s  
+  ✓ login fails with nonexistent user                                                               0.28s  
+  ✓ login fails for inactive user                                                                   0.07s  
+  ✓ account locks after max failed attempts                                                         0.29s  
+  ✓ logout destroys session                                                                         0.07s  
+  ✓ check session returns user for valid token                                                      0.10s  
+  ✓ check session returns null for expired token                                                    0.08s  
+
+   PASS  Tests\Unit\Services\ChartOfAccountsMappingServiceTest
+  ✓ get standard accounts returns defaults                                                          0.15s  
+  ✓ get account code finds account by name                                                          0.08s  
+  ✓ get account code ignores parent accounts                                                        0.06s  
+  ✓ get standard accounts updates dynamically                                                       0.14s  
+
+   PASS  Tests\Unit\Services\CurrencyPolicyServiceTest
+  ✓ get reference currency                                                                          0.08s  
+  ✓ get active policy                                                                               0.11s  
+  ✓ record exchange rate                                                                            0.08s  
+  ✓ get exchange rate                                                                               0.08s  
+  ✓ convert amount                                                                                  0.09s  
+  ✓ same currency returns same currency decision                                                    0.07s  
+  ✓ requires posting conversion                                                                     0.07s  
+  ✓ get policy status                                                                               0.09s  
+
+   PASS  Tests\Unit\Services\DepreciationServiceTest
+  ✓ calculate straight line depreciation                                                            0.09s  
+  ✓ calculate declining balance                                                                     0.07s  
+  ✓ post depreciation entry                                                                         0.21s  
+  ✓ get depreciation schedule                                                                       0.09s  
+
+   PASS  Tests\Unit\Services\EOSBCalculatorServiceTest
+  ✓ calculates eosb for five years                                                                  0.09s  
+  ✓ calculates eosb for less than two years                                                         0.08s  
+  ✓ calculates eosb for more than five years                                                        0.10s  
+  ✓ eosb includes years of service                                                                  0.09s  
+  ✓ resignation type affects calculation                                                            0.08s  
+
+   PASS  Tests\Unit\Services\EmployeeAccountServiceTest
+  ✓ get balance returns zero if no account id                                                       0.09s  
+  ✓ get balance calculates ledger balance                                                           0.10s  
+  ✓ record transaction creates payroll transaction                                                  0.09s  
+
+   PASS  Tests\Unit\Services\EmployeeContextBuilderTest
+  ✓ builds context for employee                                                                     0.11s  
+  ✓ context includes employee info                                                                  0.06s  
+  ✓ context includes department info                                                                0.06s  
+  ✓ context applies overrides                                                                       0.07s  
+
+   PASS  Tests\Unit\Services\InventoryCostingServiceRaceConditionTest
+  ✓ concurrent sales do not oversell inventory                                                      0.13s  
+  ✓ exact inventory consumption succeeds                                                            0.08s  
+  ✓ overselling throws business logic exception                                                     0.08s  
+  ✓ fifo ordering maintained                                                                        0.10s  
+
+   PASS  Tests\Unit\Services\InventoryCostingServiceTest
+  ✓ record purchase fifo                                                                            0.08s  
+  ✓ record sale fifo consumption                                                                    0.07s  
+  ✓ valuation fifo                                                                                  0.07s  
+  ✓ update weighted average cost                                                                    0.08s  
+
+   PASS  Tests\Unit\Services\LeaveServiceTest
+  ✓ can create leave request                                                                        0.09s  
+  ✓ create leave fails for insufficient balance                                                     0.10s  
+  ✓ create leave fails for overlapping dates                                                        0.10s  
+  ✓ can approve leave request                                                                       0.09s  
+  ✓ can reject leave request                                                                        0.07s  
+  ✓ cannot process already processed request                                                        0.10s  
+  ✓ has pending leave requests                                                                      0.10s  
+  ✓ no pending leave requests outside period                                                        0.06s  
+
+   PASS  Tests\Unit\Services\LedgerServiceFiscalPeriodTest
+  ✓ voucher date must be within fiscal period                                                       0.12s  
+  ✓ cannot post to locked period                                                                    0.09s  
+  ✓ cannot post to closed period                                                                    0.07s  
+  ✓ current period transactions succeed                                                             0.09s  
+
+   PASS  Tests\Unit\Services\LedgerServiceTest
+  ✓ get next voucher number increments sequence                                                     0.07s  
+  ✓ post transaction creates ledger entries                                                         0.07s  
+  ✓ post transaction throws exception if not balanced                                               0.06s  
+  ✓ get account balance calculates correctly                                                        0.09s  
+  ✓ reverse transaction creates reversing entries                                                   0.12s  
+
+   PASS  Tests\Unit\Services\MultiCurrencyLedgerServiceTest
+  ✓ can post base currency transaction                                                              0.11s  
+  ✓ get base ledger service                                                                         0.08s  
+  ✓ get policy service                                                                              0.11s  
+
+   PASS  Tests\Unit\Services\OrgStructureServiceTest
+  ✓ record change creates history entry                                                             0.08s  
+  ✓ can create node with link                                                                       0.10s  
+  ✓ can delete check allows leaf node                                                               0.09s  
+  ✓ can delete check prevents node with children                                                    0.09s  
+  ✓ get statistics                                                                                  0.08s  
+  ✓ run integrity check                                                                             0.07s  
+  ✓ bulk update status                                                                              0.07s  
+
+   PASS  Tests\Unit\Services\PayrollServiceTest
+  ✓ generate payroll salary cycle                                                                   0.17s  
+  ✓ approve payroll workflow                                                                        0.19s  
+  ✓ process payment full                                                                            0.20s  
+
+   PASS  Tests\Unit\Services\PermissionServiceTest
+  ✓ load permissions returns mapped permissions                                                     0.11s  
+  ✓ admin role has wildcard permissions                                                             0.07s  
+  ✓ can checks session permissions                                                                  0.06s  
+  ✓ require permission aborts on failure                                                            0.07s  
+
+   PASS  Tests\Unit\Services\PurchaseServiceTest
+  ✓ create purchase success credit                                                                  0.23s  
+  ✓ create purchase fails vat mismatch                                                              0.11s  
+  ✓ create purchase auto approves below threshold                                                   0.43s  
+  ✓ approve purchase                                                                                0.25s  
+  ✓ reverse purchase full                                                                           0.33s  
+  ✓ reverse purchase partial depletion logic                                                        0.38s  
+
+   PASS  Tests\Unit\Services\SalaryCalculatorServiceTest
+  ✓ calculates gross salary                                                                         0.09s  
+  ✓ calculates net salary                                                                           0.09s  
+  ✓ includes attendance summary                                                                     0.08s  
+  ✓ includes unpaid leave days                                                                      0.12s  
+  ✓ handles zero salary                                                                             0.12s  
+
+   PASS  Tests\Unit\Services\SalesServiceTest
+  ✓ create invoice with items                                                                       0.63s  
+  ✓ delete invoice reverses entries and restores stock                                              0.28s  
+
+   PASS  Tests\Unit\Services\TelescopeServiceTest
+  ✓ log operation creates telescope entry                                                           0.07s  
+  ✓ log operation handles guest user                                                                0.07s  
+
+   PASS  Tests\Unit\Services\TemplateServiceTest
+  ✓ template renderer replaces variables                                                            0.16s  
+  ✓ template renderer handles missing variables                                                     0.11s  
+  ✓ template renderer handles empty template                                                        0.09s  
+  ✓ template renderer handles nested data                                                           0.07s  
+
+   PASS  Tests\Unit\Services\UBLGeneratorServiceTest
+  ✓ generates xml for simple invoice                                                                0.88s  
+  ✓ xml contains invoice id                                                                         0.91s  
+  ✓ xml contains tax information                                                                    0.91s  
+  ✓ xml contains invoice lines                                                                      0.84s  
+  ✓ xml is valid structure                                                                          0.92s  
+
+   PASS  Tests\Unit\Services\ZATCAServiceTest
+  ✓ is enabled when setting is true                                                                 0.08s  
+  ✓ is enabled for saudi arabia                                                                     0.07s  
+  ✓ validate invoice requires items                                                                 0.13s  
+  ✓ validate invoice requires invoice number                                                        0.16s  
+  ✓ validate invoice requires tax number                                                            0.19s  
+  ✓ generate qr code data                                                                           0.34s  
+  ✓ can onboard                                                                                     0.07s  
+  ✓ validate certificate checks token                                                               0.06s  
+
+   PASS  Tests\Feature\Api\AccrualAccountingApiTest
+  ✓ can list accrual entries                                                                        0.21s  
+  ✓ can create prepayment                                                                           0.31s  
+  ✓ can create unearned revenue                                                                     0.22s  
+  ✓ create accrual validates required fields                                                        0.18s  
+  ✓ can amortize prepayment                                                                         0.21s  
+
+   PASS  Tests\Feature\Api\ApApiTest
+  ✓ can list suppliers                                                                              0.20s  
+  ✓ can create supplier                                                                             0.12s  
+  ✓ cannot create duplicate supplier                                                                0.13s  
+  ✓ can create invoice transaction                                                                  0.50s  
+  ✓ can record payment                                                                              0.39s  
+  ✓ supplier ledger returns aging                                                                   0.22s  
+
+   PASS  Tests\Feature\Api\ArApiTest
+  ✓ can list customers                                                                              0.12s  
+  ✓ can create customer                                                                             0.13s  
+  ✓ can update customer                                                                             0.10s  
+  ✓ can delete customer                                                                             0.15s  
+  ✓ can view customer ledger                                                                        0.26s  
+  ✓ can list ar transactions                                                                        0.12s  
+  ✓ can create receipt transaction                                                                  0.29s  
+  ✓ can delete ar transaction                                                                       0.21s  
+  ✓ cannot delete invoice type ar transaction                                                       0.12s  
+  ✓ create ar transaction validates fields                                                          0.10s  
+
+   PASS  Tests\Feature\Api\AssetsApiTest
+  ✓ can crud assets                                                                                 0.16s  
+
+   PASS  Tests\Feature\Api\AuthApiTest
+  ✓ login returns session token                                                                     0.10s  
+  ✓ login fails with invalid credentials                                                            0.30s  
+  ✓ logout invalidates session                                                                      0.08s  
+  ✓ check returns user info when authenticated                                                      0.08s  
+  ✓ check returns unauthorized when not logged in                                                   0.09s  
+
+   PASS  Tests\Feature\Api\AuthorizationTest
+  ✓ unauthorized user cannot access invoices                                                        0.12s  
+  ✓ unauthorized user cannot create product                                                         0.14s  
+
+   PASS  Tests\Feature\Api\BankReconciliationApiTest
+  ✓ can list reconciliations                                                                        0.11s  
+  ✓ can calculate ledger balance                                                                    0.14s  
+  ✓ can create reconciliation                                                                       0.12s  
+  ✓ can post adjustment                                                                             0.16s  
+
+   PASS  Tests\Feature\Api\BatchApiTest
+  ✓ can list batches                                                                                0.10s  
+  ✓ can create batch                                                                                0.12s  
+  ✓ can delete pending batch                                                                        0.10s  
+  ✓ cannot delete processing batch                                                                  0.09s  
+  ✓ can execute batch                                                                               0.12s  
+  ✓ create batch validates required fields                                                          0.10s  
+
+   PASS  Tests\Feature\Api\CategoriesApiTest
+  ✓ can list categories                                                                             0.10s  
+  ✓ can create category                                                                             0.09s  
+  ✓ create category fails for duplicate                                                             0.10s  
+  ✓ can update category                                                                             0.09s  
+  ✓ can delete category                                                                             0.11s  
+  ✓ create validates required name                                                                  0.09s  
+
+   PASS  Tests\Feature\Api\ChartOfAccountsApiTest
+  ✓ can list accounts                                                                               0.18s  
+  ✓ can search accounts                                                                             0.10s  
+  ✓ can create account                                                                              0.10s  
+  ✓ create account rejects duplicate code                                                           0.11s  
+  ✓ can update account                                                                              0.09s  
+  ✓ delete account without transactions                                                             0.14s  
+  ✓ delete account with transactions deactivates                                                    0.12s  
+  ✓ can get account balances                                                                        0.16s  
+  ✓ can filter balances by type                                                                     0.14s  
+
+   PASS  Tests\Feature\Api\CurrencyApiTest
+  ✓ can list currencies                                                                             0.13s  
+  ✓ can create currency                                                                             0.13s  
+  ✓ create currency rejects duplicate code                                                          0.10s  
+  ✓ can update currency                                                                             0.09s  
+  ✓ can delete non primary currency                                                                 0.11s  
+  ✓ cannot delete primary currency                                                                  0.10s  
+  ✓ can toggle active status                                                                        0.12s  
+  ✓ cannot deactivate primary currency                                                              0.14s  
+  ✓ create currency validates required fields                                                       0.15s  
+
+   PASS  Tests\Feature\Api\DashboardApiTest
+  ✓ dashboard metrics                                                                               0.20s  
+  ✓ dashboard details low stock                                                                     0.14s  
+
+   PASS  Tests\Feature\Api\ExpensesApiTest
+  ✓ can list expenses                                                                               0.17s  
+  ✓ can create expense with gl posting                                                              0.33s  
+  ✓ create expense validates required fields                                                        0.08s  
+  ✓ can update expense metadata                                                                     0.09s  
+  ✓ can delete expense with gl reversal                                                             0.28s  
+  ✓ credit expense posts to accounts payable                                                        0.26s  
+
+   PASS  Tests\Feature\Api\FiscalPeriodsApiTest
+  ✓ can list fiscal periods                                                                         0.11s  
+  ✓ can create fiscal period                                                                        0.10s  
+  ✓ create fiscal period validates required fields                                                  0.10s  
+  ✓ can close fiscal period                                                                         0.18s  
+  ✓ can lock fiscal period                                                                          0.10s  
+  ✓ can unlock fiscal period                                                                        0.11s  
+
+   PASS  Tests\Feature\Api\GeneralLedgerApiTest
+  ✓ can view trial balance                                                                          0.11s  
+  ✓ can view account details                                                                        0.10s  
+  ✓ can filter gl entries                                                                           0.12s  
+  ✓ account activity summary                                                                        0.16s  
+  ✓ account balance history                                                                         0.13s  
+
+   PASS  Tests\Feature\Api\HRApiTest
+  ✓ can list departments                                                                            0.13s  
+  ✓ can create department                                                                           0.11s  
+  ✓ can update department                                                                           0.10s  
+  ✓ can delete department                                                                           0.12s  
+  ✓ can list employees                                                                              0.10s  
+  ✓ can create employee                                                                             0.09s  
+  ✓ can update employee                                                                             0.11s  
+
+   PASS  Tests\Feature\Api\InventoryApiTest
+  ✓ can list categories                                                                             0.12s  
+  ✓ can create category                                                                             0.10s  
+  ✓ can view periodic inventory valuation                                                           0.08s  
+
+   PASS  Tests\Feature\Api\InvoicesApiTest
+  ✓ can list invoices                                                                               1.94s  
+  ✓ can create invoice                                                                              0.55s  
+  ✓ can get invoice details                                                                         0.49s  
+
+   PASS  Tests\Feature\Api\JournalVouchersApiTest
+  ✓ can list journal vouchers                                                                       0.12s  
+  ✓ can create journal voucher                                                                      0.10s  
+  ✓ validate unbalanced voucher fails                                                               0.13s  
+
+   PASS  Tests\Feature\Api\PayrollApiTest
+  ✓ generate payroll via api                                                                        0.14s  
+  ✓ approve payroll via api                                                                         0.30s  
+  ✓ process payroll payment via api                                                                 0.20s  
+
+   PASS  Tests\Feature\Api\PeriodicInventoryApiTest
+  ✓ can list inventory counts                                                                       0.11s  
+  ✓ can create inventory count                                                                      0.14s  
+  ✓ can process inventory counts                                                                    0.26s  
+  ✓ process returns error when no counts                                                            0.13s  
+  ✓ can get inventory valuation                                                                     0.12s  
+  ✓ create count validates required fields                                                          0.12s  
+
+   PASS  Tests\Feature\Api\ProductsApiTest
+  ✓ can list products                                                                               0.15s  
+  ✓ can create product                                                                              0.11s  
+  ✓ can update product                                                                              0.09s  
+  ✓ can delete product                                                                              0.09s  
+
+   PASS  Tests\Feature\Api\PurchaseRequestsTest
+  ✓ auto generate purchase requests                                                                 0.16s  
+  ✓ auto generate avoids duplicates                                                                 0.11s  
+  ✓ get requests list                                                                               0.14s  
+  ✓ store manual request                                                                            0.14s  
+
+   PASS  Tests\Feature\Api\PurchasesApiTest
+  ✓ get purchases returns list                                                                      0.21s  
+  ✓ create purchase api                                                                             0.15s  
+  ✓ approve purchase api                                                                            0.34s  
+  ✓ reverse purchase api                                                                            0.25s  
+  ✓ create purchase return api                                                                      0.33s  
+
+   PASS  Tests\Feature\Api\RateLimitingTest
+  ✓ login endpoint rate limiting                                                                    0.73s  
+  ✓ protected endpoints rate limiting                                                               0.61s  
+  ✓ zatca endpoint rate limiting                                                                    0.15s  
+
+   PASS  Tests\Feature\Api\RecurringTransactionsApiTest
+  ✓ can list recurring transactions                                                                 0.12s  
+  ✓ can create recurring transaction                                                                0.11s  
+  ✓ can update recurring transaction                                                                0.12s  
+  ✓ can delete recurring transaction                                                                0.09s  
+  ✓ can process expense transaction                                                                 0.15s  
+  ✓ create validates required fields                                                                0.18s  
+
+   PASS  Tests\Feature\Api\ReportsApiTest
+  ✓ balance sheet                                                                                   0.18s  
+  ✓ profit loss                                                                                     0.11s  
+  ✓ cash flow                                                                                       0.14s  
+
+   PASS  Tests\Feature\Api\RevenuesApiTest
+  ✓ can list revenues                                                                               0.17s  
+  ✓ can create revenue with gl posting                                                              0.27s  
+  ✓ create revenue validates required fields                                                        0.11s  
+  ✓ can update revenue metadata                                                                     0.14s  
+  ✓ can delete revenue with gl reversal                                                             0.22s  
+  ✓ create revenue rejects negative amount                                                          0.11s  
+
+   PASS  Tests\Feature\Api\RolesApiTest
+  ✓ can list roles                                                                                  0.09s  
+  ✓ can list roles with action roles                                                                0.09s  
+  ✓ can list modules                                                                                0.11s  
+  ✓ can create role                                                                                 0.09s  
+  ✓ can delete non system role                                                                      0.13s  
+  ✓ cannot delete system role                                                                       0.19s  
+  ✓ cannot delete role with assigned users                                                          0.13s  
+  ✓ can update role permissions                                                                     0.13s  
+
+   PASS  Tests\Feature\Api\SalesRepresentativeApiTest
+  ✓ can list representatives                                                                        0.17s  
+  ✓ can create representative                                                                       0.15s  
+  ✓ can update representative                                                                       0.16s  
+  ✓ can delete representative                                                                       0.12s  
+  ✓ can get representative ledger                                                                   0.15s  
+  ✓ can create representative transaction                                                           0.34s  
+  ✓ can delete representative transaction                                                           0.14s  
+
+   PASS  Tests\Feature\Api\SalesReturnApiTest
+  ✓ can list sales returns                                                                          0.12s  
+  ✓ can create sales return                                                                         0.84s  
+  ✓ can view sales return details                                                                   0.12s  
+  ✓ can view sales returns ledger                                                                   0.10s  
+  ✓ create return validates required fields                                                         0.16s  
+
+   PASS  Tests\Feature\Api\SessionsApiTest
+  ✓ can list sessions                                                                               0.12s  
+  ✓ can destroy other session                                                                       0.10s  
+  ✓ cannot destroy current session                                                                  0.09s  
+  ✓ cannot destroy other users session                                                              0.09s  
+
+   PASS  Tests\Feature\Api\SettingsApiTest
+  ✓ can list roles                                                                                  0.14s  
+  ✓ can create role                                                                                 0.10s  
+  ✓ can list users                                                                                  0.13s  
+  ✓ can create user                                                                                 0.14s  
+  ✓ can list active sessions                                                                        0.09s  
+
+   PASS  Tests\Feature\Api\UsersApiTest
+  ✓ can list users                                                                                  0.12s  
+  ✓ can create user                                                                                 0.09s  
+  ✓ create user rejects duplicate username                                                          0.09s  
+  ✓ can update user                                                                                 0.12s  
+  ✓ can delete user                                                                                 0.14s  
+  ✓ can change password                                                                             0.12s  
+  ✓ change password fails with wrong current                                                        0.11s  
+  ✓ can list managers                                                                               0.09s  
+  ✓ can list my sessions                                                                            0.10s  
+
+   PASS  Tests\Feature\Api\ZatcaApiTest
+  ✓ can submit invoice to zatca                                                                     1.37s  
+  ✓ skips if disabled                                                                               0.16s  
+
+   PASS  Tests\Feature\Api\ZatcaSettingsTest
+  ✓ can get zatca settings                                                                          0.13s  
+  ✓ can update zatca settings                                                                       0.10s  
+  ✓ can onboard zatca api                                                                           0.08s  
+
+   PASS  Tests\Feature\Authorization\InvoicePolicyTest
+  ✓ owner can view own invoice                                                                      0.10s  
+  ✓ other user cannot view others invoice                                                           0.11s  
+  ✓ user with view all can view any invoice                                                         0.14s  
+  ✓ cannot delete invoice with payments                                                             0.41s  
+  ✓ cannot delete invoice in closed period                                                          0.10s  
+  ✓ owner can delete own invoice when allowed                                                       0.34s  
+
+   PASS  Tests\Feature\Authorization\JournalVoucherPolicyTest
+  ✓ owner can view own voucher                                                                      0.10s  
+  ✓ other user cannot view others voucher                                                           0.09s  
+  ✓ cannot update posted voucher                                                                    0.09s  
+  ✓ cannot update voucher in closed period                                                          0.14s  
+  ✓ owner can update own unposted voucher                                                           0.11s  
+
+   PASS  Tests\Feature\Authorization\PurchasePolicyTest
+  ✓ owner can view own purchase                                                                     0.10s  
+  ✓ other user cannot view others purchase                                                          0.08s  
+  ✓ cannot update approved and reversed purchase                                                    0.12s  
+  ✓ cannot delete approved and reversed purchase                                                    0.08s  
+  ✓ cannot update purchase in closed period                                                         0.12s  
+  ✓ cannot delete purchase in locked period                                                         0.20s  
+  ✓ cannot approve already approved purchase                                                        0.14s  
+
+   PASS  Tests\Feature\ExampleTest
+  ✓ the application returns a successful response                                                   0.12s  
+
+   PASS  Tests\Feature\Hr\BiometricDeviceTest
+  ✓ it can list biometric devices                                                                   0.11s  
+  ✓ it can add biometric device                                                                     0.12s  
+  ✓ it can update biometric device                                                                  0.08s  
+  ✓ it can delete biometric device                                                                  0.08s  
+  ✓ it can trigger sync                                                                             0.09s  
+
+   PASS  Tests\Feature\Hr\DocumentTemplateTest
+  ✓ it can list document templates                                                                  0.10s  
+  ✓ it can create document template                                                                 0.11s  
+  ✓ it can render document template                                                                 0.14s  
+  ✓ it can update document template                                                                 0.09s  
+  ✓ it can delete document template                                                                 0.13s  
+
+   PASS  Tests\Feature\Hr\HrAdministrationTest
+  ✓ it can list job titles                                                                          0.13s  
+  ✓ it can create job title                                                                         0.11s  
+  ✓ it can update job title                                                                         0.13s  
+  ✓ it can delete job title                                                                         0.14s  
+  ✓ it can list permission templates                                                                0.14s  
+  ✓ it can create permission template                                                               0.13s  
+  ✓ it can link employee to user                                                                    0.12s  
+  ✓ it can unlink employee from user                                                                0.10s  
+
+   PASS  Tests\Feature\TaxEngineIntegrationTest
+  ✓ tax engine calculates and records correct tax lines and gl entries                              0.62s  
+
+  Tests:    357 passed (898 assertions)
+  Duration: 76.21s
+

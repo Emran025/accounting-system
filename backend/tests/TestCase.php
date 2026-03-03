@@ -224,6 +224,10 @@ abstract class TestCase extends BaseTestCase
             'account_code' => '4100',
             'account_name' => 'Sales Revenue',
         ]);
+        ChartOfAccount::factory()->revenue()->create([
+            'account_code' => '4200',
+            'account_name' => 'Other Revenue',
+        ]);
 
         // Expenses
         ChartOfAccount::factory()->expense()->create([
@@ -233,6 +237,10 @@ abstract class TestCase extends BaseTestCase
         ChartOfAccount::factory()->expense()->create([
             'account_code' => '5220',
             'account_name' => 'Salaries Expense',
+        ]);
+        ChartOfAccount::factory()->expense()->create([
+            'account_code' => '5210',
+            'account_name' => 'Operating Expenses',
         ]);
         ChartOfAccount::factory()->expense()->create([
             'account_code' => '5007',

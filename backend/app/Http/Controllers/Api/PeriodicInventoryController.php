@@ -87,9 +87,11 @@ class PeriodicInventoryController extends Controller
         TelescopeService::logOperation('CREATE', 'inventory_counts', $count->id, null, $validated);
 
         return $this->successResponse([
-            'id' => $count->id,
-            'book_quantity' => $bookQuantity,
-            'variance' => $variance,
+            'data' => [
+                'id' => $count->id,
+                'book_quantity' => $bookQuantity,
+                'variance' => $variance,
+            ]
         ]);
     }
 
@@ -149,7 +151,7 @@ class PeriodicInventoryController extends Controller
                 } else {
                     // Inventory decrease
                     $glEntries[] = [
-                        'account_code' => $accounts['cogs'],
+                        'account_code' => $accounts['cost_of_goods_sold'],
                         'entry_type' => 'DEBIT',
                         'amount' => $adjustmentAmount,
                         'description' => "Inventory Count Adjustment - Product: {$product->name}",
@@ -191,7 +193,9 @@ class PeriodicInventoryController extends Controller
             ->value('total') ?? 0;
 
         return $this->successResponse([
-            'total_value' => (float)$totalValue
+            'data' => [
+                'total_value' => (float)$totalValue
+            ]
         ]);
     }
 }

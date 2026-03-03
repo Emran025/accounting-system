@@ -49,13 +49,16 @@ class ArController extends Controller
         $customers = $query->orderBy('name')
             ->skip(($page - 1) * $perPage)
             ->take($perPage)
-            ->withSum(['invoices as total_debt' => function ($query) {
-                $query->where('payment_type', 'credit');
-            }], 'total_amount')
             ->get()
             ->map(function ($customer) {
-                $customer->total_debt = $customer->total_debt ?? 0;
-                $customer->total_paid = max(0, $customer->total_debt - $customer->current_balance);
+                // In SAP FI pattern, total_amount is derived from GL, so it's not a DB column in invoices.
+                // We'll calculate it via the model attribute.
+                $customer->total_debt = $customer->invoices()
+                    ->where('payment_type', 'credit')
+                    ->get()
+                    ->sum('total_amount');
+                
+                $customer->total_paid = max(0, $customer->total_debt - (float)$customer->current_balance);
                 return $customer;
             });
 

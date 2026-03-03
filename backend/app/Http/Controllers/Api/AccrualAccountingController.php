@@ -8,6 +8,7 @@ use App\Models\Prepayment;
 use App\Models\UnearnedRevenue;
 use App\Services\PermissionService;
 use App\Services\LedgerService;
+use App\Services\ChartOfAccountsMappingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -26,14 +27,14 @@ class AccrualAccountingController extends Controller
     {
 
 
-        $module = $request->query('module');
+        $module = $request->query('module') ?? $request->input('type');
         $limit = $request->query('limit', 20);
 
         if ($module === 'payroll') {
             $data = PayrollEntry::orderBy('payroll_date', 'desc')->paginate($limit);
-        } elseif ($module === 'prepayments') {
-            $data = Prepayment::orderBy('prepayment_date', 'desc')->paginate($limit);
-        } elseif ($module === 'unearned_revenue') {
+        } elseif (in_array($module, ['prepayments', 'prepayment'])) {
+            $data = Prepayment::orderBy('payment_date', 'desc')->paginate($limit);
+        } elseif (in_array($module, ['unearned_revenue', 'unearned'])) {
             $data = UnearnedRevenue::orderBy('receipt_date', 'desc')->paginate($limit);
         } else {
             return $this->errorResponse('Invalid module');
@@ -49,9 +50,9 @@ class AccrualAccountingController extends Controller
     public function store(Request $request): JsonResponse
     {
 
-        $module = $request->query('module');
+        $module = $request->query('module') ?? $request->input('type');
         
-        $coaService = app(\App\Services\ChartOfAccountsMappingService::class);
+        $coaService = app(ChartOfAccountsMappingService::class);
         $accounts = $coaService->getStandardAccounts();
 
         if ($module === 'payroll') {
@@ -83,20 +84,28 @@ class AccrualAccountingController extends Controller
 
             return $this->successResponse(['id' => $entry->id]);
 
-        } elseif ($module === 'prepayments') {
+        } elseif (in_array($module, ['prepayments', 'prepayment'])) {
             $validated = $request->validate([
-                'prepayment_date' => 'required|date',
+                'payment_date' => 'required_without:start_date|date',
+                'start_date' => 'required_without:payment_date|date',
                 'total_amount' => 'required|numeric',
-                'months' => 'required|integer',
+                'amortization_periods' => 'required_without:periods|integer',
+                'periods' => 'required_without:amortization_periods|integer',
                 'description' => 'required|string',
                 'expense_account_code' => 'nullable|string',
+                'account_code' => 'nullable|string',
             ]);
+            
+            $date = $validated['payment_date'] ?? $validated['start_date'];
+            $periods = $validated['amortization_periods'] ?? $validated['periods'];
+            $accCode = $validated['expense_account_code'] ?? $validated['account_code'] ?? null;
+
             $entry = Prepayment::create([
-                'prepayment_date' => $validated['prepayment_date'],
+                'payment_date' => $date,
                 'total_amount' => $validated['total_amount'],
-                'months' => $validated['months'],
+                'amortization_periods' => $periods,
                 'description' => $validated['description'],
-                'expense_account_code' => $validated['expense_account_code'] ?? null,
+                'expense_account_code' => $accCode,
                 'created_by' => auth()->id() ?? session('user_id'),
             ]);
             
@@ -107,22 +116,28 @@ class AccrualAccountingController extends Controller
             $this->ledgerService->postTransaction([
                 ['account_code' => $prepaidAccount, 'entry_type' => 'DEBIT', 'amount' => $validated['total_amount'], 'description' => $validated['description']],
                 ['account_code' => $cashAccount, 'entry_type' => 'CREDIT', 'amount' => $validated['total_amount'], 'description' => $validated['description']],
-            ], 'prepayments', $entry->id, null, $validated['prepayment_date']);
+            ], 'prepayments', $entry->id, null, $date);
 
             return $this->successResponse(['id' => $entry->id]);
 
-        } elseif ($module === 'unearned_revenue') {
+        } elseif (in_array($module, ['unearned_revenue', 'unearned'])) {
             $validated = $request->validate([
-                'receipt_date' => 'required|date',
+                'receipt_date' => 'required_without:start_date|date',
+                'start_date' => 'required_without:receipt_date|date',
                 'total_amount' => 'required|numeric',
-                'months' => 'required|integer',
+                'months' => 'required_without:periods|integer',
+                'periods' => 'required_without:months|integer',
                 'description' => 'required|string',
                 'revenue_account_code' => 'nullable|string',
             ]);
+
+            $date = $validated['receipt_date'] ?? $validated['start_date'];
+            $periods = $validated['months'] ?? $validated['periods'];
+
             $entry = UnearnedRevenue::create([
-                'receipt_date' => $validated['receipt_date'],
+                'receipt_date' => $date,
                 'total_amount' => $validated['total_amount'],
-                'months' => $validated['months'],
+                'months' => $periods,
                 'description' => $validated['description'],
                 'revenue_account_code' => $validated['revenue_account_code'] ?? null,
                 'created_by' => auth()->id() ?? session('user_id'),
@@ -130,12 +145,12 @@ class AccrualAccountingController extends Controller
             
             // Post to GL: Debit Cash, Credit Unearned Revenue (Liability)
             $cashAccount = $accounts['cash'];
-            $unearnedAccount = $coaService->getAccountCode('Liability', 'إيرادات غير مكتسبة') ?? '2120';
+            $unearnedAccount = $coaService->getAccountCode('Liability', 'إيرادات غير مكتسبة') ?? '2140';
 
             $this->ledgerService->postTransaction([
                 ['account_code' => $cashAccount, 'entry_type' => 'DEBIT', 'amount' => $validated['total_amount'], 'description' => $validated['description']],
                 ['account_code' => $unearnedAccount, 'entry_type' => 'CREDIT', 'amount' => $validated['total_amount'], 'description' => $validated['description']],
-            ], 'unearned_revenue', $entry->id, null, $validated['receipt_date']);
+            ], 'unearned_revenue', $entry->id, null, $date);
 
             return $this->successResponse(['id' => $entry->id]);
         }
@@ -147,13 +162,13 @@ class AccrualAccountingController extends Controller
     public function update(Request $request): JsonResponse
     {
 
-        $module = $request->query('module');
+        $module = $request->query('module') ?? $request->input('type');
         $id = $request->input('id');
 
         // Using ChartOfAccountsMappingService to get account codes
         // We need to inject or instantiate it. Since it's not injected in the constructor in original code (my bad, I missed it in scan), 
         // I should instantiate it or rely on a helper if available, but instantiation is safe here.
-        $coaService = app(\App\Services\ChartOfAccountsMappingService::class);
+        $coaService = app(ChartOfAccountsMappingService::class);
         $accounts = $coaService->getStandardAccounts();
 
         if ($module === 'payroll') {
@@ -193,12 +208,12 @@ class AccrualAccountingController extends Controller
                  return $this->errorResponse($e->getMessage(), 500);
              }
 
-        } elseif ($module === 'prepayments') {
+        } elseif (in_array($module, ['prepayments', 'prepayment'])) {
             $prepayment = Prepayment::findOrFail($id);
             $amortization_date = $request->input('amortization_date', now()->format('Y-m-d'));
             
             // Allow manual amount if provided, else calc straight line
-            $amount = $request->input('amount') ? floatval($request->input('amount')) : ($prepayment->total_amount / ($prepayment->months > 0 ? $prepayment->months : 1));
+            $amount = $request->input('amount') ? floatval($request->input('amount')) : ($prepayment->total_amount / ($prepayment->amortization_periods > 0 ? $prepayment->amortization_periods : 1));
 
             if ($prepayment->amortized_amount + $amount > $prepayment->total_amount + 0.01) {
                 return $this->errorResponse('Already fully amortized');
@@ -218,7 +233,7 @@ class AccrualAccountingController extends Controller
 
             return $this->successResponse();
 
-        } elseif ($module === 'unearned_revenue') {
+        } elseif (in_array($module, ['unearned_revenue', 'unearned'])) {
             $unearned = UnearnedRevenue::findOrFail($id);
             $recognition_date = $request->input('recognition_date', now()->format('Y-m-d'));
             $amount = $request->input('amount') ? floatval($request->input('amount')) : ($unearned->total_amount / ($unearned->months > 0 ? $unearned->months : 1));

@@ -44,7 +44,8 @@ class AttendanceService
                 $standardStart = Carbon::parse($date)->setTime(9, 0);
                 if ($checkInTime->gt($standardStart)) {
                     $attendance->is_late = true;
-                    $attendance->late_minutes = $checkInTime->diffInMinutes($standardStart);
+                    // Use absolute difference to avoid sign issues in result
+                    $attendance->late_minutes = $checkInTime->diffInMinutes($standardStart, true);
                 }
             }
 

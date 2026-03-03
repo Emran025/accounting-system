@@ -58,6 +58,8 @@ class PermissionService
                 'create' => true,
                 'edit' => true,
                 'delete' => true,
+                'execute' => true,
+                'approve' => true,
             ];
         }
 
