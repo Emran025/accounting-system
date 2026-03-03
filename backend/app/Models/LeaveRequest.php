@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 
 class LeaveRequest extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'employee_id',
         'leave_type',

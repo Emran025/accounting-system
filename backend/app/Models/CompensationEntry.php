@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CompensationEntry extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'compensation_plan_id', 'employee_id', 'current_salary', 'proposed_salary',
         'increase_amount', 'increase_percentage', 'comp_ratio', 'status',

@@ -28,7 +28,13 @@ class CompensationController extends Controller
             $query->where('fiscal_year', $request->fiscal_year);
         }
         
-        return $this->successResponse($query->orderBy('effective_date', 'desc')->paginate(15)->toArray());
+        $paginated = $query->orderBy('effective_date', 'desc')->paginate(15);
+        return $this->paginatedResponse(
+            $paginated->items(),
+            $paginated->total(),
+            $paginated->currentPage(),
+            $paginated->perPage()
+        );
     }
 
     public function storePlan(Request $request)
@@ -94,7 +100,13 @@ class CompensationController extends Controller
             $query->where('status', $request->status);
         }
         
-        return $this->successResponse($query->orderBy('created_at', 'desc')->paginate(15)->toArray());
+        $paginated = $query->orderBy('created_at', 'desc')->paginate(15);
+        return $this->paginatedResponse(
+            $paginated->items(),
+            $paginated->total(),
+            $paginated->currentPage(),
+            $paginated->perPage()
+        );
     }
 
     public function storeEntry(Request $request)

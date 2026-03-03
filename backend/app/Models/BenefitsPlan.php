@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class BenefitsPlan extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'plan_code', 'plan_name', 'plan_type', 'description', 'eligibility_rule',
         'eligibility_criteria', 'employee_contribution', 'employer_contribution',

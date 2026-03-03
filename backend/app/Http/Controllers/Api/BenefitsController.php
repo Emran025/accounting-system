@@ -25,7 +25,13 @@ class BenefitsController extends Controller
             $query->where('is_active', $request->is_active === 'true');
         }
         
-        return $this->successResponse($query->orderBy('created_at', 'desc')->paginate(15)->toArray());
+        $paginated = $query->orderBy('created_at', 'desc')->paginate(15);
+        return $this->paginatedResponse(
+            $paginated->items(),
+            $paginated->total(),
+            $paginated->currentPage(),
+            $paginated->perPage()
+        );
     }
 
     public function storePlan(Request $request)
@@ -88,7 +94,13 @@ class BenefitsController extends Controller
             $query->where('status', $request->status);
         }
         
-        return $this->successResponse($query->orderBy('enrollment_date', 'desc')->paginate(15)->toArray());
+        $paginated = $query->orderBy('enrollment_date', 'desc')->paginate(15);
+        return $this->paginatedResponse(
+            $paginated->items(),
+            $paginated->total(),
+            $paginated->currentPage(),
+            $paginated->perPage()
+        );
     }
 
     public function storeEnrollment(Request $request)

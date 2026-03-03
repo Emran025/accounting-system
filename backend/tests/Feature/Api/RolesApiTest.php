@@ -38,7 +38,7 @@ class RolesApiTest extends TestCase
     public function test_can_list_modules()
     {
         Module::create([
-            'module_key' => 'sales',
+            'module_key' => 'test_sales_module',
             'module_name_ar' => 'المبيعات',
             'module_name_en' => 'Sales',
             'category' => 'Finance',

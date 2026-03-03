@@ -33,12 +33,12 @@ class SettingsApiTest extends TestCase
     public function test_can_create_role()
     {
         $response = $this->authPost(route('api.roles.store'), [
-            'name' => 'Manager', // Changed from role_name
-            'description' => 'Store Manager' // role_key is generated
+            'name' => 'Store Team Lead', // Unique name
+            'description' => 'Team Lead'
         ]);
 
         $this->assertSuccessResponse($response);
-        $this->assertDatabaseHas('roles', ['role_key' => 'manager']);
+        $this->assertDatabaseHas('roles', ['role_key' => 'store-team-lead']);
     }
 
     // Users Tests

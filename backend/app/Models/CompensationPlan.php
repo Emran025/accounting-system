@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CompensationPlan extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'plan_name', 'plan_type', 'fiscal_year', 'effective_date', 'status',
         'budget_pool', 'allocated_amount', 'notes', 'created_by', 'approved_by'

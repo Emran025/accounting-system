@@ -36,17 +36,12 @@ abstract class TestCase extends BaseTestCase
      */
     protected function seedEssentialData(): void
     {
-        // Create default admin role if not exists
-        Role::firstOrCreate(
-            ['role_key' => 'admin'],
-            [
-                'role_name_en' => 'Administrator',
-                'role_name_ar' => 'مسؤول النظام',
-                'is_active' => true
-            ]
-        );
+        // Run essential seeders for RBAC and system structure
+        (new \Database\Seeders\RoleSeeder())->run();
+        (new \Database\Seeders\ModuleSeeder())->run();
+        (new \Database\Seeders\PermissionSeeder())->run();
 
-        // Ensure a default user exists for created_by FKs
+        // Ensure a default admin user exists for created_by FKs
         if (User::count() === 0) {
             User::factory()->create([
                 'id' => 1,
@@ -163,8 +158,8 @@ abstract class TestCase extends BaseTestCase
     protected function assertSuccessResponse($response, int $status = 200)
     {
         if ($response->status() !== $status) {
-            $content = $response->getContent();
-            $this->fail("Expected status {$status} but got {$response->status()}. Response: {$content}");
+            $this->debugResponse($response);
+            $this->fail("Expected status {$status} but got {$response->status()}.");
         }
 
         $response->assertJson(['success' => true]);
@@ -180,6 +175,51 @@ abstract class TestCase extends BaseTestCase
         $response->assertStatus($status)
             ->assertJson(['success' => false]);
 
+        return $response;
+    }
+
+    /**
+     * Highly accurate debugger for API responses.
+     * Use this when a test fails unexpectedly with 4xx or 5xx status.
+     * It will dump the response content, validation errors, and stack trace if requested.
+     */
+    protected function debugResponse($response, bool $showTrace = false)
+    {
+        $status = $response->status();
+        $content = $response->getContent();
+        $data = json_decode($content, true);
+
+        echo "\n\n--- DEBUGGER: API RESPONSE FAILURE ---";
+        echo "\nStatus: " . $status;
+        
+        if (isset($data['errors'])) {
+            echo "\nValidation Errors: " . json_encode($data['errors'], JSON_PRETTY_PRINT);
+        } elseif (isset($data['message'])) {
+            echo "\nMessage: " . $data['message'];
+        }
+
+        if ($status >= 500 || $showTrace) {
+            echo "\nResponse Content: " . substr($content, 0, 1000) . (strlen($content) > 1000 ? '...' : '');
+            if (isset($data['exception'])) {
+                echo "\nException: " . $data['exception'];
+                echo "\nFile: " . $data['file'] . ":" . $data['line'];
+            }
+        }
+        
+        echo "\n---------------------------------------\n\n";
+        
+        return $this;
+    }
+
+    /**
+     * Assert that a status is correct, and debug if it's not.
+     */
+    protected function assertStatusResolved($response, int $expectedStatus)
+    {
+        if ($response->status() !== $expectedStatus) {
+            $this->debugResponse($response);
+        }
+        $response->assertStatus($expectedStatus);
         return $response;
     }
     /**

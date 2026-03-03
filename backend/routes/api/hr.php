@@ -8,6 +8,24 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\LeaveController;
 use App\Http\Controllers\Api\EOSBController;
 use App\Http\Controllers\Api\PayrollComponentsController;
+use App\Http\Controllers\Api\RecruitmentController;
+use App\Http\Controllers\Api\EmployeeContractsController;
+use App\Http\Controllers\Api\EmployeeAssetsController;
+use App\Http\Controllers\Api\ExpatManagementController;
+use App\Http\Controllers\Api\OnboardingController;
+use App\Http\Controllers\Api\ContingentWorkersController;
+use App\Http\Controllers\Api\QaComplianceController;
+use App\Http\Controllers\Api\WorkforceSchedulingController;
+use App\Http\Controllers\Api\EmployeeRelationsController;
+use App\Http\Controllers\Api\TravelExpenseController;
+use App\Http\Controllers\Api\EmployeeLoansController;
+use App\Http\Controllers\Api\PerformanceController;
+use App\Http\Controllers\Api\LearningController;
+use App\Http\Controllers\Api\CorporateCommunicationsController;
+use App\Http\Controllers\Api\EhsController;
+use App\Http\Controllers\Api\WellnessController;
+use App\Http\Controllers\Api\CompensationController;
+use App\Http\Controllers\Api\SuccessionController;
 
 // HR & Payroll
 Route::middleware('can:employees,view')->get('/employees', [EmployeesController::class, 'index'])->name('api.employees.index');
@@ -70,156 +88,156 @@ Route::middleware(['can:payroll,create', 'throttle:api-sensitive'])->post('/eosb
 Route::apiResource('payroll-components', PayrollComponentsController::class)->middleware(['can:payroll,view', 'throttle:api-write']);
 
 // Global Mobility & Expat Management
-Route::middleware('can:employees,view')->get('/expat-management', [\App\Http\Controllers\Api\ExpatManagementController::class, 'index']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/expat-management', [\App\Http\Controllers\Api\ExpatManagementController::class, 'store']);
-Route::middleware('can:employees,view')->get('/expat-management/{id}', [\App\Http\Controllers\Api\ExpatManagementController::class, 'show']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/expat-management/{id}', [\App\Http\Controllers\Api\ExpatManagementController::class, 'update']);
-Route::middleware(['can:employees,delete', 'throttle:api-delete'])->delete('/expat-management/{id}', [\App\Http\Controllers\Api\ExpatManagementController::class, 'destroy']);
+Route::middleware('can:employees,view')->get('/expat-management', [ExpatManagementController::class, 'index']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/expat-management', [ExpatManagementController::class, 'store']);
+Route::middleware('can:employees,view')->get('/expat-management/{id}', [ExpatManagementController::class, 'show']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/expat-management/{id}', [ExpatManagementController::class, 'update']);
+Route::middleware(['can:employees,delete', 'throttle:api-delete'])->delete('/expat-management/{id}', [ExpatManagementController::class, 'destroy']);
 
 // Employee Assets & Equipment
-Route::middleware('can:employees,view')->get('/employee-assets', [\App\Http\Controllers\Api\EmployeeAssetsController::class, 'index']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/employee-assets', [\App\Http\Controllers\Api\EmployeeAssetsController::class, 'store']);
-Route::middleware('can:employees,view')->get('/employee-assets/{id}', [\App\Http\Controllers\Api\EmployeeAssetsController::class, 'show']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/employee-assets/{id}', [\App\Http\Controllers\Api\EmployeeAssetsController::class, 'update']);
-Route::middleware(['can:employees,delete', 'throttle:api-delete'])->delete('/employee-assets/{id}', [\App\Http\Controllers\Api\EmployeeAssetsController::class, 'destroy']);
+Route::middleware('can:employees,view')->get('/employee-assets', [EmployeeAssetsController::class, 'index']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/employee-assets', [EmployeeAssetsController::class, 'store']);
+Route::middleware('can:employees,view')->get('/employee-assets/{id}', [EmployeeAssetsController::class, 'show']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/employee-assets/{id}', [EmployeeAssetsController::class, 'update']);
+Route::middleware(['can:employees,delete', 'throttle:api-delete'])->delete('/employee-assets/{id}', [EmployeeAssetsController::class, 'destroy']);
 
 // Contracts & Agreements Management
-Route::middleware('can:employees,view')->get('/contracts', [\App\Http\Controllers\Api\EmployeeContractsController::class, 'index']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/contracts', [\App\Http\Controllers\Api\EmployeeContractsController::class, 'store']);
-Route::middleware('can:employees,view')->get('/contracts/{id}', [\App\Http\Controllers\Api\EmployeeContractsController::class, 'show']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/contracts/{id}', [\App\Http\Controllers\Api\EmployeeContractsController::class, 'update']);
-Route::middleware(['can:employees,delete', 'throttle:api-delete'])->delete('/contracts/{id}', [\App\Http\Controllers\Api\EmployeeContractsController::class, 'destroy']);
+Route::middleware('can:employees,view')->get('/contracts', [EmployeeContractsController::class, 'index']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/contracts', [EmployeeContractsController::class, 'store']);
+Route::middleware('can:employees,view')->get('/contracts/{id}', [EmployeeContractsController::class, 'show']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/contracts/{id}', [EmployeeContractsController::class, 'update']);
+Route::middleware(['can:employees,delete', 'throttle:api-delete'])->delete('/contracts/{id}', [EmployeeContractsController::class, 'destroy']);
 
 // Recruitment & ATS
-Route::middleware('can:employees,view')->get('/recruitment/requisitions', [\App\Http\Controllers\Api\RecruitmentController::class, 'indexRequisitions']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/recruitment/requisitions', [\App\Http\Controllers\Api\RecruitmentController::class, 'storeRequisition']);
-Route::middleware('can:employees,view')->get('/recruitment/requisitions/{id}', [\App\Http\Controllers\Api\RecruitmentController::class, 'showRequisition']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/recruitment/requisitions/{id}', [\App\Http\Controllers\Api\RecruitmentController::class, 'updateRequisition']);
-Route::middleware('can:employees,view')->get('/recruitment/applicants', [\App\Http\Controllers\Api\RecruitmentController::class, 'indexApplicants']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/recruitment/applicants', [\App\Http\Controllers\Api\RecruitmentController::class, 'storeApplicant']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/recruitment/applicants/{id}/status', [\App\Http\Controllers\Api\RecruitmentController::class, 'updateApplicantStatus']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/recruitment/interviews', [\App\Http\Controllers\Api\RecruitmentController::class, 'storeInterview']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/recruitment/interviews/{id}', [\App\Http\Controllers\Api\RecruitmentController::class, 'updateInterview']);
+Route::middleware('can:employees,view')->get('/recruitment/requisitions', [RecruitmentController::class, 'indexRequisitions']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/recruitment/requisitions', [RecruitmentController::class, 'storeRequisition']);
+Route::middleware('can:employees,view')->get('/recruitment/requisitions/{id}', [RecruitmentController::class, 'showRequisition']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/recruitment/requisitions/{id}', [RecruitmentController::class, 'updateRequisition']);
+Route::middleware('can:employees,view')->get('/recruitment/applicants', [RecruitmentController::class, 'indexApplicants']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/recruitment/applicants', [RecruitmentController::class, 'storeApplicant']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/recruitment/applicants/{id}/status', [RecruitmentController::class, 'updateApplicantStatus']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/recruitment/interviews', [RecruitmentController::class, 'storeInterview']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/recruitment/interviews/{id}', [RecruitmentController::class, 'updateInterview']);
 
 // Onboarding & Offboarding
-Route::middleware('can:employees,view')->get('/onboarding', [\App\Http\Controllers\Api\OnboardingController::class, 'index']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/onboarding', [\App\Http\Controllers\Api\OnboardingController::class, 'store']);
-Route::middleware('can:employees,view')->get('/onboarding/{id}', [\App\Http\Controllers\Api\OnboardingController::class, 'show']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/onboarding/{workflowId}/tasks/{taskId}', [\App\Http\Controllers\Api\OnboardingController::class, 'updateTask']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/onboarding/{workflowId}/documents', [\App\Http\Controllers\Api\OnboardingController::class, 'storeDocument']);
+Route::middleware('can:employees,view')->get('/onboarding', [OnboardingController::class, 'index']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/onboarding', [OnboardingController::class, 'store']);
+Route::middleware('can:employees,view')->get('/onboarding/{id}', [OnboardingController::class, 'show']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/onboarding/{workflowId}/tasks/{taskId}', [OnboardingController::class, 'updateTask']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/onboarding/{workflowId}/documents', [OnboardingController::class, 'storeDocument']);
 
 // Contingent Workers
-Route::middleware('can:employees,view')->get('/contingent-workers', [\App\Http\Controllers\Api\ContingentWorkersController::class, 'index']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/contingent-workers', [\App\Http\Controllers\Api\ContingentWorkersController::class, 'store']);
-Route::middleware('can:employees,view')->get('/contingent-workers/{id}', [\App\Http\Controllers\Api\ContingentWorkersController::class, 'show']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/contingent-workers/{id}', [\App\Http\Controllers\Api\ContingentWorkersController::class, 'update']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/contingent-workers/{workerId}/contracts', [\App\Http\Controllers\Api\ContingentWorkersController::class, 'storeContract']);
+Route::middleware('can:employees,view')->get('/contingent-workers', [ContingentWorkersController::class, 'index']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/contingent-workers', [ContingentWorkersController::class, 'store']);
+Route::middleware('can:employees,view')->get('/contingent-workers/{id}', [ContingentWorkersController::class, 'show']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/contingent-workers/{id}', [ContingentWorkersController::class, 'update']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/contingent-workers/{workerId}/contracts', [ContingentWorkersController::class, 'storeContract']);
 
 // QA & Compliance
-Route::middleware('can:employees,view')->get('/qa-compliance', [\App\Http\Controllers\Api\QaComplianceController::class, 'index']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/qa-compliance', [\App\Http\Controllers\Api\QaComplianceController::class, 'store']);
-Route::middleware('can:employees,view')->get('/qa-compliance/{id}', [\App\Http\Controllers\Api\QaComplianceController::class, 'show']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/qa-compliance/{id}', [\App\Http\Controllers\Api\QaComplianceController::class, 'update']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/qa-compliance/{complianceId}/capa', [\App\Http\Controllers\Api\QaComplianceController::class, 'storeCapa']);
+Route::middleware('can:employees,view')->get('/qa-compliance', [QaComplianceController::class, 'index']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/qa-compliance', [QaComplianceController::class, 'store']);
+Route::middleware('can:employees,view')->get('/qa-compliance/{id}', [QaComplianceController::class, 'show']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/qa-compliance/{id}', [QaComplianceController::class, 'update']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/qa-compliance/{complianceId}/capa', [QaComplianceController::class, 'storeCapa']);
 
 // Workforce Scheduling
-Route::middleware('can:employees,view')->get('/workforce-schedules', [\App\Http\Controllers\Api\WorkforceSchedulingController::class, 'index']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/workforce-schedules', [\App\Http\Controllers\Api\WorkforceSchedulingController::class, 'store']);
-Route::middleware('can:employees,view')->get('/workforce-schedules/{id}', [\App\Http\Controllers\Api\WorkforceSchedulingController::class, 'show']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/workforce-schedules/{id}', [\App\Http\Controllers\Api\WorkforceSchedulingController::class, 'update']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/workforce-schedules/{scheduleId}/shifts', [\App\Http\Controllers\Api\WorkforceSchedulingController::class, 'storeShift']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/workforce-schedules/{scheduleId}/shifts/{shiftId}', [\App\Http\Controllers\Api\WorkforceSchedulingController::class, 'updateShift']);
+Route::middleware('can:employees,view')->get('/workforce-schedules', [WorkforceSchedulingController::class, 'index']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/workforce-schedules', [WorkforceSchedulingController::class, 'store']);
+Route::middleware('can:employees,view')->get('/workforce-schedules/{id}', [WorkforceSchedulingController::class, 'show']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/workforce-schedules/{id}', [WorkforceSchedulingController::class, 'update']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/workforce-schedules/{scheduleId}/shifts', [WorkforceSchedulingController::class, 'storeShift']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/workforce-schedules/{scheduleId}/shifts/{shiftId}', [WorkforceSchedulingController::class, 'updateShift']);
 
 // Employee Relations
-Route::middleware('can:employees,view')->get('/employee-relations', [\App\Http\Controllers\Api\EmployeeRelationsController::class, 'index']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/employee-relations', [\App\Http\Controllers\Api\EmployeeRelationsController::class, 'store']);
-Route::middleware('can:employees,view')->get('/employee-relations/{id}', [\App\Http\Controllers\Api\EmployeeRelationsController::class, 'show']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/employee-relations/{id}', [\App\Http\Controllers\Api\EmployeeRelationsController::class, 'update']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/employee-relations/{caseId}/disciplinary', [\App\Http\Controllers\Api\EmployeeRelationsController::class, 'storeDisciplinaryAction']);
+Route::middleware('can:employees,view')->get('/employee-relations', [EmployeeRelationsController::class, 'index']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/employee-relations', [EmployeeRelationsController::class, 'store']);
+Route::middleware('can:employees,view')->get('/employee-relations/{id}', [EmployeeRelationsController::class, 'show']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/employee-relations/{id}', [EmployeeRelationsController::class, 'update']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/employee-relations/{caseId}/disciplinary', [EmployeeRelationsController::class, 'storeDisciplinaryAction']);
 
 // Travel & Expenses
-Route::middleware('can:employees,view')->get('/travel-requests', [\App\Http\Controllers\Api\TravelExpenseController::class, 'indexRequests']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/travel-requests', [\App\Http\Controllers\Api\TravelExpenseController::class, 'storeRequest']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/travel-requests/{id}/status', [\App\Http\Controllers\Api\TravelExpenseController::class, 'updateRequestStatus']);
-Route::middleware('can:employees,view')->get('/travel-expenses', [\App\Http\Controllers\Api\TravelExpenseController::class, 'indexExpenses']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/travel-expenses', [\App\Http\Controllers\Api\TravelExpenseController::class, 'storeExpense']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/travel-expenses/{id}/status', [\App\Http\Controllers\Api\TravelExpenseController::class, 'updateExpenseStatus']);
+Route::middleware('can:employees,view')->get('/travel-requests', [TravelExpenseController::class, 'indexRequests']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/travel-requests', [TravelExpenseController::class, 'storeRequest']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/travel-requests/{id}/status', [TravelExpenseController::class, 'updateRequestStatus']);
+Route::middleware('can:employees,view')->get('/travel-expenses', [TravelExpenseController::class, 'indexExpenses']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/travel-expenses', [TravelExpenseController::class, 'storeExpense']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/travel-expenses/{id}/status', [TravelExpenseController::class, 'updateExpenseStatus']);
 
 // Employee Loans
-Route::middleware('can:employees,view')->get('/employee-loans', [\App\Http\Controllers\Api\EmployeeLoansController::class, 'index']);
-Route::middleware(['can:employees,create', 'throttle:api-sensitive'])->post('/employee-loans', [\App\Http\Controllers\Api\EmployeeLoansController::class, 'store']);
-Route::middleware('can:employees,view')->get('/employee-loans/{id}', [\App\Http\Controllers\Api\EmployeeLoansController::class, 'show']);
-Route::middleware(['can:employees,edit', 'throttle:api-sensitive'])->put('/employee-loans/{id}/status', [\App\Http\Controllers\Api\EmployeeLoansController::class, 'updateStatus']);
-Route::middleware(['can:employees,edit', 'throttle:api-sensitive'])->put('/employee-loans/{id}/repayments/{repaymentId}', [\App\Http\Controllers\Api\EmployeeLoansController::class, 'recordRepayment']);
+Route::middleware('can:employees,view')->get('/employee-loans', [EmployeeLoansController::class, 'index']);
+Route::middleware(['can:employees,create', 'throttle:api-sensitive'])->post('/employee-loans', [EmployeeLoansController::class, 'store']);
+Route::middleware('can:employees,view')->get('/employee-loans/{id}', [EmployeeLoansController::class, 'show']);
+Route::middleware(['can:employees,edit', 'throttle:api-sensitive'])->put('/employee-loans/{id}/status', [EmployeeLoansController::class, 'updateStatus']);
+Route::middleware(['can:employees,edit', 'throttle:api-sensitive'])->put('/employee-loans/{id}/repayments/{repaymentId}', [EmployeeLoansController::class, 'recordRepayment']);
 
 // Performance & Goals
-Route::middleware('can:employees,view')->get('/performance/goals', [\App\Http\Controllers\Api\PerformanceController::class, 'indexGoals']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/performance/goals', [\App\Http\Controllers\Api\PerformanceController::class, 'storeGoal']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/performance/goals/{id}', [\App\Http\Controllers\Api\PerformanceController::class, 'updateGoal']);
-Route::middleware('can:employees,view')->get('/performance/appraisals', [\App\Http\Controllers\Api\PerformanceController::class, 'indexAppraisals']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/performance/appraisals', [\App\Http\Controllers\Api\PerformanceController::class, 'storeAppraisal']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/performance/appraisals/{id}', [\App\Http\Controllers\Api\PerformanceController::class, 'updateAppraisal']);
-Route::middleware('can:employees,view')->get('/performance/feedback', [\App\Http\Controllers\Api\PerformanceController::class, 'indexFeedback']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/performance/feedback', [\App\Http\Controllers\Api\PerformanceController::class, 'storeFeedback']);
+Route::middleware('can:employees,view')->get('/performance/goals', [PerformanceController::class, 'indexGoals']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/performance/goals', [PerformanceController::class, 'storeGoal']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/performance/goals/{id}', [PerformanceController::class, 'updateGoal']);
+Route::middleware('can:employees,view')->get('/performance/appraisals', [PerformanceController::class, 'indexAppraisals']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/performance/appraisals', [PerformanceController::class, 'storeAppraisal']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/performance/appraisals/{id}', [PerformanceController::class, 'updateAppraisal']);
+Route::middleware('can:employees,view')->get('/performance/feedback', [PerformanceController::class, 'indexFeedback']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/performance/feedback', [PerformanceController::class, 'storeFeedback']);
 
 // Learning Management (LMS)
-Route::middleware('can:employees,view')->get('/learning/courses', [\App\Http\Controllers\Api\LearningController::class, 'indexCourses']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/learning/courses', [\App\Http\Controllers\Api\LearningController::class, 'storeCourse']);
-Route::middleware('can:employees,view')->get('/learning/courses/{id}', [\App\Http\Controllers\Api\LearningController::class, 'showCourse']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/learning/courses/{id}', [\App\Http\Controllers\Api\LearningController::class, 'updateCourse']);
-Route::middleware('can:employees,view')->get('/learning/enrollments', [\App\Http\Controllers\Api\LearningController::class, 'indexEnrollments']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/learning/enrollments', [\App\Http\Controllers\Api\LearningController::class, 'storeEnrollment']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/learning/enrollments/{id}', [\App\Http\Controllers\Api\LearningController::class, 'updateEnrollment']);
+Route::middleware('can:employees,view')->get('/learning/courses', [LearningController::class, 'indexCourses']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/learning/courses', [LearningController::class, 'storeCourse']);
+Route::middleware('can:employees,view')->get('/learning/courses/{id}', [LearningController::class, 'showCourse']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/learning/courses/{id}', [LearningController::class, 'updateCourse']);
+Route::middleware('can:employees,view')->get('/learning/enrollments', [LearningController::class, 'indexEnrollments']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/learning/enrollments', [LearningController::class, 'storeEnrollment']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/learning/enrollments/{id}', [LearningController::class, 'updateEnrollment']);
 
 // Corporate Communications
-Route::middleware('can:employees,view')->get('/communications/announcements', [\App\Http\Controllers\Api\CorporateCommunicationsController::class, 'indexAnnouncements']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/communications/announcements', [\App\Http\Controllers\Api\CorporateCommunicationsController::class, 'storeAnnouncement']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/communications/announcements/{id}', [\App\Http\Controllers\Api\CorporateCommunicationsController::class, 'updateAnnouncement']);
-Route::middleware('can:employees,view')->get('/communications/surveys', [\App\Http\Controllers\Api\CorporateCommunicationsController::class, 'indexSurveys']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/communications/surveys', [\App\Http\Controllers\Api\CorporateCommunicationsController::class, 'storeSurvey']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/communications/surveys/{surveyId}/responses', [\App\Http\Controllers\Api\CorporateCommunicationsController::class, 'storeSurveyResponse']);
+Route::middleware('can:employees,view')->get('/communications/announcements', [CorporateCommunicationsController::class, 'indexAnnouncements']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/communications/announcements', [CorporateCommunicationsController::class, 'storeAnnouncement']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/communications/announcements/{id}', [CorporateCommunicationsController::class, 'updateAnnouncement']);
+Route::middleware('can:employees,view')->get('/communications/surveys', [CorporateCommunicationsController::class, 'indexSurveys']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/communications/surveys', [CorporateCommunicationsController::class, 'storeSurvey']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/communications/surveys/{surveyId}/responses', [CorporateCommunicationsController::class, 'storeSurveyResponse']);
 
 // EHS (Environment, Health, Safety)
-Route::middleware('can:employees,view')->get('/ehs/incidents', [\App\Http\Controllers\Api\EhsController::class, 'indexIncidents']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/ehs/incidents', [\App\Http\Controllers\Api\EhsController::class, 'storeIncident']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/ehs/incidents/{id}', [\App\Http\Controllers\Api\EhsController::class, 'updateIncident']);
-Route::middleware('can:employees,view')->get('/ehs/health-records', [\App\Http\Controllers\Api\EhsController::class, 'indexHealthRecords']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/ehs/health-records', [\App\Http\Controllers\Api\EhsController::class, 'storeHealthRecord']);
-Route::middleware('can:employees,view')->get('/ehs/ppe', [\App\Http\Controllers\Api\EhsController::class, 'indexPpe']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/ehs/ppe', [\App\Http\Controllers\Api\EhsController::class, 'storePpe']);
+Route::middleware('can:employees,view')->get('/ehs/incidents', [EhsController::class, 'indexIncidents']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/ehs/incidents', [EhsController::class, 'storeIncident']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/ehs/incidents/{id}', [EhsController::class, 'updateIncident']);
+Route::middleware('can:employees,view')->get('/ehs/health-records', [EhsController::class, 'indexHealthRecords']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/ehs/health-records', [EhsController::class, 'storeHealthRecord']);
+Route::middleware('can:employees,view')->get('/ehs/ppe', [EhsController::class, 'indexPpe']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/ehs/ppe', [EhsController::class, 'storePpe']);
 
 // Wellness Programs
-Route::middleware('can:employees,view')->get('/wellness/programs', [\App\Http\Controllers\Api\WellnessController::class, 'indexPrograms']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/wellness/programs', [\App\Http\Controllers\Api\WellnessController::class, 'storeProgram']);
-Route::middleware('can:employees,view')->get('/wellness/participations', [\App\Http\Controllers\Api\WellnessController::class, 'indexParticipations']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/wellness/participations', [\App\Http\Controllers\Api\WellnessController::class, 'storeParticipation']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/wellness/participations/{id}', [\App\Http\Controllers\Api\WellnessController::class, 'updateParticipation']);
+Route::middleware('can:employees,view')->get('/wellness/programs', [WellnessController::class, 'indexPrograms']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/wellness/programs', [WellnessController::class, 'storeProgram']);
+Route::middleware('can:employees,view')->get('/wellness/participations', [WellnessController::class, 'indexParticipations']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/wellness/participations', [WellnessController::class, 'storeParticipation']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/wellness/participations/{id}', [WellnessController::class, 'updateParticipation']);
 
 // Succession Planning
-Route::middleware('can:employees,view')->get('/succession', [\App\Http\Controllers\Api\SuccessionController::class, 'index']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/succession', [\App\Http\Controllers\Api\SuccessionController::class, 'store']);
-Route::middleware('can:employees,view')->get('/succession/{id}', [\App\Http\Controllers\Api\SuccessionController::class, 'show']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/succession/{id}', [\App\Http\Controllers\Api\SuccessionController::class, 'update']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/succession/{planId}/candidates', [\App\Http\Controllers\Api\SuccessionController::class, 'storeCandidate']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/succession/{planId}/candidates/{candidateId}', [\App\Http\Controllers\Api\SuccessionController::class, 'updateCandidate']);
+Route::middleware('can:employees,view')->get('/succession', [SuccessionController::class, 'index']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/succession', [SuccessionController::class, 'store']);
+Route::middleware('can:employees,view')->get('/succession/{id}', [SuccessionController::class, 'show']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/succession/{id}', [SuccessionController::class, 'update']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/succession/{planId}/candidates', [SuccessionController::class, 'storeCandidate']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/succession/{planId}/candidates/{candidateId}', [SuccessionController::class, 'updateCandidate']);
 
 // Compensation Management
-Route::middleware('can:employees,view')->get('/compensation/plans', [\App\Http\Controllers\Api\CompensationController::class, 'indexPlans']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/compensation/plans', [\App\Http\Controllers\Api\CompensationController::class, 'storePlan']);
-Route::middleware('can:employees,view')->get('/compensation/plans/{id}', [\App\Http\Controllers\Api\CompensationController::class, 'showPlan']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/compensation/plans/{id}', [\App\Http\Controllers\Api\CompensationController::class, 'updatePlan']);
-Route::middleware('can:employees,view')->get('/compensation/entries', [\App\Http\Controllers\Api\CompensationController::class, 'indexEntries']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/compensation/entries', [\App\Http\Controllers\Api\CompensationController::class, 'storeEntry']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/compensation/entries/{id}/status', [\App\Http\Controllers\Api\CompensationController::class, 'updateEntryStatus']);
+Route::middleware('can:employees,view')->get('/compensation/plans', [CompensationController::class, 'indexPlans'])->name('api.compensation.plans.index');
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/compensation/plans', [CompensationController::class, 'storePlan'])->name('api.compensation.plans.store');
+Route::middleware('can:employees,view')->get('/compensation/plans/{id}', [CompensationController::class, 'showPlan'])->name('api.compensation.plans.show');
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/compensation/plans/{id}', [CompensationController::class, 'updatePlan'])->name('api.compensation.plans.update');
+Route::middleware('can:employees,view')->get('/compensation/entries', [CompensationController::class, 'indexEntries'])->name('api.compensation.entries.index');
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/compensation/entries', [CompensationController::class, 'storeEntry'])->name('api.compensation.entries.store');
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/compensation/entries/{id}/status', [CompensationController::class, 'updateEntryStatus'])->name('api.compensation.entries.status');
 
 // Benefits Administration
-Route::middleware('can:employees,view')->get('/benefits/plans', [\App\Http\Controllers\Api\BenefitsController::class, 'indexPlans']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/benefits/plans', [\App\Http\Controllers\Api\BenefitsController::class, 'storePlan']);
-Route::middleware('can:employees,view')->get('/benefits/plans/{id}', [\App\Http\Controllers\Api\BenefitsController::class, 'showPlan']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/benefits/plans/{id}', [\App\Http\Controllers\Api\BenefitsController::class, 'updatePlan']);
-Route::middleware('can:employees,view')->get('/benefits/enrollments', [\App\Http\Controllers\Api\BenefitsController::class, 'indexEnrollments']);
-Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/benefits/enrollments', [\App\Http\Controllers\Api\BenefitsController::class, 'storeEnrollment']);
-Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/benefits/enrollments/{id}', [\App\Http\Controllers\Api\BenefitsController::class, 'updateEnrollment']);
+Route::middleware('can:employees,view')->get('/benefits/plans', [\App\Http\Controllers\Api\BenefitsController::class, 'indexPlans'])->name('api.benefits.plans.index');
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/benefits/plans', [\App\Http\Controllers\Api\BenefitsController::class, 'storePlan'])->name('api.benefits.plans.store');
+Route::middleware('can:employees,view')->get('/benefits/plans/{id}', [\App\Http\Controllers\Api\BenefitsController::class, 'showPlan'])->name('api.benefits.plans.show');
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/benefits/plans/{id}', [\App\Http\Controllers\Api\BenefitsController::class, 'updatePlan'])->name('api.benefits.plans.update');
+Route::middleware('can:employees,view')->get('/benefits/enrollments', [\App\Http\Controllers\Api\BenefitsController::class, 'indexEnrollments'])->name('api.benefits.enrollments.index');
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/benefits/enrollments', [\App\Http\Controllers\Api\BenefitsController::class, 'storeEnrollment'])->name('api.benefits.enrollments.store');
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/benefits/enrollments/{id}', [\App\Http\Controllers\Api\BenefitsController::class, 'updateEnrollment'])->name('api.benefits.enrollments.update');
 
 // Post-Payroll Integrations
 Route::middleware('can:payroll,view')->get('/post-payroll', [\App\Http\Controllers\Api\PostPayrollController::class, 'index']);

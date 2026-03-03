@@ -100,10 +100,10 @@ class InvoicePolicyTest extends TestCase
         
         // Ensure role exists and attach permission
         $role = $this->adminUser->roleRelation;
-        $role->permissions()->create([
-            'module_id' => $permission->id,
-            'can_view' => true,
-        ]);
+        $role->permissions()->updateOrCreate(
+            ['module_id' => $permission->id],
+            ['can_view' => true]
+        );
         
         $this->assertTrue($this->policy->view($this->adminUser, $this->invoice));
     }
@@ -185,10 +185,10 @@ class InvoicePolicyTest extends TestCase
                 'module_name_en' => 'Sales'
             ]
         );
-        $role->permissions()->create([
-            'module_id' => $module->id,
-            'can_delete' => true,
-        ]);
+        $role->permissions()->updateOrCreate(
+            ['module_id' => $module->id],
+            ['can_delete' => true]
+        );
         
         // Reload permissions into session for policy check (simulated)
         // Since policy checks $user->can(), we might need to refresh user or its permissions

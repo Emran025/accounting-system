@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class BenefitsEnrollment extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'plan_id', 'employee_id', 'enrollment_type', 'enrollment_date', 'effective_date',
         'termination_date', 'status', 'coverage_details', 'notes'
