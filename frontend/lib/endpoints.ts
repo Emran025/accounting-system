@@ -360,9 +360,12 @@ export const API_ENDPOINTS = {
                 BASE: "/job-titles",
                 withId: (id: string | number) => `/job-titles/${id}`,
             },
-            CAPACITY_OVERVIEW: "/capacity-overview",
-            EMPLOYEE_USER_LINK: "/employee-user-link",
-            UNLINK_EMPLOYEE: (id: string | number) => `/employee-user-link/${id}`,
+            POSITIONS: {
+                BASE: "/positions",
+                withId: (id: string | number) => `/positions/${id}`,
+                ASSIGN: "/positions/assign-employee",
+                UNASSIGN: (employeeId: string | number) => `/positions/unassign-employee/${employeeId}`,
+            },
             PERMISSION_TEMPLATES: {
                 BASE: "/permission-templates",
                 withId: (id: string | number) => `/permission-templates/${id}`,

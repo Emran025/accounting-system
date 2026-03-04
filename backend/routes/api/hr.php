@@ -278,11 +278,15 @@ Route::middleware('can:employees,view')->get('/job-titles', [\App\Http\Controlle
 Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/job-titles', [\App\Http\Controllers\Api\HrAdministrationController::class, 'storeJobTitle']);
 Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/job-titles/{id}', [\App\Http\Controllers\Api\HrAdministrationController::class, 'updateJobTitle']);
 Route::middleware(['can:employees,delete', 'throttle:api-delete'])->delete('/job-titles/{id}', [\App\Http\Controllers\Api\HrAdministrationController::class, 'destroyJobTitle']);
-Route::middleware('can:employees,view')->get('/capacity-overview', [\App\Http\Controllers\Api\HrAdministrationController::class, 'capacityOverview']);
 
-// HR Administration - Employee-User Linking
-Route::middleware(['can:employees,edit', 'throttle:api-sensitive'])->post('/employee-user-link', [\App\Http\Controllers\Api\HrAdministrationController::class, 'linkEmployeeToUser']);
-Route::middleware(['can:employees,edit', 'throttle:api-delete'])->delete('/employee-user-link/{employeeId}', [\App\Http\Controllers\Api\HrAdministrationController::class, 'unlinkEmployee']);
+// HR Administration - Positions (Central Hierarchy Link: Employee ← Position ← Role ← Permissions, Position ← JobTitle)
+Route::middleware('can:employees,view')->get('/positions', [\App\Http\Controllers\Api\HrAdministrationController::class, 'indexPositions']);
+Route::middleware('can:employees,view')->get('/positions/{id}', [\App\Http\Controllers\Api\HrAdministrationController::class, 'showPosition']);
+Route::middleware(['can:employees,create', 'throttle:api-write'])->post('/positions', [\App\Http\Controllers\Api\HrAdministrationController::class, 'storePosition']);
+Route::middleware(['can:employees,edit', 'throttle:api-write'])->put('/positions/{id}', [\App\Http\Controllers\Api\HrAdministrationController::class, 'updatePosition']);
+Route::middleware(['can:employees,delete', 'throttle:api-delete'])->delete('/positions/{id}', [\App\Http\Controllers\Api\HrAdministrationController::class, 'destroyPosition']);
+Route::middleware(['can:employees,edit', 'throttle:api-sensitive'])->post('/positions/assign-employee', [\App\Http\Controllers\Api\HrAdministrationController::class, 'assignEmployeeToPosition']);
+Route::middleware(['can:employees,edit', 'throttle:api-delete'])->delete('/positions/unassign-employee/{employeeId}', [\App\Http\Controllers\Api\HrAdministrationController::class, 'unassignEmployeeFromPosition']);
 
 // HR Administration - Permission Templates
 Route::middleware('can:employees,view')->get('/permission-templates', [\App\Http\Controllers\Api\HrAdministrationController::class, 'indexTemplates']);

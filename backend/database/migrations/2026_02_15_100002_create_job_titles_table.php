@@ -13,8 +13,6 @@ return new class extends Migration
             $table->string('title_ar');
             $table->string('title_en')->nullable();
             $table->unsignedBigInteger('department_id')->nullable();
-            $table->unsignedInteger('max_headcount')->default(1);
-            $table->unsignedInteger('current_headcount')->default(0);
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->unsignedBigInteger('created_by')->nullable();

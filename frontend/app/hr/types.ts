@@ -602,18 +602,53 @@ export interface BiometricSyncLog {
   created_at?: string;
 }
 
-// ── Phase 2: Job Titles & Capacity Planning ──
+// ── Job Titles ──
 export interface JobTitle {
   id: number;
   title_ar: string;
   title_en?: string;
   department_id?: number;
   department?: { id: number; name_ar: string };
-  max_headcount: number;
-  current_headcount: number;
-  vacancy_count?: number;
   description?: string;
   is_active: boolean;
+  created_at?: string;
+}
+
+// ── Positions (Central Hierarchy Link) ──
+// Relationship chain: Employee ← Position ← Role ← Permissions
+//                     Position ← JobTitle
+export interface Position {
+  id: number;
+  position_code: string;
+  position_name_ar: string;
+  position_name_en?: string;
+  job_title_id: number;
+  job_title?: JobTitle;
+  role_id?: number;
+  role?: Role & {
+    permissions?: Array<{
+      module: { module_key: string; module_name_ar: string };
+      can_view: boolean;
+      can_create: boolean;
+      can_edit: boolean;
+      can_delete: boolean;
+    }>;
+  };
+  department_id?: number;
+  department?: { id: number; name_ar: string };
+  grade_level?: string;
+  min_salary?: number;
+  max_salary?: number;
+  description?: string;
+  is_active: boolean;
+  active_employee_count?: number;
+  employees?: Array<{
+    id: number;
+    full_name: string;
+    employee_code: string;
+    hire_date?: string;
+  }>;
+  created_at?: string;
 }
 
 // ── Phase 2: Permission Templates ──

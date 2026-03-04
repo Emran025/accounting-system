@@ -3,18 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class JobTitle extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'title_ar', 'title_en', 'department_id', 'max_headcount',
-        'current_headcount', 'description', 'is_active', 'created_by'
+        'title_ar',
+        'title_en',
+        'department_id',
+        'description',
+        'is_active',
+        'created_by',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'max_headcount' => 'integer',
-        'current_headcount' => 'integer',
     ];
 
     public function department()
@@ -27,24 +32,16 @@ class JobTitle extends Model
         return $this->hasMany(Employee::class);
     }
 
+    /**
+     * Get all positions under this job title.
+     */
+    public function positions()
+    {
+        return $this->hasMany(Position::class);
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
-    }
-
-    /**
-     * Check if positions are available for this job title.
-     */
-    public function hasVacancy(): bool
-    {
-        return $this->current_headcount < $this->max_headcount;
-    }
-
-    /**
-     * Get remaining capacity.
-     */
-    public function getRemainingCapacity(): int
-    {
-        return max(0, $this->max_headcount - $this->current_headcount);
     }
 }

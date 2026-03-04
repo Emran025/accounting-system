@@ -29,8 +29,6 @@ class HrAdministrationTest extends TestCase
             'title_en' => 'Software Engineer',
             'title_ar' => 'مهندس برمجيات',
             'department_id' => Department::factory()->create()->id,
-            'max_headcount' => 5,
-            'current_headcount' => 0,
             'is_active' => true,
         ]);
 
@@ -49,9 +47,7 @@ class HrAdministrationTest extends TestCase
         $data = [
             'title_en' => 'Senior Developer',
             'title_ar' => 'مطور أول',
-            'department_id' => 1, // Assuming dept 1 exists or is nullable, wait dept is usually required.
-            // Model says department_id is fillable.
-            'max_headcount' => 3,
+            'department_id' => 1,
             'is_active' => true,
         ];
 
@@ -71,18 +67,17 @@ class HrAdministrationTest extends TestCase
         $jobTitle = JobTitle::create([
             'title_en' => 'Junior Dev',
             'title_ar' => 'مطور مبتدئ',
-            'max_headcount' => 10,
         ]);
 
         $updateData = [
             'title_en' => 'Junior Developer',
-            'max_headcount' => 12,
+            'description' => 'Entry-level developer position',
         ];
 
         $response = $this->authPut("/api/job-titles/{$jobTitle->id}", $updateData);
 
         $this->assertSuccessResponse($response);
-        $this->assertDatabaseHas('job_titles', ['title_en' => 'Junior Developer', 'max_headcount' => 12]);
+        $this->assertDatabaseHas('job_titles', ['title_en' => 'Junior Developer', 'description' => 'Entry-level developer position']);
     }
 
     #[Test]
@@ -91,7 +86,6 @@ class HrAdministrationTest extends TestCase
         $jobTitle = JobTitle::create([
             'title_en' => 'Obsolete Role',
             'title_ar' => 'دور قديم',
-            'max_headcount' => 0,
         ]);
 
         $response = $this->authDelete("/api/job-titles/{$jobTitle->id}");
@@ -138,38 +132,5 @@ class HrAdministrationTest extends TestCase
 
         $this->assertSuccessResponse($response, 200);
         $this->assertDatabaseHas('permission_templates', ['template_key' => 'hr_staff']);
-    }
-
-    #[Test]
-    public function it_can_link_employee_to_user()
-    {
-        $employee = Employee::factory()->create();
-        $user = User::factory()->create();
-
-        $data = [
-            'employee_id' => $employee->id,
-            'user_id' => $user->id,
-        ];
-
-        $response = $this->authPost('/api/employee-user-link', $data);
-
-        $this->assertSuccessResponse($response);
-        
-        $employee->refresh();
-        $this->assertEquals($user->id, $employee->user_id);
-    }
-
-    #[Test]
-    public function it_can_unlink_employee_from_user()
-    {
-        $user = User::factory()->create();
-        $employee = Employee::factory()->create(['user_id' => $user->id]);
-
-        $response = $this->authDelete("/api/employee-user-link/{$employee->id}");
-
-        $this->assertSuccessResponse($response);
-
-        $employee->refresh();
-        $this->assertNull($employee->user_id);
     }
 }

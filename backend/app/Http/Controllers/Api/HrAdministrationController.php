@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\JobTitle;
 use App\Models\Employee;
+use App\Models\Position;
 use App\Models\PermissionTemplate;
 use App\Models\Role;
 use App\Models\RolePermission;
@@ -17,7 +18,7 @@ class HrAdministrationController extends Controller
     use BaseApiController;
 
     // ══════════════════════════════════════════════════════
-    // Job Titles & Capacity Planning
+    // Job Titles
     // ══════════════════════════════════════════════════════
 
     public function indexJobTitles(Request $request): JsonResponse
@@ -29,15 +30,18 @@ class HrAdministrationController extends Controller
         }
 
         if ($request->filled('search')) {
-            $query->where('title_ar', 'like', "%{$request->search}%");
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title_ar', 'like', "%{$search}%")
+                  ->orWhere('title_en', 'like', "%{$search}%");
+            });
         }
 
-        $titles = $query->orderBy('title_ar')->get()->map(function ($title) {
-            $actual = Employee::where('job_title_id', $title->id)->where('is_active', true)->count();
-            $title->current_headcount = $actual;
-            $title->vacancy_count = max(0, $title->max_headcount - $actual);
-            return $title;
-        });
+        if ($request->filled('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        $titles = $query->orderBy('title_ar')->get();
 
         return $this->successResponse($titles->toArray());
     }
@@ -48,7 +52,6 @@ class HrAdministrationController extends Controller
             'title_ar' => 'required|string|max:255',
             'title_en' => 'nullable|string|max:255',
             'department_id' => 'nullable|exists:departments,id',
-            'max_headcount' => 'required|integer|min:1',
             'description' => 'nullable|string',
         ]);
 
@@ -66,7 +69,6 @@ class HrAdministrationController extends Controller
             'title_ar' => 'string|max:255',
             'title_en' => 'nullable|string|max:255',
             'department_id' => 'nullable|exists:departments,id',
-            'max_headcount' => 'integer|min:1',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
@@ -79,8 +81,13 @@ class HrAdministrationController extends Controller
     {
         $title = JobTitle::findOrFail($id);
 
+        // Prevent deletion if positions or employees use this job title
+        if (Position::where('job_title_id', $title->id)->exists()) {
+            return $this->errorResponse('لا يمكن حذف مسمى مرتبط بمناصب وظيفية', 422);
+        }
+
         if (Employee::where('job_title_id', $title->id)->exists()) {
-            return $this->errorResponse('Cannot delete job title with assigned employees', 422);
+            return $this->errorResponse('لا يمكن حذف مسمى مرتبط بموظفين', 422);
         }
 
         $title->delete();
@@ -88,29 +95,176 @@ class HrAdministrationController extends Controller
     }
 
     // ══════════════════════════════════════════════════════
-    // Employee-User Linking
+    // Positions Management (Central Hierarchy Link)
+    // Employee ← Position ← Role ← Permissions
+    // Position ← JobTitle
     // ══════════════════════════════════════════════════════
 
-    public function linkEmployeeToUser(Request $request): JsonResponse
+    public function indexPositions(Request $request): JsonResponse
+    {
+        $query = Position::with(['jobTitle', 'role', 'department', 'employees' => function ($q) {
+            $q->where('is_active', true)->select('id', 'full_name', 'employee_code', 'position_id');
+        }]);
+
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->department_id);
+        }
+
+        if ($request->filled('job_title_id')) {
+            $query->where('job_title_id', $request->job_title_id);
+        }
+
+        if ($request->filled('role_id')) {
+            $query->where('role_id', $request->role_id);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('position_name_ar', 'like', "%{$search}%")
+                  ->orWhere('position_name_en', 'like', "%{$search}%")
+                  ->orWhere('position_code', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        $positions = $query->orderBy('position_code')->get()->map(function ($position) {
+            $position->active_employee_count = $position->employees->count();
+            return $position;
+        });
+
+        return $this->successResponse($positions->toArray());
+    }
+
+    public function showPosition($id): JsonResponse
+    {
+        $position = Position::with([
+            'jobTitle',
+            'role.permissions.module',
+            'department',
+            'employees' => function ($q) {
+                $q->where('is_active', true)->select('id', 'full_name', 'employee_code', 'position_id', 'hire_date');
+            }
+        ])->findOrFail($id);
+
+        return $this->successResponse($position->toArray());
+    }
+
+    public function storePosition(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'position_name_ar' => 'required|string|max:255',
+            'position_name_en' => 'nullable|string|max:255',
+            'job_title_id' => 'required|exists:job_titles,id',
+            'role_id' => 'nullable|exists:roles,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'grade_level' => 'nullable|string|max:50',
+            'min_salary' => 'nullable|numeric|min:0',
+            'max_salary' => 'nullable|numeric|min:0',
+            'description' => 'nullable|string',
+        ]);
+
+        $validated['position_code'] = Position::generateCode();
+        $validated['created_by'] = auth()->id();
+
+        $position = Position::create($validated);
+
+        return $this->successResponse(
+            $position->load(['jobTitle', 'role', 'department'])->toArray(),
+            'Position created successfully'
+        );
+    }
+
+    public function updatePosition(Request $request, $id): JsonResponse
+    {
+        $position = Position::findOrFail($id);
+
+        $validated = $request->validate([
+            'position_name_ar' => 'string|max:255',
+            'position_name_en' => 'nullable|string|max:255',
+            'job_title_id' => 'exists:job_titles,id',
+            'role_id' => 'nullable|exists:roles,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'grade_level' => 'nullable|string|max:50',
+            'min_salary' => 'nullable|numeric|min:0',
+            'max_salary' => 'nullable|numeric|min:0',
+            'description' => 'nullable|string',
+            'is_active' => 'boolean',
+        ]);
+
+        $position->update($validated);
+
+        return $this->successResponse(
+            $position->load(['jobTitle', 'role', 'department'])->toArray(),
+            'Position updated successfully'
+        );
+    }
+
+    public function destroyPosition($id): JsonResponse
+    {
+        $position = Position::findOrFail($id);
+
+        if ($position->employees()->where('is_active', true)->exists()) {
+            return $this->errorResponse('Cannot delete position with active employees assigned', 422);
+        }
+
+        $position->delete();
+        return $this->successResponse([], 'Position deleted');
+    }
+
+    /**
+     * Assign an employee to a position.
+     * This is the primary mechanism for linking an employee into the hierarchy.
+     */
+    public function assignEmployeeToPosition(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
-            'user_id' => 'required|exists:users,id',
+            'position_id' => 'required|exists:positions,id',
         ]);
 
         $employee = Employee::findOrFail($validated['employee_id']);
-        $employee->update(['user_id' => $validated['user_id']]);
+        $position = Position::with(['jobTitle', 'role'])->findOrFail($validated['position_id']);
 
-        return $this->successResponse($employee->toArray(), 'Employee linked to user');
+        // Auto-sync the role_id and job_title_id from the position
+        $updateData = [
+            'position_id' => $position->id,
+        ];
+
+        if ($position->role_id) {
+            $updateData['role_id'] = $position->role_id;
+        }
+
+        if ($position->job_title_id) {
+            $updateData['job_title_id'] = $position->job_title_id;
+        }
+
+        if ($position->department_id) {
+            $updateData['department_id'] = $position->department_id;
+        }
+
+        $employee->update($updateData);
+
+        return $this->successResponse(
+            $employee->load(['position.jobTitle', 'position.role', 'department'])->toArray(),
+            'Employee assigned to position successfully'
+        );
     }
 
-    public function unlinkEmployee($employeeId): JsonResponse
+    /**
+     * Remove an employee from their position.
+     */
+    public function unassignEmployeeFromPosition($employeeId): JsonResponse
     {
         $employee = Employee::findOrFail($employeeId);
-        $employee->update(['user_id' => null]);
+        $employee->update(['position_id' => null]);
 
-        return $this->successResponse([], 'Employee unlinked from user');
+        return $this->successResponse([], 'Employee removed from position');
     }
+
 
     // ══════════════════════════════════════════════════════
     // Permission Templates
@@ -186,30 +340,5 @@ class HrAdministrationController extends Controller
         return $this->successResponse([], 'Template applied to role');
     }
 
-    // ══════════════════════════════════════════════════════
-    // Capacity Overview Dashboard
-    // ══════════════════════════════════════════════════════
-
-    public function capacityOverview(): JsonResponse
-    {
-        $titles = JobTitle::with('department')->where('is_active', true)->get()->map(function ($title) {
-            $actual = Employee::where('job_title_id', $title->id)->where('is_active', true)->count();
-            return [
-                'id' => $title->id,
-                'title_ar' => $title->title_ar,
-                'department' => $title->department?->name_ar ?? 'غير محدد',
-                'max_headcount' => $title->max_headcount,
-                'current_headcount' => $actual,
-                'vacancy_count' => max(0, $title->max_headcount - $actual),
-                'utilization_pct' => $title->max_headcount > 0 ? round(($actual / $title->max_headcount) * 100) : 0,
-            ];
-        });
-
-        return $this->successResponse([
-            'job_titles' => $titles,
-            'total_positions' => $titles->sum('max_headcount'),
-            'total_filled' => $titles->sum('current_headcount'),
-            'total_vacancies' => $titles->sum('vacancy_count'),
-        ]);
-    }
 }
+

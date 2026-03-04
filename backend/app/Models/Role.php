@@ -43,4 +43,12 @@ class Role extends Model
     {
         return $this->hasMany(RolePermission::class);
     }
+
+    /**
+     * Get all positions assigned this role.
+     */
+    public function positions(): HasMany
+    {
+        return $this->hasMany(Position::class);
+    }
 }

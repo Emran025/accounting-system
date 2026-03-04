@@ -15,7 +15,7 @@ import {
     FileText, FileCheck, Scroll, Globe, Laptop, Book, HardHat, HeartPulse,
     CalendarDays, UserCheck, Plane, Megaphone, GraduationCap, Heart, EyeOff,
     Send, Filter, Handshake, CheckCheck, Play, Star, Pause, ThumbsUp, Upload,
-    Delete, PanelRight, LucideGalleryHorizontalEnd, ArrowUp, Menu,
+    Delete, PanelRight, LucideGalleryHorizontalEnd, ArrowUp, Menu,Unlink
 } from 'lucide-react';
 
 interface IconProps {
@@ -148,6 +148,7 @@ export const icons = {
     "panel-right": (props: IconProps) => <PanelRight className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     "arrow-up": (props: IconProps) => <ArrowUp className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     menu: (props: IconProps) => <Menu className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    unlink: (props: IconProps) => <Unlink className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     // "panel-right-close": (props: IconProps) => <PanelRightClose className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     // "panel-right-open": (props: IconProps) => <PanelRightOpen className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
 };
