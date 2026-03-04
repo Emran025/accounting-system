@@ -17,6 +17,12 @@ interface TopGlobalBarProps {
      * When omitted, the title is derived from the navigation configuration.
      */
     titleOverride?: string;
+
+    /**
+     * Optional mobile sidebar toggle button (rendered at the start of the bar).
+     * Hidden on desktop via CSS.
+     */
+    mobileSidebarToggle?: React.ReactNode;
 }
 
 
@@ -25,7 +31,7 @@ interface SearchResultItem {
     group: NavigationGroup;
 }
 
-export function TopGlobalBar({ onNavigate , titleOverride }: TopGlobalBarProps) {
+export function TopGlobalBar({ onNavigate, titleOverride, mobileSidebarToggle }: TopGlobalBarProps) {
     const pathname = usePathname();
     const [query, setQuery] = useState("");
     const { permissions } = useAuthStore();
@@ -73,6 +79,9 @@ export function TopGlobalBar({ onNavigate , titleOverride }: TopGlobalBarProps) 
 
     return (
         <header className="top-global-bar">
+            {/* Mobile sidebar toggle */}
+            {mobileSidebarToggle}
+
             {/* Left: Global menus */}
             <GlobalMenus />
 

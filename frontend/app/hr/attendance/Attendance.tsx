@@ -175,45 +175,50 @@ export function Attendance() {
       />
 
       <div className="sales-card compact" style={{ marginBottom: '1.5rem' }}>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="flex flex-col gap-1">
-            <Label className="text-secondary mb-1">الموظف</Label>
-            <SearchableSelect
-              options={employees.map((emp: Employee) => ({ value: emp.id.toString(), label: emp.full_name }))}
-              value={selectedEmployee?.toString() || ""}
-              onChange={(value) => setSelectedEmployee(value ? Number(value) : null)}
-              placeholder="اختر الموظف"
-            />
-          </div>
-          <TextInput
-            label="من تاريخ"
-            type="date"
-            value={startDate}
-            onChange={(e) => {
-              setStartDate(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-          <TextInput
-            label="إلى تاريخ"
-            type="date"
-            value={endDate}
-            onChange={(e) => {
-              setEndDate(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-          <div className="flex items-end">
-            <Button
-              onClick={loadAttendance}
-              disabled={!selectedEmployee}
-              variant="primary"
-              icon="search"
-              style={{ width: '100%' }}>
-              بحث
-            </Button>
-          </div>
-        </div>
+        <PageSubHeader
+          searchInput={
+            <div className="form-group">
+              <Label className="text-secondary mb-1">الموظف</Label>
+              <SearchableSelect
+                options={employees.map((emp: Employee) => ({ value: emp.id.toString(), label: emp.full_name }))}
+                value={selectedEmployee?.toString() || ""}
+                onChange={(value) => setSelectedEmployee(value ? Number(value) : null)}
+                placeholder="اختر الموظف"
+              />
+            </div>
+          }
+
+          actions={
+            <>
+              <TextInput
+                label="من تاريخ"
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+              <TextInput
+                label="إلى تاريخ"
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+              <Button
+                onClick={loadAttendance}
+                disabled={!selectedEmployee}
+                variant="primary"
+                icon="search"
+                style={{ width: '100%' }}>
+                بحث
+              </Button>
+            </>
+          }
+        />
       </div>
 
       {summary && (

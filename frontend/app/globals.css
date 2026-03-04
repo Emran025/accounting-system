@@ -10,7 +10,7 @@
   --primary-light: #8192a580;
   /* Blue 300 */
   --primary-subtle: #ffffff73;
-  
+
   /* Blue 50 */
 
   --secondary-color: #10b981;
@@ -269,6 +269,7 @@ body:not(:has(.sidebar)) .content {
 .page-header {
   display: grid;
   grid-template-columns: 2fr 5fr;
+  gap: 1rem;
   align-items: center;
   margin-bottom: 1rem;
 }
@@ -4273,7 +4274,7 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
   padding: 0.5rem 1rem;
   /* background: transparent; */
   border: none;
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.2);
   font-size: 0.84rem;
   font-weight: 700;
   font-family: "cairo";
@@ -5213,25 +5214,64 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
   opacity: 0.8;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   RESPONSIVE — Tablet (≤1024px)
+   ═══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 1024px) {
   .test-shell-column {
     width: 100% !important;
     margin-right: 0 !important;
   }
 
-  .search-navigation-bar {
-    padding-inline: 1rem;
+  /* ─── Top Global Bar — tablet ─── */
+  .top-global-bar {
+    padding: 0.25rem 0.75rem 0;
+    gap: 0.5rem;
   }
-}
 
-/* ─── Mobile Responsive ─── */
-@media (max-width: 1024px) {
+  .top-global-menus {
+    gap: 0.25rem;
+  }
+
+  .top-global-menu-btn {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.35rem;
+  }
+
+  .top-global-session {
+    gap: 0.5rem;
+  }
+
+  .top-global-session-label {
+    display: none;
+  }
+
+  /* ─── Search Navigation Bar — tablet ─── */
+  .search-navigation-bar {
+    padding-inline: 0.75rem;
+    gap: 0.35rem;
+  }
+
+  .top-global-title {
+    font-size: 0.9rem;
+  }
+
+  /* ─── Status Bar — tablet ─── */
+  .status-notification-bar {
+    padding: 0.2rem 0.75rem;
+  }
+
+  /* ─── Sidebar — tablet ─── */
   .side-navigation-bar {
     width: 300px !important;
     right: -310px;
     transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: none;
     height: 100vh;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
   }
 
   .side-navigation-bar.mobile-visible {
@@ -5248,12 +5288,240 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
     margin-right: 0;
     padding: 1rem;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile (≤768px)
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ─── Top Global Bar — mobile ─── */
+  .top-global-bar {
+    padding: 0.2rem 0.5rem 0;
+    gap: 0.35rem;
+    flex-wrap: nowrap;
+    min-height: 32px;
+  }
+
+  /* Hide the search bar on mobile — sidebar has full nav */
+  .top-global-bar>div[style] {
+    display: none;
+  }
+
+  .top-global-menus {
+    gap: 0.15rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .top-global-menus::-webkit-scrollbar {
+    display: none;
+  }
+
+  .top-global-menu-btn {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.25rem;
+    white-space: nowrap;
+  }
+
+  .top-global-meta {
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .top-global-user-text {
+    display: none;
+  }
+
+  .top-global-session {
+    display: none;
+  }
+
+  .top-global-user-icon .icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .top-global-icon-btn {
+    padding: 0.15rem;
+  }
+
+  .top-global-icon-btn .icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* ─── Search Navigation Bar — mobile ─── */
+  .search-navigation-bar {
+    padding: 0.25rem 0.5rem;
+    gap: 0.25rem;
+    min-height: 30px;
+  }
+
+  .search-nav-controls {
+    gap: 0.25rem;
+    margin-left: 0.25rem;
+  }
+
+  .search-nav-icon-btn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .search-nav-icon-btn .icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  .top-global-title {
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Compact breadcrumbs on mobile */
+  .address-bar-container {
+    height: 26px;
+  }
+
+  .address-bar-breadcrumb {
+    font-size: 0.72rem;
+  }
+
+  .address-bar-crumb {
+    font-size: 0.72rem;
+    padding: 0.1rem 0.35rem;
+  }
+
+  /* ─── Status Bar — mobile ─── */
+  .status-notification-bar {
+    padding: 0.15rem 0.5rem;
+    font-size: 0.68rem;
+  }
+
+  .status-notification-icon .icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  .status-notification-env {
+    font-size: 0.65rem;
+  }
+
+  /* ─── Main Content — mobile ─── */
+  .main-layout-content {
+    padding: 0.5rem 0.75rem 3rem 0.75rem;
+  }
+
+  /* ─── Sidebar — mobile ─── */
+  .side-navigation-bar {
+    width: 280px !important;
+    right: -290px;
+  }
+
+  .side-navigation-bar.collapsed {
+    width: 280px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESPONSIVE — Small Mobile (≤480px)
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .top-global-bar {
+    padding: 0.15rem 0.35rem 0;
+  }
+
+  .top-global-menu-btn {
+    font-size: 0.62rem;
+    padding: 0.1rem 0.2rem;
+  }
+
+  .search-navigation-bar {
+    padding: 0.2rem 0.35rem;
+  }
+
+  /* Hide the breadcrumb trail on very small screens, keep title and controls */
+  .address-bar-container {
+    display: none;
+  }
+
+  .top-global-title {
+    font-size: 0.75rem;
+  }
+
+  .status-notification-bar {
+    padding: 0.1rem 0.35rem;
+    font-size: 0.62rem;
+  }
+
+  .status-notification-env {
+    display: none;
+  }
 
   .side-navigation-bar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    height: 100vh;
-    z-index: 1000;
+    width: 260px !important;
+    right: -270px;
+  }
+
+  .side-navigation-bar.collapsed {
+    width: 260px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Mobile Sidebar Toggle Button (hamburger)
+   Only visible on ≤1024px screens
+   ═══════════════════════════════════════════════════════════════════════ */
+.mobile-sidebar-toggle {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .mobile-sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--surface-white);
+    cursor: pointer;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .mobile-sidebar-toggle:hover {
+    color: var(--primary-color);
+    border-color: var(--primary-light);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .mobile-sidebar-toggle:active {
+    transform: scale(0.95);
+  }
+
+  .mobile-sidebar-toggle .icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-sidebar-toggle {
+    width: 28px;
+    height: 28px;
+  }
+
+  .mobile-sidebar-toggle .icon {
+    width: 14px;
+    height: 14px;
   }
 }

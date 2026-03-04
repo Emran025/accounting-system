@@ -31,9 +31,13 @@ function getModuleColor(key: string): string {
 /* ─────────────────── SideNavigationBar Component ──────────────────── */
 interface SideNavigationBarProps {
     onCollapsedChange?: (collapsed: boolean) => void;
+    /** Externally controlled mobile sidebar visibility */
+    externalMobileOpen?: boolean;
+    /** Callback when mobile sidebar should be closed */
+    onExternalMobileClose?: () => void;
 }
 
-export function SideNavigationBar({ onCollapsedChange }: SideNavigationBarProps) {
+export function SideNavigationBar({ onCollapsedChange, externalMobileOpen, onExternalMobileClose }: SideNavigationBarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const { permissions } = useAuthStore();
@@ -70,6 +74,13 @@ export function SideNavigationBar({ onCollapsedChange }: SideNavigationBarProps)
     } | null>(null);
     const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
     const sidebarRef = useRef<HTMLElement>(null);
+
+    // Sync external mobile open state
+    useEffect(() => {
+        if (externalMobileOpen !== undefined) {
+            setIsMobileOpen(externalMobileOpen);
+        }
+    }, [externalMobileOpen]);
 
     // Track current screen in recent
     useEffect(() => {
@@ -150,6 +161,7 @@ export function SideNavigationBar({ onCollapsedChange }: SideNavigationBarProps)
     const handleScreenClick = (href: string) => {
         addRecentScreen(href);
         setIsMobileOpen(false);
+        onExternalMobileClose?.();
         if (autoCollapseOnNavigate && isDesktop) {
             setSideNavCollapsed(true);
         }
@@ -159,6 +171,7 @@ export function SideNavigationBar({ onCollapsedChange }: SideNavigationBarProps)
     const handleFolderClick = (folderKey: string) => {
         router.push(`/navigation?group=${folderKey}`);
         setIsMobileOpen(false);
+        onExternalMobileClose?.();
     };
 
     /* ── Context Menu ── */
@@ -222,7 +235,10 @@ export function SideNavigationBar({ onCollapsedChange }: SideNavigationBarProps)
             {/* Mobile overlay */}
             <div
                 className={`sidenav-overlay ${isMobileOpen ? "active" : ""}`}
-                onClick={() => setIsMobileOpen(false)}
+                onClick={() => {
+                    setIsMobileOpen(false);
+                    onExternalMobileClose?.();
+                }}
             />
 
             {/* ── Main Sidebar ── */}

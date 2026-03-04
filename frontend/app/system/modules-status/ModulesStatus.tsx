@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Column, Select } from "@/components/ui";
+import { Table, Column, Select, StatsCard } from "@/components/ui";
 import { getIcon } from "@/lib/icons";
 import { PageSubHeader } from "@/components/layout";
 
@@ -164,22 +164,30 @@ export function ModulesStatus() {
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-        <div className="stat-card" style={{ padding: '1.5rem', background: 'var(--surface-white)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>{stats.total}</div>
-          <div style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>إجمالي الوحدات</div>
-        </div>
-        <div className="stat-card" style={{ padding: '1.5rem', background: 'var(--surface-white)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--success-color)' }}>{stats.operational}</div>
-          <div style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>جاهز للعمل</div>
-        </div>
-        <div className="stat-card" style={{ padding: '1.5rem', background: 'var(--surface-white)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--info-color)' }}>{stats.complete}</div>
-          <div style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>مكتمل بالكامل</div>
-        </div>
-        <div className="stat-card" style={{ padding: '1.5rem', background: 'var(--surface-white)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--success-color)' }}>100%</div>
-          <div style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>نسبة الإنجاز</div>
-        </div>
+        <StatsCard
+          title="إجمالي الوحدات"
+          value={stats.total}
+          icon={getIcon("sitemap")}
+          colorClass="total"
+        />
+        <StatsCard
+          title="جاهز للعمل"
+          value={stats.operational}
+          icon={getIcon("check-circle")}
+          colorClass="sales"
+        />
+        <StatsCard
+          title="مكتمل بالكامل"
+          value={stats.complete}
+          icon={getIcon("box")}
+          colorClass="products"
+        />
+        <StatsCard
+          title="نسبة الإنجاز"
+          value="100%"
+          icon={getIcon("trending-up")}
+          colorClass="default"
+        />
       </div>
 
       <Table

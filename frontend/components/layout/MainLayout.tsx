@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, ReactNode, Suspense } from "react";
+import { useEffect, useState, ReactNode, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import {
   SideNavigationBar,
@@ -12,6 +12,7 @@ import { ToastContainer, FullLogo } from "@/components/ui";
 import { initSystemSettings } from "@/lib/settings";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useUIStore } from "@/stores/useUIStore";
+import { getIcon } from "@/lib/icons";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -34,6 +35,7 @@ export function MainLayout({
 
   const { isLoading, checkAuth } = useAuthStore();
   const { sideNavCollapsed, sideNavWidth, setSideNavCollapsed } = useUIStore();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -96,7 +98,7 @@ export function MainLayout({
               margin: "0 auto 1rem",
             }}
           />
-          <p style={{ color: "var(--text-secondary)" }}>Loading...</p>
+          <p style={{ color: "var(--text-secondary)" }}>جارِ التحميل</p>
         </div>
         <style jsx>{`
           @keyframes spin {
@@ -113,14 +115,29 @@ export function MainLayout({
     <div className="test-shell-column">
       <div>
         <Suspense fallback={<div className="top-global-bar" />}>
-          <TopGlobalBar />
+          <TopGlobalBar
+            mobileSidebarToggle={
+              <button
+                type="button"
+                className="mobile-sidebar-toggle"
+                aria-label="فتح القائمة الجانبية"
+                onClick={() => setMobileOpen((prev) => !prev)}
+              >
+                {getIcon("menu")}
+              </button>
+            }
+          />
         </Suspense>
         <Suspense fallback={<div className="search-navigation-bar" />}>
           <SearchNavigationBar />
         </Suspense>
       </div>
       <div className="test-main-container">
-        <SideNavigationBar onCollapsedChange={setSideNavCollapsed} />
+        <SideNavigationBar
+          onCollapsedChange={setSideNavCollapsed}
+          externalMobileOpen={mobileOpen}
+          onExternalMobileClose={() => setMobileOpen(false)}
+        />
         <main className="main-layout-content" >
           <FullLogo isWatermark={isWatermark} type="LogoVertical" size={{ width: 600, height: 600 }}>
             {children}
@@ -144,3 +161,4 @@ export function useAuth() {
     permissions: store.permissions
   };
 }
+
