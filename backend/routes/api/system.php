@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\SessionsController;
 use App\Http\Controllers\Api\AuditTrailController;
 use App\Http\Controllers\Api\SystemTemplateController;
 use App\Http\Controllers\Api\OrgStructureController;
+use App\Http\Controllers\Api\OrgIntegrationController;
 use App\Http\Controllers\Api\TaxEngineController;
 
 // Organizational Structure (SAP SPRO-style)
@@ -46,6 +47,37 @@ Route::prefix('org-structure')->group(function () {
     Route::middleware(['can:org_structure,delete', 'throttle:api-delete'])->group(function () {
         Route::delete('/nodes/{uuid}', [OrgStructureController::class, 'destroyNode'])->name('api.org_structure.nodes.destroy');
         Route::delete('/links/{id}', [OrgStructureController::class, 'destroyLink'])->name('api.org_structure.links.destroy');
+    });
+});
+
+// ── Organizational Integration Service ──────────────────────────────────
+Route::prefix('org-integration')->group(function () {
+    // Read-only: status & issues
+    Route::middleware('can:org_structure,view')->group(function () {
+        Route::get('/status', [OrgIntegrationController::class, 'status'])->name('api.org_integration.status');
+        Route::get('/issues', [OrgIntegrationController::class, 'issues'])->name('api.org_integration.issues');
+        Route::get('/job-titles/{id}/mapping', [OrgIntegrationController::class, 'jobTitleMapping'])->name('api.org_integration.job_title_mapping');
+    });
+
+    // Sync & open/close operations
+    Route::middleware(['can:org_structure,edit', 'throttle:api-write'])->group(function () {
+        // Single sync
+        Route::post('/sync/cost-center/{id}', [OrgIntegrationController::class, 'syncCostCenter'])->name('api.org_integration.sync_cost_center');
+        Route::post('/sync/profit-center/{id}', [OrgIntegrationController::class, 'syncProfitCenter'])->name('api.org_integration.sync_profit_center');
+        Route::post('/sync/node/{uuid}', [OrgIntegrationController::class, 'syncNodeToTable'])->name('api.org_integration.sync_node');
+        Route::post('/sync/job-title/{id}', [OrgIntegrationController::class, 'syncJobTitle'])->name('api.org_integration.sync_job_title');
+
+        // Open / Close
+        Route::post('/open-center', [OrgIntegrationController::class, 'openCenter'])->name('api.org_integration.open_center');
+        Route::post('/close-center', [OrgIntegrationController::class, 'closeCenter'])->name('api.org_integration.close_center');
+    });
+
+    // Bulk operations – critical tier
+    Route::middleware(['can:org_structure,edit', 'throttle:api-critical'])->group(function () {
+        Route::post('/bulk-sync/cost-centers', [OrgIntegrationController::class, 'bulkSyncCostCenters'])->name('api.org_integration.bulk_sync_cost');
+        Route::post('/bulk-sync/profit-centers', [OrgIntegrationController::class, 'bulkSyncProfitCenters'])->name('api.org_integration.bulk_sync_profit');
+        Route::post('/bulk-sync/nodes-to-tables', [OrgIntegrationController::class, 'bulkSyncNodesToTables'])->name('api.org_integration.bulk_sync_nodes');
+        Route::post('/bulk-sync/job-titles', [OrgIntegrationController::class, 'bulkSyncJobTitles'])->name('api.org_integration.bulk_sync_titles');
     });
 });
 

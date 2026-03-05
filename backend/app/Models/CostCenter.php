@@ -42,6 +42,7 @@ class CostCenter extends Model
         'description',
         'is_active',
         'created_by',
+        'structure_node_uuid',
     ];
 
     protected function casts(): array
@@ -82,5 +83,13 @@ class CostCenter extends Model
     public function ledgerEntries(): HasMany
     {
         return $this->hasMany(GeneralLedger::class, 'cost_center_id');
+    }
+
+    /**
+     * Get the linked org-chart structure node.
+     */
+    public function structureNode(): BelongsTo
+    {
+        return $this->belongsTo(StructureNode::class, 'structure_node_uuid', 'node_uuid');
     }
 }

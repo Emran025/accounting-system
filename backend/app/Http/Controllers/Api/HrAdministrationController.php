@@ -10,12 +10,18 @@ use App\Models\PermissionTemplate;
 use App\Models\Role;
 use App\Models\RolePermission;
 use App\Models\Module;
+use App\Services\OrgIntegrationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class HrAdministrationController extends Controller
 {
     use BaseApiController;
+
+    public function __construct(
+        private readonly OrgIntegrationService $orgIntegration,
+    ) {}
 
     // ══════════════════════════════════════════════════════
     // Job Titles
@@ -73,8 +79,24 @@ class HrAdministrationController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        $title->update($validated);
-        return $this->successResponse($title->load('department')->toArray(), 'Job title updated');
+        $result = DB::transaction(function () use ($title, $validated) {
+            $title->update($validated);
+
+            // SAP-style: auto-propagate to all linked positions & employees
+            $posUpdated = $this->orgIntegration->syncJobTitleToPositions($title->fresh());
+            $empUpdated = $this->orgIntegration->syncJobTitleToEmployees($title->fresh());
+
+            return [
+                'title' => $title->load('department'),
+                'positions_synced' => $posUpdated,
+                'employees_synced' => $empUpdated,
+            ];
+        });
+
+        return $this->successResponse(
+            $result['title']->toArray(),
+            "تم تحديث المسمى الوظيفي — {$result['positions_synced']} منصب و {$result['employees_synced']} موظف تم مزامنتهم"
+        );
     }
 
     public function destroyJobTitle($id): JsonResponse

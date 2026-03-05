@@ -35,6 +35,7 @@ interface CostCenter {
     children_count: number;
     recorder_name?: string;
     created_at: string;
+    structure_node_uuid?: string;
 }
 
 interface Account {
@@ -179,6 +180,33 @@ export default function CostCentersPage() {
         if (pct >= 100) return "#ef4444";
         if (pct >= 80) return "#f59e0b";
         return "#10b981";
+    };
+
+    // ── Open/Close centre (SAP-style) ────────────────────────
+    const toggleCenterStatus = async (id: number, currentlyActive: boolean) => {
+        try {
+            const endpoint = currentlyActive
+                ? API_ENDPOINTS.SYSTEM.ORG_INTEGRATION.CLOSE_CENTER
+                : API_ENDPOINTS.SYSTEM.ORG_INTEGRATION.OPEN_CENTER;
+
+            const response = await fetchAPI(endpoint, {
+                method: "POST",
+                body: JSON.stringify({ type: "cost", id }),
+            });
+
+            if (response.success) {
+                showAlert(
+                    "alert-container",
+                    currentlyActive ? "تم إغلاق المركز وتحديث الهيكل التنظيمي" : "تم فتح المركز وتحديث الهيكل التنظيمي",
+                    "success"
+                );
+                await Promise.all([loadCenters(currentPage, searchTerm, filterType), loadLookups()]);
+            } else {
+                showAlert("alert-container", response.message || "فشل تغيير حالة المركز", "error");
+            }
+        } catch {
+            showAlert("alert-container", "خطأ في الاتصال", "error");
+        }
     };
 
     // ── Dialog handlers ──────────────────────────────────────
@@ -388,9 +416,29 @@ export default function CostCentersPage() {
             header: "الحالة",
             dataLabel: "الحالة",
             render: (item) => (
-                <span className={`badge ${item.is_active ? "badge-success" : "badge-danger"}`}>
-                    {item.is_active ? "نشط" : "غير نشط"}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span className={`badge ${item.is_active ? "badge-success" : "badge-danger"}`}>
+                        {item.is_active ? "مفتوح" : "مغلق"}
+                    </span>
+                    {item.structure_node_uuid && (
+                        <span
+                            title="مرتبط بالهيكل التنظيمي"
+                            style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                width: "18px",
+                                height: "18px",
+                                borderRadius: "50%",
+                                background: "rgba(16, 185, 129, 0.15)",
+                                color: "#10b981",
+                                fontSize: "0.7rem",
+                            }}
+                        >
+                            ✓
+                        </span>
+                    )}
+                </div>
             ),
         },
         {
@@ -400,6 +448,13 @@ export default function CostCentersPage() {
             render: (item) => (
                 <ActionButtons
                     actions={[
+                        {
+                            icon: item.is_active ? "x-octagon" : "check-circle",
+                            title: item.is_active ? "إغلاق المركز" : "فتح المركز",
+                            variant: item.is_active ? "warning" : "success",
+                            onClick: () => toggleCenterStatus(item.id, item.is_active),
+                            hidden: !canAccess(permissions, "chart_of_accounts", "edit"),
+                        },
                         {
                             icon: "edit",
                             title: "تعديل",

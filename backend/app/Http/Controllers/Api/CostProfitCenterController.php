@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CostCenter;
 use App\Models\ProfitCenter;
 use App\Models\GeneralLedger;
+use App\Services\OrgIntegrationService;
 use App\Services\TelescopeService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +15,10 @@ use Illuminate\Support\Facades\DB;
 class CostProfitCenterController extends Controller
 {
     use BaseApiController;
+
+    public function __construct(
+        private readonly OrgIntegrationService $orgIntegration,
+    ) {}
 
     // ═══════════════════════════════════════════════════════════════════
     // COST CENTERS
@@ -114,16 +119,26 @@ class CostProfitCenterController extends Controller
             'is_active'   => 'nullable|boolean',
         ]);
 
-        $center = CostCenter::create([
-            ...$validated,
-            'type'       => $validated['type'] ?? 'operational',
-            'is_active'  => $validated['is_active'] ?? true,
-            'created_by' => auth()->id() ?? session('user_id'),
-        ]);
+        $result = DB::transaction(function () use ($validated) {
+            $center = CostCenter::create([
+                ...$validated,
+                'type'       => $validated['type'] ?? 'operational',
+                'is_active'  => $validated['is_active'] ?? true,
+                'created_by' => auth()->id() ?? session('user_id'),
+            ]);
 
-        TelescopeService::logOperation('CREATE', 'cost_centers', $center->id, null, $validated);
+            // SAP-style: atomically create org-chart node
+            $node = $this->orgIntegration->syncCostCenterToOrgChart($center);
 
-        return $this->successResponse(['id' => $center->id], 'تم إنشاء مركز التكلفة بنجاح');
+            TelescopeService::logOperation('CREATE', 'cost_centers', $center->id, null, $validated);
+
+            return ['center' => $center->fresh(), 'node_uuid' => $node->node_uuid];
+        });
+
+        return $this->successResponse([
+            'id'        => $result['center']->id,
+            'node_uuid' => $result['node_uuid'],
+        ], 'تم إنشاء مركز التكلفة وربطه بالهيكل التنظيمي');
     }
 
     /**
@@ -175,12 +190,17 @@ class CostProfitCenterController extends Controller
             return $this->errorResponse('لا يمكن تعيين المركز كأب لنفسه', 422);
         }
 
-        $oldValues = $center->toArray();
-        $center->update($validated);
+        DB::transaction(function () use ($center, $validated) {
+            $oldValues = $center->toArray();
+            $center->update($validated);
 
-        TelescopeService::logOperation('UPDATE', 'cost_centers', $center->id, $oldValues, $validated);
+            // SAP-style: atomically mirror update to org-chart
+            $this->orgIntegration->syncCostCenterToOrgChart($center->fresh());
 
-        return $this->successResponse([], 'تم تحديث مركز التكلفة بنجاح');
+            TelescopeService::logOperation('UPDATE', 'cost_centers', $center->id, $oldValues, $validated);
+        });
+
+        return $this->successResponse([], 'تم تحديث مركز التكلفة والهيكل التنظيمي');
     }
 
     /**
@@ -201,12 +221,23 @@ class CostProfitCenterController extends Controller
             return $this->errorResponse('لا يمكن حذف مركز تكلفة لديه مراكز فرعية', 422);
         }
 
-        $oldValues = $center->toArray();
-        $center->delete();
+        DB::transaction(function () use ($center, $id) {
+            $oldValues = $center->toArray();
 
-        TelescopeService::logOperation('DELETE', 'cost_centers', $id, $oldValues, null);
+            // SAP-style: archive the org-chart node (don't delete — preserve history)
+            if ($center->structure_node_uuid) {
+                $node = \App\Models\StructureNode::find($center->structure_node_uuid);
+                if ($node) {
+                    $node->update(['status' => 'archived', 'updated_by' => auth()->id()]);
+                }
+            }
 
-        return $this->successResponse([], 'تم حذف مركز التكلفة بنجاح');
+            $center->delete();
+
+            TelescopeService::logOperation('DELETE', 'cost_centers', $id, $oldValues, null);
+        });
+
+        return $this->successResponse([], 'تم حذف مركز التكلفة وأرشفة العقدة التنظيمية');
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -310,16 +341,26 @@ class CostProfitCenterController extends Controller
             'is_active'          => 'nullable|boolean',
         ]);
 
-        $center = ProfitCenter::create([
-            ...$validated,
-            'type'       => $validated['type'] ?? 'business_unit',
-            'is_active'  => $validated['is_active'] ?? true,
-            'created_by' => auth()->id() ?? session('user_id'),
-        ]);
+        $result = DB::transaction(function () use ($validated) {
+            $center = ProfitCenter::create([
+                ...$validated,
+                'type'       => $validated['type'] ?? 'business_unit',
+                'is_active'  => $validated['is_active'] ?? true,
+                'created_by' => auth()->id() ?? session('user_id'),
+            ]);
 
-        TelescopeService::logOperation('CREATE', 'profit_centers', $center->id, null, $validated);
+            // SAP-style: atomically create org-chart node
+            $node = $this->orgIntegration->syncProfitCenterToOrgChart($center);
 
-        return $this->successResponse(['id' => $center->id], 'تم إنشاء مركز الربح بنجاح');
+            TelescopeService::logOperation('CREATE', 'profit_centers', $center->id, null, $validated);
+
+            return ['center' => $center->fresh(), 'node_uuid' => $node->node_uuid];
+        });
+
+        return $this->successResponse([
+            'id'        => $result['center']->id,
+            'node_uuid' => $result['node_uuid'],
+        ], 'تم إنشاء مركز الربح وربطه بالهيكل التنظيمي');
     }
 
     /**
@@ -373,12 +414,17 @@ class CostProfitCenterController extends Controller
             return $this->errorResponse('لا يمكن تعيين المركز كأب لنفسه', 422);
         }
 
-        $oldValues = $center->toArray();
-        $center->update($validated);
+        DB::transaction(function () use ($center, $validated) {
+            $oldValues = $center->toArray();
+            $center->update($validated);
 
-        TelescopeService::logOperation('UPDATE', 'profit_centers', $center->id, $oldValues, $validated);
+            // SAP-style: atomically mirror update to org-chart
+            $this->orgIntegration->syncProfitCenterToOrgChart($center->fresh());
 
-        return $this->successResponse([], 'تم تحديث مركز الربح بنجاح');
+            TelescopeService::logOperation('UPDATE', 'profit_centers', $center->id, $oldValues, $validated);
+        });
+
+        return $this->successResponse([], 'تم تحديث مركز الربح والهيكل التنظيمي');
     }
 
     /**
@@ -397,12 +443,23 @@ class CostProfitCenterController extends Controller
             return $this->errorResponse('لا يمكن حذف مركز ربح لديه مراكز فرعية', 422);
         }
 
-        $oldValues = $center->toArray();
-        $center->delete();
+        DB::transaction(function () use ($center, $id) {
+            $oldValues = $center->toArray();
 
-        TelescopeService::logOperation('DELETE', 'profit_centers', $id, $oldValues, null);
+            // SAP-style: archive the org-chart node (preserve history)
+            if ($center->structure_node_uuid) {
+                $node = \App\Models\StructureNode::find($center->structure_node_uuid);
+                if ($node) {
+                    $node->update(['status' => 'archived', 'updated_by' => auth()->id()]);
+                }
+            }
 
-        return $this->successResponse([], 'تم حذف مركز الربح بنجاح');
+            $center->delete();
+
+            TelescopeService::logOperation('DELETE', 'profit_centers', $id, $oldValues, null);
+        });
+
+        return $this->successResponse([], 'تم حذف مركز الربح وأرشفة العقدة التنظيمية');
     }
 
     // ═══════════════════════════════════════════════════════════════════

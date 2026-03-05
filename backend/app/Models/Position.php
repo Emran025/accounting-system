@@ -39,6 +39,7 @@ class Position extends Model
         'job_title_id',
         'role_id',
         'department_id',
+        'cost_center_id',
         'grade_level',
         'min_salary',
         'max_salary',
@@ -84,6 +85,14 @@ class Position extends Model
     public function employees(): HasMany
     {
         return $this->hasMany(Employee::class);
+    }
+
+    /**
+     * Get the cost centre this position is allocated to.
+     */
+    public function costCenter(): BelongsTo
+    {
+        return $this->belongsTo(CostCenter::class);
     }
 
     /**

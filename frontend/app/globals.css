@@ -484,6 +484,10 @@ textarea:focus {
   background-color: white;
 }
 
+select option {
+  font-family: "Cairo";
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

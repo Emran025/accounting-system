@@ -46,6 +46,7 @@ class ProfitCenter extends Model
         'description',
         'is_active',
         'created_by',
+        'structure_node_uuid',
     ];
 
     protected function casts(): array
@@ -92,5 +93,13 @@ class ProfitCenter extends Model
     public function ledgerEntries(): HasMany
     {
         return $this->hasMany(GeneralLedger::class, 'profit_center_id');
+    }
+
+    /**
+     * Get the linked org-chart structure node.
+     */
+    public function structureNode(): BelongsTo
+    {
+        return $this->belongsTo(StructureNode::class, 'structure_node_uuid', 'node_uuid');
     }
 }

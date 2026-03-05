@@ -77,6 +77,23 @@ export const API_ENDPOINTS = {
             CHANGE_HISTORY: "/org-structure/change-history",
             BULK_STATUS: "/org-structure/bulk-status-update",
         },
+        ORG_INTEGRATION: {
+            STATUS: "/org-integration/status",
+            ISSUES: "/org-integration/issues",
+            SYNC_COST_CENTER: (id: string | number) => `/org-integration/sync/cost-center/${id}`,
+            SYNC_PROFIT_CENTER: (id: string | number) => `/org-integration/sync/profit-center/${id}`,
+            SYNC_NODE: (uuid: string) => `/org-integration/sync/node/${uuid}`,
+            SYNC_JOB_TITLE: (id: string | number) => `/org-integration/sync/job-title/${id}`,
+            JOB_TITLE_MAPPING: (id: string | number) => `/org-integration/job-titles/${id}/mapping`,
+            OPEN_CENTER: "/org-integration/open-center",
+            CLOSE_CENTER: "/org-integration/close-center",
+            BULK_SYNC: {
+                COST_CENTERS: "/org-integration/bulk-sync/cost-centers",
+                PROFIT_CENTERS: "/org-integration/bulk-sync/profit-centers",
+                NODES_TO_TABLES: "/org-integration/bulk-sync/nodes-to-tables",
+                JOB_TITLES: "/org-integration/bulk-sync/job-titles",
+            },
+        },
     },
     FINANCE: {
         GL: {
