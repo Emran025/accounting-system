@@ -48,6 +48,8 @@ class GeneralLedger extends Model
         'reference_type',
         'reference_id',
         'fiscal_period_id',
+        'cost_center_id',
+        'profit_center_id',
         'currency_id',
         'exchange_rate',
         'is_closed',
@@ -87,6 +89,22 @@ class GeneralLedger extends Model
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class);
+    }
+
+    /**
+     * Get the cost centre for this entry.
+     */
+    public function costCenter(): BelongsTo
+    {
+        return $this->belongsTo(CostCenter::class);
+    }
+
+    /**
+     * Get the profit centre for this entry.
+     */
+    public function profitCenter(): BelongsTo
+    {
+        return $this->belongsTo(ProfitCenter::class);
     }
 
     /**

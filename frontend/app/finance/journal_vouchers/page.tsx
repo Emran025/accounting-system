@@ -17,12 +17,22 @@ interface Account {
   name: string;
 }
 
+interface CenterOption {
+  id: number;
+  code: string;
+  name: string;
+}
+
 interface VoucherLine {
   account_id: number;
   account_name?: string;
   debit: number;
   credit: number;
   description?: string;
+  cost_center_id?: number;
+  cost_center_name?: string;
+  profit_center_id?: number;
+  profit_center_name?: string;
 }
 
 interface Voucher {
@@ -42,6 +52,8 @@ export default function JournalVouchersPage() {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [costCenters, setCostCenters] = useState<CenterOption[]>([]);
+  const [profitCenters, setProfitCenters] = useState<CenterOption[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,9 +70,9 @@ export default function JournalVouchersPage() {
     voucher_date: new Date().toISOString().split("T")[0],
     description: "",
     lines: [
-      { account_id: "", debit: "", credit: "", description: "" },
-      { account_id: "", debit: "", credit: "", description: "" },
-    ] as Array<{ account_id: string; debit: string; credit: string; description: string }>,
+      { account_id: "", debit: "", credit: "", description: "", cost_center_id: "", profit_center_id: "" },
+      { account_id: "", debit: "", credit: "", description: "", cost_center_id: "", profit_center_id: "" },
+    ] as Array<{ account_id: string; debit: string; credit: string; description: string; cost_center_id: string; profit_center_id: string }>,
   });
 
   const itemsPerPage = 10;
@@ -81,10 +93,16 @@ export default function JournalVouchersPage() {
 
   const loadAccounts = useCallback(async () => {
     try {
-      const response = await fetchAPI(`${API_ENDPOINTS.FINANCE.ACCOUNTS.BASE}?is_active=true`);
-      setAccounts(response.accounts as Account[] || []);
+      const [accountsRes, ccRes, pcRes] = await Promise.all([
+        fetchAPI(`${API_ENDPOINTS.FINANCE.ACCOUNTS.BASE}?is_active=true`),
+        fetchAPI(`${API_ENDPOINTS.FINANCE.COST_CENTERS.BASE}?is_active=true&limit=500`),
+        fetchAPI(`${API_ENDPOINTS.FINANCE.PROFIT_CENTERS.BASE}?is_active=true&limit=500`),
+      ]);
+      setAccounts(accountsRes.accounts as Account[] || []);
+      if (ccRes.success && ccRes.data) setCostCenters(ccRes.data as CenterOption[]);
+      if (pcRes.success && pcRes.data) setProfitCenters(pcRes.data as CenterOption[]);
     } catch {
-      console.error("Error loading accounts");
+      console.error("Error loading lookups");
     }
   }, []);
 
@@ -103,8 +121,8 @@ export default function JournalVouchersPage() {
       voucher_date: new Date().toISOString().split("T")[0],
       description: "",
       lines: [
-        { account_id: "", debit: "", credit: "", description: "" },
-        { account_id: "", debit: "", credit: "", description: "" },
+        { account_id: "", debit: "", credit: "", description: "", cost_center_id: "", profit_center_id: "" },
+        { account_id: "", debit: "", credit: "", description: "", cost_center_id: "", profit_center_id: "" },
       ],
     });
     setFormDialog(true);
@@ -123,7 +141,7 @@ export default function JournalVouchersPage() {
   const addLine = () => {
     setFormData({
       ...formData,
-      lines: [...formData.lines, { account_id: "", debit: "", credit: "", description: "" }],
+      lines: [...formData.lines, { account_id: "", debit: "", credit: "", description: "", cost_center_id: "", profit_center_id: "" }],
     });
   };
 
@@ -184,6 +202,8 @@ export default function JournalVouchersPage() {
         debit: parseFloat(line.debit) || 0,
         credit: parseFloat(line.credit) || 0,
         description: line.description,
+        cost_center_id: line.cost_center_id ? parseInt(line.cost_center_id) : null,
+        profit_center_id: line.profit_center_id ? parseInt(line.profit_center_id) : null,
       })),
     };
 
@@ -346,6 +366,36 @@ export default function JournalVouchersPage() {
       ),
     },
     {
+      key: "cost_center_id",
+      header: "مركز التكلفة",
+      render: (line, index) => (
+        <Select
+          value={line.cost_center_id}
+          onChange={(e) => updateLine(index, "cost_center_id", e.target.value)}
+          className="w-full"
+          options={[
+            { value: "", label: "—" },
+            ...costCenters.map(cc => ({ value: cc.id, label: `${cc.code} - ${cc.name}` }))
+          ]}
+        />
+      ),
+    },
+    {
+      key: "profit_center_id",
+      header: "مركز الربح",
+      render: (line, index) => (
+        <Select
+          value={line.profit_center_id}
+          onChange={(e) => updateLine(index, "profit_center_id", e.target.value)}
+          className="w-full"
+          options={[
+            { value: "", label: "—" },
+            ...profitCenters.map(pc => ({ value: pc.id, label: `${pc.code} - ${pc.name}` }))
+          ]}
+        />
+      ),
+    },
+    {
       key: "actions",
       header: "",
       render: (_, index) => (
@@ -374,6 +424,22 @@ export default function JournalVouchersPage() {
       header: "دائن",
       dataLabel: "دائن",
       render: (item) => (item.credit > 0 ? formatCurrency(item.credit) : "-"),
+    },
+    {
+      key: "cost_center_name",
+      header: "م. التكلفة",
+      dataLabel: "م. التكلفة",
+      render: (item) => item.cost_center_name ? (
+        <span className="badge badge-secondary">{item.cost_center_name}</span>
+      ) : "-",
+    },
+    {
+      key: "profit_center_name",
+      header: "م. الربح",
+      dataLabel: "م. الربح",
+      render: (item) => item.profit_center_name ? (
+        <span className="badge badge-secondary">{item.profit_center_name}</span>
+      ) : "-",
     },
     {
       key: "description",

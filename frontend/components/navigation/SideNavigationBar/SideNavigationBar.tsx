@@ -11,6 +11,7 @@ import { ContextMenuPortal } from "./components/ContextMenuPortal";
 import { SidebarItem } from "./components/SidebarItem";
 import { SidebarFolder } from "./components/SidebarFolder";
 import { getIcon } from "@/lib/icons";
+import React from "react";
 
 /* ─────────────────────── Module Color Palette ─────────────────────── */
 const MODULE_COLORS: Record<string, string> = {
@@ -47,6 +48,10 @@ export function SideNavigationBar({ onCollapsedChange, externalMobileOpen, onExt
         setSideNavCollapsed,
         sideNavWidth,
         setSideNavWidth,
+        recentSectionHeight,
+        systemMenuSectionHeight,
+        favoritesSectionHeight,
+        setSectionHeight,
         openedSectionCollapsed,
         systemMenuSectionCollapsed,
         favoritesSectionCollapsed,
@@ -65,6 +70,7 @@ export function SideNavigationBar({ onCollapsedChange, externalMobileOpen, onExt
 
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
+    const [isSectionResizing, setIsSectionResizing] = useState(false);
     const [isDesktop, setIsDesktop] = useState(true);
     const [contextMenu, setContextMenu] = useState<{
         x: number;
@@ -146,6 +152,83 @@ export function SideNavigationBar({ onCollapsedChange, externalMobileOpen, onExt
             window.addEventListener("mouseup", handleMouseUp);
         },
         [sideNavWidth, setSideNavWidth]
+    );
+
+    /* ── Section verticaze handler factory ── */
+    const sectionsData = React.useMemo(() => [
+        { id: 'opened' as const, collapsed: openedSectionCollapsed, height: recentSectionHeight },
+        { id: 'systemMenu' as const, collapsed: systemMenuSectionCollapsed, height: systemMenuSectionHeight },
+        { id: 'favorites' as const, collapsed: favoritesSectionCollapsed, height: favoritesSectionHeight }
+    ], [
+        openedSectionCollapsed, recentSectionHeight,
+        systemMenuSectionCollapsed, systemMenuSectionHeight,
+        favoritesSectionCollapsed, favoritesSectionHeight
+    ]);
+
+    const expandedIds = React.useMemo(() => sectionsData.filter(s => !s.collapsed).map(s => s.id), [sectionsData]);
+    const lastExpandedId = expandedIds.length > 0 ? expandedIds[expandedIds.length - 1] : null;
+
+    const sectionResizeRef = useRef<{
+        startY: number;
+        topId: 'opened' | 'systemMenu' | 'favorites';
+        bottomId: 'opened' | 'systemMenu' | 'favorites';
+        startTopHeight: number;
+        startBottomHeight: number;
+    } | null>(null);
+
+    const createSectionResizeHandler = useCallback(
+        (currentIndex: number) => {
+            // Find the closest expanded section ABOVE the handle
+            const topSection = [...sectionsData].slice(0, currentIndex).reverse().find(s => !s.collapsed);
+            // Find the closest expanded section BELOW the handle (inclusive)
+            const bottomSection = [...sectionsData].slice(currentIndex).find(s => !s.collapsed);
+
+            if (!topSection || !bottomSection) return undefined;
+
+            return (e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsSectionResizing(true);
+
+                sectionResizeRef.current = {
+                    startY: e.clientY,
+                    topId: topSection.id,
+                    bottomId: bottomSection.id,
+                    startTopHeight: topSection.height,
+                    startBottomHeight: bottomSection.height
+                };
+
+                const handleMouseMove = (ev: MouseEvent) => {
+                    if (!sectionResizeRef.current) return;
+                    const state = sectionResizeRef.current;
+                    let diff = ev.clientY - state.startY;
+
+                    // Clamp to prevent collapsing sections entirely
+                    const minHeight = 40;
+                    if (state.startTopHeight + diff < minHeight) {
+                        diff = minHeight - state.startTopHeight;
+                    }
+                    if (state.startBottomHeight - diff < minHeight) {
+                        diff = state.startBottomHeight - minHeight;
+                    }
+
+                    // Update BOTH sections synchronously so overall height remains strictly constant
+                    setSectionHeight(state.topId, state.startTopHeight + diff);
+                    setSectionHeight(state.bottomId, state.startBottomHeight - diff);
+                };
+
+                const handleMouseUp = () => {
+                    setIsSectionResizing(false);
+                    sectionResizeRef.current = null;
+                    window.removeEventListener("mousemove", handleMouseMove);
+                    window.removeEventListener("mouseup", handleMouseUp);
+                };
+
+                window.addEventListener("mousemove", handleMouseMove);
+                window.addEventListener("mouseup", handleMouseUp);
+            };
+        },
+        [sectionsData, setSectionHeight]
     );
 
     /* ── Toggle ── */
@@ -244,7 +327,7 @@ export function SideNavigationBar({ onCollapsedChange, externalMobileOpen, onExt
             {/* ── Main Sidebar ── */}
             <aside
                 ref={sidebarRef}
-                className={`side-navigation-bar ${sideNavCollapsed ? "collapsed" : ""} ${isMobileOpen ? "mobile-visible" : ""} ${isResizing ? "resizing" : ""}`}
+                className={`side-navigation-bar ${sideNavCollapsed ? "collapsed" : ""} ${isMobileOpen ? "mobile-visible" : ""} ${isResizing || isSectionResizing ? "resizing" : ""}`}
                 style={isDesktop ? sidebarStyle : undefined}
             >
                 {/* Scrollable sections */}
@@ -257,36 +340,39 @@ export function SideNavigationBar({ onCollapsedChange, externalMobileOpen, onExt
                             collapsed={openedSectionCollapsed}
                             onToggle={() => toggleSection("opened")}
                             count={recentScreens.length}
-                        />
-                    )}
-                    {!sideNavCollapsed && !openedSectionCollapsed && (
-                        <div className="sidenav-section-content">
-                            {recentScreens.length === 0 ? (
-                                <div className="sidenav-empty">No recent screens</div>
-                            ) : (
-                                recentScreens.map((path) => {
-                                    const link = findLink(path);
-                                    if (!link) return null;
-                                    const group = navigationGroups.find((g) =>
-                                        g.links.some((l) => l.href === path)
-                                    );
-                                    return (
-                                        <SidebarItem
-                                            key={`recent-${path}`}
-                                            href={link.href}
-                                            icon={link.icon}
-                                            label={link.label}
-                                            color={getModuleColor(group?.key || "")}
-                                            isActive={pathname === link.href}
-                                            onClick={() => handleScreenClick(link.href)}
-                                            onContextMenu={handleContextMenu}
-                                            onActionClick={() => removeRecentScreen(path)}
-                                            actionIcon={<i className="fa-solid fa-xmark"></i>}
-                                        />
-                                    );
-                                })
-                            )}
-                        </div>
+                            sectionHeight={recentSectionHeight}
+                            onResizeStart={createSectionResizeHandler(0)}
+                            isResizing={isSectionResizing && sectionResizeRef.current?.bottomId === 'opened'}
+                            isLastExpanded={lastExpandedId === 'opened'}
+                        >
+                            <div className="sidenav-section-content">
+                                {recentScreens.length === 0 ? (
+                                    <div className="sidenav-empty">No recent screens</div>
+                                ) : (
+                                    recentScreens.map((path) => {
+                                        const link = findLink(path);
+                                        if (!link) return null;
+                                        const group = navigationGroups.find((g) =>
+                                            g.links.some((l) => l.href === path)
+                                        );
+                                        return (
+                                            <SidebarItem
+                                                key={`recent-${path}`}
+                                                href={link.href}
+                                                icon={link.icon}
+                                                label={link.label}
+                                                color={getModuleColor(group?.key || "")}
+                                                isActive={pathname === link.href}
+                                                onClick={() => handleScreenClick(link.href)}
+                                                onContextMenu={handleContextMenu}
+                                                onActionClick={() => removeRecentScreen(path)}
+                                                actionIcon={<i className="fa-solid fa-xmark"></i>}
+                                            />
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </SectionHeader>
                     )}
 
                     {/* ═══ Section 2: System Menu (Full Tree) ═══ */}
@@ -296,54 +382,57 @@ export function SideNavigationBar({ onCollapsedChange, externalMobileOpen, onExt
                             icon="sitemap"
                             collapsed={systemMenuSectionCollapsed}
                             onToggle={() => toggleSection("systemMenu")}
-                        />
-                    )}
-                    {!systemMenuSectionCollapsed && (
-                        <div className={`sidenav-section-content ${sideNavCollapsed ? "collapsed-mode" : ""}`}>
-                            {navigationGroups.map((group) => {
-                                const accessibleLinks = group.links.filter((l) =>
-                                    canAccess(permissions, l.module, "view")
-                                );
-                                if (accessibleLinks.length === 0) return null;
+                            sectionHeight={systemMenuSectionHeight}
+                            onResizeStart={createSectionResizeHandler(1)}
+                            isResizing={isSectionResizing && sectionResizeRef.current?.bottomId === 'systemMenu'}
+                            isLastExpanded={lastExpandedId === 'systemMenu'}
+                        >
+                            <div className={`sidenav-section-content ${sideNavCollapsed ? "collapsed-mode" : ""}`}>
+                                {navigationGroups.map((group) => {
+                                    const accessibleLinks = group.links.filter((l) =>
+                                        canAccess(permissions, l.module, "view")
+                                    );
+                                    if (accessibleLinks.length === 0) return null;
 
-                                const isExpanded = expandedFolders.includes(group.key);
-                                const isActiveGroup = accessibleLinks.some((l) => pathname === l.href);
-                                const color = getModuleColor(group.key);
+                                    const isExpanded = expandedFolders.includes(group.key);
+                                    const isActiveGroup = accessibleLinks.some((l) => pathname === l.href);
+                                    const color = getModuleColor(group.key);
 
-                                return (
-                                    <SidebarFolder
-                                        key={group.key}
-                                        folderKey={group.key}
-                                        label={group.label}
-                                        icon={group.icon}
-                                        color={color}
-                                        isExpanded={isExpanded}
-                                        isActiveGroup={isActiveGroup}
-                                        sideNavCollapsed={sideNavCollapsed}
-                                        onToggle={toggleFolder}
-                                        onFolderClick={handleFolderClick}
-                                        onContextMenu={handleContextMenu}
-                                        title={group.label}
-                                    >
-                                        {accessibleLinks.map((link) => (
-                                            <SidebarItem
-                                                key={link.href + link.label}
-                                                href={link.href}
-                                                icon={link.icon}
-                                                label={link.label}
-                                                color={color}
-                                                isActive={pathname === link.href}
-                                                isChild={true}
-                                                badgeSoon={link.description.includes("قريباً")}
-                                                title={link.description}
-                                                onClick={() => handleScreenClick(link.href)}
-                                                onContextMenu={handleContextMenu}
-                                            />
-                                        ))}
-                                    </SidebarFolder>
-                                );
-                            })}
-                        </div>
+                                    return (
+                                        <SidebarFolder
+                                            key={group.key}
+                                            folderKey={group.key}
+                                            label={group.label}
+                                            icon={group.icon}
+                                            color={color}
+                                            isExpanded={isExpanded}
+                                            isActiveGroup={isActiveGroup}
+                                            sideNavCollapsed={sideNavCollapsed}
+                                            onToggle={toggleFolder}
+                                            onFolderClick={handleFolderClick}
+                                            onContextMenu={handleContextMenu}
+                                            title={group.label}
+                                        >
+                                            {accessibleLinks.map((link) => (
+                                                <SidebarItem
+                                                    key={link.href + link.label}
+                                                    href={link.href}
+                                                    icon={link.icon}
+                                                    label={link.label}
+                                                    color={color}
+                                                    isActive={pathname === link.href}
+                                                    isChild={true}
+                                                    badgeSoon={link.description.includes("قريباً")}
+                                                    title={link.description}
+                                                    onClick={() => handleScreenClick(link.href)}
+                                                    onContextMenu={handleContextMenu}
+                                                />
+                                            ))}
+                                        </SidebarFolder>
+                                    );
+                                })}
+                            </div>
+                        </SectionHeader>
                     )}
 
                     {/* ═══ Section 3: Favorites ═══ */}
@@ -369,66 +458,73 @@ export function SideNavigationBar({ onCollapsedChange, externalMobileOpen, onExt
                                         collapsed={favoritesSectionCollapsed}
                                         onToggle={() => toggleSection("favorites")}
                                         count={resolvedFavorites.length}
-                                    />
-                                )}
-                                {!sideNavCollapsed && !favoritesSectionCollapsed && (
-                                    <div className="sidenav-section-content">
-                                        {resolvedFavorites.length === 0 ? (
-                                            <div className="sidenav-empty">
-                                                Right-click any screen to add it to favorites
-                                            </div>
-                                        ) : (
-                                            resolvedFavorites.map(({ path, link, group }) => (
-                                                <SidebarItem
-                                                    key={`fav-${path}`}
-                                                    href={link.href}
-                                                    icon={link.icon}
-                                                    label={link.label}
-                                                    color={getModuleColor(group?.key || "")}
-                                                    isActive={pathname === link.href}
-                                                    hasStar={true}
-                                                    onClick={() => handleScreenClick(link.href)}
-                                                    onContextMenu={handleContextMenu}
-                                                    onActionClick={() => removeFavorite(path)}
-                                                    actionIcon={<i className="fa-solid fa-star"></i>}
-                                                />
-                                            ))
-                                        )}
-                                    </div>
+                                        sectionHeight={favoritesSectionHeight}
+                                        onResizeStart={createSectionResizeHandler(2)}
+                                        isResizing={isSectionResizing && sectionResizeRef.current?.bottomId === 'favorites'}
+                                        isLastExpanded={lastExpandedId === 'favorites'}
+                                    >
+                                        <div className="sidenav-section-content">
+                                            {resolvedFavorites.length === 0 ? (
+                                                <div className="sidenav-empty">
+                                                    Right-click any screen to add it to favorites
+                                                </div>
+                                            ) : (
+                                                resolvedFavorites.map(({ path, link, group }) => (
+                                                    <SidebarItem
+                                                        key={`fav-${path}`}
+                                                        href={link.href}
+                                                        icon={link.icon}
+                                                        label={link.label}
+                                                        color={getModuleColor(group?.key || "")}
+                                                        isActive={pathname === link.href}
+                                                        hasStar={true}
+                                                        onClick={() => handleScreenClick(link.href)}
+                                                        onContextMenu={handleContextMenu}
+                                                        onActionClick={() => removeFavorite(path)}
+                                                        actionIcon={<i className="fa-solid fa-star"></i>}
+                                                    />
+                                                ))
+                                            )}
+                                        </div>
+                                    </SectionHeader >
                                 )}
                             </>
                         );
                     })()}
-                </div>
+                </div >
 
                 {/* Resize handle (desktop only, non-collapsed) */}
-                {!sideNavCollapsed && (
-                    <div
-                        className="sidenav-resize-handle"
-                        onMouseDown={handleResizeStart}
-                    />
-                )}
-            </aside>
+                {
+                    !sideNavCollapsed && (
+                        <div
+                            className="sidenav-resize-handle"
+                            onMouseDown={handleResizeStart}
+                        />
+                    )
+                }
+            </aside >
 
             {/* ── Context Menu ── */}
-            {contextMenu && (
-                <ContextMenuPortal
-                    x={contextMenu.x}
-                    y={contextMenu.y}
-                    type={contextMenu.type}
-                    path={contextMenu.path}
-                    isFavorite={favoriteScreens.includes(contextMenu.path)}
-                    onAddFavorite={() => addFavorite(contextMenu.path)}
-                    onRemoveFavorite={() => removeFavorite(contextMenu.path)}
-                    onOpen={() => {
-                        if (contextMenu.type === "screen") {
-                            router.push(contextMenu.path);
-                            handleScreenClick(contextMenu.path);
-                        }
-                    }}
-                    onClose={() => setContextMenu(null)}
-                />
-            )}
+            {
+                contextMenu && (
+                    <ContextMenuPortal
+                        x={contextMenu.x}
+                        y={contextMenu.y}
+                        type={contextMenu.type}
+                        path={contextMenu.path}
+                        isFavorite={favoriteScreens.includes(contextMenu.path)}
+                        onAddFavorite={() => addFavorite(contextMenu.path)}
+                        onRemoveFavorite={() => removeFavorite(contextMenu.path)}
+                        onOpen={() => {
+                            if (contextMenu.type === "screen") {
+                                router.push(contextMenu.path);
+                                handleScreenClick(contextMenu.path);
+                            }
+                        }}
+                        onClose={() => setContextMenu(null)}
+                    />
+                )
+            }
         </>
     );
 }

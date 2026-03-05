@@ -50,7 +50,7 @@ class JournalVouchersController extends Controller
             ->pluck('voucher_number');
 
         $allEntries = GeneralLedger::whereIn('voucher_number', $pagedVoucherNumbers)
-            ->with(['account', 'createdBy'])
+            ->with(['account', 'createdBy', 'costCenter', 'profitCenter'])
             ->orderBy('voucher_number', 'desc')
             ->orderBy('id')
             ->get()
@@ -78,6 +78,10 @@ class JournalVouchersController extends Controller
                         'debit' => $e->entry_type === 'DEBIT' ? (float)$e->amount : 0,
                         'credit' => $e->entry_type === 'CREDIT' ? (float)$e->amount : 0,
                         'description' => $e->description,
+                        'cost_center_id' => $e->cost_center_id,
+                        'cost_center_name' => $e->costCenter?->name,
+                        'profit_center_id' => $e->profit_center_id,
+                        'profit_center_name' => $e->profitCenter?->name,
                     ];
                 }),
             ];
@@ -96,7 +100,7 @@ class JournalVouchersController extends Controller
 
         $entries = GeneralLedger::where('voucher_number', $id)
             ->where('entry_source', 'MANUAL')
-            ->with(['account', 'createdBy'])
+            ->with(['account', 'createdBy', 'costCenter', 'profitCenter'])
             ->orderBy('id')
             ->get();
 
@@ -125,6 +129,10 @@ class JournalVouchersController extends Controller
                     'debit' => $e->entry_type === 'DEBIT' ? (float)$e->amount : 0,
                     'credit' => $e->entry_type === 'CREDIT' ? (float)$e->amount : 0,
                     'description' => $e->description,
+                    'cost_center_id' => $e->cost_center_id,
+                    'cost_center_name' => $e->costCenter?->name,
+                    'profit_center_id' => $e->profit_center_id,
+                    'profit_center_name' => $e->profitCenter?->name,
                 ];
             }),
         ];
@@ -147,6 +155,8 @@ class JournalVouchersController extends Controller
             'entries.*.entry_type' => 'required|in:DEBIT,CREDIT',
             'entries.*.amount' => 'required|numeric|min:0.01',
             'entries.*.description' => 'nullable|string',
+            'entries.*.cost_center_id' => 'nullable|exists:cost_centers,id',
+            'entries.*.profit_center_id' => 'nullable|exists:profit_centers,id',
         ]);
 
         return DB::transaction(function () use ($validated) {
@@ -169,6 +179,8 @@ class JournalVouchersController extends Controller
                     'entry_type' => $entry['entry_type'],
                     'amount' => $entry['amount'],
                     'description' => $entry['description'] ?? $validated['description'],
+                    'cost_center_id' => $entry['cost_center_id'] ?? null,
+                    'profit_center_id' => $entry['profit_center_id'] ?? null,
                 ];
 
                 if ($entry['entry_type'] === 'DEBIT') {
@@ -195,6 +207,8 @@ class JournalVouchersController extends Controller
                     'entry_type' => $entry['entry_type'],
                     'amount' => $entry['amount'],
                     'description' => $entry['description'],
+                    'cost_center_id' => $entry['cost_center_id'],
+                    'profit_center_id' => $entry['profit_center_id'],
                 ];
             }, $validatedEntries);
 

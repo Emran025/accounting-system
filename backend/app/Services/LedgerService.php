@@ -157,6 +157,8 @@ class LedgerService
                     'reference_type' => $referenceType,
                     'reference_id' => $referenceId,
                     'fiscal_period_id' => $fiscalPeriodId,
+                    'cost_center_id' => $entry['cost_center_id'] ?? null,
+                    'profit_center_id' => $entry['profit_center_id'] ?? null,
                     'currency_id' => $currencyId,
                     'exchange_rate' => $exchangeRate,
                     'created_by' => $userId,

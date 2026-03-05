@@ -131,6 +131,17 @@ export const API_ENDPOINTS = {
         EXPENSES: "/expenses",
         ASSETS: "/assets",
         REVENUES: "/revenues",
+        COST_CENTERS: {
+            BASE: "/cost-centers",
+            TREE: "/cost-centers/tree",
+            withId: (id: string | number) => `/cost-centers/${id}`,
+        },
+        PROFIT_CENTERS: {
+            BASE: "/profit-centers",
+            TREE: "/profit-centers/tree",
+            withId: (id: string | number) => `/profit-centers/${id}`,
+        },
+        CENTERS_SUMMARY: "/centers-summary",
         AR: {
             CUSTOMERS: "/ar/customers",
             LEDGER: "/ar/ledger",

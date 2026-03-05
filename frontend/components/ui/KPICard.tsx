@@ -59,7 +59,7 @@ export function KPICard({ icon, label, value, color, subtitle, onClick, compact 
                     width: compact ? "36px" : "44px",
                     height: compact ? "36px" : "44px",
                     borderRadius: "12px",
-                    background: color + "15",
+                    background: color !== undefined ? addOpacity(color, 0.15) : "",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -102,3 +102,22 @@ export function KPICardRow({ KPICards }: { KPICards: KPICardProps[] }) {
         </div>
     );
 }
+
+
+const addOpacity = (color: string, opacity: number): string => {
+    if (color.startsWith('var(')) {
+        const matches = color.match(/var\((.+?)\)/);
+        if (matches && matches[1]) {
+            const varName = matches[1];
+            return `rgba(from var(${varName}) r g b / ${opacity})`;
+        }
+        return color;
+    }
+
+    if (color.startsWith('#')) {
+        const opacityHex = Math.round(opacity * 255).toString(16).padStart(2, '0');
+        return color + opacityHex;
+    }
+
+    return color;
+};

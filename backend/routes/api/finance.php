@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\CurrencyPolicyController;
 use App\Http\Controllers\Api\ExpensesController;
 use App\Http\Controllers\Api\AssetsController;
 use App\Http\Controllers\Api\RevenuesController;
+use App\Http\Controllers\Api\CostProfitCenterController;
 
 // General Ledger (read-only views)
 Route::middleware('can:general_ledger,view')->get('/trial-balance', [GeneralLedgerController::class, 'trialBalance'])->name('api.gl.trial_balance');
@@ -110,3 +111,26 @@ Route::middleware('can:revenues,view')->get('/revenues', [RevenuesController::cl
 Route::middleware(['can:revenues,create', 'throttle:api-write'])->post('/revenues', [RevenuesController::class, 'store'])->name('api.revenues.store');
 Route::middleware(['can:revenues,edit', 'throttle:api-write'])->put('/revenues', [RevenuesController::class, 'update'])->name('api.revenues.update');
 Route::middleware(['can:revenues,delete', 'throttle:api-delete'])->delete('/revenues', [RevenuesController::class, 'destroy'])->name('api.revenues.destroy');
+
+// Cost Centers
+Route::prefix('cost-centers')->group(function () {
+    Route::middleware('can:chart_of_accounts,view')->get('/', [CostProfitCenterController::class, 'costCentersIndex'])->name('api.cost_centers.index');
+    Route::middleware('can:chart_of_accounts,view')->get('/tree', [CostProfitCenterController::class, 'costCentersTree'])->name('api.cost_centers.tree');
+    Route::middleware('can:chart_of_accounts,view')->get('/{id}', [CostProfitCenterController::class, 'costCentersShow'])->name('api.cost_centers.show');
+    Route::middleware(['can:chart_of_accounts,create', 'throttle:api-write'])->post('/', [CostProfitCenterController::class, 'costCentersStore'])->name('api.cost_centers.store');
+    Route::middleware(['can:chart_of_accounts,edit', 'throttle:api-write'])->put('/{id}', [CostProfitCenterController::class, 'costCentersUpdate'])->name('api.cost_centers.update');
+    Route::middleware(['can:chart_of_accounts,delete', 'throttle:api-delete'])->delete('/{id}', [CostProfitCenterController::class, 'costCentersDestroy'])->name('api.cost_centers.destroy');
+});
+
+// Profit Centers
+Route::prefix('profit-centers')->group(function () {
+    Route::middleware('can:chart_of_accounts,view')->get('/', [CostProfitCenterController::class, 'profitCentersIndex'])->name('api.profit_centers.index');
+    Route::middleware('can:chart_of_accounts,view')->get('/tree', [CostProfitCenterController::class, 'profitCentersTree'])->name('api.profit_centers.tree');
+    Route::middleware('can:chart_of_accounts,view')->get('/{id}', [CostProfitCenterController::class, 'profitCentersShow'])->name('api.profit_centers.show');
+    Route::middleware(['can:chart_of_accounts,create', 'throttle:api-write'])->post('/', [CostProfitCenterController::class, 'profitCentersStore'])->name('api.profit_centers.store');
+    Route::middleware(['can:chart_of_accounts,edit', 'throttle:api-write'])->put('/{id}', [CostProfitCenterController::class, 'profitCentersUpdate'])->name('api.profit_centers.update');
+    Route::middleware(['can:chart_of_accounts,delete', 'throttle:api-delete'])->delete('/{id}', [CostProfitCenterController::class, 'profitCentersDestroy'])->name('api.profit_centers.destroy');
+});
+
+// Cost & Profit Centers Summary
+Route::middleware('can:chart_of_accounts,view')->get('/centers-summary', [CostProfitCenterController::class, 'summary'])->name('api.centers.summary');

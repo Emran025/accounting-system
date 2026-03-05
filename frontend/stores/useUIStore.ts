@@ -10,6 +10,9 @@ interface UIState {
     // SideNavigationBar state
     sideNavCollapsed: boolean;
     sideNavWidth: number;
+    recentSectionHeight: number;
+    systemMenuSectionHeight: number;
+    favoritesSectionHeight: number;
     openedSectionCollapsed: boolean;
     systemMenuSectionCollapsed: boolean;
     favoritesSectionCollapsed: boolean;
@@ -29,6 +32,7 @@ interface UIState {
     setSideNavCollapsed: (collapsed: boolean) => void;
     toggleSideNav: () => void;
     setSideNavWidth: (width: number) => void;
+    setSectionHeight: (section: 'opened' | 'systemMenu' | 'favorites', height: number) => void;
     toggleSection: (section: 'opened' | 'systemMenu' | 'favorites') => void;
     addRecentScreen: (path: string) => void;
     clearRecentScreens: () => void;
@@ -55,6 +59,9 @@ export const useUIStore = create<UIState>()(
                 // SideNavigationBar state
                 sideNavCollapsed: false,
                 sideNavWidth: 280,
+                recentSectionHeight: 200,
+                systemMenuSectionHeight: 300,
+                favoritesSectionHeight: 200,
                 openedSectionCollapsed: false,
                 systemMenuSectionCollapsed: false,
                 favoritesSectionCollapsed: false,
@@ -75,6 +82,16 @@ export const useUIStore = create<UIState>()(
                 toggleSideNav: () => set((state) => ({ sideNavCollapsed: !state.sideNavCollapsed })),
 
                 setSideNavWidth: (width) => set({ sideNavWidth: Math.max(200, Math.min(420, width)) }),
+
+                setSectionHeight: (section, height) => {
+                    const map = {
+                        opened: 'recentSectionHeight',
+                        systemMenu: 'systemMenuSectionHeight',
+                        favorites: 'favoritesSectionHeight',
+                    } as const;
+                    const key = map[section];
+                    set({ [key]: Math.max(40, Math.min(600, height)) });
+                },
 
                 toggleSection: (section) => {
                     const map = {
@@ -131,6 +148,9 @@ export const useUIStore = create<UIState>()(
                 theme: state.theme,
                 sideNavCollapsed: state.sideNavCollapsed,
                 sideNavWidth: state.sideNavWidth,
+                recentSectionHeight: state.recentSectionHeight,
+                systemMenuSectionHeight: state.systemMenuSectionHeight,
+                favoritesSectionHeight: state.favoritesSectionHeight,
                 openedSectionCollapsed: state.openedSectionCollapsed,
                 systemMenuSectionCollapsed: state.systemMenuSectionCollapsed,
                 favoritesSectionCollapsed: state.favoritesSectionCollapsed,

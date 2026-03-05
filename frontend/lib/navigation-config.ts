@@ -111,8 +111,9 @@ export const navigationGroups: NavigationGroup[] = [
     label: "المالية والمحاسبة",
     icon: "coins",
     links: [
+      { href: "/finance/cost-centers", icon: "building", label: "مراكز التكلفة", description: "إدارة وتوزيع التكاليف على المراكز", module: "chart_of_accounts" },
+      { href: "/finance/profit-centers", icon: "trending-up", label: "مراكز الربح", description: "تحليل الربحية حسب الوحدات", module: "chart_of_accounts" },
       { href: "/finance/chart_of_accounts", icon: "sitemap", label: "دليل الحسابات", description: "هيكل شجرة الحسابات", module: "chart_of_accounts" },
-      { href: "/system/dashboard", icon: "building", label: "مراكز التكلفة", description: "توزيع التكاليف (قريباً)", module: "dashboard" },
       { href: "/finance/general_ledger", icon: "book-open", label: "دفتر الأستاذ العام", description: "السجل المالي الشامل", module: "general_ledger" },
       { href: "/system/reports", icon: "pie-chart", label: "التقارير والتحليلات", description: "تقارير مالية وتحليلات متقدمة", module: "reports" },
       { href: "/finance/journal_vouchers", icon: "file-signature", label: "سندات القيد", description: "القيود اليومية والمحاسبية", module: "journal_vouchers" },

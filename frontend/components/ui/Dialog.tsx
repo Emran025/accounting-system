@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, ReactNode } from "react";
+import { useEffect, useRef, useState, ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 interface DialogProps {
   isOpen: boolean;
@@ -20,6 +21,12 @@ export function Dialog({
   maxWidth = "600px",
 }: DialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure we only render the portal on the client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Handle escape key
   useEffect(() => {
@@ -52,9 +59,12 @@ export function Dialog({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  // Use createPortal to render directly in document.body
+  // This ensures the dialog is always on top of everything,
+  // regardless of parent component's CSS context (overflow, transform, etc.)
+  return createPortal(
     <div
       className="dialog-overlay active"
       onClick={handleOverlayClick}
@@ -75,7 +85,8 @@ export function Dialog({
         <div className="dialog-body">{children}</div>
         {footer && <div className="dialog-footer">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
