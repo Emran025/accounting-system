@@ -311,7 +311,11 @@ export const navigationGroups: NavigationGroup[] = [
             label: "تجميعات الموظفين",
             icon: "",
             items: [
-              { href: "/hr/groups-number-range-interval", icon: "user", label: "الموظفين", description: "قاعدة بيانات الموظفين", module: "employees" },
+              { href: "/hr/groups-number-range-interval/employees/add-employees-group", icon: "add", label: "تعريف تجميع", description: "إضافة تجميع جديد", module: "employees" },
+              { href: "/hr/groups-number-range-interval/employees/add-number-range-interval", icon: "view", label: "تعريف نطاق", description: "إضافة نطاق جديد", module: "employees" },
+              { href: "/hr/groups-number-range-interval/employees/view-employees-groups", icon: "add", label: "عرض تجميعات الموظفين", description: "عرض تجميعات الموظفين", module: "employees" },
+              { href: "/hr/groups-number-range-interval/employees/view-number-range-intervals", icon: "view", label: "عرض نطاقات الموظفين", description: "عرض نطاقات الموظفين", module: "employees" },
+              { href: "/hr/groups-number-range-interval/employees/assignment", icon: "add", label: "عرض وإضافة الإسنادات", description: "عرض إسنادات  نطاقات الترقيم إلى الموظفين", module: "employees" },
             ]
           },
           // ect 

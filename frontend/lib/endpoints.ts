@@ -459,5 +459,34 @@ export const API_ENDPOINTS = {
         AGING_PAYABLES: "/reports/aging_payables",
         COMPARATIVE: "/reports/comparative",
         DASHBOARD: "/dashboard",
-    }
+    },
+    NUMBER_RANGES: {
+        OBJECTS: {
+            BASE: "/number-ranges",
+            SUMMARY: "/number-ranges/summary",
+            withId: (id: string | number) => `/number-ranges/${id}`,
+            byType: (type: string) => `/number-ranges/type/${type}`,
+        },
+        GROUPS: {
+            list: (objectId: string | number) => `/number-ranges/${objectId}/groups`,
+            create: (objectId: string | number) => `/number-ranges/${objectId}/groups`,
+            update: (groupId: string | number) => `/number-ranges/groups/${groupId}`,
+            delete: (groupId: string | number) => `/number-ranges/groups/${groupId}`,
+        },
+        INTERVALS: {
+            list: (objectId: string | number) => `/number-ranges/${objectId}/intervals`,
+            create: (objectId: string | number) => `/number-ranges/${objectId}/intervals`,
+            update: (intervalId: string | number) => `/number-ranges/intervals/${intervalId}`,
+            delete: (intervalId: string | number) => `/number-ranges/intervals/${intervalId}`,
+            expand: (intervalId: string | number) => `/number-ranges/intervals/${intervalId}/expand`,
+            expansionLogs: (intervalId: string | number) => `/number-ranges/intervals/${intervalId}/expansion-logs`,
+        },
+        ASSIGNMENTS: {
+            list: (objectId: string | number) => `/number-ranges/${objectId}/assignments`,
+            create: (objectId: string | number) => `/number-ranges/${objectId}/assignments`,
+            delete: (assignmentId: string | number) => `/number-ranges/assignments/${assignmentId}`,
+        },
+        FULLNESS: (objectId: string | number) => `/number-ranges/${objectId}/fullness`,
+        NEXT_NUMBER: "/number-ranges/next-number",
+    },
 };

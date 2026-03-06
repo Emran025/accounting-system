@@ -24,4 +24,5 @@ Route::middleware(['api.auth', 'throttle:api'])->group(function () {
     require __DIR__ . '/api/sales.php';
     require __DIR__ . '/api/purchases.php';
     require __DIR__ . '/api/reports.php';
+    require __DIR__ . '/api/number-ranges.php';
 });
