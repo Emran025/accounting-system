@@ -6,6 +6,8 @@ import {
     navigationGroups,
     NavigationGroup,
     NavigationLink,
+    getAllNavigationLinks,
+    getNavigationGroup
 } from "@/lib/navigation-config";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { canAccess } from "@/lib/auth";
@@ -35,7 +37,7 @@ export function SearchNavigationBar({ onNavigate, titleOverride }: SearchNavigat
 
     const allLinks: SearchResultItem[] = useMemo(() => {
         return navigationGroups.flatMap((group) => {
-            const accessibleLinks = group.links.filter((link) =>
+            const accessibleLinks = getAllNavigationLinks([group]).filter((link) =>
                 canAccess(permissions, link.module, "view")
             );
             return accessibleLinks.map((link) => ({ link, group }));
@@ -47,11 +49,11 @@ export function SearchNavigationBar({ onNavigate, titleOverride }: SearchNavigat
         if (pathname === "/navigation") {
             const groupKey = searchParams.get("group");
             if (groupKey) {
-                return navigationGroups.find((g) => g.key === groupKey);
+                return getNavigationGroup(groupKey);
             }
         }
         return navigationGroups.find((group) =>
-            group.links.some((link) => link.href === pathname)
+            getAllNavigationLinks([group]).some((link) => link.href === pathname)
         );
     }, [pathname, searchParams]);
 

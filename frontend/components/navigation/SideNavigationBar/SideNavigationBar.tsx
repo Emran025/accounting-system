@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { navigationGroups, NavigationGroup, NavigationLink } from "@/lib/navigation-config";
+import { navigationGroups, NavigationGroup, NavigationLink, getAllNavigationLinks, isNavigationGroup, NavigationItem } from "@/lib/navigation-config";
 import { canAccess } from "@/lib/auth";
 import { useUIStore } from "@/stores/useUIStore";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -290,8 +290,8 @@ export function SideNavigationBar({ onCollapsedChange, externalMobileOpen, onExt
 
     /* ── Get all accessible links flat ── */
     const getAllLinks = useCallback((): NavigationLink[] => {
-        return navigationGroups.flatMap((g) =>
-            g.links.filter((l) => canAccess(permissions, l.module, "view"))
+        return getAllNavigationLinks(navigationGroups).filter((l) =>
+            canAccess(permissions, l.module, "view")
         );
     }, [permissions]);
 
@@ -353,7 +353,7 @@ export function SideNavigationBar({ onCollapsedChange, externalMobileOpen, onExt
                                         const link = findLink(path);
                                         if (!link) return null;
                                         const group = navigationGroups.find((g) =>
-                                            g.links.some((l) => l.href === path)
+                                            getAllNavigationLinks([g]).some((l) => l.href === path)
                                         );
                                         return (
                                             <SidebarItem
@@ -388,49 +388,58 @@ export function SideNavigationBar({ onCollapsedChange, externalMobileOpen, onExt
                             isLastExpanded={lastExpandedId === 'systemMenu'}
                         >
                             <div className={`sidenav-section-content ${sideNavCollapsed ? "collapsed-mode" : ""}`}>
-                                {navigationGroups.map((group) => {
-                                    const accessibleLinks = group.links.filter((l) =>
-                                        canAccess(permissions, l.module, "view")
-                                    );
-                                    if (accessibleLinks.length === 0) return null;
+                                {(() => {
+                                    const renderNavGroup = (group: NavigationGroup, depth = 0): React.ReactNode => {
+                                        const accessibleLinks = getAllNavigationLinks([group]).filter((l) =>
+                                            canAccess(permissions, l.module, "view")
+                                        );
+                                        if (accessibleLinks.length === 0) return null;
 
-                                    const isExpanded = expandedFolders.includes(group.key);
-                                    const isActiveGroup = accessibleLinks.some((l) => pathname === l.href);
-                                    const color = getModuleColor(group.key);
+                                        const isExpanded = expandedFolders.includes(group.key);
+                                        const isActiveGroup = accessibleLinks.some((l) => pathname === l.href);
+                                        const color = getModuleColor(group.key);
 
-                                    return (
-                                        <SidebarFolder
-                                            key={group.key}
-                                            folderKey={group.key}
-                                            label={group.label}
-                                            icon={group.icon}
-                                            color={color}
-                                            isExpanded={isExpanded}
-                                            isActiveGroup={isActiveGroup}
-                                            sideNavCollapsed={sideNavCollapsed}
-                                            onToggle={toggleFolder}
-                                            onFolderClick={handleFolderClick}
-                                            onContextMenu={handleContextMenu}
-                                            title={group.label}
-                                        >
-                                            {accessibleLinks.map((link) => (
-                                                <SidebarItem
-                                                    key={link.href + link.label}
-                                                    href={link.href}
-                                                    icon={link.icon}
-                                                    label={link.label}
-                                                    color={color}
-                                                    isActive={pathname === link.href}
-                                                    isChild={true}
-                                                    badgeSoon={link.description.includes("قريباً")}
-                                                    title={link.description}
-                                                    onClick={() => handleScreenClick(link.href)}
-                                                    onContextMenu={handleContextMenu}
-                                                />
-                                            ))}
-                                        </SidebarFolder>
-                                    );
-                                })}
+                                        return (
+                                            <SidebarFolder
+                                                key={group.key}
+                                                folderKey={group.key}
+                                                label={group.label}
+                                                icon={group.icon}
+                                                color={color}
+                                                isExpanded={isExpanded}
+                                                isActiveGroup={isActiveGroup}
+                                                sideNavCollapsed={sideNavCollapsed}
+                                                onToggle={toggleFolder}
+                                                onFolderClick={handleFolderClick}
+                                                onContextMenu={handleContextMenu}
+                                                title={group.label}
+                                            >
+                                                {group.items && group.items.length > 0 && isNavigationGroup(group.items[0])
+                                                    ? (group.items as NavigationGroup[]).map((childGroup) => renderNavGroup(childGroup, depth + 1))
+                                                    : (group.items as NavigationLink[]).map((link) => {
+                                                        if (!canAccess(permissions, link.module, "view")) return null;
+                                                        return (
+                                                            <SidebarItem
+                                                                key={link.href + link.label}
+                                                                href={link.href}
+                                                                icon={link.icon}
+                                                                label={link.label}
+                                                                color={color}
+                                                                isActive={pathname === link.href}
+                                                                isChild={true}
+                                                                badgeSoon={link.description.includes("قريباً")}
+                                                                title={link.description}
+                                                                onClick={() => handleScreenClick(link.href)}
+                                                                onContextMenu={handleContextMenu}
+                                                            />
+                                                        );
+                                                    })}
+                                            </SidebarFolder>
+                                        );
+                                    };
+
+                                    return navigationGroups.map((group) => renderNavGroup(group));
+                                })()}
                             </div>
                         </SectionHeader>
                     )}
@@ -443,7 +452,7 @@ export function SideNavigationBar({ onCollapsedChange, externalMobileOpen, onExt
                                 const link = findLink(path);
                                 if (!link) return null;
                                 const group = navigationGroups.find((g) =>
-                                    g.links.some((l) => l.href === path)
+                                    getAllNavigationLinks([g]).some((l) => l.href === path)
                                 );
                                 return { path, link, group };
                             })

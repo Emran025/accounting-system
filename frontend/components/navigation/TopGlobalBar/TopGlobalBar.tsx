@@ -4,7 +4,7 @@ import { SearchableSelect, SelectOption } from "@/components/ui";
 import { GlobalMenus } from "./components/GlobalMenus";
 import { GlobalMeta } from "./components/GlobalMeta";
 import { useMemo, useState } from "react";
-import { NavigationGroup, navigationGroups, NavigationLink } from "@/lib/navigation-config";
+import { NavigationGroup, navigationGroups, NavigationLink, getAllNavigationLinks } from "@/lib/navigation-config";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores";
 import { canAccess } from "@/lib/auth";
@@ -40,7 +40,7 @@ export function TopGlobalBar({ onNavigate, titleOverride, mobileSidebarToggle }:
 
     const allLinks: SearchResultItem[] = useMemo(() => {
         return navigationGroups.flatMap((group) => {
-            const accessibleLinks = group.links.filter((link) =>
+            const accessibleLinks = getAllNavigationLinks([group]).filter((link) =>
                 canAccess(permissions, link.module, "view")
             );
             return accessibleLinks.map((link) => ({ link, group }));

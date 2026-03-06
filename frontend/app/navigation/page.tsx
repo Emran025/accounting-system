@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { NavigationCard, NavigationGrid } from "@/components/navigation";
-import { getNavigationGroup } from "@/lib/navigation-config";
+import { getNavigationGroup, isNavigationGroup, isNavigationLink } from "@/lib/navigation-config";
 import { canAccess } from "@/lib/auth";
 import { MainLayout } from "@/components/layout";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -16,22 +16,36 @@ function NavigationContent() {
   const activeGroup = searchParams.get("group") || "dashboard";
 
   const currentGroup = getNavigationGroup(activeGroup);
-  const accessibleLinks = currentGroup
-    ? currentGroup.links.filter((link) => canAccess(permissions, link.module, "view"))
-    : [];
 
   return (
     <>
       <NavigationGrid>
-        {accessibleLinks.map((link) => (
-          <NavigationCard
-            key={link.href + link.label}
-            href={link.href}
-            icon={link.icon}
-            label={link.label}
-            description={link.description}
-          />
-        ))}
+        {currentGroup && currentGroup.items.map((item) => {
+          if (isNavigationGroup(item)) {
+            // Render a folder card
+            return (
+              <NavigationCard
+                key={item.key}
+                href={`/navigation?group=${item.key}`}
+                icon={item.icon}
+                label={item.label}
+                description="مجلد قوائم"
+              />
+            );
+          } else if (isNavigationLink(item)) {
+            if (!canAccess(permissions, item.module, "view")) return null;
+            return (
+              <NavigationCard
+                key={item.href + item.label}
+                href={item.href}
+                icon={item.icon}
+                label={item.label}
+                description={item.description}
+              />
+            );
+          }
+          return null;
+        })}
       </NavigationGrid>
     </>
   );
