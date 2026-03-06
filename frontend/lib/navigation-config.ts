@@ -1,8 +1,10 @@
 // Navigation Configuration - Defines system groups and their child links
 
+import { IconName } from "./icons";
+
 export interface NavigationLink {
   href: string;
-  icon: string;
+  icon: IconName;
   label: string;
   description: string;
   module: string;
@@ -13,7 +15,7 @@ export type NavigationItem = NavigationLink | NavigationGroup;
 export interface NavigationGroup {
   key: string;
   label: string;
-  icon: string;
+  icon: IconName;
   items: NavigationItem[];
 }
 
@@ -137,7 +139,7 @@ export const navigationGroups: NavigationGroup[] = [
       {
         key: "finance-trending",
         label: "النقدية والسياسة المالية",
-        icon: "",
+        icon: "trending-up",
         items: [
           { href: "/finance/journal_vouchers", icon: "file-signature", label: "سندات القيد", description: "القيود اليومية والمحاسبية", module: "journal_vouchers" },
           { href: "/system/dashboard", icon: "trending-up", label: "التدفق النقدي", description: "إدارة السيولة (قريباً)", module: "dashboard" },
@@ -169,10 +171,10 @@ export const navigationGroups: NavigationGroup[] = [
       {
         key: "finance-assets-investments",
         label: "الأصول والإستثمارت",
-        icon: "",
+        icon: "briefcase",
         items: [
-          { href: "/finance/assets", icon: "landmark", label: "الأصول الثابتة", description: "إدارة الأصول والإهلاك", module: "assets" },
-          { href: "/system/dashboard", icon: "", label: "الإستثمارات الخارجية (قريباً)", description: "ميزانيات الإسثمارت", module: "investments" }, //in the future
+          { href: "/finance/assets", icon: "building-2", label: "الأصول الثابتة", description: "إدارة الأصول والإهلاك", module: "assets" },
+          { href: "/system/dashboard", icon: "briefcase", label: "الإستثماراية (قريباً)الأصول", description: "ميزانيات الإسثمارت", module: "investments" }, //in the future
         ]
       },
       // Internal audit and compliance tracking
@@ -304,16 +306,16 @@ export const navigationGroups: NavigationGroup[] = [
       {
         key: "hr-groups-number-range-interval",
         label: "التجميع ونطاقات الترقيم",
-        icon: "",
+        icon: "shapes",
         items: [
           {
             key: "emp-groups-number-range-interval",
             label: "تجميعات الموظفين",
-            icon: "",
+            icon: "group",
             items: [
               { href: "/hr/groups-number-range-interval/employees/add-employees-group", icon: "add", label: "تعريف تجميع", description: "إضافة تجميع جديد", module: "employees" },
-              { href: "/hr/groups-number-range-interval/employees/add-number-range-interval", icon: "view", label: "تعريف نطاق", description: "إضافة نطاق جديد", module: "employees" },
-              { href: "/hr/groups-number-range-interval/employees/view-employees-groups", icon: "add", label: "عرض تجميعات الموظفين", description: "عرض تجميعات الموظفين", module: "employees" },
+              { href: "/hr/groups-number-range-interval/employees/add-number-range-interval", icon: "add", label: "تعريف نطاق", description: "إضافة نطاق جديد", module: "employees" },
+              { href: "/hr/groups-number-range-interval/employees/view-employees-groups", icon: "view", label: "عرض تجميعات الموظفين", description: "عرض تجميعات الموظفين", module: "employees" },
               { href: "/hr/groups-number-range-interval/employees/view-number-range-intervals", icon: "view", label: "عرض نطاقات الموظفين", description: "عرض نطاقات الموظفين", module: "employees" },
               { href: "/hr/groups-number-range-interval/employees/assignment", icon: "add", label: "عرض وإضافة الإسنادات", description: "عرض إسنادات  نطاقات الترقيم إلى الموظفين", module: "employees" },
             ]

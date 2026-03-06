@@ -16,7 +16,7 @@ import {
     CalendarDays, UserCheck, Plane, Megaphone, GraduationCap, Heart, EyeOff,
     Send, Filter, Handshake, CheckCheck, Play, Star, Pause, ThumbsUp, Upload,
     Delete, PanelRight, LucideGalleryHorizontalEnd, ArrowUp, Menu, Unlink,
-    XOctagon, Maximize2
+    XOctagon, Maximize2, Shapes, Group, View, Shield
 } from 'lucide-react';
 
 interface IconProps {
@@ -28,6 +28,7 @@ interface IconProps {
 export const icons = {
     mail: (props: IconProps) => <Mail className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     plus: (props: IconProps) => <Plus className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    add: (props: IconProps) => <Plus className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     edit: (props: IconProps) => <SquarePen className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     trash: (props: IconProps) => <Trash2 className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     eye: (props: IconProps) => <Eye className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
@@ -152,6 +153,11 @@ export const icons = {
     unlink: (props: IconProps) => <Unlink className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     "x-octagon": (props: IconProps) => <XOctagon className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     "maximize-2": (props: IconProps) => <Maximize2 className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    shapes: (props: IconProps) => <Shapes className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    group: (props: IconProps) => <Group className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    view: (props: IconProps) => <View className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    "building-2": (props: IconProps) => <Building2 className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
+    shield: (props: IconProps) => <Shield className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     // "panel-right-close": (props: IconProps) => <PanelRightClose className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
     // "panel-right-open": (props: IconProps) => <PanelRightOpen className={`icon ${props.className || ''}`} size={props.size} strokeWidth={props.strokeWidth} />,
 };

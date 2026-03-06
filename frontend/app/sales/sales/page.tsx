@@ -803,21 +803,18 @@ export default function SalesPage() {
                     {/* Left: Input Form */}
                     <div className="sales-card compact animate-slide">
                         <div className="card-header-flex">
-                            <h3> المبيعات / الفواتير</h3>
-                            <div className="invoice-badge-group" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                <div className="invoice-badge">
-                                    <span className="stat-label">رقم الفاتورة:</span>
-                                    <input
-                                        type="text"
-                                        id="invoice-number"
-                                        value={invoiceNumber}
-                                        readOnly
-                                        className="minimal-input"
-                                    />
-                                </div>
+                            <h3>إضافة منتجات</h3>
+                            <div className="invoice-badge">
+                                <span className="stat-label">رقم الفاتورة:</span>
+                                <input
+                                    type="text"
+                                    id="invoice-number"
+                                    value={invoiceNumber}
+                                    readOnly
+                                    className="minimal-input"
+                                />
                             </div>
                         </div>
-
                         <form
                             id="invoice-form"
                             onSubmit={(e) => {
@@ -914,7 +911,7 @@ export default function SalesPage() {
                     {/* Right: Current Invoice Items */}
                     <div className="sales-card animate-slide" style={{ animationDelay: "0.1s" }}>
                         <h3>عناصر الفاتورة الحالية</h3>
-                        <div className="current-invoice-table">
+                        <div className="current-invoice-table" style={{ width: '100%', overflowX: 'auto' }}>
                             <Table
                                 columns={currentInvoiceColumns}
                                 data={invoiceItems}
@@ -925,7 +922,7 @@ export default function SalesPage() {
 
                         <div className="invoice-adjustments">
                             <div className="discount-section">
-                                <div className="form-group" style={{ marginBottom: 0, width: '200px' }}>
+                                <div className="form-group" style={{ marginBottom: 0, flex: '1 1 200px', minWidth: '0' }}>
                                     <NumberInput
                                         id="invoice-discount"
                                         label="قيمة الخصم"
@@ -946,7 +943,7 @@ export default function SalesPage() {
                                     ]}
                                 />
 
-                                <div className="form-group" style={{ marginBottom: 0, minWidth: '250px' }}>
+                                <div className="form-group" style={{ marginBottom: 0, flex: '1 1 250px', minWidth: '0' }}>
                                     <Label title="المندوب (اختياري)" />
                                     <SearchableSelect
 

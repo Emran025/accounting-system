@@ -20,6 +20,8 @@ interface UIState {
     favoriteScreens: string[];
     autoCollapseOnNavigate: boolean;
     expandedFolders: string[];
+    mobileOpen: boolean;
+
 
     // Legacy actions
     toggleSidebar: () => void;
@@ -32,6 +34,7 @@ interface UIState {
     setSideNavCollapsed: (collapsed: boolean) => void;
     toggleSideNav: () => void;
     setSideNavWidth: (width: number) => void;
+    setMobileOpen: (open: boolean) => void;
     setSectionHeight: (section: 'opened' | 'systemMenu' | 'favorites', height: number) => void;
     toggleSection: (section: 'opened' | 'systemMenu' | 'favorites') => void;
     addRecentScreen: (path: string) => void;
@@ -69,6 +72,7 @@ export const useUIStore = create<UIState>()(
                 favoriteScreens: [],
                 autoCollapseOnNavigate: false,
                 expandedFolders: [],
+                mobileOpen: false,
 
                 // Legacy actions
                 toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -82,7 +86,7 @@ export const useUIStore = create<UIState>()(
                 toggleSideNav: () => set((state) => ({ sideNavCollapsed: !state.sideNavCollapsed })),
 
                 setSideNavWidth: (width) => set({ sideNavWidth: Math.max(200, Math.min(420, width)) }),
-
+                setMobileOpen: (open) => set({ mobileOpen: open }),
                 setSectionHeight: (section, height) => {
                     const map = {
                         opened: 'recentSectionHeight',

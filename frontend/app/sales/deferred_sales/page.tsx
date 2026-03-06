@@ -796,8 +796,8 @@ export default function DeferredSalesPage() {
           {/* Left: Input Panels */}
           <div className="side-panel">
             <div className="sales-card compact animate-slide">
-              <div className="card-header-flex" style={{ marginBottom: "1rem" }}>
-                <h3 style={{ margin: 0 }}>إضافة منتجات</h3>
+              <div className="card-header-flex">
+                <h3>إضافة منتجات</h3>
                 <div className="invoice-badge">
                   <span className="stat-label">رقم الفاتورة:</span>
                   <input
@@ -945,16 +945,18 @@ export default function DeferredSalesPage() {
             {/* Card 3: Current Invoice Items */}
             <div className="sales-card animate-slide" style={{ animationDelay: "0.1s" }}>
               <h3>عناصر الفاتورة الحالية</h3>
-              <Table
-                columns={currentInvoiceColumns}
-                data={invoiceItems}
-                keyExtractor={(_, index) => index}
-                emptyMessage="لا توجد عناصر مضافة"
-              />
+              <div className="current-invoice-table" style={{ width: '100%', overflowX: 'auto' }}>
+                <Table
+                  columns={currentInvoiceColumns}
+                  data={invoiceItems}
+                  keyExtractor={(_, index) => index}
+                  emptyMessage="لا توجد عناصر مضافة"
+                />
+              </div>
 
               <div className="invoice-adjustments">
                 <div className="discount-section">
-                  <div className="form-group" style={{ marginBottom: 0, width: '200px' }}>
+                  <div className="form-group" style={{ marginBottom: 0, flex: '1 1 200px', minWidth: '0' }}>
                     <NumberInput
                       id="invoice-discount"
                       label="قيمة الخصم"

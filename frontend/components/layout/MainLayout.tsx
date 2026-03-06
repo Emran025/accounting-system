@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, ReactNode, Suspense } from "react";
+import { useEffect, ReactNode, Suspense } from "react";
 import { useRouter } from "next/navigation";
+
 import {
   SideNavigationBar,
   TopGlobalBar,
@@ -34,8 +35,7 @@ export function MainLayout({
   const router = useRouter();
 
   const { isLoading, checkAuth } = useAuthStore();
-  const { sideNavCollapsed, sideNavWidth, setSideNavCollapsed } = useUIStore();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const { mobileOpen, setMobileOpen, sideNavCollapsed, sideNavWidth, setSideNavCollapsed } = useUIStore();
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -115,18 +115,7 @@ export function MainLayout({
     <div className="test-shell-column">
       <div>
         <Suspense fallback={<div className="top-global-bar" />}>
-          <TopGlobalBar
-            mobileSidebarToggle={
-              <button
-                type="button"
-                className="mobile-sidebar-toggle"
-                aria-label="فتح القائمة الجانبية"
-                onClick={() => setMobileOpen((prev) => !prev)}
-              >
-                {getIcon("menu")}
-              </button>
-            }
-          />
+          <TopGlobalBar/>
         </Suspense>
         <Suspense fallback={<div className="search-navigation-bar" />}>
           <SearchNavigationBar />

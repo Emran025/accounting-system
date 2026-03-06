@@ -10,7 +10,7 @@ interface NavigationControlsProps {
 
 export function NavigationControls({ onUp }: NavigationControlsProps) {
     const router = useRouter();
-    const { toggleSideNav } = useUIStore();
+    const { mobileOpen, setMobileOpen, toggleSideNav, sideNavCollapsed, sideNavWidth, setSideNavCollapsed } = useUIStore();
 
     return (
         <div className="search-nav-controls">
@@ -19,7 +19,14 @@ export function NavigationControls({ onUp }: NavigationControlsProps) {
                 type="button"
                 className="search-nav-icon-btn"
                 aria-label="Toggle sidebar"
-                onClick={toggleSideNav}
+                onClick={() => {
+                    if (window.innerWidth <= 1024) {
+                        setMobileOpen(!mobileOpen);
+                        setSideNavCollapsed(false);
+                    } else {
+                        toggleSideNav();
+                    }
+                }}
             >
                 {getIcon("panel-right")}
             </button>
@@ -47,6 +54,6 @@ export function NavigationControls({ onUp }: NavigationControlsProps) {
             >
                 {getIcon("arrow-up")}
             </button>
-        </div>
+        </div >
     );
 }

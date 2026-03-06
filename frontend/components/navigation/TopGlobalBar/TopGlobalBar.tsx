@@ -79,9 +79,6 @@ export function TopGlobalBar({ onNavigate, titleOverride, mobileSidebarToggle }:
 
     return (
         <header className="top-global-bar">
-            {/* Mobile sidebar toggle */}
-            {mobileSidebarToggle}
-
             {/* Left: Global menus */}
             <GlobalMenus />
 

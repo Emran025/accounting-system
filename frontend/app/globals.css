@@ -930,15 +930,15 @@ tbody tr:hover {
 }
 
 .btn-primary {
-  background: var(--grad-primary);
+  background: var(--primary-dark);
   color: white;
   box-shadow: 0 4px 12px rgba(64, 98, 139, 0.3);
 }
 
 .btn-primary:hover {
-  box-shadow: 0 8px 20px rgba(64, 98, 139, 0.299);
+  box-shadow: 0 3px 8px rgba(64, 98, 139, 0.299);
   transform: translateY(-2px);
-  filter: brightness(1.1);
+  filter: brightness(0.8);
 }
 
 .btn-primary::after {
@@ -1292,7 +1292,6 @@ tbody tr:hover {
 
 .stat-value.highlight {
   color: var(--primary-color);
-  font-size: 1.5rem;
 }
 
 /* Dashboard Stats */
@@ -1546,7 +1545,6 @@ tbody tr:hover {
 
 .stat-value {
   font-family: "Outfit", "Cairo", sans-serif;
-  font-size: 1.5rem;
   font-weight: 800;
   color: #1e293b;
   /* Deep slate for maximum legibility */
@@ -2312,8 +2310,10 @@ tbody tr:hover {
 
 .sales-summary-bar {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   padding: 1.25rem 1.75rem;
   background: var(--bg-color);
   border-radius: var(--radius-md);
@@ -2668,6 +2668,10 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
     grid-template-columns: 1fr;
   }
 
+  #invoice-form .form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .page-header {
     flex-direction: column;
     align-items: flex-start;
@@ -2997,9 +3001,10 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
   /* More compact padding */
   border: 1px solid var(--border-color);
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-start;
   /* Group elements to the right */
-  gap: 3rem;
+  gap: 1.5rem;
   /* Spacing between groups */
   align-items: center;
   margin-top: 1rem;
@@ -3012,9 +3017,10 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
 
 .invoice-adjustments .discount-section {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 1.5rem;
-  /* flex: 1 removed to prevent stretching */
+  flex: 1;
 }
 
 /* ===== Navigation Page Styles ===== */
@@ -4360,6 +4366,7 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
   padding: 0.25rem 1rem;
   /* background: transparent; */
   border: none;
+  color: rgba(255, 255, 255, 0.7);
   background: rgba(255, 255, 255, 0.2);
   font-size: 0.84rem;
   font-weight: 700;
@@ -4372,7 +4379,7 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
 }
 
 .sidenav-section-header:hover {
-  color: rgba(255, 255, 255, 0.7);
+  filter: brightness(0.9);
 }
 
 .sidenav-section-header-icon {
@@ -4828,6 +4835,7 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
 .main-layout-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 0.5rem 2rem 4rem 2rem;
   background: var(--bg-color);
   height: 100%;
@@ -5563,42 +5571,6 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
    Mobile Sidebar Toggle Button (hamburger)
    Only visible on ≤1024px screens
    ═══════════════════════════════════════════════════════════════════════ */
-.mobile-sidebar-toggle {
-  display: none;
-}
-
-@media (max-width: 1024px) {
-  .mobile-sidebar-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: var(--surface-white);
-    cursor: pointer;
-    color: var(--text-secondary);
-    flex-shrink: 0;
-    transition: all 0.2s ease;
-    box-shadow: var(--shadow-xs);
-  }
-
-  .mobile-sidebar-toggle:hover {
-    color: var(--primary-color);
-    border-color: var(--primary-light);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .mobile-sidebar-toggle:active {
-    transform: scale(0.95);
-  }
-
-  .mobile-sidebar-toggle .icon {
-    width: 16px;
-    height: 16px;
-  }
-}
 
 
 /* ═══════════════════════════════════════════════════════════════════
