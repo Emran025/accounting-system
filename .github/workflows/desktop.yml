@@ -18,6 +18,7 @@ jobs:
   build-desktop:
     name: Build desktop (${{ matrix.flavor }} / ${{ matrix.platform }})
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
