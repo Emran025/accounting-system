@@ -525,7 +525,7 @@ function macDefinition(architecture, sha256) {
       mariadbd: 'mariadbd',
       mariadb: 'mariadb',
       mariadbDump: 'mariadb-dump',
-      mariadbInstallDb: 'mariadb-install-db',
+      mariadbInstallDb: 'scripts/mariadb-install-db',
     },
   };
 }

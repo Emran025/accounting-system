@@ -601,7 +601,7 @@ fn mariadb_install_db_relative_path() -> &'static str {
     }
     #[cfg(target_os = "macos")]
     {
-        "bin/mariadb-install-db"
+        "scripts/mariadb-install-db"
     }
     #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     {

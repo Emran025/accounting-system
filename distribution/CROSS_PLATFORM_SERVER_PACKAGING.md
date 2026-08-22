@@ -33,7 +33,7 @@ The package contains no Node.js, Rust toolchain, PHP installation, Homebrew inst
 | -------------------------------- | ------------------- | ------------------------------------- | --------------------------------------------------------------------------- |
 | `windows-x86_64`                 | `frankenphp.exe`    | `mariadb-11.4.9-winx64`               | `mariadbd.exe`, `mariadb.exe`, `mariadb-dump.exe`, `mariadb-install-db.exe` |
 | `linux-x86_64`                   | `frankenphp`        | `mariadb-11.4.9-linux-systemd-x86_64` | `mariadbd`, `mariadb`, `mariadb-dump`, `scripts/mariadb-install-db`         |
-| `macos-aarch64` / `macos-x86_64` | `frankenphp`        | `mariadb`                             | `mariadbd`, `mariadb`, `mariadb-dump`, `bin/mariadb-install-db`             |
+| `macos-aarch64` / `macos-x86_64` | `frankenphp`        | `mariadb`                             | `mariadbd`, `mariadb`, `mariadb-dump`, `scripts/mariadb-install-db`         |
 
 The backup and isolated restore-validation paths use these platform-specific executable names. A runtime that lacks any required executable is rejected before the agent claims or starts a service.
 

@@ -69,7 +69,7 @@ function mariaDbLayout(target) {
       mariadbd: 'mariadbd',
       client: 'mariadb',
       dump: 'mariadb-dump',
-      installDb: 'bin/mariadb-install-db',
+      installDb: 'scripts/mariadb-install-db',
     };
   }
   throw new Error(`unsupported Server Desktop runtime target ${target}`);

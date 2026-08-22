@@ -1288,7 +1288,7 @@ fn mariadb_dump_name() -> &'static str {
     }
 }
 fn mariadb_install_db(config: &RuntimeConfig) -> PathBuf {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
         return config
             .runtime_root
