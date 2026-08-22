@@ -16,8 +16,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    component, mariadb_bin, now, public_status_root, run_checked, terminate, wait_for_port,
-    ComponentStatus, RuntimeConfig, BACKUP_VALIDATION_PORT, DATABASE_PORT,
+    component, mariadb_bin, mariadb_dump_name, mariadb_install_db, mariadb_name, mariadb_root_name,
+    mariadbd_name, now, public_status_root, run_checked, terminate, wait_for_port, ComponentStatus,
+    RuntimeConfig, BACKUP_VALIDATION_PORT, DATABASE_PORT,
 };
 
 const BACKUP_MANIFEST_VERSION: u8 = 1;
@@ -54,7 +55,7 @@ struct PublicBackupStatus {
 
 pub struct BackupRuntime {
     config: RuntimeConfig,
-    supervisor: BackupSupervisor<WindowsMariaDbBackupOperator>,
+    supervisor: BackupSupervisor<MariaDbBackupOperator>,
     schedule: BackupSchedule,
     catalog_error: Option<String>,
     last_failure: Option<String>,
@@ -70,7 +71,7 @@ impl BackupRuntime {
         let runtime = Self {
             config: config.clone(),
             supervisor: BackupSupervisor::with_records(
-                WindowsMariaDbBackupOperator::new(config.clone()),
+                MariaDbBackupOperator::new(config.clone()),
                 BackupRetentionPolicy::default(),
                 records,
             ),
@@ -236,11 +237,11 @@ impl BackupRuntime {
     }
 }
 
-struct WindowsMariaDbBackupOperator {
+struct MariaDbBackupOperator {
     config: RuntimeConfig,
 }
 
-impl WindowsMariaDbBackupOperator {
+impl MariaDbBackupOperator {
     fn new(config: RuntimeConfig) -> Self {
         Self { config }
     }
@@ -273,7 +274,7 @@ impl WindowsMariaDbBackupOperator {
     }
 }
 
-impl BackupOperator for WindowsMariaDbBackupOperator {
+impl BackupOperator for MariaDbBackupOperator {
     fn create_backup(&mut self, backup_id: &str) -> Result<u64, AgentError> {
         validate_backup_id(backup_id)?;
         let archive = self.archive_path(backup_id);
@@ -288,7 +289,7 @@ impl BackupOperator for WindowsMariaDbBackupOperator {
                 backup_io_error("create MariaDB backup SQL staging file", error)
             })?;
             run_checked(
-                Command::new(mariadb_bin(&self.config, "mariadb-dump.exe"))
+                Command::new(mariadb_bin(&self.config, mariadb_dump_name()))
                     .arg(format!("--defaults-file={}", client_config.display()))
                     .args([
                         "--single-transaction",
@@ -368,7 +369,7 @@ impl BackupOperator for WindowsMariaDbBackupOperator {
 
         let result = (|| {
             run_checked(
-                Command::new(mariadb_bin(&self.config, "mariadb-install-db.exe"))
+                Command::new(mariadb_install_db(&self.config))
                     .arg(format!("--datadir={}", data_directory.display()))
                     .arg(format!("--password={validation_root_password}"))
                     .arg(format!("--port={BACKUP_VALIDATION_PORT}")),
@@ -383,14 +384,11 @@ impl BackupOperator for WindowsMariaDbBackupOperator {
 
             let validation_log = File::create(validation_root.join("mariadb-validation.log"))
                 .map_err(|error| backup_io_error("open isolated MariaDB validation log", error))?;
-            let mut validation_database = Command::new(mariadb_bin(&self.config, "mariadbd.exe"))
+            let mut validation_database = Command::new(mariadb_bin(&self.config, mariadbd_name()))
                 .arg("--no-defaults")
                 .arg(format!(
                     "--basedir={}",
-                    self.config
-                        .runtime_root
-                        .join("mariadb-11.4.9-winx64")
-                        .display()
+                    self.config.runtime_root.join(mariadb_root_name()).display()
                 ))
                 .arg(format!("--datadir={}", data_directory.display()))
                 .arg("--bind-address=127.0.0.1")
@@ -419,7 +417,7 @@ impl BackupOperator for WindowsMariaDbBackupOperator {
                      FLUSH PRIVILEGES;"
                 );
                 run_checked(
-                    Command::new(mariadb_bin(&self.config, "mariadb.exe"))
+                    Command::new(mariadb_bin(&self.config, mariadb_name()))
                         .arg(format!("--defaults-file={}", client_config.display()))
                         .arg(format!("--execute={principal_sql}")),
                     "provision isolated restore validation view definer",
@@ -444,7 +442,7 @@ impl BackupOperator for WindowsMariaDbBackupOperator {
                 let input = File::open(&restore_sql).map_err(|error| {
                     backup_io_error("open isolated restore SQL staging file", error)
                 })?;
-                let mut restore = Command::new(mariadb_bin(&self.config, "mariadb.exe"));
+                let mut restore = Command::new(mariadb_bin(&self.config, mariadb_name()));
                 restore
                     .arg(format!("--defaults-file={}", client_config.display()))
                     .stdin(Stdio::from(input));
@@ -459,7 +457,7 @@ impl BackupOperator for WindowsMariaDbBackupOperator {
                     )
                 })?;
 
-                let mut query = Command::new(mariadb_bin(&self.config, "mariadb.exe"));
+                let mut query = Command::new(mariadb_bin(&self.config, mariadb_name()));
                 query
                     .arg(format!("--defaults-file={}", client_config.display()))
                     .arg(format!("--database={}", self.config.database_name))

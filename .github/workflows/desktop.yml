@@ -126,7 +126,8 @@ jobs:
         shell: bash
         run: |
           brew update
-          brew install bison boost cmake openssl@3 pcre2 zstd
+          brew install bison byacc cmake gnutls libxml2 m4
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
           developer_dir="$(xcode-select -p)"
           sdk_root="$(DEVELOPER_DIR="$developer_dir" xcrun --sdk macosx --show-sdk-path)"
           toolchain_bin="$developer_dir/Toolchains/XcodeDefault.xctoolchain/usr/bin"
@@ -139,7 +140,6 @@ jobs:
             echo "ACCORE_MACOS_SDKROOT=$sdk_root"
             echo "CC=$toolchain_bin/clang"
             echo "CXX=$toolchain_bin/clang++"
-            echo "CMAKE_PREFIX_PATH=$(brew --prefix boost):$(brew --prefix openssl@3):$(brew --prefix pcre2):$(brew --prefix zstd)"
           } >> "$GITHUB_ENV"
 
       - name: Lock Xcode SDK for MariaDB source build
@@ -372,7 +372,8 @@ jobs:
         shell: bash
         run: |
           brew update
-          brew install bison boost cmake openssl@3 pcre2 zstd
+          brew install bison byacc cmake gnutls libxml2 m4
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
           developer_dir="$(xcode-select -p)"
           sdk_root="$(DEVELOPER_DIR="$developer_dir" xcrun --sdk macosx --show-sdk-path)"
           toolchain_bin="$developer_dir/Toolchains/XcodeDefault.xctoolchain/usr/bin"
@@ -385,7 +386,6 @@ jobs:
             echo "ACCORE_MACOS_SDKROOT=$sdk_root"
             echo "CC=$toolchain_bin/clang"
             echo "CXX=$toolchain_bin/clang++"
-            echo "CMAKE_PREFIX_PATH=$(brew --prefix boost):$(brew --prefix openssl@3):$(brew --prefix pcre2):$(brew --prefix zstd)"
           } >> "$GITHUB_ENV"
 
       - name: Install Rust toolchain

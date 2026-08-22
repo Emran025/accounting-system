@@ -86,9 +86,12 @@ async function buildMariaDbFromSource(source) {
   await mkdir(sourceRoot, { recursive: true });
   await extractArchive(archivePath, sourceRoot, source.format);
 
-  const entries = await (await import('node:fs/promises')).readdir(sourceRoot, { withFileTypes: true });
+  const entries = await (
+    await import('node:fs/promises')
+  ).readdir(sourceRoot, { withFileTypes: true });
   const extractedDirectory = entries.find((entry) => entry.isDirectory())?.name;
-  if (!extractedDirectory) throw new Error(`MariaDB source archive did not extract into a directory for ${target}`);
+  if (!extractedDirectory)
+    throw new Error(`MariaDB source archive did not extract into a directory for ${target}`);
 
   const prefixPath = process.env.ACCORE_MARIADB_PREFIX;
   if (prefixPath) {
@@ -104,34 +107,35 @@ async function buildMariaDbFromSource(source) {
     buildRoot,
     '-DCMAKE_BUILD_TYPE=Release',
     `-DCMAKE_INSTALL_PREFIX=${installRoot}`,
-    '-DWITH_UNIT_TESTS=OFF',
-    '-DWITH_EMBEDDED_SERVER=OFF',
+    // Keep the shipped database deliberately small and remove engines that
+    // introduce optional native dependencies. InnoDB, Aria and MyISAM remain.
+    '-DPLUGIN_ROCKSDB=NO',
+    '-DPLUGIN_ARCHIVE=NO',
+    '-DPLUGIN_MROONGA=NO',
+    '-DPLUGIN_CONNECT=NO',
+    '-DPLUGIN_SPIDER=NO',
+    '-DPLUGIN_OQGRAPH=NO',
     '-DPLUGIN_SPHINX=NO',
-    '-DWITHOUT_TOKUDB=1',
-    '-DWITHOUT_MROONGA=1',
-    '-DWITH_ROCKSDB=OFF',
-    '-DWITH_SSL=system',
-    '-DWITH_ZLIB=system',
+    '-DWITH_WSREP=OFF',
+    '-DWITH_MARIABACKUP=OFF',
+    '-DWITH_EMBEDDED_SERVER=OFF',
+    '-DWITH_UNIT_TESTS=OFF',
+    // These source-tree implementations keep runtime TLS, regex and zlib
+    // dependencies out of Homebrew and outside the installed client package.
+    '-DWITH_SSL=bundled',
+    '-DWITH_PCRE=bundled',
+    '-DWITH_ZLIB=bundled',
   ];
-  const buildEnvironment = { CMAKE_PREFIX_PATH: process.env.CMAKE_PREFIX_PATH ?? '' };
+  const buildEnvironment = {};
   if (process.platform === 'darwin') {
     const macSdkRoot = process.env.ACCORE_MACOS_SDKROOT ?? process.env.SDKROOT;
-    if (macSdkRoot) {
-      cmakeArgs.push(`-DCMAKE_OSX_SYSROOT=${macSdkRoot}`);
-    }
-    if (process.env.CC && process.env.CXX) {
-      cmakeArgs.push(
-        `-DCMAKE_C_COMPILER=${process.env.CC}`,
-        `-DCMAKE_CXX_COMPILER=${process.env.CXX}`,
-        '-DCMAKE_C_STANDARD_INCLUDE_DIRECTORIES=',
-        '-DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES=',
-        '-DCMAKE_VERBOSE_MAKEFILE=ON'
-      );
-    }
+    if (macSdkRoot) cmakeArgs.push(`-DCMAKE_OSX_SYSROOT=${macSdkRoot}`);
+    if (process.env.CC) cmakeArgs.push(`-DCMAKE_C_COMPILER=${process.env.CC}`);
+    if (process.env.CXX) cmakeArgs.push(`-DCMAKE_CXX_COMPILER=${process.env.CXX}`);
 
-    // Hosted macOS runners can expose Command Line Tools include flags through
-    // setup actions. They are incompatible with the selected Xcode SDK when
-    // compiling C++ sources, so build only through CMake's explicit SDK/prefix.
+    // Compile tools may be supplied by the hosted runner, but generated code
+    // must discover headers and libraries only through the selected SDK or
+    // MariaDB's bundled sources. Do not edit CMake-generated makefiles.
     Object.assign(buildEnvironment, {
       CFLAGS: '',
       CXXFLAGS: '',
@@ -142,6 +146,7 @@ async function buildMariaDbFromSource(source) {
       CPLUS_INCLUDE_PATH: '',
       OBJC_INCLUDE_PATH: '',
       LIBRARY_PATH: '',
+      CMAKE_PREFIX_PATH: '',
       CMAKE_INCLUDE_PATH: '',
       CMAKE_LIBRARY_PATH: '',
       CMAKE_FRAMEWORK_PATH: '',
@@ -149,32 +154,12 @@ async function buildMariaDbFromSource(source) {
     });
   }
   await run('cmake', cmakeArgs, buildEnvironment);
-  if (process.platform === 'darwin') await removeCommandLineToolsIncludes(buildRoot);
   await run(
     'cmake',
     ['--build', buildRoot, '--parallel', process.env.ACCORE_RUNTIME_BUILD_JOBS ?? '3', '--verbose'],
     buildEnvironment
   );
   await run('cmake', ['--install', buildRoot], buildEnvironment);
-}
-
-async function removeCommandLineToolsIncludes(root) {
-  const entries = await readdir(root, { withFileTypes: true });
-  for (const entry of entries) {
-    const path = join(root, entry.name);
-    if (entry.isDirectory()) {
-      await removeCommandLineToolsIncludes(path);
-      continue;
-    }
-    if (!entry.isFile() || !entry.name.endsWith('.make')) continue;
-
-    const contents = await readFile(path, 'utf8');
-    const sanitized = contents.replaceAll(
-      /-I\/Library\/Developer\/CommandLineTools\/SDKs\/[^\s]+\/usr\/include/g,
-      ''
-    );
-    if (sanitized !== contents) await writeFile(path, sanitized);
-  }
 }
 
 async function stageApplication() {
@@ -209,7 +194,9 @@ http://127.0.0.1:8765 {
   if (definition.layout.phpExtensionsDirectory) {
     const phpExtensions = ['curl', 'fileinfo', 'mbstring', 'mysqli', 'openssl', 'pdo_mysql', 'zip'];
     for (const extension of phpExtensions) {
-      await assertFile(join(destinationRoot, definition.layout.phpExtensionsDirectory, `php_${extension}.dll`));
+      await assertFile(
+        join(destinationRoot, definition.layout.phpExtensionsDirectory, `php_${extension}.dll`)
+      );
     }
     const phpProductionIni = await readFile(join(destinationRoot, 'php.ini-production'), 'utf8');
     await writeFile(
@@ -221,9 +208,97 @@ http://127.0.0.1:8765 {
 
 async function verifyRuntime() {
   await assertFile(join(destinationRoot, definition.layout.frankenPhp));
-  await assertFile(join(destinationRoot, definition.layout.mariadbRoot, 'bin', definition.layout.mariadbd));
-  await assertFile(join(destinationRoot, definition.layout.mariadbRoot, 'bin', definition.layout.mariadb));
-  await assertFile(join(destinationRoot, definition.layout.mariadbRoot, definition.layout.mariadbInstallDb));
+  await assertFile(
+    join(destinationRoot, definition.layout.mariadbRoot, 'bin', definition.layout.mariadbd)
+  );
+  await assertFile(
+    join(destinationRoot, definition.layout.mariadbRoot, 'bin', definition.layout.mariadb)
+  );
+  await assertFile(
+    join(destinationRoot, definition.layout.mariadbRoot, 'bin', definition.layout.mariadbDump)
+  );
+  await assertFile(
+    join(destinationRoot, definition.layout.mariadbRoot, definition.layout.mariadbInstallDb)
+  );
+  if (process.platform === 'darwin') await verifyMacosRuntimeLinkage();
+}
+
+async function verifyMacosRuntimeLinkage() {
+  const mariaDbBin = join(destinationRoot, definition.layout.mariadbRoot, 'bin');
+  const candidates = [
+    join(destinationRoot, definition.layout.frankenPhp),
+    join(mariaDbBin, definition.layout.mariadbd),
+    join(mariaDbBin, definition.layout.mariadb),
+    join(mariaDbBin, definition.layout.mariadbDump),
+    ...(await collectDynamicLibraries(join(destinationRoot, definition.layout.mariadbRoot))),
+  ];
+  const rejectedPrefixes = [
+    '/opt/homebrew/',
+    '/usr/local/',
+    '/Library/Developer/',
+    '/Applications/Xcode',
+  ];
+  const allowedPrefixes = [
+    '/usr/lib/',
+    '/System/Library/',
+    '@loader_path/',
+    '@executable_path/',
+    '@rpath/',
+  ];
+  for (const candidate of [...new Set(candidates)]) {
+    const output = await runCapture('otool', ['-L', candidate]);
+    for (const dependency of output.split('\n').slice(1)) {
+      const installName = dependency.trim().split(' (')[0];
+      if (!installName) continue;
+      if (rejectedPrefixes.some((prefix) => installName.startsWith(prefix))) {
+        throw new Error(
+          `macOS runtime dependency points outside the package: ${candidate} -> ${installName}`
+        );
+      }
+      if (!allowedPrefixes.some((prefix) => installName.startsWith(prefix))) {
+        throw new Error(
+          `macOS runtime dependency has an unsupported install name: ${candidate} -> ${installName}`
+        );
+      }
+    }
+    await verifyMacosRuntimeSearchPaths(candidate, rejectedPrefixes, allowedPrefixes);
+  }
+}
+
+async function verifyMacosRuntimeSearchPaths(candidate, rejectedPrefixes, allowedPrefixes) {
+  const lines = (await runCapture('otool', ['-l', candidate])).split('\n');
+  for (let index = 0; index < lines.length; index += 1) {
+    if (lines[index].trim() !== 'cmd LC_RPATH') continue;
+    const pathLine = lines
+      .slice(index + 1, index + 5)
+      .find((line) => line.trim().startsWith('path '));
+    const match = pathLine?.trim().match(/^path (.+) \(offset \d+\)$/);
+    if (!match) throw new Error(`could not parse macOS runtime search path in ${candidate}`);
+    const runtimeSearchPath = match[1];
+    if (rejectedPrefixes.some((prefix) => runtimeSearchPath.startsWith(prefix))) {
+      throw new Error(
+        `macOS runtime search path points outside the package: ${candidate} -> ${runtimeSearchPath}`
+      );
+    }
+    if (!allowedPrefixes.some((prefix) => runtimeSearchPath.startsWith(prefix))) {
+      throw new Error(
+        `macOS runtime search path is unsupported: ${candidate} -> ${runtimeSearchPath}`
+      );
+    }
+  }
+}
+
+async function collectDynamicLibraries(root) {
+  const entries = await readdir(root, { withFileTypes: true });
+  const libraries = [];
+  for (const entry of entries) {
+    const path = join(root, entry.name);
+    if (entry.isDirectory()) libraries.push(...(await collectDynamicLibraries(path)));
+    else if (entry.isFile() && (entry.name.endsWith('.dylib') || entry.name.endsWith('.so'))) {
+      libraries.push(path);
+    }
+  }
+  return libraries;
 }
 
 async function downloadVerified(source) {
@@ -263,12 +338,16 @@ async function fetchWithRetries(source) {
 
     if (attempt < maximumAttempts) {
       const delayMilliseconds = attempt * 5_000;
-      console.warn(`download attempt ${attempt}/${maximumAttempts} failed for ${source.id}; retrying in ${delayMilliseconds}ms`);
+      console.warn(
+        `download attempt ${attempt}/${maximumAttempts} failed for ${source.id}; retrying in ${delayMilliseconds}ms`
+      );
       await new Promise((resolveDelay) => setTimeout(resolveDelay, delayMilliseconds));
     }
   }
 
-  throw new Error(`failed to download ${source.id} after ${maximumAttempts} attempts`, { cause: lastError });
+  throw new Error(`failed to download ${source.id} after ${maximumAttempts} attempts`, {
+    cause: lastError,
+  });
 }
 
 async function hasExpectedDigest(path, expected) {
@@ -328,65 +407,99 @@ async function run(command, args, additionalEnvironment = {}) {
   });
 }
 
+async function runCapture(command, args) {
+  return new Promise((resolveCommand, rejectCommand) => {
+    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
+    child.once('error', rejectCommand);
+    child.once('exit', (code) => {
+      if (code === 0) return resolveCommand(stdout);
+      rejectCommand(
+        new Error(`${command} ${args.join(' ')} exited with code ${code}: ${stderr.trim()}`)
+      );
+    });
+  });
+}
+
 function hostTarget() {
   if (process.platform === 'win32') return 'windows-x86_64';
-  if (process.platform === 'darwin') return process.arch === 'arm64' ? 'macos-aarch64' : 'macos-x86_64';
+  if (process.platform === 'darwin')
+    return process.arch === 'arm64' ? 'macos-aarch64' : 'macos-x86_64';
   if (process.platform === 'linux' && process.arch === 'x64') return 'linux-x86_64';
-  throw new Error(`cannot infer a Server Desktop runtime target for ${process.platform}/${process.arch}`);
+  throw new Error(
+    `cannot infer a Server Desktop runtime target for ${process.platform}/${process.arch}`
+  );
 }
 
 function getTargets() {
   return {
-  'windows-x86_64': {
-    frankenPhp: {
-      id: 'frankenphp',
-      url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-windows-x86_64.zip',
-      sha256: 'c382cf6169d5175c30d918ba7a09d6eb8601c6c339470e7fbb87f0b40d9bf254',
-      archive: 'frankenphp-windows-x86_64.zip',
-      format: 'zip',
+    'windows-x86_64': {
+      frankenPhp: {
+        id: 'frankenphp',
+        url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-windows-x86_64.zip',
+        sha256: 'c382cf6169d5175c30d918ba7a09d6eb8601c6c339470e7fbb87f0b40d9bf254',
+        archive: 'frankenphp-windows-x86_64.zip',
+        format: 'zip',
+      },
+      mariadb: {
+        id: 'mariadb',
+        kind: 'archive',
+        url: 'https://archive.mariadb.org/mariadb-11.4.9/winx64-packages/mariadb-11.4.9-winx64.zip',
+        sha256: '802f9f40a9dca774a3ba62f39c21093942954f178d6d7d458dc51453929bcdda',
+        archive: 'mariadb-11.4.9-winx64.zip',
+        format: 'zip',
+      },
+      layout: {
+        frankenPhp: 'frankenphp.exe',
+        mariadbRoot: 'mariadb-11.4.9-winx64',
+        mariadbd: 'mariadbd.exe',
+        mariadb: 'mariadb.exe',
+        mariadbDump: 'mariadb-dump.exe',
+        mariadbInstallDb: 'bin/mariadb-install-db.exe',
+        phpExtensionsDirectory: 'ext',
+      },
     },
-    mariadb: {
-      id: 'mariadb',
-      kind: 'archive',
-      url: 'https://archive.mariadb.org/mariadb-11.4.9/winx64-packages/mariadb-11.4.9-winx64.zip',
-      sha256: '802f9f40a9dca774a3ba62f39c21093942954f178d6d7d458dc51453929bcdda',
-      archive: 'mariadb-11.4.9-winx64.zip',
-      format: 'zip',
+    'linux-x86_64': {
+      frankenPhp: {
+        id: 'frankenphp',
+        url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-linux-x86_64',
+        sha256: '3cbe9c51815182892aa625e40e8b83440b1d8c62cb39bf8d76538ece75449552',
+        archive: 'frankenphp-linux-x86_64',
+      },
+      mariadb: {
+        id: 'mariadb',
+        kind: 'archive',
+        url: 'https://archive.mariadb.org/mariadb-11.4.9/bintar-linux-systemd-x86_64/mariadb-11.4.9-linux-systemd-x86_64.tar.gz',
+        sha256: 'c079403239fa74900c18ae0f2d99806625b3ae936c8983dd39a96c8b237072da',
+        archive: 'mariadb-11.4.9-linux-systemd-x86_64.tar.gz',
+        format: 'tar.gz',
+      },
+      layout: {
+        frankenPhp: 'frankenphp',
+        mariadbRoot: 'mariadb-11.4.9-linux-systemd-x86_64',
+        mariadbd: 'mariadbd',
+        mariadb: 'mariadb',
+        mariadbDump: 'mariadb-dump',
+        mariadbInstallDb: 'scripts/mariadb-install-db',
+      },
     },
-    layout: {
-      frankenPhp: 'frankenphp.exe',
-      mariadbRoot: 'mariadb-11.4.9-winx64',
-      mariadbd: 'mariadbd.exe',
-      mariadb: 'mariadb.exe',
-      mariadbInstallDb: 'bin/mariadb-install-db.exe',
-      phpExtensionsDirectory: 'ext',
-    },
-  },
-  'linux-x86_64': {
-    frankenPhp: {
-      id: 'frankenphp',
-      url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-linux-x86_64',
-      sha256: '3cbe9c51815182892aa625e40e8b83440b1d8c62cb39bf8d76538ece75449552',
-      archive: 'frankenphp-linux-x86_64',
-    },
-    mariadb: {
-      id: 'mariadb',
-      kind: 'archive',
-      url: 'https://archive.mariadb.org/mariadb-11.4.9/bintar-linux-systemd-x86_64/mariadb-11.4.9-linux-systemd-x86_64.tar.gz',
-      sha256: 'c079403239fa74900c18ae0f2d99806625b3ae936c8983dd39a96c8b237072da',
-      archive: 'mariadb-11.4.9-linux-systemd-x86_64.tar.gz',
-      format: 'tar.gz',
-    },
-    layout: {
-      frankenPhp: 'frankenphp',
-      mariadbRoot: 'mariadb-11.4.9-linux-systemd-x86_64',
-      mariadbd: 'mariadbd',
-      mariadb: 'mariadb',
-      mariadbInstallDb: 'scripts/mariadb-install-db',
-    },
-  },
-  'macos-aarch64': macDefinition('arm64', 'd5ac0ab9f7796ae1b55a244064c25d56e3a3bfdec266d08c9bf2c7d18a7ffcf2'),
-  'macos-x86_64': macDefinition('x86_64', 'dacae5e6cab284475c33afe5ab6f5b37e0b119215d2ce462ca149ea497d0448a'),
+    'macos-aarch64': macDefinition(
+      'arm64',
+      'd5ac0ab9f7796ae1b55a244064c25d56e3a3bfdec266d08c9bf2c7d18a7ffcf2'
+    ),
+    'macos-x86_64': macDefinition(
+      'x86_64',
+      'dacae5e6cab284475c33afe5ab6f5b37e0b119215d2ce462ca149ea497d0448a'
+    ),
   };
 }
 
@@ -411,6 +524,7 @@ function macDefinition(architecture, sha256) {
       mariadbRoot: 'mariadb',
       mariadbd: 'mariadbd',
       mariadb: 'mariadb',
+      mariadbDump: 'mariadb-dump',
       mariadbInstallDb: 'mariadb-install-db',
     },
   };

@@ -4,7 +4,9 @@ import { spawn } from 'node:child_process';
 
 const [target] = process.argv.slice(2);
 if (!target || !getTargets()[target]) {
-  throw new Error(`usage: build-server-headless-package.mjs <${Object.keys(getTargets()).join('|')}>`);
+  throw new Error(
+    `usage: build-server-headless-package.mjs <${Object.keys(getTargets()).join('|')}>`
+  );
 }
 
 const frontendRoot = resolve(import.meta.dirname, '..');
@@ -16,7 +18,10 @@ const agentSource = resolve(frontendRoot, 'src-tauri', 'binaries', targetDefinit
 const runtimeSource = resolve(frontendRoot, 'src-tauri', 'resources', 'server-runtime', target);
 
 await assertFile(agentSource, 'Server Headless Agent sidecar');
-await assertFile(join(runtimeSource, targetDefinition.frankenPhp), 'Server Headless FrankenPHP runtime');
+await assertFile(
+  join(runtimeSource, targetDefinition.frankenPhp),
+  'Server Headless FrankenPHP runtime'
+);
 await assertFile(
   join(runtimeSource, targetDefinition.mariadbRoot, 'bin', targetDefinition.mariadbd),
   'Server Headless MariaDB runtime'
@@ -43,7 +48,12 @@ async function buildLinuxPackages() {
   await mkdir(debianRoot, { recursive: true });
   await cp(filesystemRoot, debianRoot, { recursive: true, verbatimSymlinks: true });
   await writeDebianControl(join(debianRoot, 'DEBIAN'));
-  await run('dpkg-deb', ['--root-owner-group', '--build', debianRoot, join(outputRoot, `accore-erp-server-headless_${version}_amd64.deb`)]);
+  await run('dpkg-deb', [
+    '--root-owner-group',
+    '--build',
+    debianRoot,
+    join(outputRoot, `accore-erp-server-headless_${version}_amd64.deb`),
+  ]);
 
   await mkdir(join(rpmRoot, 'BUILD'), { recursive: true });
   await mkdir(join(rpmRoot, 'BUILDROOT'), { recursive: true });
@@ -91,7 +101,10 @@ async function buildMacPackage() {
     version,
     '--install-location',
     '/',
-    join(outputRoot, `ACCORE.ERP.Server.Headless_${version}_macos_${targetDefinition.architecture}.pkg`),
+    join(
+      outputRoot,
+      `ACCORE.ERP.Server.Headless_${version}_macos_${targetDefinition.architecture}.pkg`
+    ),
   ]);
 }
 
@@ -119,7 +132,7 @@ async function writeDebianControl(controlRoot) {
 }
 
 function rpmSpec() {
-  return `%global _build_id_links none\nName: accore-erp-server-headless\nVersion: ${version}\nRelease: 1%{?dist}\nSummary: ACCORE ERP self-contained Server Headless runtime\nLicense: Proprietary\nBuildArch: x86_64\n\n%description\nACCORE ERP Server Headless runtime and supervised service.\n\n%install\nmkdir -p %{buildroot}\ncp -a %{_sourcedir}/root/* %{buildroot}/\n\n%post\n/opt/accore-erp/server/accore-server-agent install --owner server-headless || exit 1\n\n%preun\nif [ $1 -eq 0 ]; then\n  /opt/accore-erp/server/accore-server-agent uninstall --owner server-headless || exit 1\nfi\n\n%files\n/opt/accore-erp/server\n\n%changelog\n* Thu Aug 22 2026 ACCORE ERP <release@accore.local> - ${version}-1\n- Cross-platform Server Headless package\n`;
+  return `%global _build_id_links none\nName: accore-erp-server-headless\nVersion: ${version}\nRelease: 1%{?dist}\nSummary: ACCORE ERP self-contained Server Headless runtime\nLicense: Proprietary\nBuildArch: x86_64\n\n%description\nACCORE ERP Server Headless runtime and supervised service.\n\n%install\nmkdir -p %{buildroot}\ncp -a %{_sourcedir}/root/* %{buildroot}/\n\n%post\n/opt/accore-erp/server/accore-server-agent install --owner server-headless || exit 1\n\n%preun\nif [ $1 -eq 0 ]; then\n  /opt/accore-erp/server/accore-server-agent uninstall --owner server-headless || exit 1\nfi\n\n%files\n/opt/accore-erp/server\n\n%changelog\n* Sat Aug 22 2026 ACCORE ERP <release@accore.local> - ${version}-1\n- Cross-platform Server Headless package\n`;
 }
 
 function linuxPostinstall() {
@@ -175,32 +188,32 @@ async function run(command, args) {
 
 function getTargets() {
   return {
-  'linux-x86_64': {
-    platform: 'linux',
-    architecture: 'x86_64',
-    agentSource: 'accore-server-agent-x86_64-unknown-linux-gnu',
-    agentDestination: 'accore-server-agent',
-    frankenPhp: 'frankenphp',
-    mariadbRoot: 'mariadb-11.4.9-linux-systemd-x86_64',
-    mariadbd: 'mariadbd',
-  },
-  'macos-aarch64': {
-    platform: 'macos',
-    architecture: 'aarch64',
-    agentSource: 'accore-server-agent-aarch64-apple-darwin',
-    agentDestination: 'accore-server-agent',
-    frankenPhp: 'frankenphp',
-    mariadbRoot: 'mariadb',
-    mariadbd: 'mariadbd',
-  },
-  'macos-x86_64': {
-    platform: 'macos',
-    architecture: 'x86_64',
-    agentSource: 'accore-server-agent-x86_64-apple-darwin',
-    agentDestination: 'accore-server-agent',
-    frankenPhp: 'frankenphp',
-    mariadbRoot: 'mariadb',
-    mariadbd: 'mariadbd',
-  },
+    'linux-x86_64': {
+      platform: 'linux',
+      architecture: 'x86_64',
+      agentSource: 'accore-server-agent-x86_64-unknown-linux-gnu',
+      agentDestination: 'accore-server-agent',
+      frankenPhp: 'frankenphp',
+      mariadbRoot: 'mariadb-11.4.9-linux-systemd-x86_64',
+      mariadbd: 'mariadbd',
+    },
+    'macos-aarch64': {
+      platform: 'macos',
+      architecture: 'aarch64',
+      agentSource: 'accore-server-agent-aarch64-apple-darwin',
+      agentDestination: 'accore-server-agent',
+      frankenPhp: 'frankenphp',
+      mariadbRoot: 'mariadb',
+      mariadbd: 'mariadbd',
+    },
+    'macos-x86_64': {
+      platform: 'macos',
+      architecture: 'x86_64',
+      agentSource: 'accore-server-agent-x86_64-apple-darwin',
+      agentDestination: 'accore-server-agent',
+      frankenPhp: 'frankenphp',
+      mariadbRoot: 'mariadb',
+      mariadbd: 'mariadbd',
+    },
   };
 }
