@@ -28,6 +28,7 @@ test('production CMake policy disables nonruntime features and keeps testdir rel
     '-DWITH_MARIABACKUP=OFF',
     '-DCONC_WITH_SSL=OPENSSL',
     '-DOPENSSL_USE_STATIC_LIBS=TRUE',
+    '-DCLIENT_PLUGIN_ZSTD=OFF',
     '-DINSTALL_MYSQLTESTDIR=mariadb-test',
   ]) {
     assert.ok(productionMariaDbCmakeFlags.includes(flag));
@@ -100,6 +101,7 @@ test('pruning removes test suites, disabled engines, compression providers, PAM,
       writeFile(join(pluginRoot, 'provider_lzma.so'), 'optional compression provider'),
       writeFile(join(pluginRoot, 'provider_lzo.so'), 'optional compression provider'),
       writeFile(join(pluginRoot, 'provider_snappy.so'), 'optional compression provider'),
+      writeFile(join(pluginRoot, 'zstd.so'), 'dynamic Connector/C compression plugin'),
       writeFile(join(pluginRoot, 'daemon_example.ini'), 'example configuration'),
       writeFile(join(pluginRoot, 'auth_ed25519.so'), 'required plugin'),
     ]);
@@ -143,6 +145,7 @@ test('pruning removes test suites, disabled engines, compression providers, PAM,
         'lib/plugin/provider_lzma.so',
         'lib/plugin/provider_lzo.so',
         'lib/plugin/provider_snappy.so',
+        'lib/plugin/zstd.so',
         'lib/plugin/daemon_example.ini',
       ].map((entry) => assert.rejects(stat(join(root, entry))))
     );
@@ -167,6 +170,9 @@ test('production payload guard rejects a residual nonproduction plugin or test b
     await writeFile(join(pluginRoot, 'provider_lz4.so'), 'residual compression provider');
     await assert.rejects(assertMariaDbProductionPayload(root), /provider_lz4\.so/);
     await rm(join(pluginRoot, 'provider_lz4.so'));
+    await writeFile(join(pluginRoot, 'zstd.so'), 'residual dynamic Connector/C plugin');
+    await assert.rejects(assertMariaDbProductionPayload(root), /zstd\.so/);
+    await rm(join(pluginRoot, 'zstd.so'));
     await mkdir(join(root, 'bin'), { recursive: true });
     await writeFile(join(root, 'bin', 'mariadb-backup'), 'residual backup binary');
     await assert.rejects(assertMariaDbProductionPayload(root), /bin\/mariadb-backup/);

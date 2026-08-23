@@ -34,6 +34,9 @@ export const productionMariaDbCmakeFlags = Object.freeze([
   '-DWITH_SSL=bundled',
   '-DCONC_WITH_SSL=OPENSSL',
   '-DOPENSSL_USE_STATIC_LIBS=TRUE',
+  // Connector/C's ZSTD compression plugin is dynamic by default and resolves
+  // through the build host. Keep the required zlib plugin static instead.
+  '-DCLIENT_PLUGIN_ZSTD=OFF',
   '-DWITH_PCRE=bundled',
   '-DWITH_ZLIB=bundled',
   // Must stay relative during cmake --install. An empty value makes plugin
@@ -139,6 +142,7 @@ const nonProductionPluginBases = [
   'provider_lzo',
   'provider_snappy',
   'test_sql_service',
+  'zstd',
   'test_versioning',
   'type_test',
   'wsrep_info',
