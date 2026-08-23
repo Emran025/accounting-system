@@ -1581,7 +1581,15 @@ fn harden_windows_acl_entry_tree(
         ));
     }
     let is_directory = metadata.is_dir();
-    apply_windows_acl_entry(path, permit_users_read, is_directory)?;
+    match apply_windows_acl_entry(path, permit_users_read, is_directory) {
+        Ok(()) => {}
+        // The restore-validation worker may remove a descendant after this
+        // traversal observed it but before icacls opens it. Re-check the path
+        // rather than trusting icacls text or exit codes; roots and surviving
+        // entries still fail closed on every ACL error.
+        Err(_) if may_disappear && path_is_missing(path) => return Ok(()),
+        Err(error) => return Err(error),
+    }
     if is_directory {
         let entries = match fs::read_dir(path) {
             Ok(entries) => entries,
@@ -1608,6 +1616,14 @@ fn harden_windows_acl_entry_tree(
         }
     }
     Ok(())
+}
+
+#[cfg(windows)]
+fn path_is_missing(path: &Path) -> bool {
+    matches!(
+        fs::symlink_metadata(path),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound
+    )
 }
 
 #[cfg(windows)]
@@ -1795,6 +1811,22 @@ mod tests {
             "*S-1-5-32-544:(OI)(CI)F"
         );
         assert_eq!(ADMINISTRATORS_FILE_FULL_PRINCIPAL, "*S-1-5-32-544:F");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn vanished_transient_acl_entry_is_distinguished_from_a_present_path() {
+        let root = std::env::temp_dir().join(format!(
+            "accore-agent-acl-race-{}-{}",
+            std::process::id(),
+            now()
+        ));
+        let vanished = root.join("vanished");
+        assert!(path_is_missing(&vanished));
+        fs::create_dir_all(&root).expect("create ACL race test directory");
+        fs::write(&vanished, "present").expect("create ACL race test file");
+        assert!(!path_is_missing(&vanished));
+        let _ = fs::remove_dir_all(root);
     }
 
     #[test]
