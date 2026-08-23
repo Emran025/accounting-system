@@ -210,8 +210,9 @@ fn install_unix_embedded_service(
     runtime_root: Option<&Path>,
 ) -> Result<(), String> {
     let config_path = default_config_path()?;
+    let has_existing_config = config_path.is_file();
     let existing_manifest = load_server_instance(&config_path)?;
-    if config_path.is_file()
+    if has_existing_config
         && existing_manifest.is_none()
         && owner == ServerProductFlavor::ServerHeadless
     {
@@ -226,11 +227,13 @@ fn install_unix_embedded_service(
     }
 
     let mut config = embedded_runtime_config(runtime_root)?;
-    if config_path.is_file() {
+    if has_existing_config {
         carry_durable_configuration(&mut config, load_config(&config_path)?);
     }
     ensure_layout(&config)?;
-    harden_runtime_data_access(&config)?;
+    if needs_initial_runtime_hardening(has_existing_config) {
+        harden_runtime_data_access(&config)?;
+    }
     write_config(&config_path, &config)?;
     let manifest = write_server_instance(&config, owner, &config_path, existing_manifest)?;
     let operation_id = new_operation_id();
@@ -259,7 +262,9 @@ fn transition_unix_embedded_service(
     }
     let config = load_config(&config_path)?;
     ensure_layout(&config)?;
-    harden_runtime_data_access(&config)?;
+    // A running service owns the hardened tree. Re-traversing it here races
+    // its isolated restore-validation cleanup; startup performs hardening
+    // before workers run, and transition changes only ownership metadata.
     let operation_id = new_operation_id();
     write_public_receipt(
         &config,
@@ -319,6 +324,10 @@ fn require_elevated_lifecycle() -> Result<(), String> {
         return Err("inspect Windows elevation before lifecycle mutation".into());
     }
     require_elevated_lifecycle_status(elevation.TokenIsElevated != 0)
+}
+
+fn needs_initial_runtime_hardening(has_existing_config: bool) -> bool {
+    !has_existing_config
 }
 
 fn require_elevated_lifecycle_status(is_elevated: bool) -> Result<(), String> {
@@ -405,8 +414,9 @@ fn install_embedded_service(
     {
         require_elevated_lifecycle()?;
         let config_path = default_config_path()?;
+        let has_existing_config = config_path.is_file();
         let existing_manifest = load_server_instance(&config_path)?;
-        if config_path.is_file()
+        if has_existing_config
             && existing_manifest.is_none()
             && owner == ServerProductFlavor::ServerHeadless
         {
@@ -419,12 +429,14 @@ fn install_embedded_service(
             InstallationDecision::ClaimOrUpdate => {}
         }
         let mut config = embedded_runtime_config(runtime_root)?;
-        if config_path.is_file() {
+        if has_existing_config {
             let existing = load_config(&config_path)?;
             carry_durable_configuration(&mut config, existing);
         }
         ensure_layout(&config)?;
-        harden_runtime_data_access(&config)?;
+        if needs_initial_runtime_hardening(has_existing_config) {
+            harden_runtime_data_access(&config)?;
+        }
         write_config(&config_path, &config)?;
         let manifest = write_server_instance(&config, owner, &config_path, existing_manifest)?;
         let operation_id = new_operation_id();
@@ -486,7 +498,9 @@ fn transition_embedded_service(
         }
         let config = load_config(&config_path)?;
         ensure_layout(&config)?;
-        harden_runtime_data_access(&config)?;
+        // The running service owns the hardened tree. Re-traversing it here
+        // races isolated restore-validation cleanup; startup performs
+        // hardening before workers run, while transition changes metadata.
         let operation_id = new_operation_id();
         write_public_receipt(
             &config,
@@ -1827,6 +1841,12 @@ mod tests {
         fs::write(&vanished, "present").expect("create ACL race test file");
         assert!(!path_is_missing(&vanished));
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn existing_lifecycle_config_is_not_recursively_hardened_during_reconciliation() {
+        assert!(needs_initial_runtime_hardening(false));
+        assert!(!needs_initial_runtime_hardening(true));
     }
 
     #[test]
