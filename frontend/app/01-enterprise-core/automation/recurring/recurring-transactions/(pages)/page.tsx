@@ -4,7 +4,7 @@ import { useI18n, catalogText } from "@/lib/i18n";
 import { MainLayout, PageSubHeader } from "@/components/layout";
 import { Button, Column, ConfirmDialog, Dialog, Table, showAlert, showToast } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
-import { User, checkAuth, getStoredUser } from "@/lib/auth";
+import { checkAuth } from "@/lib/auth";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
 import { formatDate, parseNumber } from "@/lib/utils";
@@ -22,6 +22,8 @@ interface RecurringTemplateData {
     }>;
 }
 
+const ITEMS_PER_PAGE = 20;
+
 interface RecurringTemplate {
     id: number;
     name: string;
@@ -34,7 +36,6 @@ interface RecurringTemplate {
 
 export default function RecurringTransactionsPage() {
     const { t: i18n } = useI18n();
-    const [user, setUser] = useState<User | null>(null);
     const [templates, setTemplates] = useState<RecurringTemplate[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -66,16 +67,14 @@ export default function RecurringTransactionsPage() {
     // Journal fields
     const [journalEntries, setJournalEntries] = useState("");
 
-    const itemsPerPage = 20;
-
     const loadTemplates = useCallback(async (page: number = 1) => {
         try {
             setIsLoading(true);
-            const response = await fetchAPI<RecurringTemplate[]>(`${API_ENDPOINTS.FINANCE.RECURRING.BASE}?page=${page}&limit=${itemsPerPage}`);
+            const response = await fetchAPI<RecurringTemplate[]>(`${API_ENDPOINTS.FINANCE.RECURRING.BASE}?page=${page}&limit=${ITEMS_PER_PAGE}`);
             if (response.success && response.data) {
                 setTemplates(response.data);
                 const total = Number(response.total) || 0;
-                setTotalPages(Math.ceil(total / itemsPerPage));
+                setTotalPages(Math.ceil(total / ITEMS_PER_PAGE));
                 setCurrentPage(page);
             } else {
                 showAlert("alert-container", response.message || i18n.catalog["enterpriseCore.recurringTransactions.failedLoadTemplates"], "error");
@@ -85,15 +84,13 @@ export default function RecurringTransactionsPage() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [i18n.catalog]);
 
     useEffect(() => {
         const init = async () => {
             const authenticated = await checkAuth();
             if (!authenticated) return;
 
-            const storedUser = getStoredUser();
-            setUser(storedUser);
             await loadTemplates();
         };
         init();

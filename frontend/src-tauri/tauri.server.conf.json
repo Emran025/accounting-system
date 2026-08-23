@@ -19,12 +19,8 @@
     }
   },
   "bundle": {
-    "resources": [
-      "resources/server-runtime/windows-x86_64"
-    ],
-    "externalBin": [
-      "binaries/accore-server-agent"
-    ],
+    "resources": ["resources/server-runtime"],
+    "externalBin": ["binaries/accore-server-agent"],
     "icon": [
       "icons/flavors/accore-server.png",
       "icons/flavors/accore-server.icns",
@@ -34,6 +30,14 @@
       "nsis": {
         "installerIcon": "icons/flavors/accore-server.ico",
         "uninstallerIcon": "icons/flavors/accore-server.ico"
+      }
+    },
+    "linux": {
+      "rpm": {
+        "compression": {
+          "type": "gzip",
+          "level": 1
+        }
       }
     }
   }

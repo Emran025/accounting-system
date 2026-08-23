@@ -183,11 +183,20 @@ function updaterArtifactPriority(path) {
 }
 
 function isDesktopInstaller(file) {
-  const extension = extname(file).toLowerCase();
+  const name = basename(file).toLowerCase();
+  const extension = extname(name);
   return (
-    ['.deb', '.rpm', '.appimage', '.msi', '.exe', '.dmg'].includes(extension) &&
-    productFromAssetName(basename(file)) !== null
-  );
+    [
+      '.deb',
+      '.rpm',
+      '.appimage',
+      '.msi',
+      '.exe',
+      '.dmg',
+      '.pkg',
+    ].includes(extension) ||
+    name.endsWith('.tar.gz')
+  ) && productFromAssetName(name) !== null;
 }
 
 function classifyProduct(file) {
@@ -212,6 +221,8 @@ function bundleFormatFromName(name) {
   if (extension === '.msi') return 'msi';
   if (extension === '.exe') return 'nsis';
   if (extension === '.dmg') return 'dmg';
+  if (extension === '.pkg') return 'pkg';
+  if (name.toLowerCase().endsWith('.tar.gz')) return 'tar.gz';
   throw new Error(`unsupported installer extension for ${name}`);
 }
 
@@ -225,9 +236,18 @@ function platformFromName(name) {
   }
   if (lower.endsWith('.msi') || lower.endsWith('.exe'))
     return { os: 'windows', architecture: 'x86_64' };
-  if (lower.endsWith('.dmg'))
+  if (
+    lower.endsWith('.dmg') ||
+    lower.endsWith('.pkg') ||
+    lower.includes('.app.tar.gz')
+  )
     return {
       os: 'macos',
+      architecture: lower.includes('aarch64') || lower.includes('arm64') ? 'aarch64' : 'x86_64',
+    };
+  if (lower.endsWith('.tar.gz') && lower.includes('_linux_'))
+    return {
+      os: 'linux',
       architecture: lower.includes('aarch64') || lower.includes('arm64') ? 'aarch64' : 'x86_64',
     };
   throw new Error(`unsupported installer extension for ${name}`);

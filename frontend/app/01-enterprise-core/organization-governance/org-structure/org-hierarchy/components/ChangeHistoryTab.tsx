@@ -72,7 +72,7 @@ export function ChangeHistoryTab() {
             setHistory((res.history as ChangeRecord[]) || []);
         } catch { showToast(i18n.catalog["enterpriseCore.changehistory.failedLoadChangeLog"], "error"); }
         finally { setIsLoading(false); }
-    }, [limit, filterEntity]);
+    }, [limit, filterEntity, i18n.catalog]);
 
     useEffect(() => { loadHistory(); }, [loadHistory]);
 

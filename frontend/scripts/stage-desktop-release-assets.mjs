@@ -1,13 +1,14 @@
 import { cp, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 
-const [sourceDirectory, destinationDirectory] = process.argv.slice(2);
-if (!sourceDirectory || !destinationDirectory) {
+const [sourceDirectory, destinationDirectory, releaseTag] = process.argv.slice(2);
+if (!sourceDirectory || !destinationDirectory || !releaseTag) {
   throw new Error(
-    'usage: stage-desktop-release-assets.mjs <downloaded-artifacts-directory> <staging-directory>'
+    'usage: stage-desktop-release-assets.mjs <downloaded-artifacts-directory> <staging-directory> <desktop-vX.Y.Z>'
   );
 }
 
+const releaseVersion = versionFromTag(releaseTag);
 const sourceRoot = resolve(sourceDirectory);
 const destinationRoot = resolve(destinationDirectory);
 const sourceFiles = await findFiles(sourceRoot);
@@ -34,28 +35,19 @@ for (const sourceFile of publishableFiles.sort((left, right) => left.localeCompa
   await cp(sourceFile, join(destinationRoot, stagedName));
 }
 
-console.log(`Staged ${stagedNames.size} publishable desktop assets in ${destinationRoot}.`);
+console.log(`Staged ${stagedNames.size} publishable desktop assets for ${releaseTag} in ${destinationRoot}.`);
+
+function versionFromTag(tag) {
+  const match = /^desktop-v([0-9]+(?:\.[0-9]+){2}(?:[-+][0-9A-Za-z.-]+)?)$/.exec(tag);
+  if (!match) throw new Error(`desktop release tag must use desktop-v<semver>; received ${tag}`);
+  return match[1];
+}
 
 function isPublishableReleaseAsset(file) {
   const name = basename(file).toLowerCase();
-  if (!productFromAssetName(name)) return false;
-
-  return (
-    name.endsWith('.appimage') ||
-    name.endsWith('.appimage.sig') ||
-    name.endsWith('.deb') ||
-    name.endsWith('.deb.sig') ||
-    name.endsWith('.rpm') ||
-    name.endsWith('.rpm.sig') ||
-    name.endsWith('.msi') ||
-    name.endsWith('.msi.sig') ||
-    name.endsWith('.exe') ||
-    name.endsWith('.exe.sig') ||
-    name.endsWith('.dmg') ||
-    name.endsWith('.dmg.sig') ||
-    name.endsWith('.app.tar.gz') ||
-    name.endsWith('.app.tar.gz.sig')
-  );
+  const installerName = name.replace(/\.sig$/i, '');
+  if (!productFromAssetName(installerName)) return false;
+  return Boolean(assetExtension(installerName));
 }
 
 function productFromAssetName(name) {
@@ -66,27 +58,40 @@ function productFromAssetName(name) {
   return match?.[1].toLowerCase() ?? null;
 }
 
+function productAssetPrefix(product) {
+  if (product === 'client') return 'ACCORE.ERP.Client.Desktop';
+  if (product === 'server') return 'ACCORE.ERP.Server.Desktop';
+  if (product === 'server-headless') return 'ACCORE.ERP.Server.Headless';
+  throw new Error(`unsupported desktop release product ${product}`);
+}
+
 function normalizeAssetName(sourceFile) {
   const name = basename(sourceFile).replaceAll(' ', '.');
+  const product = productFromAssetName(name);
   const target = releaseTargetFromAssetName(name, sourceFile);
-  if (!target) return name;
-
-  const architecturePattern = /[_.-](aarch64|arm64|x86_64|x64|amd64)(?=[_.-])/i;
-  if (architecturePattern.test(name)) {
-    return name.replace(architecturePattern, `_${target.platform}_${target.architecture}`);
+  const signature = name.toLowerCase().endsWith('.sig') ? '.sig' : '';
+  const installerName = signature ? name.slice(0, -signature.length) : name;
+  const extension = assetExtension(installerName);
+  if (!product || !target || !extension) {
+    throw new Error(`could not normalize desktop release asset ${name}`);
   }
 
-  if (
-    name.toLowerCase().endsWith('.app.tar.gz') ||
-    name.toLowerCase().endsWith('.app.tar.gz.sig')
-  ) {
-    return name.replace(
-      /\.app\.tar\.gz(\.sig)?$/i,
-      `_${target.platform}_${target.architecture}.app.tar.gz$1`
-    );
-  }
+  const localeSuffix = extension === '.msi'
+    ? (/_([a-z]{2}-[a-z]{2})\.msi$/i.exec(installerName)?.[1] ? `_${/_([a-z]{2}-[a-z]{2})\.msi$/i.exec(installerName)[1]}` : '')
+    : '';
+  return `${productAssetPrefix(product)}_${releaseVersion}_${target.platform}_${target.architecture}${localeSuffix}${canonicalExtension(extension)}${signature}`;
+}
 
-  throw new Error(`could not determine architecture placement for desktop release asset ${name}`);
+function assetExtension(name) {
+  const lower = name.toLowerCase();
+  for (const extension of ['.app.tar.gz', '.appimage', '.deb', '.rpm', '.msi', '.exe', '.dmg', '.pkg', '.tar.gz']) {
+    if (lower.endsWith(extension)) return extension;
+  }
+  return null;
+}
+
+function canonicalExtension(extension) {
+  return extension === '.appimage' ? '.AppImage' : extension;
 }
 
 function releaseTargetFromAssetName(name, sourceFile) {
@@ -100,14 +105,19 @@ function releaseTargetFromAssetName(name, sourceFile) {
   if (
     installerName.endsWith('.appimage') ||
     installerName.endsWith('.deb') ||
-    installerName.endsWith('.rpm')
+    installerName.endsWith('.rpm') ||
+    installerName.includes('_linux_')
   ) {
     return { platform: 'linux', architecture };
   }
   if (installerName.endsWith('.exe') || installerName.endsWith('.msi')) {
     return { platform: 'windows', architecture };
   }
-  if (installerName.endsWith('.dmg') || installerName.endsWith('.app.tar.gz')) {
+  if (
+    installerName.endsWith('.dmg') ||
+    installerName.endsWith('.app.tar.gz') ||
+    installerName.endsWith('.pkg')
+  ) {
     return { platform: 'macos', architecture };
   }
   return null;

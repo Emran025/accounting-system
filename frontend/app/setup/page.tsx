@@ -10,15 +10,28 @@ import { SetupAccountingSection } from "./components/SetupAccountingSection";
 import { SetupJourneyStepper, type SetupJourneyStepId } from "./components/SetupJourneyStepper";
 import { SetupModuleSelection } from "./components/SetupModuleSelection";
 import { SetupOperatingScopeSection } from "./components/SetupOperatingScopeSection";
-import { OrganizationArchitectureWorkspace } from "./components/OrganizationArchitectureWorkspace";
-import { OrganizationIntegrity, OrganizationMetaType, OrganizationNodeDraft, OrganizationTopologyRule, OrganizationWorkspaceNode } from "./components/organizationWorkspace.types";
+import { SetupOrganizationProfileSection } from "./components/SetupOrganizationProfileSection";
 import { SetupReadinessSummary } from "./components/SetupReadinessSummary";
-import { Item, Readiness, SetupState } from "./types";
+import { Item, OrganizationProfile, Readiness, SetupState } from "./types";
 
 const accountTypes = ["asset", "liability", "equity", "revenue", "expense"] as const;
 type AccountType = (typeof accountTypes)[number];
 const recordFields = { code: "code", name: "name" } as const;
-const PRIMARY_GENERAL_LEDGER_REFERENCE = "ACCORE-PRIMARY-GL";
+
+const emptyOrganizationProfile: OrganizationProfile = {
+  template_key: "",
+  industry: "",
+  organization_size: "small",
+  company_name: "",
+  company_code: "",
+  country_code: "SA",
+  currency_id: 0,
+  primary_site_name: "",
+  primary_site_code: "",
+  factory_calendar_id: null,
+  language: "ar-SA",
+  inventory_enabled: false,
+};
 
 function listFrom(response: unknown): Item[] {
   const payload = (response as { data?: unknown } | undefined)?.data;
@@ -41,18 +54,17 @@ export default function SetupPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [setupState, setSetupState] = useState<SetupState | null>(null);
-  const [nodes, setNodes] = useState<OrganizationWorkspaceNode[]>([]);
-  const [metaTypes, setMetaTypes] = useState<OrganizationMetaType[]>([]);
-  const [topologyRules, setTopologyRules] = useState<OrganizationTopologyRule[]>([]);
-  const [organizationIntegrity, setOrganizationIntegrity] = useState<OrganizationIntegrity | null>(null);
   const [costCenters, setCostCenters] = useState<Item[]>([]);
   const [currencies, setCurrencies] = useState<Item[]>([]);
   const [factoryCalendars, setFactoryCalendars] = useState<Item[]>([]);
   const [accounts, setAccounts] = useState<Item[]>([]);
   const [periods, setPeriods] = useState<Item[]>([]);
   const [posTerminals, setPosTerminals] = useState<Item[]>([]);
+  const [nodes, setNodes] = useState<Item[]>([]);
   const [selectedModuleKeys, setSelectedModuleKeys] = useState<string[]>([]);
   const [journeyStep, setJourneyStep] = useState<SetupJourneyStepId>("foundation");
+  const [organizationProfile, setOrganizationProfile] = useState<OrganizationProfile>(emptyOrganizationProfile);
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
 
   const [accountCode, setAccountCode] = useState("");
   const [accountName, setAccountName] = useState("");
@@ -70,13 +82,10 @@ export default function SetupPage() {
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [readinessResponse, setupResponse, nodesResponse, typesResponse, topologyResponse, integrityResponse, costsResponse, currenciesResponse, factoryCalendarsResponse, accountsResponse, periodsResponse, posTerminalsResponse] = await Promise.all([
+      const [readinessResponse, setupResponse, nodesResponse, costsResponse, currenciesResponse, factoryCalendarsResponse, accountsResponse, periodsResponse, posTerminalsResponse] = await Promise.all([
         fetchAPI<Readiness>(API_ENDPOINTS.ENTERPRISE_CORE.OPERATING_CONTEXT.READINESS),
         fetchAPI<SetupState>(API_ENDPOINTS.ENTERPRISE_CORE.SETUP.STATE),
         fetchAPI(API_ENDPOINTS.ENTERPRISE_CORE.ORG.NODES),
-        fetchAPI(API_ENDPOINTS.ENTERPRISE_CORE.ORG.META_TYPES),
-        fetchAPI<OrganizationTopologyRule[]>(API_ENDPOINTS.ENTERPRISE_CORE.ORG.TOPOLOGY_RULES),
-        fetchAPI<OrganizationIntegrity>(API_ENDPOINTS.ENTERPRISE_CORE.ORG.INTEGRITY_CHECK),
         fetchAPI(`${API_ENDPOINTS.FINANCE.COST_CENTERS.BASE}?limit=500`),
         fetchAPI(API_ENDPOINTS.FINANCE.FOREIGN_EXCHANGE.CURRENCIES.BASE),
         fetchAPI(API_ENDPOINTS.ENTERPRISE_CORE.ORG.FACTORY_CALENDARS),
@@ -89,10 +98,15 @@ export default function SetupPage() {
       const state = setupResponse.success ? setupResponse.data ?? null : null;
       setSetupState(state);
       setSelectedModuleKeys(state?.selected_module_keys ?? []);
-      setNodes(listFrom(nodesResponse) as OrganizationWorkspaceNode[]);
-      setMetaTypes(listFrom(typesResponse) as OrganizationMetaType[]);
-      setTopologyRules(listFrom(topologyResponse) as OrganizationTopologyRule[]);
-      setOrganizationIntegrity(integrityResponse.success ? integrityResponse.data ?? null : null);
+      const templateState = state?.organization_template;
+      const savedProfile = templateState?.profile;
+      if (savedProfile) {
+        setOrganizationProfile({ ...emptyOrganizationProfile, ...savedProfile });
+        setSelectedTemplateKey(savedProfile.template_key);
+      } else if (templateState?.templates[0]) {
+        setSelectedTemplateKey((current) => current || templateState.templates[0].key);
+      }
+      setNodes(listFrom(nodesResponse).filter((node) => node.status === "active"));
       setCostCenters(listFrom(costsResponse).filter((item) => item.is_active !== false));
       setCurrencies(listFrom(currenciesResponse).filter((item) => item.is_active !== false));
       setFactoryCalendars(listFrom(factoryCalendarsResponse).filter((item) => item.is_active !== false));
@@ -112,24 +126,25 @@ export default function SetupPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const activeNodes = useMemo(() => nodes.filter((node) => node.status === "active"), [nodes]);
-  const workingUnitOptions = useMemo(() => activeNodes
-    .filter((node) => node.node_type_id === "COMP_CODE")
-    .map((node) => ({
-      value: node.node_uuid,
-      label: catalogText(i18n, "enterpriseCore.setup.nodeSummary", {
-        value0: node.code,
-        value1: node.meta_type?.display_name_ar || node.meta_type?.display_name || node.node_type_id,
-      }),
-    })), [activeNodes, i18n]);
+  const templateState = setupState?.organization_template;
+  const templateApplied = templateState?.is_applied === true;
+  const activeNodes = useMemo(() => nodes.filter((node) => text(node, "node_type_id") === "COMP_CODE"), [nodes]);
+  const workingUnitOptions = useMemo(() => activeNodes.map((node) => ({
+    value: text(node, "node_uuid"),
+    label: catalogText(i18n, "enterpriseCore.setup.nodeSummary", {
+      value0: text(node, "code"),
+      value1: text((node.meta_type as Item | undefined) ?? {}, locale === "ar-SA" ? "display_name_ar" : "display_name") || text(node, "node_type_id"),
+    }),
+  })), [activeNodes, i18n, locale]);
   const selectedWorkingUnitNode = useMemo(
-    () => nodes.find((node) => node.node_uuid === workingUnit) ?? null,
+    () => nodes.find((node) => text(node, "node_uuid") === workingUnit) ?? null,
     [nodes, workingUnit],
   );
   useEffect(() => {
     if (!selectedWorkingUnitNode) return;
-    setWorkingUnitCode(selectedWorkingUnitNode.code);
-    setWorkingUnitName(typeof selectedWorkingUnitNode.attributes_json?.name === "string" ? selectedWorkingUnitNode.attributes_json.name : "");
+    setWorkingUnitCode(text(selectedWorkingUnitNode, "code"));
+    const attributes = selectedWorkingUnitNode.attributes_json as Item | undefined;
+    setWorkingUnitName(text(attributes ?? {}, "name"));
   }, [selectedWorkingUnitNode]);
   const costOptions = useMemo(() => costCenters.map((center) => ({
     value: Number(center.id),
@@ -142,28 +157,14 @@ export default function SetupPage() {
     value: Number(terminal.id),
     label: [text(terminal, "code"), text(terminal, "name")].filter(Boolean).join(" — "),
   })), [posTerminals]);
-  const organizationReferenceOptions = useMemo(() => ({
-    currency_id: currencies.map((currency) => ({
-      value: Number(currency.id),
-      label: [text(currency, "code"), text(currency, "name")].filter(Boolean).join(" — "),
-      subtitle: text(currency, "symbol"),
-    })),
-    chart_of_accounts_id: (() => {
-      const activeTypes = new Set(accounts.map((account) => text(account, "account_type").toLowerCase()));
-      const hasGovernedLedger = accountTypes.every((type) => activeTypes.has(type));
-      if (!hasGovernedLedger) return [];
-      return [{
-        value: PRIMARY_GENERAL_LEDGER_REFERENCE,
-        label: i18n.catalog["enterpriseCore.orgWorkspace.reference.chartOfAccounts.primary"],
-        subtitle: catalogText(i18n, "enterpriseCore.orgWorkspace.reference.chartOfAccounts.summary", { value0: accounts.length, value1: activeTypes.size }),
-      }];
-    })(),
-    factory_calendar_id: factoryCalendars.map((calendar) => ({
-      value: Number(calendar.id),
-      label: [text(calendar, "code"), text(calendar, locale === "ar-SA" ? "name_ar" : "name")].filter(Boolean).join(" — "),
-      subtitle: [text(calendar, "country_code"), text(calendar, "time_zone")].filter(Boolean).join(" · "),
-    })),
-  }), [accounts, currencies, factoryCalendars, i18n, locale]);
+  const currencyOptions = useMemo(() => currencies.map((currency) => ({
+    value: Number(currency.id),
+    label: [text(currency, "code"), text(currency, "name")].filter(Boolean).join(" — "),
+  })), [currencies]);
+  const calendarOptions = useMemo(() => factoryCalendars.map((calendar) => ({
+    value: Number(calendar.id),
+    label: [text(calendar, "code"), text(calendar, locale === "ar-SA" ? "name_ar" : "name")].filter(Boolean).join(" — "),
+  })), [factoryCalendars, locale]);
 
   const callAndReload = async <T,>(action: () => Promise<{ success?: boolean; message?: string; data?: T }>): Promise<T | null> => {
     setIsSaving(true);
@@ -182,13 +183,15 @@ export default function SetupPage() {
     }
   };
 
-  const createOrganizationNode = async (draft: OrganizationNodeDraft): Promise<boolean> => {
-    const saved = await callAndReload<OrganizationWorkspaceNode>(() => fetchAPI<OrganizationWorkspaceNode>(API_ENDPOINTS.ENTERPRISE_CORE.ORG.NODES, {
+  const saveOrganizationProfile = async () => {
+    await callAndReload(() => fetchAPI(API_ENDPOINTS.ENTERPRISE_CORE.SETUP.ORGANIZATION_PROFILE, {
       method: "POST",
-      body: JSON.stringify({ ...draft, status: "active" }),
+      body: JSON.stringify({ ...organizationProfile, template_key: selectedTemplateKey }),
     }));
+  };
 
-    return saved !== null;
+  const applyOrganizationTemplate = async () => {
+    await callAndReload(() => fetchAPI(API_ENDPOINTS.ENTERPRISE_CORE.SETUP.APPLY_ORGANIZATION_TEMPLATE, { method: "POST" }));
   };
 
   const createAccount = async () => {
@@ -237,26 +240,17 @@ export default function SetupPage() {
     }));
   };
 
-  const selectWorkingUnit = (nodeUuid: string) => {
-    setWorkingUnit(nodeUuid);
-    const node = nodes.find((candidate) => candidate.node_uuid === nodeUuid);
-    setWorkingUnitCode(node?.code ?? "");
-    setWorkingUnitName(typeof node?.attributes_json?.name === "string" ? node.attributes_json.name : "");
-  };
-
   const saveWorkingUnit = async () => {
     if (!selectedWorkingUnitNode || !workingUnitCode.trim()) {
       showToast(i18n.catalog["enterpriseCore.setup.failedToSave"], "error");
       return;
     }
-    await callAndReload(() => fetchAPI(API_ENDPOINTS.ENTERPRISE_CORE.ORG.NODE(selectedWorkingUnitNode.node_uuid), {
+    const currentAttributes = (selectedWorkingUnitNode.attributes_json as Item | undefined) ?? {};
+    await callAndReload(() => fetchAPI(API_ENDPOINTS.ENTERPRISE_CORE.ORG.NODE(text(selectedWorkingUnitNode, "node_uuid")), {
       method: "PUT",
       body: JSON.stringify({
         code: workingUnitCode.trim(),
-        attributes: {
-          ...selectedWorkingUnitNode.attributes_json,
-          ...(workingUnitName.trim() ? { name: workingUnitName.trim() } : {}),
-        },
+        attributes: { ...currentAttributes, ...(workingUnitName.trim() ? { name: workingUnitName.trim() } : {}) },
       }),
     }));
   };
@@ -279,9 +273,9 @@ export default function SetupPage() {
   };
 
   const onboarding = setupState?.onboarding ?? readiness?.onboarding;
-  const canConfigureModules = onboarding?.phases.core_operations.ready === true;
   const foundationComplete = onboarding?.phases.foundation.ready === true;
   const operatingLinksComplete = onboarding?.phases.core_operations.ready === true;
+  const canConfigureModules = operatingLinksComplete;
 
   useEffect(() => {
     if (journeyStep === "operating_links" && !foundationComplete) setJourneyStep("foundation");
@@ -316,6 +310,10 @@ export default function SetupPage() {
         completeLabel={i18n.catalog["enterpriseCore.setup.complete"]}
         incompleteLabel={i18n.catalog["enterpriseCore.setup.incomplete"]}
         readiness={readiness}
+        onboarding={onboarding}
+        templateApplied={templateApplied}
+        foundationLabel={i18n.catalog["enterpriseCore.setup.profile.step.foundationLabel"]}
+        templateLabel={i18n.catalog["enterpriseCore.setup.profile.step.templateLabel"]}
         readinessLabels={readinessLabels}
         isLoading={isLoading}
         canOpenDashboard={readiness?.ready === true && setupState?.setup_required === false}
@@ -328,118 +326,144 @@ export default function SetupPage() {
         nextLabel={i18n.catalog["common.general.next"]}
         completeLabel={i18n.catalog["enterpriseCore.setup.complete"]}
         steps={[
-          { id: "foundation", title: i18n.catalog["enterpriseCore.setup.phase.foundation"], description: i18n.catalog["enterpriseCore.setup.phase.foundationDescription"], complete: foundationComplete, enabled: true },
-          { id: "operating_links", title: i18n.catalog["enterpriseCore.setup.phase.coreOperations"], description: i18n.catalog["enterpriseCore.setup.phase.coreOperationsDescription"], complete: operatingLinksComplete, enabled: foundationComplete },
-          { id: "optional_capabilities", title: i18n.catalog["enterpriseCore.setup.phase.moduleActivation"], description: i18n.catalog["enterpriseCore.setup.phase.moduleActivationDescription"], complete: onboarding?.starter_bundle_active === true, enabled: operatingLinksComplete },
+          {
+            id: "foundation",
+            title: i18n.catalog["enterpriseCore.setup.profile.step.foundationTitle"],
+            description: i18n.catalog["enterpriseCore.setup.profile.step.foundationDescription"],
+            complete: foundationComplete,
+            enabled: true,
+          },
+          {
+            id: "operating_links",
+            title: i18n.catalog["enterpriseCore.setup.profile.step.operationsTitle"],
+            description: i18n.catalog["enterpriseCore.setup.profile.step.operationsDescription"],
+            complete: operatingLinksComplete,
+            enabled: foundationComplete,
+          },
+          {
+            id: "optional_capabilities",
+            title: i18n.catalog["enterpriseCore.setup.profile.step.expansionTitle"],
+            description: i18n.catalog["enterpriseCore.setup.profile.step.expansionDescription"],
+            complete: onboarding?.starter_bundle_active === true,
+            enabled: operatingLinksComplete,
+          },
         ]}
         onPrevious={() => setJourneyStep((current) => current === "optional_capabilities" ? "operating_links" : "foundation")}
         onNext={() => setJourneyStep((current) => current === "foundation" ? "operating_links" : "optional_capabilities")}
       />
       {journeyStep === "foundation" ? <>
-      <OrganizationArchitectureWorkspace
-        nodes={nodes}
-        metaTypes={metaTypes}
-        topologyRules={topologyRules}
-        integrity={organizationIntegrity}
-        isLoading={isLoading}
-        isSaving={isSaving}
-        referenceOptionsByAttribute={organizationReferenceOptions}
-        isReferenceDataLoading={isLoading}
-        onRefresh={() => void load()}
-        onCreateNode={createOrganizationNode}
-      />
-      <SetupAccountingSection
-        title={i18n.catalog["enterpriseCore.setup.accounting.title"]}
-        description={i18n.catalog["enterpriseCore.setup.accounting.description"]}
-        accountCodeLabel={i18n.catalog["enterpriseCore.setup.accounting.accountCode"]}
-        accountNameLabel={i18n.catalog["enterpriseCore.setup.accounting.accountName"]}
-        accountTypeLabel={i18n.catalog["enterpriseCore.setup.accounting.accountType"]}
-        createAccountLabel={i18n.catalog["enterpriseCore.setup.accounting.createAccount"]}
-        periodNameLabel={i18n.catalog["enterpriseCore.setup.accounting.periodName"]}
-        startDateLabel={i18n.catalog["enterpriseCore.setup.accounting.startDate"]}
-        endDateLabel={i18n.catalog["enterpriseCore.setup.accounting.endDate"]}
-        createPeriodLabel={i18n.catalog["enterpriseCore.setup.accounting.createPeriod"]}
-        accountCode={accountCode}
-        accountName={accountName}
-        accountType={accountType}
-        accountTypes={accountTypes}
-        accountTypeLabels={accountTypeLabels}
-        periodName={periodName}
-        periodStart={periodStart}
-        periodEnd={periodEnd}
-        recordSummary={catalogText(i18n, "enterpriseCore.setup.accounting.recordSummary", { value0: accounts.length, value1: periods.length })}
-        chartReady={readiness?.accounting_readiness?.chart_of_accounts.ready === true}
-        periodReady={readiness?.accounting_readiness?.open_fiscal_period.ready === true}
-        completeLabel={i18n.catalog["enterpriseCore.setup.complete"]}
-        isSaving={isSaving}
-        onAccountCodeChange={setAccountCode}
-        onAccountNameChange={setAccountName}
-        onAccountTypeChange={setAccountType}
-        onPeriodNameChange={setPeriodName}
-        onPeriodStartChange={setPeriodStart}
-        onPeriodEndChange={setPeriodEnd}
-        onCreateAccount={() => void createAccount()}
-        onCreatePeriod={() => void createPeriod()}
-      />
+        <SetupOrganizationProfileSection
+          templates={templateState?.templates ?? []}
+          selectedTemplateKey={selectedTemplateKey}
+          draft={organizationProfile}
+          currencyOptions={currencyOptions}
+          calendarOptions={calendarOptions}
+          isSaving={isSaving}
+          isApplied={templateApplied}
+          canApply={templateState?.can_apply === true && Boolean(selectedTemplateKey)}
+          onTemplateChange={(templateKey) => {
+            setSelectedTemplateKey(templateKey);
+            setOrganizationProfile((current) => ({ ...current, template_key: templateKey }));
+          }}
+          onChange={(changes) => setOrganizationProfile((current) => ({ ...current, ...changes }))}
+          onSave={() => void saveOrganizationProfile()}
+          onApply={() => void applyOrganizationTemplate()}
+        />
+        {templateApplied ? <p className="readiness-notice success">
+          {i18n.catalog["enterpriseCore.setup.profile.appliedNotice"]}
+        </p> : null}
+        <SetupAccountingSection
+          title={i18n.catalog["enterpriseCore.setup.accounting.title"]}
+          description={i18n.catalog["enterpriseCore.setup.accounting.description"]}
+          accountCodeLabel={i18n.catalog["enterpriseCore.setup.accounting.accountCode"]}
+          accountNameLabel={i18n.catalog["enterpriseCore.setup.accounting.accountName"]}
+          accountTypeLabel={i18n.catalog["enterpriseCore.setup.accounting.accountType"]}
+          createAccountLabel={i18n.catalog["enterpriseCore.setup.accounting.createAccount"]}
+          periodNameLabel={i18n.catalog["enterpriseCore.setup.accounting.periodName"]}
+          startDateLabel={i18n.catalog["enterpriseCore.setup.accounting.startDate"]}
+          endDateLabel={i18n.catalog["enterpriseCore.setup.accounting.endDate"]}
+          createPeriodLabel={i18n.catalog["enterpriseCore.setup.accounting.createPeriod"]}
+          accountCode={accountCode}
+          accountName={accountName}
+          accountType={accountType}
+          accountTypes={accountTypes}
+          accountTypeLabels={accountTypeLabels}
+          periodName={periodName}
+          periodStart={periodStart}
+          periodEnd={periodEnd}
+          recordSummary={catalogText(i18n, "enterpriseCore.setup.accounting.recordSummary", { value0: accounts.length, value1: periods.length })}
+          chartReady={readiness?.accounting_readiness?.chart_of_accounts.ready === true}
+          periodReady={readiness?.accounting_readiness?.open_fiscal_period.ready === true}
+          completeLabel={i18n.catalog["enterpriseCore.setup.complete"]}
+          isSaving={isSaving}
+          onAccountCodeChange={setAccountCode}
+          onAccountNameChange={setAccountName}
+          onAccountTypeChange={setAccountType}
+          onPeriodNameChange={setPeriodName}
+          onPeriodStartChange={setPeriodStart}
+          onPeriodEndChange={setPeriodEnd}
+          onCreateAccount={() => void createAccount()}
+          onCreatePeriod={() => void createPeriod()}
+        />
       </> : null}
       {journeyStep === "operating_links" ? (
-      <SetupOperatingScopeSection
-        title={i18n.catalog["enterpriseCore.setup.scope.title"]}
-        description={i18n.catalog["enterpriseCore.setup.scope.description"]}
-        foundationComplete={foundationComplete}
-        foundationRequiredLabel={i18n.catalog["enterpriseCore.setup.scope.foundationRequired"]}
-        workingUnitLabel={i18n.catalog["enterpriseCore.setup.scope.workingUnit"]}
-        workingUnitCodeLabel={i18n.catalog["enterpriseCore.setup.scope.workingUnitCode"]}
-        workingUnitNameLabel={i18n.catalog["enterpriseCore.setup.scope.workingUnitName"]}
-        saveWorkingUnitLabel={i18n.catalog["enterpriseCore.setup.scope.saveWorkingUnit"]}
-        costCenterLabel={i18n.catalog["enterpriseCore.setup.scope.costCenter"]}
-        pointOfSaleLabel={i18n.catalog["enterpriseCore.setup.scope.pointOfSale"]}
-        contextHelper={i18n.catalog["enterpriseCore.setup.scope.contextHelper"]}
-        saveLabel={i18n.catalog["enterpriseCore.setup.scope.save"]}
-        workingUnit={workingUnit}
-        workingUnitCode={workingUnitCode}
-        workingUnitName={workingUnitName}
-        costCenterId={costCenterId}
-        posTerminalId={posTerminalId}
-        nodeOptions={workingUnitOptions}
-        costOptions={costOptions}
-        posOptions={posOptions}
-        isSaving={isSaving}
-        onWorkingUnitChange={selectWorkingUnit}
-        onWorkingUnitCodeChange={setWorkingUnitCode}
-        onWorkingUnitNameChange={setWorkingUnitName}
-        onSaveWorkingUnit={() => void saveWorkingUnit()}
-        onCostCenterChange={setCostCenterId}
-        onPosTerminalChange={setPosTerminalId}
-        onSave={() => void saveContext()}
-      />
+        <SetupOperatingScopeSection
+          title={i18n.catalog["enterpriseCore.setup.scope.title"]}
+          description={i18n.catalog["enterpriseCore.setup.scope.description"]}
+          foundationComplete={foundationComplete}
+          foundationRequiredLabel={i18n.catalog["enterpriseCore.setup.scope.foundationRequired"]}
+          workingUnitLabel={i18n.catalog["enterpriseCore.setup.scope.workingUnit"]}
+          workingUnitCodeLabel={i18n.catalog["enterpriseCore.setup.scope.workingUnitCode"]}
+          workingUnitNameLabel={i18n.catalog["enterpriseCore.setup.scope.workingUnitName"]}
+          saveWorkingUnitLabel={i18n.catalog["enterpriseCore.setup.scope.saveWorkingUnit"]}
+          costCenterLabel={i18n.catalog["enterpriseCore.setup.scope.costCenter"]}
+          pointOfSaleLabel={i18n.catalog["enterpriseCore.setup.scope.pointOfSale"]}
+          contextHelper={i18n.catalog["enterpriseCore.setup.scope.contextHelper"]}
+          saveLabel={i18n.catalog["enterpriseCore.setup.scope.save"]}
+          workingUnit={workingUnit}
+          workingUnitCode={workingUnitCode}
+          workingUnitName={workingUnitName}
+          costCenterId={costCenterId}
+          posTerminalId={posTerminalId}
+          nodeOptions={workingUnitOptions}
+          costOptions={costOptions}
+          posOptions={posOptions}
+          isSaving={isSaving}
+          onWorkingUnitChange={setWorkingUnit}
+          onWorkingUnitCodeChange={setWorkingUnitCode}
+          onWorkingUnitNameChange={setWorkingUnitName}
+          onSaveWorkingUnit={() => void saveWorkingUnit()}
+          onCostCenterChange={setCostCenterId}
+          onPosTerminalChange={setPosTerminalId}
+          onSave={() => void saveContext()}
+        />
       ) : null}
       {journeyStep === "optional_capabilities" ? (
-      <SetupModuleSelection
-        locale={locale}
-        modules={setupState?.modules ?? []}
-        selectedModuleKeys={selectedModuleKeys}
-        coreModuleKeys={onboarding?.starter_module_keys ?? []}
-        canActivate={canConfigureModules}
-        title={i18n.catalog["enterpriseCore.setup.modules.title"]}
-        description={i18n.catalog["enterpriseCore.setup.modules.description"]}
-        coreTitle={i18n.catalog["enterpriseCore.setup.modules.coreTitle"]}
-        coreDescription={i18n.catalog["enterpriseCore.setup.modules.coreDescription"]}
-        optionalTitle={i18n.catalog["enterpriseCore.setup.modules.optionalTitle"]}
-        optionalDescription={i18n.catalog["enterpriseCore.setup.modules.optionalDescription"]}
-        baselineRequiredLabel={i18n.catalog["enterpriseCore.setup.modules.baselineRequired"]}
-        saveSelectionLabel={i18n.catalog["enterpriseCore.setup.modules.saveSelection"]}
-        activateSelectedLabel={i18n.catalog["enterpriseCore.setup.modules.activateSelected"]}
-        notSelectedLabel={i18n.catalog["enterpriseCore.setup.modules.notSelected"]}
-        pendingReadinessLabel={i18n.catalog["enterpriseCore.setup.modules.pendingReadiness"]}
-        activeLabel={i18n.catalog["enterpriseCore.setup.modules.active"]}
-        selectionRequiredLabel={i18n.catalog["enterpriseCore.setup.modules.selectionRequired"]}
-        noRecordsLabel={i18n.catalog["enterpriseCore.setup.noRecords"]}
-        isSaving={isSaving}
-        onToggle={toggleModule}
-        onSave={() => void saveModuleSelection()}
-        onActivate={() => void activateSelectedModules()}
-      />
+        <SetupModuleSelection
+          locale={locale}
+          modules={setupState?.modules ?? []}
+          selectedModuleKeys={selectedModuleKeys}
+          coreModuleKeys={onboarding?.starter_module_keys ?? []}
+          canActivate={canConfigureModules}
+          title={i18n.catalog["enterpriseCore.setup.modules.title"]}
+          description={i18n.catalog["enterpriseCore.setup.modules.description"]}
+          coreTitle={i18n.catalog["enterpriseCore.setup.modules.coreTitle"]}
+          coreDescription={i18n.catalog["enterpriseCore.setup.modules.coreDescription"]}
+          optionalTitle={i18n.catalog["enterpriseCore.setup.modules.optionalTitle"]}
+          optionalDescription={i18n.catalog["enterpriseCore.setup.modules.optionalDescription"]}
+          baselineRequiredLabel={i18n.catalog["enterpriseCore.setup.modules.baselineRequired"]}
+          saveSelectionLabel={i18n.catalog["enterpriseCore.setup.modules.saveSelection"]}
+          activateSelectedLabel={i18n.catalog["enterpriseCore.setup.modules.activateSelected"]}
+          notSelectedLabel={i18n.catalog["enterpriseCore.setup.modules.notSelected"]}
+          pendingReadinessLabel={i18n.catalog["enterpriseCore.setup.modules.pendingReadiness"]}
+          activeLabel={i18n.catalog["enterpriseCore.setup.modules.active"]}
+          selectionRequiredLabel={i18n.catalog["enterpriseCore.setup.modules.selectionRequired"]}
+          noRecordsLabel={i18n.catalog["enterpriseCore.setup.noRecords"]}
+          isSaving={isSaving}
+          onToggle={toggleModule}
+          onSave={() => void saveModuleSelection()}
+          onActivate={() => void activateSelectedModules()}
+        />
       ) : null}
     </div>
   );

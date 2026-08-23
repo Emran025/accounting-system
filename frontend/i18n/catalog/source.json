@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-08-17T14:51:39.718Z",
-  "itemCount": 4041,
+  "itemCount": 4119,
   "items": [
     {
       "id": "assets.fixedAssetsRegistry.areYouSureYouWantDeleteThisAsset",
@@ -57251,6 +57251,114 @@
       ]
     },
     {
+      "id": "enterpriseCore.orgWorkspace.attribute.chartOfAccountsId",
+      "source": "هيكل دفتر الأستاذ العام",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.attribute.fiscalYearVariant",
+      "source": "هيكل السنة المالية",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.companyLanguage.help",
+      "source": "تتحكم في لغة التشغيل والبيانات الرئيسية لهذه الوحدة التنظيمية. ولا تغيّر لغة واجهة التطبيق للمستخدم الحالي.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.companyLanguage.placeholder",
+      "source": "اختر لغة التشغيل",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.fiscalYearVariant.calendarYear",
+      "source": "السنة التقويمية (K4) — من يناير إلى ديسمبر",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.fiscalYearVariant.help",
+      "source": "يعرّف نمط الفترات المستخدم لرمز الشركة. يستخدم K4 اثنتي عشرة فترة ترحيل شهرية تقويمية، بينما يبقى فتح الفترات وإغلاقها تحت تحكم مستقل.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.fiscalYearVariant.placeholder",
+      "source": "اختر هيكل السنة المالية",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.reference.chartOfAccounts.empty",
+      "source": "هيكل دفتر الأستاذ العام الأساسي غير جاهز بعد. أنشئ حسابات نشطة للأصول والالتزامات وحقوق الملكية والإيرادات والمصروفات، ثم عُد لتعيين الهيكل المحكوم.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.reference.chartOfAccounts.help",
+      "source": "عيّن هيكل دفتر الأستاذ العام المحكوم المتاح لرمز الشركة. لا يمثل هذا اختيار حساب ترحيل مفرد مثل الأصول أو النقد أو الإيراد.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.reference.chartOfAccounts.primary",
+      "source": "دفتر الأستاذ العام الأساسي لأكور",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.reference.chartOfAccounts.summary",
+      "source": "{value0} حسابات نشطة · {value1} فئات حسابات",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.reference.currency.empty",
+      "source": "لا توجد عملة نشطة بعد. عرّف العملة المطلوبة من إدارة العملات ثم عُد لإكمال هذه الوحدة.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.reference.currency.help",
+      "source": "تُعرض العملات النشطة المعرّفة في إدارة العملات فقط؛ لا يستخدم النظام قائمة عملات افتراضية.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.reference.factoryCalendar.empty",
+      "source": "لا توجد تقاويم مصنع نشطة بعد. عرّف تقويم تشغيل معتمدًا ثم عُد لإكمال هذه المنشأة.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.reference.factoryCalendar.help",
+      "source": "اختر تقويم مصنع نشطًا يطابق بلد المنشأة؛ لا يسمح النظام بإدخال رمز تقويم حر.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.reference.loading",
+      "source": "جارٍ تحميل البيانات المرجعية…",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.reference.noResults",
+      "source": "لا توجد نتائج مطابقة في السجل",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.orgWorkspace.reference.placeholder",
+      "source": "ابحث واختر من السجل",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
       "id": "enterpriseCore.recurringTransactions.accountCode1110EntryTypeDebitAmount1000DescriptionAccountCode5200EntryTy",
       "source": "[{\"account_code\":\"1110\",\"entry_type\":\"DEBIT\",\"amount\":1000,\"description\":\"...\"},{\"account_code\":\"5200\",\"entry_type\":\"CREDIT\",\"amount\":1000,\"description\":\"...\"}]",
       "classification": "user-facing",
@@ -58283,8 +58391,296 @@
       "occurrences": []
     },
     {
+      "id": "enterpriseCore.setup.profile.action.applied",
+      "source": "تم تطبيق القالب",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.action.apply",
+      "source": "تجهيز الهيكل الأساسي بأمان",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.action.save",
+      "source": "حفظ ملف المنشأة",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.appliedNotice",
+      "source": "تم إنشاء الأساس التنظيمي للقالب. استخدم المصمم المتقدم لاحقًا لإضافة فروع أو قنوات أو فرق أو هياكل تخصصية.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.companyDetails.description",
+      "source": "الحقول ذات الرمز * مطلوبة لتأسيس الهيكل الأول. يتكيف اتجاه الكتابة مع لغة النص الذي تدخله.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.companyDetails.title",
+      "source": "أدخل بيانات المنشأة",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.description",
+      "source": "اختر النموذج الأقرب إلى عملك ثم أدخل معلومات المنشأة الأساسية. سيُنشئ النظام الهيكل التقني المناسب في الخلفية، دون أن يطلب منك التعامل مع مصطلحات ERP المتخصصة.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.field.companyCode",
+      "source": "رمز المنشأة",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.field.companyName",
+      "source": "اسم المنشأة القانونية",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.field.country",
+      "source": "الدولة / المنطقة",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.field.currency",
+      "source": "عملة التشغيل",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.field.organizationSize",
+      "source": "حجم المنشأة",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.field.siteCalendar",
+      "source": "تقويم تشغيل المتجر",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.field.siteCode",
+      "source": "رمز المتجر / الفرع",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.field.siteName",
+      "source": "اسم المتجر / الفرع",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.preview.chooseTemplate",
+      "source": "اختر قالبًا أولًا.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.preview.laterExpansion",
+      "source": "تُضاف القنوات وفرق المبيعات والموارد البشرية والمشاريع لاحقًا من مسار التوسع؛ لا يلزم إنشاؤها الآن.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.preview.title",
+      "source": "ما الذي سيُجهّز تلقائيًا؟",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.siteDetails.description",
+      "source": "سمِّ المتجر أو الفرع كما يعرفه فريقك. سيُترجم إلى موقع تشغيل تقني في الخلفية، وليس إلى مصنع بالضرورة.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.siteDetails.title",
+      "source": "عرّف الموقع التشغيلي الأول",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.size.enterprise",
+      "source": "كبيرة / مؤسسية",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.size.medium",
+      "source": "متوسطة",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.size.micro",
+      "source": "متناهية الصغر",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.size.small",
+      "source": "صغيرة",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.step.expansionDescription",
+      "source": "فعّل القدرات التي تحتاجها فقط؛ الفروع والقنوات والفرق تُضاف لاحقًا بمسارات موجهة.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.step.expansionTitle",
+      "source": "وسّع أعمالك",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.step.foundationDescription",
+      "source": "اختر نموذج العمل وأنشئ الأساس التنظيمي والمحاسبي.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.step.foundationLabel",
+      "source": "الأساس التنظيمي",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.step.foundationTitle",
+      "source": "تأسيس المنشأة",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.step.operationsDescription",
+      "source": "اربط موقع العمل ونقطة البيع ومركز التكلفة عندما يتطلبها نموذج العمل.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.step.operationsTitle",
+      "source": "تجهيز التشغيل اليومي",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.step.templateLabel",
+      "source": "القالب التنظيمي",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.structure.client",
+      "source": "العميل المؤسسي",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.structure.company",
+      "source": "المنشأة القانونية",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.structure.controllingScope",
+      "source": "النطاق الرقابي",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.structure.costCenter",
+      "source": "مركز التكلفة",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.structure.inventory",
+      "source": "مخزون الموقع",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.structure.profitCenter",
+      "source": "مركز الربح",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.structure.purchasing",
+      "source": "مشتريات المنشأة",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.structure.sales",
+      "source": "مبيعات المنشأة",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.structure.site",
+      "source": "المتجر أو الفرع",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.templateChoice.ariaLabel",
+      "source": "القوالب التنظيمية",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.templateChoice.description",
+      "source": "يمكنك إضافة الفروع والقنوات وفرق المبيعات لاحقًا، ولا تحتاج إلى تعريفها عند البداية.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.templateChoice.includesInventory",
+      "source": "يتضمن موقعًا ومخزونًا",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.templateChoice.noInventory",
+      "source": "لا يفرض مخزونًا",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.templateChoice.title",
+      "source": "اختر طريقة عمل المنشأة",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.profile.title",
+      "source": "ابدأ بنموذج عملك",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
       "id": "enterpriseCore.setup.refresh",
       "source": "تحديث الجاهزية",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.scope.contextHelper",
+      "source": "اربط وحدة تشغيل قائمة بمركز التكلفة ونقطة البيع. يبقى مركز الربح ضمن إعداد الوحدة التنظيمية ولا يعاد إدخاله هنا.",
       "classification": "user-facing",
       "occurrences": []
     },
@@ -58297,6 +58693,12 @@
     {
       "id": "enterpriseCore.setup.scope.description",
       "source": "اختر الوحدة التنظيمية التي سيعمل فيها المستخدم، واربط بها مركز التكلفة ومركز الربح والمستودع ونقطة البيع.",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.scope.pointOfSale",
+      "source": "نقطة البيع",
       "classification": "user-facing",
       "occurrences": []
     },
@@ -58321,30 +58723,6 @@
     {
       "id": "enterpriseCore.setup.scope.save",
       "source": "حفظ سياق التشغيل",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.setup.scope.pointOfSale",
-      "source": "نقطة البيع",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.setup.scope.contextHelper",
-      "source": "اربط وحدة تشغيل قائمة بمركز التكلفة ونقطة البيع. يبقى مركز الربح ضمن إعداد الوحدة التنظيمية ولا يعاد إدخاله هنا.",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.setup.scope.workingUnitCode",
-      "source": "رمز وحدة التشغيل",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.setup.scope.workingUnitName",
-      "source": "اسم وحدة التشغيل",
       "classification": "user-facing",
       "occurrences": []
     },
@@ -58375,6 +58753,18 @@
     {
       "id": "enterpriseCore.setup.scope.workingUnit",
       "source": "وحدة العمل التنظيمية",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.scope.workingUnitCode",
+      "source": "رمز وحدة التشغيل",
+      "classification": "user-facing",
+      "occurrences": []
+    },
+    {
+      "id": "enterpriseCore.setup.scope.workingUnitName",
+      "source": "اسم وحدة التشغيل",
       "classification": "user-facing",
       "occurrences": []
     },
@@ -91053,114 +91443,6 @@
           "context": "Unclassified textual literal"
         }
       ]
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.reference.chartOfAccounts.empty",
-      "source": "هيكل دفتر الأستاذ العام الأساسي غير جاهز بعد. أنشئ حسابات نشطة للأصول والالتزامات وحقوق الملكية والإيرادات والمصروفات، ثم عُد لتعيين الهيكل المحكوم.",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.reference.chartOfAccounts.help",
-      "source": "عيّن هيكل دفتر الأستاذ العام المحكوم المتاح لرمز الشركة. لا يمثل هذا اختيار حساب ترحيل مفرد مثل الأصول أو النقد أو الإيراد.",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.reference.chartOfAccounts.primary",
-      "source": "دفتر الأستاذ العام الأساسي لأكور",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.reference.chartOfAccounts.summary",
-      "source": "{value0} حسابات نشطة · {value1} فئات حسابات",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.attribute.chartOfAccountsId",
-      "source": "هيكل دفتر الأستاذ العام",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.attribute.fiscalYearVariant",
-      "source": "هيكل السنة المالية",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.fiscalYearVariant.calendarYear",
-      "source": "السنة التقويمية (K4) — من يناير إلى ديسمبر",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.fiscalYearVariant.help",
-      "source": "يعرّف نمط الفترات المستخدم لرمز الشركة. يستخدم K4 اثنتي عشرة فترة ترحيل شهرية تقويمية، بينما يبقى فتح الفترات وإغلاقها تحت تحكم مستقل.",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.fiscalYearVariant.placeholder",
-      "source": "اختر هيكل السنة المالية",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.companyLanguage.help",
-      "source": "تتحكم في لغة التشغيل والبيانات الرئيسية لهذه الوحدة التنظيمية. ولا تغيّر لغة واجهة التطبيق للمستخدم الحالي.",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.companyLanguage.placeholder",
-      "source": "اختر لغة التشغيل",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.reference.currency.empty",
-      "source": "لا توجد عملة نشطة بعد. عرّف العملة المطلوبة من إدارة العملات ثم عُد لإكمال هذه الوحدة.",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.reference.currency.help",
-      "source": "تُعرض العملات النشطة المعرّفة في إدارة العملات فقط؛ لا يستخدم النظام قائمة عملات افتراضية.",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.reference.factoryCalendar.empty",
-      "source": "لا توجد تقاويم مصنع نشطة بعد. عرّف تقويم تشغيل معتمدًا ثم عُد لإكمال هذه المنشأة.",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.reference.factoryCalendar.help",
-      "source": "اختر تقويم مصنع نشطًا يطابق بلد المنشأة؛ لا يسمح النظام بإدخال رمز تقويم حر.",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.reference.loading",
-      "source": "جارٍ تحميل البيانات المرجعية…",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.reference.noResults",
-      "source": "لا توجد نتائج مطابقة في السجل",
-      "classification": "user-facing",
-      "occurrences": []
-    },
-    {
-      "id": "enterpriseCore.orgWorkspace.reference.placeholder",
-      "source": "ابحث واختر من السجل",
-      "classification": "user-facing",
-      "occurrences": []
     },
     {
       "id": "ui.sessionexpiredmodal.sessionExpiredPleaseLogAgain",

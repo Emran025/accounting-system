@@ -4,7 +4,7 @@ import { catalogText, useI18n } from "@/lib/i18n";
 import { MainLayout } from "@/components/layout";
 import { Button, Column, Dialog, Table, showToast } from "@/components/ui";
 import { fetchAPI } from "@/lib/api";
-import { Permission, User, canAccess, getStoredPermissions, getStoredUser } from "@/lib/auth";
+import { Permission, canAccess, getStoredPermissions } from "@/lib/auth";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
 import { publishProductNotification } from "@/stores/useNotificationStore";
@@ -51,7 +51,6 @@ interface ExpiringProduct {
 
 export default function DashboardPage() {
     const { t: i18n } = useI18n();
-    const [user, setUser] = useState<User | null>(null);
     const [permissions, setPermissions] = useState<Permission[]>([]);
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
@@ -77,15 +76,15 @@ export default function DashboardPage() {
                 const d = response.data as {
                     todays_sales?: number;
                     total_products?: number;
-                    low_stock_products?: any[];
-                    expiring_products?: any[];
+                    low_stock_products?: LowStockProduct[];
+                    expiring_products?: ExpiringProduct[];
                     total_sales?: number;
                     todays_expenses?: number;
                     total_expenses?: number;
                     todays_revenues?: number;
                     total_revenues?: number;
                     total_assets?: number;
-                    recent_sales?: any[];
+                    recent_sales?: RecentSale[];
                 };
                 setStats({
                     daily_sales: Number(d.todays_sales) || 0,
@@ -139,12 +138,10 @@ export default function DashboardPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [i18n.catalog]);
+    }, [i18n]);
 
     useEffect(() => {
-        const storedUser = getStoredUser();
         const storedPermissions = getStoredPermissions();
-        setUser(storedUser);
         setPermissions(storedPermissions);
         loadDashboardData();
     }, [loadDashboardData]);

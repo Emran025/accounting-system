@@ -99,11 +99,14 @@ try {
   $service = Get-ServiceMetadata
   Assert-Contract -Condition ($null -ne $service) -Message 'SCM does not expose ACCORE Server Agent after Desktop claim'
   Assert-Contract -Condition ($service.StartMode -eq 'Auto') -Message "SCM service start mode is '$($service.StartMode)', not Auto"
+  Assert-Contract -Condition ($service.State -eq 'Running') -Message "SCM service state is '$($service.State)', not Running after the initial Desktop claim"
   Assert-Contract -Condition ($service.PathName -match [regex]::Escape((Resolve-Path $Agent).Path)) -Message 'SCM service command does not reference the claimed Agent executable'
 
   Invoke-AgentOperation -Arguments @('claim', '--owner', 'server-desktop')
   $ready = Wait-ForPublicState -ExpectedState 'ready'
   Assert-Contract -Condition ($ready.ownerProduct -eq 'server-desktop') -Message 'Reconcile did not preserve the Desktop owner in public status'
+  $service = Get-ServiceMetadata
+  Assert-Contract -Condition ($null -ne $service -and $service.State -eq 'Running') -Message 'Repeated Desktop claim did not leave the SCM service Running'
 
   Invoke-AgentOperation -Arguments @('uninstall', '--owner', 'server-headless')
   $passiveReceipt = Read-PublicJson -Path $receiptPath
@@ -117,6 +120,8 @@ try {
   Assert-Contract -Condition ($headlessReceipt.instanceId -eq $desktopReceipt.instanceId) -Message 'Explicit transition changed the durable instance identity'
   $ready = Wait-ForPublicState -ExpectedState 'ready'
   Assert-Contract -Condition ($ready.ownerProduct -eq 'server-headless') -Message 'Runtime status did not publish the Headless owner after transition'
+  $service = Get-ServiceMetadata
+  Assert-Contract -Condition ($null -ne $service -and $service.State -eq 'Running') -Message 'Explicit owner transition did not leave the SCM service Running'
 
   Invoke-AgentOperation -Arguments @('attach', '--owner', 'server-desktop')
   Assert-Contract -Condition ($null -ne (Get-ServiceMetadata)) -Message 'Desktop attach removed the Headless-owned SCM service'

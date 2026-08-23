@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui";
-import { Readiness } from "../types";
+import { Onboarding, Readiness } from "../types";
 
 interface SetupReadinessSummaryProps {
   title: string;
@@ -9,6 +9,10 @@ interface SetupReadinessSummaryProps {
   completeLabel: string;
   incompleteLabel: string;
   readiness: Readiness | null;
+  onboarding?: Onboarding;
+  templateApplied?: boolean;
+  foundationLabel: string;
+  templateLabel: string;
   readinessLabels: Record<string, string>;
   isLoading: boolean;
   canOpenDashboard: boolean;
@@ -24,6 +28,10 @@ export function SetupReadinessSummary({
   completeLabel,
   incompleteLabel,
   readiness,
+  onboarding,
+  templateApplied = false,
+  foundationLabel,
+  templateLabel,
   readinessLabels,
   isLoading,
   canOpenDashboard,
@@ -31,6 +39,7 @@ export function SetupReadinessSummary({
   onOpenDashboard,
 }: SetupReadinessSummaryProps) {
   const checks = readiness?.checks ?? [];
+  const foundationReady = onboarding?.phases.foundation.ready;
   const statusClass = readiness?.ready ? "is-ready" : "is-blocked";
 
   return (
@@ -50,6 +59,14 @@ export function SetupReadinessSummary({
         </div>
       </div>
       <div className="setup-readiness-checks" aria-label={title}>
+        {foundationReady !== undefined ? (
+          <span className={`badge ${foundationReady ? "badge-success" : "badge-warning"}`}>
+            {foundationLabel}: {foundationReady ? completeLabel : incompleteLabel}
+          </span>
+        ) : null}
+        {templateApplied ? (
+          <span className="badge badge-success">{templateLabel}: {completeLabel}</span>
+        ) : null}
         {checks.map((check) => (
           <span
             key={check.key}

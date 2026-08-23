@@ -40,6 +40,9 @@ export interface EnterpriseCoreEndpoints {
     };
     SETUP: {
         STATE: string;
+        ORGANIZATION_TEMPLATES: string;
+        ORGANIZATION_PROFILE: string;
+        APPLY_ORGANIZATION_TEMPLATE: string;
         MODULES: string;
         ACTIVATE_SELECTED: string;
     };
@@ -124,6 +127,9 @@ export const ENTERPRISE_CORE: EnterpriseCoreEndpoints = {
     },
     SETUP: {
         STATE: "/v2/setup/state",
+        ORGANIZATION_TEMPLATES: "/v2/setup/organization-templates",
+        ORGANIZATION_PROFILE: "/v2/setup/organization-profile",
+        APPLY_ORGANIZATION_TEMPLATE: "/v2/setup/apply-organization-template",
         MODULES: "/v2/setup/modules",
         ACTIVATE_SELECTED: "/v2/setup/activate-selected",
     },
