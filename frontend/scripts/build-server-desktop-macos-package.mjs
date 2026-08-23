@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { chmod, cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, join, relative, resolve } from 'node:path';
+import { relativeToAppContents } from './macos-app-bundle-policy.mjs';
 import { verifyMachOPayload as verifyContainedMachOPayload } from './macos-macho.mjs';
 
 const [target] = process.argv.slice(2);
@@ -142,6 +143,7 @@ async function verifyAppBundle(appRoot, runtimeTarget) {
   });
   return {
     agentRelativePath,
+    agentContentsRelativePath: relativeToAppContents(agentRelativePath),
     runtimeRelativePath: join('Resources', 'resources', 'server-runtime', runtimeTarget),
   };
 }
@@ -174,7 +176,7 @@ async function verifyPkgPayload(pkg, runtimeTarget, appContract) {
   const applicationRoot = 'Applications/ACCORE ERP Server Desktop.app/Contents';
   const expected = [
     `${applicationRoot}/MacOS/accore-server`,
-    `${applicationRoot}/${appContract.agentRelativePath.replaceAll('\\', '/')}`,
+    `${applicationRoot}/${appContract.agentContentsRelativePath}`,
     `${applicationRoot}/Resources/resources/server-runtime/${runtimeTarget}/frankenphp`,
     `${applicationRoot}/Resources/resources/server-runtime/${runtimeTarget}/mariadb/bin/mariadbd`,
     `${applicationRoot}/Resources/resources/server-runtime/${runtimeTarget}/mariadb/bin/mariadb-dump`,
@@ -210,9 +212,9 @@ fi
 `;
 }
 
-function desktopPostinstall({ agentRelativePath, runtimeRelativePath }) {
+function desktopPostinstall({ agentContentsRelativePath, runtimeRelativePath }) {
   const applicationRoot = '/Applications/ACCORE ERP Server Desktop.app/Contents';
-  const agent = `${applicationRoot}/${agentRelativePath.replaceAll('\\', '/')}`;
+  const agent = `${applicationRoot}/${agentContentsRelativePath}`;
   const runtime = `${applicationRoot}/${runtimeRelativePath.replaceAll('\\', '/')}`;
   return `#!/bin/sh
 set -eu
