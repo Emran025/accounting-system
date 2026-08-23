@@ -15,6 +15,9 @@ for (const requiredPath of [
   join(databaseLayout.root, 'bin', databaseLayout.client),
   join(databaseLayout.root, 'bin', databaseLayout.dump),
   join(databaseLayout.root, databaseLayout.installDb),
+  ...(databaseLayout.printDefaults
+    ? [join(databaseLayout.root, 'bin', databaseLayout.printDefaults)]
+    : []),
 ]) {
   await access(resolve(runtimeRoot, requiredPath), constants.R_OK);
 }
@@ -60,6 +63,7 @@ function mariaDbLayout(target) {
       client: 'mariadb',
       dump: 'mariadb-dump',
       installDb: 'scripts/mariadb-install-db',
+      printDefaults: 'my_print_defaults',
     };
   }
   if (target === 'macos-aarch64' || target === 'macos-x86_64') {
@@ -70,6 +74,7 @@ function mariaDbLayout(target) {
       client: 'mariadb',
       dump: 'mariadb-dump',
       installDb: 'scripts/mariadb-install-db',
+      printDefaults: 'my_print_defaults',
     };
   }
   throw new Error(`unsupported Server Desktop runtime target ${target}`);

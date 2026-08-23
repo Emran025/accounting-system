@@ -561,6 +561,7 @@ jobs:
           node frontend/scripts/stage-desktop-release-assets.mjs
           release-assets
           release-publish-assets
+          ${{ github.ref_name }}
 
       - name: Generate signed release manifests
         env:

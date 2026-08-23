@@ -148,10 +148,12 @@ assert_runtime_operable() {
   [[ -f "$runtime/Caddyfile" ]] || { echo "installed Caddyfile is missing: $runtime/Caddyfile" >&2; exit 1; }
   require_root_owned_executable "$runtime/frankenphp"
   require_root_owned_executable "$runtime/mariadb/bin/mariadbd"
+  require_root_owned_executable "$runtime/mariadb/bin/my_print_defaults"
   require_root_owned_executable "$runtime/mariadb/scripts/mariadb-install-db"
   require_root_owned_executable "$runtime/mariadb/bin/mariadb-dump"
   "$runtime/frankenphp" --version >/dev/null
   "$runtime/mariadb/bin/mariadbd" --no-defaults --verbose --help >/dev/null
+  "$runtime/mariadb/bin/my_print_defaults" --no-defaults >/dev/null
   "$runtime/mariadb/scripts/mariadb-install-db" --help >/dev/null
   "$runtime/mariadb/bin/mariadb-dump" --help >/dev/null
 }

@@ -113,6 +113,16 @@ async function verifyAppBundle(appRoot, runtimeTarget) {
       'scripts',
       'mariadb-install-db'
     ),
+    join(
+      'Contents',
+      'Resources',
+      'resources',
+      'server-runtime',
+      runtimeTarget,
+      'mariadb',
+      'bin',
+      'my_print_defaults'
+    ),
   ];
   for (const relativePath of expectedFiles) {
     await assertFile(join(appRoot, relativePath), `Server Desktop app payload ${relativePath}`);
@@ -147,6 +157,20 @@ async function verifyAppBundle(appRoot, runtimeTarget) {
       'mariadbd'
     ),
     'embedded MariaDB'
+  );
+  await assertExecutable(
+    join(
+      appRoot,
+      'Contents',
+      'Resources',
+      'resources',
+      'server-runtime',
+      runtimeTarget,
+      'mariadb',
+      'bin',
+      'my_print_defaults'
+    ),
+    'embedded MariaDB defaults reader'
   );
   await verifyContainedMachOPayload(appRoot, 'Server Desktop .app bundle', {
     skipDirectory: (relativePath) => relativePath.endsWith('/app'),
@@ -190,6 +214,7 @@ async function verifyPkgPayload(pkg, runtimeTarget, appContract) {
     `${applicationRoot}/Resources/resources/server-runtime/${runtimeTarget}/frankenphp`,
     `${applicationRoot}/Resources/resources/server-runtime/${runtimeTarget}/mariadb/bin/mariadbd`,
     `${applicationRoot}/Resources/resources/server-runtime/${runtimeTarget}/mariadb/bin/mariadb-dump`,
+    `${applicationRoot}/Resources/resources/server-runtime/${runtimeTarget}/mariadb/bin/my_print_defaults`,
     `${applicationRoot}/Resources/resources/server-runtime/${runtimeTarget}/mariadb/scripts/mariadb-install-db`,
   ];
   for (const expectedPath of expected) {

@@ -38,21 +38,21 @@ test('stages only distributable assets and preserves both macOS updater architec
     'accore-server-macos-x64-assets/ACCORE.ERP.Server.Desktop_1.0.0_macos_x86_64.pkg'
   );
 
-  execFileSync(process.execPath, [script, source, destination], { stdio: 'pipe' });
+  execFileSync(process.execPath, [script, source, destination, 'desktop-v1.0.0'], { stdio: 'pipe' });
 
   assert.deepEqual(
     (await readdir(destination)).sort(),
     [
-      'Accore.Client_aarch64.app.tar.gz',
-      'Accore.Client_aarch64.app.tar.gz.sig',
-      'Accore.Client_x86_64.app.tar.gz',
-      'Accore.Client_x86_64.app.tar.gz.sig',
-      'Accore.Server_1.0.0_amd64.AppImage',
-      'Accore.Server_1.0.0_amd64.deb',
+      'ACCORE.ERP.Client.Desktop_1.0.0_macos_aarch64.app.tar.gz',
+      'ACCORE.ERP.Client.Desktop_1.0.0_macos_aarch64.app.tar.gz.sig',
+      'ACCORE.ERP.Client.Desktop_1.0.0_macos_x86_64.app.tar.gz',
+      'ACCORE.ERP.Client.Desktop_1.0.0_macos_x86_64.app.tar.gz.sig',
+      'ACCORE.ERP.Server.Desktop_1.0.0_linux_x86_64.AppImage',
+      'ACCORE.ERP.Server.Desktop_1.0.0_linux_x86_64.deb',
       'ACCORE.ERP.Server.Desktop_1.0.0_macos_x86_64.pkg',
+      'ACCORE.ERP.Server.Headless_1.0.0_linux_x86_64.rpm',
+      'ACCORE.ERP.Server.Headless_1.0.0_linux_x86_64.tar.gz',
       'ACCORE.ERP.Server.Headless_1.0.0_macos_aarch64.pkg',
-      'accore-erp-server-headless-1.0.0-1_linux_x86_64.rpm',
-      'accore-erp-server-headless_1.0.0_linux_x86_64.tar.gz',
     ].sort()
   );
 });

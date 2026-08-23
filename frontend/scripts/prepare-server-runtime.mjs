@@ -223,6 +223,11 @@ async function verifyRuntime() {
   await assertFile(
     join(destinationRoot, definition.layout.mariadbRoot, definition.layout.mariadbInstallDb)
   );
+  if (definition.layout.mariadbPrintDefaults) {
+    await assertFile(
+      join(destinationRoot, definition.layout.mariadbRoot, 'bin', definition.layout.mariadbPrintDefaults)
+    );
+  }
   await verifyFrankenPhpRuntime();
   if (process.platform === 'darwin') await verifyMacosRuntimeLinkage();
 }
@@ -374,6 +379,7 @@ function getTargets() {
         mariadb: 'mariadb',
         mariadbDump: 'mariadb-dump',
         mariadbInstallDb: 'scripts/mariadb-install-db',
+        mariadbPrintDefaults: 'my_print_defaults',
       },
     },
     'macos-aarch64': macDefinition(
@@ -411,6 +417,7 @@ function macDefinition(architecture, sha256) {
       mariadb: 'mariadb',
       mariadbDump: 'mariadb-dump',
       mariadbInstallDb: 'scripts/mariadb-install-db',
+      mariadbPrintDefaults: 'my_print_defaults',
     },
   };
 }
