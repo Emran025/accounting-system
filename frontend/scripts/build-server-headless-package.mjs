@@ -1,6 +1,7 @@
 import { chmod, cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
+import { verifyMachOPayload } from './macos-macho.mjs';
 
 const [target] = process.argv.slice(2);
 if (!target || !getTargets()[target]) {
@@ -85,27 +86,75 @@ async function buildMacPackage() {
   const installationRoot = join(payloadRoot, 'Library', 'ACCORE ERP', 'Server');
   const scriptsRoot = join(stageRoot, 'scripts');
   await stageInstallation(installationRoot);
+  await verifyMacStagedPayload(installationRoot);
   await mkdir(scriptsRoot, { recursive: true });
   await writeFile(join(scriptsRoot, 'postinstall'), macPostinstall());
   await writeFile(join(scriptsRoot, 'preinstall'), macPreinstall());
   await chmod(join(scriptsRoot, 'postinstall'), 0o755);
   await chmod(join(scriptsRoot, 'preinstall'), 0o755);
+  const packagePath = join(
+    outputRoot,
+    `ACCORE.ERP.Server.Headless_${version}_macos_${targetDefinition.architecture}.pkg`
+  );
   await run('pkgbuild', [
     '--root',
     payloadRoot,
     '--scripts',
     scriptsRoot,
+    '--ownership',
+    'recommended',
     '--identifier',
     'com.accore.erp.server.headless',
     '--version',
     version,
     '--install-location',
     '/',
-    join(
-      outputRoot,
-      `ACCORE.ERP.Server.Headless_${version}_macos_${targetDefinition.architecture}.pkg`
-    ),
+    packagePath,
   ]);
+  await verifyMacPackage(packagePath);
+}
+
+async function verifyMacPackage(packagePath) {
+  await assertFile(packagePath, 'Server Headless macOS PKG');
+  const payloadFiles = (await runCapture('pkgutil', ['--payload-files', packagePath]))
+    .split('\n')
+    .map((line) => line.trim().replace(/^\.\//, ''))
+    .filter(Boolean);
+  const installationRoot = 'Library/ACCORE ERP/Server';
+  const required = [
+    `${installationRoot}/accore-server-agent`,
+    `${installationRoot}/resources/server-runtime/${target}/Caddyfile`,
+    `${installationRoot}/resources/server-runtime/${target}/frankenphp`,
+    `${installationRoot}/resources/server-runtime/${target}/${targetDefinition.mariadbRoot}/bin/${targetDefinition.mariadbd}`,
+    `${installationRoot}/resources/server-runtime/${target}/${targetDefinition.mariadbRoot}/bin/mariadb-dump`,
+    `${installationRoot}/resources/server-runtime/${target}/${targetDefinition.mariadbRoot}/scripts/mariadb-install-db`,
+  ];
+  for (const relativePath of required) {
+    if (!payloadFiles.includes(relativePath)) {
+      throw new Error(
+        `Server Headless macOS PKG is missing required payload file: ${relativePath}`
+      );
+    }
+  }
+  if (payloadFiles.some((path) => path.endsWith('/.env') || path.includes('/app/.env'))) {
+    throw new Error('Server Headless macOS PKG must not contain a Laravel .env file');
+  }
+}
+
+async function verifyMacStagedPayload(installationRoot) {
+  const runtime = join(installationRoot, 'resources', 'server-runtime', target);
+  const required = [
+    join(installationRoot, targetDefinition.agentDestination),
+    join(runtime, 'Caddyfile'),
+    join(runtime, 'frankenphp'),
+    join(runtime, targetDefinition.mariadbRoot, 'bin', targetDefinition.mariadbd),
+    join(runtime, targetDefinition.mariadbRoot, 'bin', 'mariadb-dump'),
+    join(runtime, targetDefinition.mariadbRoot, 'scripts', 'mariadb-install-db'),
+  ];
+  for (const path of required) await assertFile(path, 'Server Headless macOS staged payload');
+  await verifyMachOPayload(installationRoot, 'Server Headless macOS staged payload', {
+    skipDirectory: (relativePath) => relativePath.endsWith('/app'),
+  });
 }
 
 async function stageInstallation(installationRoot) {
@@ -148,7 +197,7 @@ function macPostinstall() {
 }
 
 function macPreinstall() {
-  return `#!/bin/sh\nset -eu\nif [ -x /Library/ACCORE\\ ERP/Server/accore-server-agent ]; then\n  /Library/ACCORE\\ ERP/Server/accore-server-agent uninstall --owner server-headless || true\nfi\n`;
+  return `#!/bin/sh\nset -eu\nmanifest='/Library/Application Support/ACCORE ERP/Server/server-instance.json'\nlabel='im.accore.server-agent'\n# Preserve config and database data during an in-place Headless upgrade. Only\n# the package that owns the active daemon may stop it before its agent changes.\nif [ -f "$manifest" ] && /usr/bin/grep -Eq '"ownerProduct"[[:space:]]*:[[:space:]]*"server-headless"' "$manifest"; then\n  /bin/launchctl bootout "system/$label" >/dev/null 2>&1 || true\nfi\n`;
 }
 
 async function copyProducedRpm(root, destination) {
@@ -172,6 +221,29 @@ async function findFiles(root) {
 async function assertFile(path, description) {
   const details = await stat(path).catch(() => null);
   if (!details?.isFile()) throw new Error(`${description} is missing: ${path}`);
+}
+
+async function runCapture(command, args) {
+  return new Promise((resolveCommand, rejectCommand) => {
+    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
+    child.once('error', rejectCommand);
+    child.once('exit', (code) => {
+      if (code === 0) return resolveCommand(stdout);
+      rejectCommand(
+        new Error(`${command} ${args.join(' ')} exited with code ${code}: ${stderr.trim()}`)
+      );
+    });
+  });
 }
 
 async function run(command, args) {

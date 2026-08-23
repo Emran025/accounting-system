@@ -225,6 +225,28 @@ jobs:
           args: --config src-tauri/tauri.${{ matrix.flavor }}.conf.json --features ${{ matrix.feature }} ${{ matrix.args }} ${{ startsWith(github.ref, 'refs/tags/desktop-v') && '--config src-tauri/tauri.release.generated.conf.json' || '' }}
           uploadWorkflowArtifacts: false
 
+      - name: Build and verify macOS Server Desktop PKG
+        if: matrix.flavor == 'server' && startsWith(matrix.platform, 'macos-')
+        working-directory: frontend
+        run: npm run desktop:build-server-desktop-macos-package -- ${{ matrix.runtime_target }}
+
+      - name: Validate macOS Server Desktop installation contract
+        if: matrix.flavor == 'server' && startsWith(matrix.platform, 'macos-')
+        shell: bash
+        run: >-
+          distribution/tests/macos/server-package-contract.sh
+          --package "$(find frontend/src-tauri/target/server-desktop/${{ matrix.runtime_target }} -name '*.pkg' -type f -print -quit)"
+          --product server-desktop
+          --runtime-target ${{ matrix.runtime_target }}
+
+      - name: Upload macOS Server Desktop PKG for pull request verification
+        if: matrix.flavor == 'server' && startsWith(matrix.platform, 'macos-') && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: accore-${{ matrix.artifact }}-verification-package
+          if-no-files-found: error
+          path: frontend/src-tauri/target/server-desktop/${{ matrix.runtime_target }}/*.pkg
+
       - name: Upload desktop installers and updater signatures
         if: startsWith(github.ref, 'refs/tags/desktop-v')
         uses: actions/upload-artifact@v4
@@ -240,6 +262,7 @@ jobs:
             frontend/src-tauri/target/**/bundle/**/*.dmg
             frontend/src-tauri/target/**/bundle/**/*.tar.gz
             frontend/src-tauri/target/**/bundle/**/*.sig
+            frontend/src-tauri/target/server-desktop/**/*.pkg
 
   build-server-headless:
     name: Build server headless (windows-latest)
@@ -438,6 +461,23 @@ jobs:
       - name: Build native Server Headless package
         working-directory: frontend
         run: npm run desktop:build-server-headless-package -- ${{ matrix.runtime_target }}
+
+      - name: Validate macOS Server Headless installation contract
+        if: startsWith(matrix.platform, 'macos-')
+        shell: bash
+        run: >-
+          distribution/tests/macos/server-package-contract.sh
+          --package "$(find frontend/src-tauri/target/server-headless/${{ matrix.runtime_target }} -name '*.pkg' -type f -print -quit)"
+          --product server-headless
+          --runtime-target ${{ matrix.runtime_target }}
+
+      - name: Upload macOS Server Headless PKG for pull request verification
+        if: startsWith(matrix.platform, 'macos-') && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: accore-${{ matrix.artifact }}-verification-package
+          if-no-files-found: error
+          path: frontend/src-tauri/target/server-headless/${{ matrix.runtime_target }}/*.pkg
 
       - name: Upload Server Headless packages
         if: startsWith(github.ref, 'refs/tags/desktop-v')

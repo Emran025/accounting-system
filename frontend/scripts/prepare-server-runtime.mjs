@@ -5,6 +5,7 @@ import { chmod, cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from
 import { basename, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
+import { removeInertFrankenPhpRpath, verifyMachOPayload } from './macos-macho.mjs';
 
 const [target = hostTarget(), destinationArgument] = process.argv.slice(2);
 const definition = getTargets()[target];
@@ -65,15 +66,25 @@ async function stageMariaDb() {
   if (definition.mariadb.kind === 'archive') {
     const archivePath = await downloadVerified(definition.mariadb);
     await extractArchive(archivePath, destinationRoot, definition.mariadb.format);
-    return;
-  }
-
-  if (definition.mariadb.kind === 'source-build') {
+  } else if (definition.mariadb.kind === 'source-build') {
     await buildMariaDbFromSource(definition.mariadb);
-    return;
+  } else {
+    throw new Error(`unsupported MariaDB staging strategy for ${target}`);
   }
 
-  throw new Error(`unsupported MariaDB staging strategy for ${target}`);
+  await removeMariaDbNonRuntimePayload();
+}
+
+async function removeMariaDbNonRuntimePayload() {
+  const mariadbRoot = join(destinationRoot, definition.layout.mariadbRoot);
+  // MariaDB binary archives carry test suites and SQL benchmarks for upstream
+  // validation. Neither is required to initialise, run, or back up ACCORE.
+  // Keep the scripts, clients, libraries, plugins, and share data intact.
+  await Promise.all(
+    ['mariadb-test', 'sql-bench'].map((entry) =>
+      rm(join(mariadbRoot, entry), { recursive: true, force: true })
+    )
+  );
 }
 
 async function buildMariaDbFromSource(source) {
@@ -125,6 +136,9 @@ async function buildMariaDbFromSource(source) {
     '-DWITH_SSL=bundled',
     '-DWITH_PCRE=bundled',
     '-DWITH_ZLIB=bundled',
+    // MariaDB's test suite executes from the build tree; do not ship its
+    // mariadb-test payload in the production runtime.
+    '-DINSTALL_MYSQLTESTDIR=',
   ];
   const buildEnvironment = {};
   if (process.platform === 'darwin') {
@@ -224,81 +238,14 @@ async function verifyRuntime() {
 }
 
 async function verifyMacosRuntimeLinkage() {
-  const mariaDbBin = join(destinationRoot, definition.layout.mariadbRoot, 'bin');
-  const candidates = [
-    join(destinationRoot, definition.layout.frankenPhp),
-    join(mariaDbBin, definition.layout.mariadbd),
-    join(mariaDbBin, definition.layout.mariadb),
-    join(mariaDbBin, definition.layout.mariadbDump),
-    ...(await collectDynamicLibraries(join(destinationRoot, definition.layout.mariadbRoot))),
-  ];
-  const rejectedPrefixes = [
-    '/opt/homebrew/',
-    '/usr/local/',
-    '/Library/Developer/',
-    '/Applications/Xcode',
-  ];
-  const allowedPrefixes = [
-    '/usr/lib/',
-    '/System/Library/',
-    '@loader_path/',
-    '@executable_path/',
-    '@rpath/',
-  ];
-  for (const candidate of [...new Set(candidates)]) {
-    const output = await runCapture('otool', ['-L', candidate]);
-    for (const dependency of output.split('\n').slice(1)) {
-      const installName = dependency.trim().split(' (')[0];
-      if (!installName) continue;
-      if (rejectedPrefixes.some((prefix) => installName.startsWith(prefix))) {
-        throw new Error(
-          `macOS runtime dependency points outside the package: ${candidate} -> ${installName}`
-        );
-      }
-      if (!allowedPrefixes.some((prefix) => installName.startsWith(prefix))) {
-        throw new Error(
-          `macOS runtime dependency has an unsupported install name: ${candidate} -> ${installName}`
-        );
-      }
-    }
-    await verifyMacosRuntimeSearchPaths(candidate, rejectedPrefixes, allowedPrefixes);
-  }
-}
-
-async function verifyMacosRuntimeSearchPaths(candidate, rejectedPrefixes, allowedPrefixes) {
-  const lines = (await runCapture('otool', ['-l', candidate])).split('\n');
-  for (let index = 0; index < lines.length; index += 1) {
-    if (lines[index].trim() !== 'cmd LC_RPATH') continue;
-    const pathLine = lines
-      .slice(index + 1, index + 5)
-      .find((line) => line.trim().startsWith('path '));
-    const match = pathLine?.trim().match(/^path (.+) \(offset \d+\)$/);
-    if (!match) throw new Error(`could not parse macOS runtime search path in ${candidate}`);
-    const runtimeSearchPath = match[1];
-    if (rejectedPrefixes.some((prefix) => runtimeSearchPath.startsWith(prefix))) {
-      throw new Error(
-        `macOS runtime search path points outside the package: ${candidate} -> ${runtimeSearchPath}`
-      );
-    }
-    if (!allowedPrefixes.some((prefix) => runtimeSearchPath.startsWith(prefix))) {
-      throw new Error(
-        `macOS runtime search path is unsupported: ${candidate} -> ${runtimeSearchPath}`
-      );
-    }
-  }
-}
-
-async function collectDynamicLibraries(root) {
-  const entries = await readdir(root, { withFileTypes: true });
-  const libraries = [];
-  for (const entry of entries) {
-    const path = join(root, entry.name);
-    if (entry.isDirectory()) libraries.push(...(await collectDynamicLibraries(path)));
-    else if (entry.isFile() && (entry.name.endsWith('.dylib') || entry.name.endsWith('.so'))) {
-      libraries.push(path);
-    }
-  }
-  return libraries;
+  const frankenPhp = join(destinationRoot, definition.layout.frankenPhp);
+  await removeInertFrankenPhpRpath(frankenPhp);
+  await verifyMachOPayload(destinationRoot, 'embedded Server Desktop runtime', {
+    // Laravel sources are data for FrankenPHP; scanning them as a filesystem
+    // tree is expensive and they cannot be Mach-O dependencies.
+    skipDirectory: (relativePath) => relativePath === 'app',
+  });
+  await runCapture(frankenPhp, ['php-cli', '--version']);
 }
 
 async function downloadVerified(source) {
@@ -306,9 +253,7 @@ async function downloadVerified(source) {
   if (await hasExpectedDigest(archivePath, source.sha256)) return archivePath;
 
   const temporaryPath = `${archivePath}.partial`;
-  await rm(temporaryPath, { force: true });
-  const response = await fetchWithRetries(source);
-  await pipeline(Readable.fromWeb(response.body), createWriteStream(temporaryPath));
+  await downloadWithRetries(source, temporaryPath);
   if (!(await hasExpectedDigest(temporaryPath, source.sha256))) {
     await rm(temporaryPath, { force: true });
     throw new Error(`SHA-256 mismatch for ${source.id}`);
@@ -317,23 +262,44 @@ async function downloadVerified(source) {
   return archivePath;
 }
 
-async function fetchWithRetries(source) {
+async function downloadWithRetries(source, temporaryPath) {
   const maximumAttempts = 4;
+  const attemptTimeoutMilliseconds = 120_000;
   let lastError;
   for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, attemptTimeoutMilliseconds);
     try {
-      const response = await fetch(source.url, { redirect: 'follow' });
-      if (response.ok && response.body) return response;
-      await response.body?.cancel();
-      if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-        const error = new Error(`failed to download ${source.id}: HTTP ${response.status}`);
-        error.permanent = true;
-        throw error;
+      await rm(temporaryPath, { force: true });
+      const response = await fetch(source.url, { redirect: 'follow', signal: controller.signal });
+      if (!response.ok || !response.body) {
+        await response.body?.cancel();
+        if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+          const error = new Error(`failed to download ${source.id}: HTTP ${response.status}`);
+          error.permanent = true;
+          throw error;
+        }
+        throw new Error(`failed to download ${source.id}: HTTP ${response.status}`);
       }
-      lastError = new Error(`failed to download ${source.id}: HTTP ${response.status}`);
+      await pipeline(Readable.fromWeb(response.body), createWriteStream(temporaryPath));
+      return;
     } catch (error) {
+      await rm(temporaryPath, { force: true }).catch(() => {});
       if (error?.permanent) throw error;
-      lastError = error;
+      lastError = timedOut
+        ? new Error(
+            `download attempt timed out after ${attemptTimeoutMilliseconds}ms for ${source.id}`,
+            {
+              cause: error,
+            }
+          )
+        : error;
+    } finally {
+      clearTimeout(timeout);
     }
 
     if (attempt < maximumAttempts) {
