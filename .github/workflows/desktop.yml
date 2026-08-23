@@ -118,6 +118,7 @@ jobs:
           scripts/frankenphp-runtime-policy.test.mjs
           scripts/macos-macho.test.mjs
           scripts/macos-app-bundle-policy.test.mjs
+          scripts/laravel-runtime-payload-policy.test.mjs
 
       - name: Set up PHP build tooling for Server Desktop
         if: matrix.flavor == 'server'
@@ -325,6 +326,7 @@ jobs:
           scripts/frankenphp-runtime-policy.test.mjs
           scripts/macos-macho.test.mjs
           scripts/macos-app-bundle-policy.test.mjs
+          scripts/laravel-runtime-payload-policy.test.mjs
 
       - name: Set up PHP build tooling for Server Headless
         uses: shivammathur/setup-php@v2
@@ -459,6 +461,7 @@ jobs:
           scripts/frankenphp-runtime-policy.test.mjs
           scripts/macos-macho.test.mjs
           scripts/macos-app-bundle-policy.test.mjs
+          scripts/laravel-runtime-payload-policy.test.mjs
 
       - name: Set up PHP build tooling
         uses: shivammathur/setup-php@v2

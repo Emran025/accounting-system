@@ -27,7 +27,7 @@ Linux private data is owned by the `accore` system account; systemd uses `NoNewP
 
 ## Runtime discovery and self-containment
 
-The package contains no Node.js, Rust toolchain, PHP installation, Homebrew installation, or database administration tool requirement for the end-user machine. Tauri resources are resolved as `resources/server-runtime/<target>` where available. The agent also recognizes the macOS application layout, in which the executable is in `Contents/MacOS` and packaged resources are in `Contents/Resources`.
+The package contains no Node.js, Rust toolchain, PHP installation, Homebrew installation, or database administration tool requirement for the end-user machine. Laravel secret configuration is never packaged: the payload guard rejects an exact `.env` path segment, while allowing Laravel's non-secret `.env.example` template without mistaking it for deployed configuration. Tauri resources are resolved as `resources/server-runtime/<target>` where available. The agent also recognizes the macOS application layout, in which the executable is in `Contents/MacOS` and packaged resources are in `Contents/Resources`.
 
 | Runtime target                   | Embedded FrankenPHP | Embedded MariaDB root                 | Required database executables                                               |
 | -------------------------------- | ------------------- | ------------------------------------- | --------------------------------------------------------------------------- |

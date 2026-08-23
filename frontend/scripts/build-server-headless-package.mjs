@@ -1,6 +1,7 @@
 import { chmod, cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
+import { isLaravelSecretEnvironmentPath } from './laravel-runtime-payload-policy.mjs';
 import { verifyMachOPayload } from './macos-macho.mjs';
 
 const [target] = process.argv.slice(2);
@@ -136,7 +137,7 @@ async function verifyMacPackage(packagePath) {
       );
     }
   }
-  if (payloadFiles.some((path) => path.endsWith('/.env') || path.includes('/app/.env'))) {
+  if (payloadFiles.some(isLaravelSecretEnvironmentPath)) {
     throw new Error('Server Headless macOS PKG must not contain a Laravel .env file');
   }
 }
