@@ -18,7 +18,7 @@ jobs:
   build-desktop:
     name: Build desktop (${{ matrix.flavor }} / ${{ matrix.platform }})
     runs-on: ${{ matrix.platform }}
-    timeout-minutes: 60
+    timeout-minutes: ${{ matrix.flavor == 'server' && matrix.platform == 'ubuntu-22.04' && 120 || 60 }}
     strategy:
       fail-fast: false
       matrix:
@@ -135,8 +135,11 @@ jobs:
         shell: bash
         run: |
           brew update
-          brew install bison byacc cmake gnutls libxml2 m4
+          brew install bison byacc cmake libxml2 m4 openssl@3
           echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          openssl_root="$(brew --prefix openssl@3)"
+          test -f "$openssl_root/lib/libssl.a"
+          test -f "$openssl_root/lib/libcrypto.a"
           developer_dir="$(xcode-select -p)"
           sdk_root="$(DEVELOPER_DIR="$developer_dir" xcrun --sdk macosx --show-sdk-path)"
           toolchain_bin="$developer_dir/Toolchains/XcodeDefault.xctoolchain/usr/bin"
@@ -147,6 +150,7 @@ jobs:
             echo "SDKROOT=$sdk_root"
             echo "ACCORE_MACOS_DEVELOPER_DIR=$developer_dir"
             echo "ACCORE_MACOS_SDKROOT=$sdk_root"
+            echo "ACCORE_MACOS_OPENSSL_ROOT=$openssl_root"
             echo "CC=$toolchain_bin/clang"
             echo "CXX=$toolchain_bin/clang++"
           } >> "$GITHUB_ENV"
@@ -411,8 +415,11 @@ jobs:
         shell: bash
         run: |
           brew update
-          brew install bison byacc cmake gnutls libxml2 m4
+          brew install bison byacc cmake libxml2 m4 openssl@3
           echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          openssl_root="$(brew --prefix openssl@3)"
+          test -f "$openssl_root/lib/libssl.a"
+          test -f "$openssl_root/lib/libcrypto.a"
           developer_dir="$(xcode-select -p)"
           sdk_root="$(DEVELOPER_DIR="$developer_dir" xcrun --sdk macosx --show-sdk-path)"
           toolchain_bin="$developer_dir/Toolchains/XcodeDefault.xctoolchain/usr/bin"
@@ -423,6 +430,7 @@ jobs:
             echo "SDKROOT=$sdk_root"
             echo "ACCORE_MACOS_DEVELOPER_DIR=$developer_dir"
             echo "ACCORE_MACOS_SDKROOT=$sdk_root"
+            echo "ACCORE_MACOS_OPENSSL_ROOT=$openssl_root"
             echo "CC=$toolchain_bin/clang"
             echo "CXX=$toolchain_bin/clang++"
           } >> "$GITHUB_ENV"

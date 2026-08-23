@@ -1,13 +1,14 @@
 import { spawn } from 'node:child_process';
 import { chmod, cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
+import { assertFrankenPhpRuntimeVersion } from './frankenphp-runtime-policy.mjs';
 import { removeInertFrankenPhpRpath, verifyMachOPayload } from './macos-macho.mjs';
 import {
+  macosMariaDbCmakeFlags,
   productionMariaDbCmakeFlags,
   pruneMariaDbNonRuntimePayload,
 } from './mariadb-runtime-policy.mjs';
 import { downloadVerifiedArchive } from './verified-download.mjs';
-import { assertFrankenPhpRuntimeVersion } from './frankenphp-runtime-policy.mjs';
 
 const [target = hostTarget(), destinationArgument] = process.argv.slice(2);
 const definition = getTargets()[target];
@@ -102,11 +103,20 @@ async function buildMariaDbFromSource(source) {
 
   const prefixPath = process.env.ACCORE_MARIADB_PREFIX;
   if (prefixPath) {
+    if (process.env.ACCORE_RUNTIME_TEST_FIXTURE !== '1') {
+      throw new Error(
+        'ACCORE_MARIADB_PREFIX is restricted to an explicitly marked runtime test fixture and cannot bypass the production TLS build policy'
+      );
+    }
     await cp(resolve(prefixPath), installRoot, { recursive: true });
     return;
   }
 
   const sourceDirectory = join(sourceRoot, extractedDirectory);
+  const mariaDbCmakeFlags =
+    process.platform === 'darwin'
+      ? macosMariaDbCmakeFlags(process.env.ACCORE_MACOS_OPENSSL_ROOT)
+      : productionMariaDbCmakeFlags;
   const cmakeArgs = [
     '-S',
     sourceDirectory,
@@ -117,7 +127,7 @@ async function buildMariaDbFromSource(source) {
     // Keep the shipped database deliberately small and self-contained.
     // InnoDB, Aria and MyISAM remain; the shared policy also blocks PAM test
     // installation and production payload retains no test/example artifacts.
-    ...productionMariaDbCmakeFlags,
+    ...mariaDbCmakeFlags,
   ];
   const buildEnvironment = {};
   if (process.platform === 'darwin') {
@@ -319,7 +329,7 @@ function getTargets() {
         id: 'frankenphp',
         version: '1.12.7',
         url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-windows-x86_64.zip',
-        sha256: 'c382cf6169d5175c30d918ba7a09d6eb8601c6c339470e7fbb87f0b40d9bf254',
+        sha256: '52fb7d1d8ca785599189789f813dd5cd2c29892ed2eaa3fdaab07e938e551870',
         archive: 'frankenphp-windows-x86_64.zip',
         format: 'zip',
       },
