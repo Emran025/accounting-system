@@ -1,14 +1,18 @@
 "use client";
 
 import { catalogMessage } from "@/lib/i18n";
-import { useState, useRef, forwardRef } from "react";
+import { forwardRef, useState } from "react";
 import { Icon, IconName } from "@/lib/icons";
-import { isArabic as checkIsArabic } from "@/lib/utils";
+import { getTextDirection } from "@/lib/utils";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     icon?: IconName;
     onClear?: () => void;
     containerClassName?: string;
+}
+
+function valueAsText(value: React.InputHTMLAttributes<HTMLInputElement>["value"]): string {
+    return typeof value === "string" || typeof value === "number" ? String(value) : "";
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(({
@@ -19,86 +23,54 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
     value,
     onChange,
     type = "text",
+    dir,
+    style,
     ...props
 }, ref) => {
-    const [isArabic, setIsArabic] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const [uncontrolledValue, setUncontrolledValue] = useState("");
+    const explicitDirection = dir === "rtl" || dir === "ltr" ? dir : null;
+    const textValue = value === undefined ? uncontrolledValue : valueAsText(value);
+    const textDirection = explicitDirection ?? getTextDirection(textValue);
 
-    // Detect text direction based on input
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value;
-        // Check if starts with Arabic char
-        setIsArabic(checkIsArabic(val));
-
-        if (onChange) {
-            onChange(e);
+    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (value === undefined) {
+            setUncontrolledValue(event.target.value);
         }
+        onChange?.(event);
     };
 
-    // Determine padding based on icon presence
-    // In LTR: Icon usually on Left. In RTL: Icon usually on Right.
-    // But Login page seems to force LTR and put icon on Left.
-    // We will stick to the generic design: Icon on "Start"?
-    // The previous code put icon at the bottom? No.
-
     return (
-        <div className={`input-wrapper ${containerClassName}`} ref={containerRef} style={{ position: "relative", width: "100%" }}>
+        <div className={`input-wrapper ${containerClassName}`.trim()} dir={textDirection}>
             <input
                 ref={ref}
                 type={type}
-                className={`${className}`}
-                style={{
-                    direction: isArabic ? "rtl" : "ltr",
-                    textAlign: isArabic ? "right" : "left",
-                    paddingLeft: icon ? "3rem" : "1rem", // Assuming generic style needs space for icon
-                }}
+                className={`input-direction-aware ${icon ? "has-input-icon" : ""} ${className}`.trim()}
+                dir={textDirection}
+                style={style}
                 value={value}
                 onChange={handleInputChange}
                 {...props}
             />
-            {icon && (
-                <div className="input-icon" style={{
-                    position: "absolute",
-                    left: "10px",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "var(--text-light)",
-                    pointerEvents: "none", // standard for icon
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center"
-                }}>
+            {icon ? (
+                <span className="input-icon" aria-hidden="true">
                     <Icon name={icon} size={18} />
-                </div>
-            )}
-            {value && onClear && (
+                </span>
+            ) : null}
+            {valueAsText(value) && onClear ? (
                 <button
                     type="button"
-                    onClick={(e) => {
-                        e.stopPropagation();
+                    onClick={(event) => {
+                        event.stopPropagation();
                         onClear();
                     }}
                     className="clear-btn"
                     title={catalogMessage("common.general.clear")}
-                    style={{
-                        position: "absolute",
-                        right: "10px", // Clear button on right?
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "var(--text-light)"
-                    }}
                 >
                     <Icon name="x" size={16} />
                 </button>
-            )}
+            ) : null}
         </div>
     );
 });
 
 Input.displayName = "Input";
-
-
-

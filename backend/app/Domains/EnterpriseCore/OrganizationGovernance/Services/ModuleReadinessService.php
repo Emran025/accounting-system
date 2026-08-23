@@ -17,15 +17,8 @@ use App\Domains\Finance\GeneralLedger\Models\FiscalPeriod;
  */
 class ModuleReadinessService
 {
-    public const ONBOARDING_POLICY_VERSION = '2026-08-technology-commerce-v1';
-
-    /**
-     * The default profile supports a small technology retailer or technology
-     * organisation with a physical device store, warehouse, POS, finance, and
-     * purchasing flows. Optional delivery/project/manufacturing capabilities
-     * remain governed by their own module requirements.
-     */
-    public const DEFAULT_ONBOARDING_PROFILE = 'technology_commerce';
+    public const ONBOARDING_POLICY_VERSION = '2026-08-profile-driven-setup-v1';
+    public const DEFAULT_ONBOARDING_PROFILE = 'guided_setup';
 
     /** @var list<string> */
     private const FOUNDATION_NODE_TYPES = ['COMP_CODE', 'CONTROLLING_AREA', 'COST_CENTER', 'PROFIT_CENTER'];
@@ -36,12 +29,19 @@ class ModuleReadinessService
     /** @var list<string> */
     private const CORE_STARTER_MODULES = ['sales', 'products', 'purchases', 'general_ledger'];
 
-    public function __construct(private readonly OrgStructureService $orgStructureService)
-    {
+    public function __construct(
+        private readonly OrgStructureService $orgStructureService,
+        private readonly OrganizationTemplateService $templates,
+    ) {
     }
 
     public function evaluate(?int $userId = null): array
     {
+        $templateProfile = $this->templates->profile();
+        $profileKey = (string) ($templateProfile['template_key'] ?? self::DEFAULT_ONBOARDING_PROFILE);
+        $coreOperatingNodeTypes = $this->coreOperatingNodeTypes($profileKey);
+        $requiresOperatingContext = $this->requiresOperatingContext($profileKey);
+        $starterModules = $this->starterModules($profileKey);
         $integrityIssues = $this->orgStructureService->runIntegrityCheck();
         $activeNodeTypes = $this->activeNodeTypes();
         $context = $this->defaultContext($userId);
@@ -49,7 +49,7 @@ class ModuleReadinessService
         $operatingStructure = $this->validateOperatingStructure($context, $integrityIssues);
         $accountingReadiness = $this->accountingReadiness();
         $foundation = $this->foundationReadiness($activeNodeTypes, $integrityIssues, $accountingReadiness);
-        $coreOperations = $this->coreOperationsReadiness($context, $activeNodeTypes, $integrityIssues, $operatingStructure);
+        $coreOperations = $this->coreOperationsReadiness($context, $activeNodeTypes, $integrityIssues, $operatingStructure, $coreOperatingNodeTypes, $requiresOperatingContext);
         $hasActiveStructure = $activeNodeTypes !== [];
         $modules = Module::query()->orderBy('category')->orderBy('sort_order')->get();
 
@@ -132,7 +132,7 @@ class ModuleReadinessService
         $baselineReady = $foundation['ready'] && $coreOperations['ready'];
         $onboarding = [
             'policy_version' => self::ONBOARDING_POLICY_VERSION,
-            'profile' => self::DEFAULT_ONBOARDING_PROFILE,
+            'profile' => $profileKey,
             'baseline_ready' => $baselineReady,
             'phases' => [
                 'foundation' => $foundation,
@@ -141,7 +141,7 @@ class ModuleReadinessService
             'next_phase' => !$foundation['ready']
                 ? 'foundation'
                 : (!$coreOperations['ready'] ? 'core_operations' : 'module_activation'),
-            'starter_module_keys' => self::CORE_STARTER_MODULES,
+            'starter_module_keys' => $starterModules,
         ];
 
         return [
@@ -371,15 +371,17 @@ class ModuleReadinessService
      * hierarchy, warehouse, and POS terminal. The organisation can later add
      * project, manufacturing, and HR structures without reopening this gate.
      */
-    private function coreOperationsReadiness(?OperatingContext $context, array $activeNodeTypes, array $integrityIssues, array $operatingStructure): array
+    private function coreOperationsReadiness(?OperatingContext $context, array $activeNodeTypes, array $integrityIssues, array $operatingStructure, array $coreOperatingNodeTypes, bool $requiresOperatingContext): array
     {
-        $missingNodeTypes = array_values(array_diff(self::CORE_OPERATING_NODE_TYPES, $activeNodeTypes));
-        $relevantIssues = $this->relevantIntegrityIssues($integrityIssues, self::CORE_OPERATING_NODE_TYPES);
-        $validNodeTypes = $this->validCoreOperatingNodeTypes($context);
-        $unlinkedNodeTypes = array_values(array_diff(self::CORE_OPERATING_NODE_TYPES, $validNodeTypes));
+        $missingNodeTypes = array_values(array_diff($coreOperatingNodeTypes, $activeNodeTypes));
+        $relevantIssues = $this->relevantIntegrityIssues($integrityIssues, $coreOperatingNodeTypes);
+        $validNodeTypes = $requiresOperatingContext
+            ? $this->validCoreOperatingNodeTypes($context, $coreOperatingNodeTypes)
+            : $coreOperatingNodeTypes;
+        $unlinkedNodeTypes = array_values(array_diff($coreOperatingNodeTypes, $validNodeTypes));
         $reasonCodes = [];
 
-        if (!$operatingStructure['ready']) {
+        if ($requiresOperatingContext && !$operatingStructure['ready']) {
             $reasonCodes = [...$reasonCodes, ...$operatingStructure['reason_codes']];
         }
         if ($missingNodeTypes !== []) {
@@ -397,7 +399,7 @@ class ModuleReadinessService
         return [
             'id' => 'core_operations',
             'ready' => $reasonCodes === [],
-            'required_node_types' => self::CORE_OPERATING_NODE_TYPES,
+            'required_node_types' => $coreOperatingNodeTypes,
             'missing_node_types' => $missingNodeTypes,
             'unlinked_node_types' => $unlinkedNodeTypes,
             'integrity_issue_count' => count($relevantIssues),
@@ -406,7 +408,7 @@ class ModuleReadinessService
     }
 
     /** @return list<string> */
-    private function validCoreOperatingNodeTypes(?OperatingContext $context): array
+    private function validCoreOperatingNodeTypes(?OperatingContext $context, array $coreOperatingNodeTypes): array
     {
         if (!$context?->org_node_uuid) {
             return [];
@@ -419,7 +421,7 @@ class ModuleReadinessService
         }
 
         $valid = [];
-        foreach (self::CORE_OPERATING_NODE_TYPES as $nodeType) {
+        foreach ($coreOperatingNodeTypes as $nodeType) {
             $hasCompanyLinkedNode = StructureNode::query()
                 ->where('node_type_id', $nodeType)
                 ->where('status', 'active')
@@ -436,6 +438,36 @@ class ModuleReadinessService
         }
 
         return $valid;
+    }
+
+    /** @return list<string> */
+    private function coreOperatingNodeTypes(string $profileKey): array
+    {
+        return match ($profileKey) {
+            'single_store_retail', 'multi_site_retail', 'manufacturing' => ['PLANT', 'STORAGE_LOC', 'SALES_ORG', 'PURCH_ORG'],
+            'single_store_service', 'professional_services' => ['SALES_ORG'],
+            // Enterprise blueprints deliberately defer operational scope until
+            // each legal entity/site is governed through the advanced designer.
+            'enterprise_blueprint' => [],
+            default => [],
+        };
+    }
+
+    private function requiresOperatingContext(string $profileKey): bool
+    {
+        return in_array($profileKey, ['single_store_retail', 'multi_site_retail', 'manufacturing'], true);
+    }
+
+    /** @return list<string> */
+    private function starterModules(string $profileKey): array
+    {
+        return match ($profileKey) {
+            'single_store_retail', 'multi_site_retail' => ['sales', 'products', 'purchases', 'general_ledger'],
+            'manufacturing' => ['sales', 'products', 'purchases', 'general_ledger'],
+            'single_store_service', 'professional_services' => ['sales', 'general_ledger'],
+            'enterprise_blueprint' => ['general_ledger'],
+            default => self::CORE_STARTER_MODULES,
+        };
     }
 
     private function activeNodeTypes(): array

@@ -13,9 +13,16 @@ import { DOMAIN_COLORS } from "../(pages)/ui/index";
 interface MetaType { id: string; display_name: string; display_name_ar?: string; level_domain: string; }
 interface StructureNode { node_uuid: string; node_type_id: string; code: string; attributes_json?: Record<string, unknown>; }
 
+type ScopeAttributes = Record<string, unknown>;
+
 interface ScopeResult {
-    anchor: { node_uuid: string; node_type_id: string; code: string; attributes: Record<string, any> };
-    resolved: Record<string, { node_uuid: string; code: string; attributes: Record<string, any> }>;
+    anchor: { node_uuid: string; node_type_id: string; code: string; attributes: ScopeAttributes };
+    resolved: Record<string, { node_uuid: string; code: string; attributes: ScopeAttributes }>;
+}
+
+function displayAttributeValue(value: unknown): string {
+    if (value === null || value === undefined) return "";
+    return typeof value === "object" ? JSON.stringify(value) ?? "" : String(value);
 }
 
 export function ScopeContextTab() {
@@ -35,7 +42,7 @@ export function ScopeContextTab() {
             setNodes((nodesRes.data as StructureNode[]) || []);
             setMetaTypes((metaRes.data as MetaType[]) || []);
         } catch { showToast(i18n.catalog["common.general.errorLoadingData"], "error"); }
-    }, []);
+    }, [i18n.catalog]);
 
     useEffect(() => { loadNodes(); }, [loadNodes]);
 
@@ -131,9 +138,9 @@ export function ScopeContextTab() {
                                         </div>
                                         <div>
                                             <span style={{ fontWeight: 700, fontSize: "1rem" }}>{data.code}</span>
-                                            {data.attributes?.name && (
+                                            {displayAttributeValue(data.attributes?.name) && (
                                                 <span style={{ marginRight: "0.5rem", color: "var(--text-secondary)", fontSize: "0.85rem" }}>
-                                                    — {data.attributes.name}
+                                                    — {displayAttributeValue(data.attributes?.name)}
                                                 </span>
                                             )}
                                         </div>
@@ -141,7 +148,7 @@ export function ScopeContextTab() {
                                             <div style={{ marginRight: "auto", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                                                 {Object.entries(data.attributes).filter(([k]) => k !== "name").map(([k, v]) => (
                                                     <span key={k} style={{ fontSize: "0.7rem", padding: "1px 6px", borderRadius: "4px", background: "var(--bg-primary)", color: "var(--text-muted)" }}>
-                                                        {k}: {typeof v === "object" ? JSON.stringify(v) : String(v)}
+                                                        {k}: {displayAttributeValue(v)}
                                                     </span>
                                                 ))}
                                             </div>
