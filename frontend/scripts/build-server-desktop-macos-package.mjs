@@ -1,7 +1,10 @@
 import { spawn } from 'node:child_process';
 import { chmod, cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, join, relative, resolve } from 'node:path';
-import { relativeToAppContents } from './macos-app-bundle-policy.mjs';
+import {
+  nonRelocatableBundleComponentPlist,
+  relativeToAppContents,
+} from './macos-app-bundle-policy.mjs';
 import { verifyMachOPayload as verifyContainedMachOPayload } from './macos-macho.mjs';
 
 const [target] = process.argv.slice(2);
@@ -24,12 +27,17 @@ const appSource = await findServerDesktopApp(targetRoot);
 const appContract = await verifyAppBundle(appSource, target);
 const packageName = `ACCORE.ERP.Server.Desktop_${version}_macos_${targetDefinition.architecture}.pkg`;
 const packagePath = join(outputRoot, packageName);
+const componentPlist = join(stageRoot, 'components.plist');
 
 await rm(stageRoot, { recursive: true, force: true });
 await rm(outputRoot, { recursive: true, force: true });
 await mkdir(join(stageRoot, 'payload', 'Applications'), { recursive: true });
 await mkdir(join(stageRoot, 'scripts'), { recursive: true });
 await mkdir(outputRoot, { recursive: true });
+await writeFile(
+  componentPlist,
+  nonRelocatableBundleComponentPlist(join('Applications', basename(appSource)))
+);
 
 const stagedApp = join(stageRoot, 'payload', 'Applications', basename(appSource));
 await cp(appSource, stagedApp, { recursive: true, verbatimSymlinks: true });
@@ -38,6 +46,8 @@ await writeInstallerScripts(appContract);
 await run('pkgbuild', [
   '--root',
   join(stageRoot, 'payload'),
+  '--component-plist',
+  componentPlist,
   '--scripts',
   join(stageRoot, 'scripts'),
   '--ownership',
