@@ -38,7 +38,10 @@ jobs:
           - platform: ubuntu-22.04
             flavor: server
             feature: server-product
-            args: ""
+            # Server Desktop can claim a system service only from a native,
+            # administrator-installed package. Avoid packaging its embedded
+            # runtime as an unsupported portable AppImage.
+            args: "--bundles deb,rpm"
             artifact: server-linux-x64
             runtime_target: linux-x86_64
             agent_target: x86_64-unknown-linux-gnu

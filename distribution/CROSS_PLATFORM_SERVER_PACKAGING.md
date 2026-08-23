@@ -62,7 +62,7 @@ After the macOS runtime is staged, the build removes FrankenPHP's residual `/usr
 
 ## Linux Server Desktop RPM performance contract
 
-The Linux Server Desktop runtime is intentionally large because it embeds the database server and application. The RPM bundler uses supported `gzip` compression at level `1`, prioritizing bounded build time over marginal archive-size savings. CI grants the Linux Server Desktop matrix entry a 120-minute limit while retaining the 60-minute default for all other Desktop matrix entries. This is a targeted safeguard for the known RPM resource-compression behavior with a large resource tree; it does not remove RPM as a supported Linux delivery path.[10] [11]
+The Linux Server Desktop runtime is intentionally large because it embeds the database server and application. Its CI requests only the administrator-installed `deb` and `rpm` bundle targets; it deliberately does not construct an AppImage that embeds the service runtime, because a portable bundle cannot safely claim a system service from an arbitrary user-writable location. The RPM bundler uses supported `gzip` compression at level `1`, prioritizing bounded build time over marginal archive-size savings. CI grants the Linux Server Desktop matrix entry a 120-minute limit while retaining the 60-minute default for all other Desktop matrix entries. This is a targeted safeguard for the known RPM resource-compression behavior with a large resource tree; it does not remove RPM as a supported Linux delivery path.[10] [11]
 
 ## macOS artifact verification
 
