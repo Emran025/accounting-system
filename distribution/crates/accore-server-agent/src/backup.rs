@@ -16,9 +16,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    component, mariadb_bin, mariadb_dump_name, mariadb_install_db, mariadb_name, mariadb_root_name,
-    mariadbd_name, now, public_status_root, run_checked, terminate, wait_for_port, ComponentStatus,
-    RuntimeConfig, BACKUP_VALIDATION_PORT, DATABASE_PORT,
+    component, mariadb_bin, mariadb_dump_name, mariadb_install_db_command, mariadb_name,
+    mariadb_root_name, mariadbd_name, now, public_status_root, run_checked, terminate,
+    wait_for_port, ComponentStatus, RuntimeConfig, BACKUP_VALIDATION_PORT, DATABASE_PORT,
 };
 
 const BACKUP_MANIFEST_VERSION: u8 = 1;
@@ -357,22 +357,15 @@ impl BackupOperator for MariaDbBackupOperator {
         let data_directory = validation_root.join("data");
         let restore_sql = validation_root.join("restore.sql");
         let client_config = validation_root.join("validation.client.cnf");
+        let validation_socket = validation_root.join("mariadb.sock");
         fs::create_dir_all(&data_directory).map_err(|error| {
             backup_io_error("create isolated restore validation directory", error)
         })?;
         let validation_root_password = random_secret();
-        self.write_client_config(
-            &client_config,
-            BACKUP_VALIDATION_PORT,
-            &validation_root_password,
-        )?;
-
         let result = (|| {
+            let mut command = mariadb_install_db_command(&self.config, &data_directory);
             run_checked(
-                Command::new(mariadb_install_db(&self.config))
-                    .arg(format!("--datadir={}", data_directory.display()))
-                    .arg(format!("--password={validation_root_password}"))
-                    .arg(format!("--port={BACKUP_VALIDATION_PORT}")),
+                &mut command,
                 "initialize isolated MariaDB restore validation instance",
             )
             .map_err(|error| {
@@ -391,6 +384,7 @@ impl BackupOperator for MariaDbBackupOperator {
                     self.config.runtime_root.join(mariadb_root_name()).display()
                 ))
                 .arg(format!("--datadir={}", data_directory.display()))
+                .arg(format!("--socket={}", validation_socket.display()))
                 .arg("--bind-address=127.0.0.1")
                 .arg(format!("--port={BACKUP_VALIDATION_PORT}"))
                 .arg("--skip-name-resolve")
@@ -409,7 +403,11 @@ impl BackupOperator for MariaDbBackupOperator {
                 let database = &self.config.database_name;
                 let password = &self.config.database_password;
                 let principal_sql = format!(
-                    "CREATE DATABASE IF NOT EXISTS `{database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; \
+                    "ALTER USER 'root'@'localhost' IDENTIFIED BY '{validation_root_password}'; \
+                     CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED BY '{validation_root_password}'; \
+                     ALTER USER 'root'@'127.0.0.1' IDENTIFIED BY '{validation_root_password}'; \
+                     GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' WITH GRANT OPTION; \
+                     CREATE DATABASE IF NOT EXISTS `{database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; \
                      CREATE USER IF NOT EXISTS 'accore_app'@'localhost' IDENTIFIED BY '{password}'; \
                      CREATE USER IF NOT EXISTS 'accore_app'@'127.0.0.1' IDENTIFIED BY '{password}'; \
                      GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP, REFERENCES, CREATE TEMPORARY TABLES, LOCK TABLES, CREATE VIEW, SHOW VIEW ON `{database}`.* TO 'accore_app'@'localhost'; \
@@ -418,13 +416,24 @@ impl BackupOperator for MariaDbBackupOperator {
                 );
                 run_checked(
                     Command::new(mariadb_bin(&self.config, mariadb_name()))
-                        .arg(format!("--defaults-file={}", client_config.display()))
+                        .args([
+                            "--no-defaults",
+                            "--protocol=socket",
+                            "--user=root",
+                            "--password=",
+                        ])
+                        .arg(format!("--socket={}", validation_socket.display()))
                         .arg(format!("--execute={principal_sql}")),
                     "provision isolated restore validation view definer",
                 )
                 .map_err(|error| {
                     backup_error("provision isolated restore validation view definer", error)
                 })?;
+                self.write_client_config(
+                    &client_config,
+                    BACKUP_VALIDATION_PORT,
+                    &validation_root_password,
+                )?;
                 let archive_file = File::open(&archive).map_err(|error| {
                     backup_io_error("open compressed backup for restore validation", error)
                 })?;

@@ -103,7 +103,9 @@ const nonRuntimeFiles = [
   'man/man1/wsrep_sst_rsync.1',
   'man/man1/wsrep_sst_rsync_wan.1',
   'share/mariadb_test_data_timezone.sql',
-  'share/mariadb_test_db.sql',
+  // mariadb-install-db validates this bootstrap SQL template before honoring
+  // --skip-test-db. Retain the template, while the actual test database,
+  // test suite, test clients, and benchmark payload remain excluded.
   'share/pam_user_map.so',
   'support-files/systemd/use_galera_new_cluster.conf',
   'support-files/wsrep.cnf',

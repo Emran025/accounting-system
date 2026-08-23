@@ -122,7 +122,6 @@ test('pruning removes test suites, disabled engines, compression providers, PAM,
         'bin/wsrep_sst_rsync',
         'bin/wsrep_sst_rsync_wan',
         'lib/libgalera_smm.so',
-        'share/mariadb_test_db.sql',
         'share/mroonga',
         'support-files/wsrep.cnf',
         'lib/plugin/ha_archive.so',
@@ -150,6 +149,10 @@ test('pruning removes test suites, disabled engines, compression providers, PAM,
       ].map((entry) => assert.rejects(stat(join(root, entry))))
     );
     const { readFile } = await import('node:fs/promises');
+    assert.equal(
+      (await readFile(join(root, 'share', 'mariadb_test_db.sql'))).toString(),
+      'test SQL'
+    );
     assert.equal(
       (await readFile(join(pluginRoot, 'auth_ed25519.so'))).toString(),
       'required plugin'

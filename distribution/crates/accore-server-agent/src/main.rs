@@ -718,14 +718,9 @@ fn initialise_database(config: &RuntimeConfig) -> Result<(), String> {
     if marker.exists() {
         return Ok(());
     }
-    let installer = mariadb_install_db(config);
-    run_checked(
-        Command::new(installer)
-            .arg(format!("--datadir={}", database_data(config).display()))
-            .arg(format!("--password={}", config.database_root_password))
-            .arg(format!("--port={DATABASE_PORT}")),
-        "initialize MariaDB data directory",
-    )?;
+    let data_directory = database_data(config);
+    let mut command = mariadb_install_db_command(config, &data_directory);
+    run_checked(&mut command, "initialize MariaDB data directory")?;
     File::create(marker)
         .map_err(|error| format!("write MariaDB initialization marker: {error}"))?;
     Ok(())
@@ -746,9 +741,14 @@ fn provision_database_principal(config: &RuntimeConfig) -> Result<(), String> {
     if !root_marker.exists() {
         statements.push(format!(
             "ALTER USER 'root'@'localhost' IDENTIFIED BY '{}'; \
+             CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED BY '{}'; \
+             ALTER USER 'root'@'127.0.0.1' IDENTIFIED BY '{}'; \
+             GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' WITH GRANT OPTION; \
              DELETE FROM mysql.global_priv WHERE User = ''; \
              DROP DATABASE IF EXISTS test;",
-            config.database_root_password
+            config.database_root_password,
+            config.database_root_password,
+            config.database_root_password,
         ));
     }
     statements.push(format!(
@@ -761,20 +761,40 @@ fn provision_database_principal(config: &RuntimeConfig) -> Result<(), String> {
          GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP, REFERENCES, CREATE TEMPORARY TABLES, LOCK TABLES, CREATE VIEW, SHOW VIEW ON `{database}`.* TO 'accore_app'@'127.0.0.1';"
     ));
     statements.push("FLUSH PRIVILEGES;".into());
-    let source_root_password = if config.database_root_password_legacy_blank {
-        ""
+    // mariadb-install-db bootstraps with grant tables disabled, so the root
+    // credential is set only after the controlled server starts. An absent
+    // marker is therefore the authoritative first-connection signal.
+    let root_credential_is_provisioned = root_marker.exists();
+    let mut command = Command::new(mariadb_bin(config, mariadb_name()));
+    command.args(["--no-defaults", "--user=root"]);
+
+    #[cfg(windows)]
+    let source_root_password = &config.database_root_password;
+
+    #[cfg(windows)]
+    command
+        .args(["--protocol=tcp", "--host=127.0.0.1"])
+        .arg(format!("--port={DATABASE_PORT}"));
+
+    #[cfg(not(windows))]
+    let source_root_password =
+        database_root_password_for_provisioning(config, root_credential_is_provisioned);
+
+    #[cfg(not(windows))]
+    if root_credential_is_provisioned && !config.database_root_password_legacy_blank {
+        command
+            .args(["--protocol=tcp", "--host=127.0.0.1"])
+            .arg(format!("--port={DATABASE_PORT}"));
     } else {
-        &config.database_root_password
-    };
-    run_checked(
-        Command::new(mariadb_bin(config, mariadb_name()))
-            .args(["--no-defaults", "--protocol=tcp", "--host=127.0.0.1"])
-            .arg(format!("--port={DATABASE_PORT}"))
-            .arg("--user=root")
-            .arg(format!("--password={source_root_password}"))
-            .arg(format!("--execute={}", statements.join(" "))),
-        "provision ACCORE database principal",
-    )?;
+        command
+            .args(["--protocol=socket"])
+            .arg(format!("--socket={}", database_socket(config).display()));
+    }
+
+    command
+        .arg(format!("--password={source_root_password}"))
+        .arg(format!("--execute={}", statements.join(" ")));
+    run_checked(&mut command, "provision ACCORE database principal")?;
     if !marker.exists() {
         File::create(marker)
             .map_err(|error| format!("write database principal marker: {error}"))?;
@@ -789,13 +809,17 @@ fn provision_database_principal(config: &RuntimeConfig) -> Result<(), String> {
 fn start_database(config: &RuntimeConfig) -> Result<Child, String> {
     let log = File::create(log_path(config, "mariadb.log"))
         .map_err(|error| format!("open MariaDB log: {error}"))?;
-    Command::new(mariadb_bin(config, mariadbd_name()))
+    let mut command = Command::new(mariadb_bin(config, mariadbd_name()));
+    command
         .arg("--no-defaults")
         .arg(format!(
             "--basedir={}",
             config.runtime_root.join(mariadb_root_name()).display()
         ))
-        .arg(format!("--datadir={}", database_data(config).display()))
+        .arg(format!("--datadir={}", database_data(config).display()));
+    #[cfg(not(windows))]
+    command.arg(format!("--socket={}", database_socket(config).display()));
+    command
         .arg("--bind-address=127.0.0.1")
         .arg(format!("--port={DATABASE_PORT}"))
         .arg("--skip-name-resolve")
@@ -1245,6 +1269,10 @@ fn app_root(config: &RuntimeConfig) -> PathBuf {
 fn database_data(config: &RuntimeConfig) -> PathBuf {
     config.data_root.join("accoredb").join("data")
 }
+#[cfg(not(windows))]
+fn database_socket(config: &RuntimeConfig) -> PathBuf {
+    config.data_root.join("accoredb").join("mariadb.sock")
+}
 fn mariadb_bin(config: &RuntimeConfig, name: &str) -> PathBuf {
     config
         .runtime_root
@@ -1336,6 +1364,49 @@ fn mariadb_install_db(config: &RuntimeConfig) -> PathBuf {
             "mariadb-install-db"
         },
     )
+}
+
+fn mariadb_install_db_command(config: &RuntimeConfig, data_directory: &Path) -> Command {
+    let mut command = Command::new(mariadb_install_db(config));
+
+    #[cfg(windows)]
+    {
+        command
+            .arg(format!("--datadir={}", data_directory.display()))
+            .arg(format!("--password={}", config.database_root_password))
+            .arg(format!("--port={DATABASE_PORT}"));
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        // mariadb-install-db is a Unix shell script. Its `--no-defaults`
+        // option must be first; an explicit basedir makes a staged runtime
+        // independent from the build machine and its global MariaDB files.
+        // It bootstraps with grant tables disabled; root is configured only
+        // after the Agent opens its first controlled local connection.
+        command
+            .arg("--no-defaults")
+            .arg(format!(
+                "--basedir={}",
+                config.runtime_root.join(mariadb_root_name()).display()
+            ))
+            .arg(format!("--datadir={}", data_directory.display()))
+            .arg("--auth-root-authentication-method=normal")
+            .arg("--skip-test-db");
+    }
+
+    command
+}
+
+fn database_root_password_for_provisioning<'a>(
+    config: &'a RuntimeConfig,
+    root_credential_is_provisioned: bool,
+) -> &'a str {
+    if !root_credential_is_provisioned || config.database_root_password_legacy_blank {
+        ""
+    } else {
+        &config.database_root_password
+    }
 }
 fn status_path(config: &RuntimeConfig) -> PathBuf {
     public_status_root(config).join("runtime-status.json")
@@ -1867,6 +1938,44 @@ mod tests {
         let parsed: RuntimeConfig = serde_json::from_str(legacy).expect("legacy config parses");
         assert!(parsed.database_root_password.is_empty());
         assert!(!parsed.database_root_password_legacy_blank);
+    }
+
+    #[test]
+    fn mariadb_install_bootstrap_is_relocatable_and_does_not_forward_a_password_option() {
+        let config = config();
+        let data_directory = PathBuf::from("/private/accore/data");
+        let command = mariadb_install_db_command(&config, &data_directory);
+        let arguments = command
+            .get_args()
+            .map(|argument| argument.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        {
+            assert_eq!(arguments.first().map(String::as_str), Some("--no-defaults"));
+            assert!(arguments
+                .iter()
+                .any(|argument| argument == "--skip-test-db"));
+            assert!(arguments
+                .iter()
+                .any(|argument| argument.starts_with("--basedir=")));
+            assert!(!arguments
+                .iter()
+                .any(|argument| argument.starts_with("--password=")));
+            assert!(!arguments
+                .iter()
+                .any(|argument| argument.starts_with("--extra-file=")));
+        }
+    }
+
+    #[test]
+    fn first_database_provisioning_uses_the_blank_bootstrap_root_credential() {
+        let config = config();
+        assert_eq!(database_root_password_for_provisioning(&config, false), "");
+        assert_eq!(
+            database_root_password_for_provisioning(&config, true),
+            "root-password"
+        );
     }
 
     #[test]

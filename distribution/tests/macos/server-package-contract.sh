@@ -102,6 +102,28 @@ require_root_owned_executable() {
   (( (8#$mode & 022) == 0 )) || { echo "installed executable is group/world writable: $path ($mode)" >&2; exit 1; }
 }
 
+install_package() {
+  if sudo installer -pkg "$package" -target /; then
+    return 0
+  fi
+
+  # Package-script stderr is recorded in the privileged Installer log rather
+  # than the Actions step. Emit only ACCORE-related records before returning
+  # failure, so an architecture- or path-specific postinstall error remains
+  # diagnosable without disclosing unrelated system installer activity.
+  echo "${product} macOS Installer failed; scoped installer diagnostics follow:" >&2
+  sudo grep -Ei 'accore|server-agent|mariadb|frankenphp' /var/log/install.log | tail -n 240 >&2 || true
+  return 1
+}
+
+print_redacted_agent_config() {
+  sudo sed -E \
+    -e 's/("appKey"[[:space:]]*:[[:space:]]*")[^"]*/\1[REDACTED]/' \
+    -e 's/("databasePassword"[[:space:]]*:[[:space:]]*")[^"]*/\1[REDACTED]/' \
+    -e 's/("databaseRootPassword"[[:space:]]*:[[:space:]]*")[^"]*/\1[REDACTED]/' \
+    "$config" 2>/dev/null || true
+}
+
 wait_for_ready() {
   local timeout_seconds=300
   local elapsed=0
@@ -117,7 +139,7 @@ wait_for_ready() {
   echo "${product} did not reach ready state; diagnostics follow:" >&2
   sudo launchctl print "system/${label}" 2>&1 || true
   sudo cat "$status" 2>/dev/null || true
-  sudo cat "$config" 2>/dev/null || true
+  print_redacted_agent_config
   sudo cat "$manifest" 2>/dev/null || true
   return 1
 }
@@ -135,7 +157,7 @@ assert_runtime_operable() {
 }
 
 install_and_assert() {
-  sudo installer -pkg "$package" -target /
+  install_package
   resolve_product_paths
   require_root_owned_executable "$agent"
   if [[ "$product" == 'server-desktop' ]]; then
