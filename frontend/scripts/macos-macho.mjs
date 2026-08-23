@@ -32,12 +32,23 @@ export async function verifyMachOPayload(root, description, options = {}) {
     .filter((candidate) => /\bexecutable\b/i.test(candidate.fileDescription))
     .map((candidate) => candidate.path);
 
+  const failures = [];
   for (const candidate of candidates) {
-    await verifyMachOFile(candidate.path, payloadRoot, executablePaths, description);
+    try {
+      await verifyMachOFile(candidate.path, payloadRoot, executablePaths, description);
+    } catch (error) {
+      failures.push(error);
+    }
   }
+  if (failures.length > 0) throw new Error(formatMachOVerificationFailures(description, failures));
 
   console.log(`Verified ${candidates.length} Mach-O file(s) in ${description}`);
   return candidates.map((candidate) => candidate.path);
+}
+
+export function formatMachOVerificationFailures(description, failures) {
+  const details = failures.map((failure) => `- ${failure.message}`).join('\n');
+  return `${description} has ${failures.length} Mach-O verification failure(s):\n${details}`;
 }
 
 /**

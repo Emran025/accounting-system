@@ -17,6 +17,14 @@ export const productionMariaDbCmakeFlags = Object.freeze([
   // does not expose a PAM service or PAM-authenticated local database users.
   '-DPLUGIN_AUTH_PAM=NO',
   '-DPLUGIN_AUTH_PAM_V1=NO',
+  // These optional compression providers link the host's system libraries
+  // when discovered. ACCORE does not depend on table-page compression and
+  // must not ship a macOS payload that resolves through Homebrew.
+  '-DPLUGIN_PROVIDER_BZIP2=NO',
+  '-DPLUGIN_PROVIDER_LZ4=NO',
+  '-DPLUGIN_PROVIDER_LZMA=NO',
+  '-DPLUGIN_PROVIDER_LZO=NO',
+  '-DPLUGIN_PROVIDER_SNAPPY=NO',
   '-DWITH_WSREP=OFF',
   '-DWITH_MARIABACKUP=OFF',
   '-DWITH_EMBEDDED_SERVER=OFF',
@@ -125,6 +133,11 @@ const nonProductionPluginBases = [
   'qa_auth_client',
   'qa_auth_interface',
   'qa_auth_server',
+  'provider_bzip2',
+  'provider_lz4',
+  'provider_lzma',
+  'provider_lzo',
+  'provider_snappy',
   'test_sql_service',
   'test_versioning',
   'type_test',

@@ -19,6 +19,11 @@ test('production CMake policy disables nonruntime features and keeps testdir rel
     '-DPLUGIN_AUTH_PAM=NO',
     '-DPLUGIN_AUTH_PAM_V1=NO',
     '-DPLUGIN_S3=NO',
+    '-DPLUGIN_PROVIDER_BZIP2=NO',
+    '-DPLUGIN_PROVIDER_LZ4=NO',
+    '-DPLUGIN_PROVIDER_LZMA=NO',
+    '-DPLUGIN_PROVIDER_LZO=NO',
+    '-DPLUGIN_PROVIDER_SNAPPY=NO',
     '-DWITH_WSREP=OFF',
     '-DWITH_MARIABACKUP=OFF',
     '-DCONC_WITH_SSL=OPENSSL',
@@ -46,7 +51,7 @@ test('macOS MariaDB policy requires an explicit OpenSSL root and preserves stati
   assert.ok(posixFlags.includes('-DOPENSSL_USE_STATIC_LIBS=TRUE'));
 });
 
-test('pruning removes test suites, disabled engines, PAM, WSREP, and backup payload', async () => {
+test('pruning removes test suites, disabled engines, compression providers, PAM, WSREP, and backup payload', async () => {
   const root = await mkdtemp(join(tmpdir(), 'accore-mariadb-policy-'));
   try {
     const pluginRoot = join(root, 'lib', 'plugin');
@@ -90,6 +95,11 @@ test('pruning removes test suites, disabled engines, PAM, WSREP, and backup payl
       writeFile(join(pluginRoot, 'auth_pam_v1.so'), 'disabled PAM plugin'),
       writeFile(join(pluginRoot, 'wsrep_info.so'), 'disabled WSREP plugin'),
       writeFile(join(pluginRoot, 'qa_auth_client.so'), 'test plugin'),
+      writeFile(join(pluginRoot, 'provider_bzip2.so'), 'optional compression provider'),
+      writeFile(join(pluginRoot, 'provider_lz4.so'), 'optional compression provider'),
+      writeFile(join(pluginRoot, 'provider_lzma.so'), 'optional compression provider'),
+      writeFile(join(pluginRoot, 'provider_lzo.so'), 'optional compression provider'),
+      writeFile(join(pluginRoot, 'provider_snappy.so'), 'optional compression provider'),
       writeFile(join(pluginRoot, 'daemon_example.ini'), 'example configuration'),
       writeFile(join(pluginRoot, 'auth_ed25519.so'), 'required plugin'),
     ]);
@@ -128,6 +138,11 @@ test('pruning removes test suites, disabled engines, PAM, WSREP, and backup payl
         'lib/plugin/auth_pam_v1.so',
         'lib/plugin/wsrep_info.so',
         'lib/plugin/qa_auth_client.so',
+        'lib/plugin/provider_bzip2.so',
+        'lib/plugin/provider_lz4.so',
+        'lib/plugin/provider_lzma.so',
+        'lib/plugin/provider_lzo.so',
+        'lib/plugin/provider_snappy.so',
         'lib/plugin/daemon_example.ini',
       ].map((entry) => assert.rejects(stat(join(root, entry))))
     );
@@ -149,6 +164,9 @@ test('production payload guard rejects a residual nonproduction plugin or test b
     await writeFile(join(pluginRoot, 'type_test.so'), 'residual test plugin');
     await assert.rejects(assertMariaDbProductionPayload(root), /type_test\.so/);
     await rm(join(pluginRoot, 'type_test.so'));
+    await writeFile(join(pluginRoot, 'provider_lz4.so'), 'residual compression provider');
+    await assert.rejects(assertMariaDbProductionPayload(root), /provider_lz4\.so/);
+    await rm(join(pluginRoot, 'provider_lz4.so'));
     await mkdir(join(root, 'bin'), { recursive: true });
     await writeFile(join(root, 'bin', 'mariadb-backup'), 'residual backup binary');
     await assert.rejects(assertMariaDbProductionPayload(root), /bin\/mariadb-backup/);

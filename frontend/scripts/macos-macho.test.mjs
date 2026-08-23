@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { dynamicDependencyInstallNames } from './macos-macho.mjs';
+import { dynamicDependencyInstallNames, formatMachOVerificationFailures } from './macos-macho.mjs';
 
 test('omits a dynamic library identity from otool dependencies but retains real loads', () => {
   const installNameId = '@rpath/libmariadb.3.dylib';
@@ -24,4 +24,15 @@ test('does not remove a dependency when no matching LC_ID_DYLIB is supplied', ()
 `;
 
   assert.deepEqual(dynamicDependencyInstallNames(output, null), ['@rpath/libmariadb.3.dylib']);
+});
+
+test('reports every Mach-O verification failure in one diagnostic', () => {
+  const report = formatMachOVerificationFailures('staged MariaDB', [
+    new Error('first external dependency'),
+    new Error('second unresolved reference'),
+  ]);
+
+  assert.match(report, /staged MariaDB has 2 Mach-O verification failure\(s\)/);
+  assert.match(report, /- first external dependency/);
+  assert.match(report, /- second unresolved reference/);
 });
