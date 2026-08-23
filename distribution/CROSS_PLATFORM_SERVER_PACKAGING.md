@@ -39,11 +39,20 @@ The backup and isolated restore-validation paths use these platform-specific exe
 
 ## Runtime supply chain and macOS linkage policy
 
-All downloaded source and binary archives are version-pinned and verified against a SHA-256 digest before extraction. Linux uses the upstream FrankenPHP binary and MariaDB systemd binary tarball. macOS uses the upstream FrankenPHP binary and builds MariaDB 11.4.9 from the verified source archive in a fresh out-of-source CMake directory.
+All downloaded source and binary archives are version-pinned and verified against a SHA-256 digest before extraction. A source URL, release tag, and file name are **not** an immutable trust boundary by themselves. The following current official FrankenPHP `v1.12.7` assets were deliberately accepted after a documented provenance, digest, linkage, and non-interactive version audit; they are now the explicit trusted inputs for this branch.[8] [9]
 
-The macOS MariaDB build uses the bundled TLS, PCRE, and zlib implementations, sets `INSTALL_MYSQLTESTDIR=` so the MariaDB test suite is not shipped, and disables RocksDB with `PLUGIN_ROCKSDB=NO` together with optional engines and components not needed by ACCORE ERP. This retains the required InnoDB, Aria, and MyISAM capabilities while avoiding optional native dependencies. MariaDB plugin options use the `PLUGIN_<name>=NO` form; `WITH_ROCKSDB=OFF` is not a valid substitute for disabling the RocksDB storage engine.[3] [4]
+| Target              | Audited filename                | Accepted SHA-256                                                   |
+| ------------------- | ------------------------------- | ------------------------------------------------------------------ |
+| Linux x64           | `frankenphp-linux-x86_64`       | `207f65229637ae698e816ef7cbac31dd2bb57322a95d280789cea93e32cdd4f9` |
+| Windows x64         | `frankenphp-windows-x86_64.zip` | `c382cf6169d5175c30d918ba7a09d6eb8601c6c339470e7fbb87f0b40d9bf254` |
+| macOS Apple Silicon | `frankenphp-mac-arm64`          | `a44f6bcb1da73e09abfbadfbf3126f0454d9821c5576f89465ed060d8f9a5c50` |
+| macOS Intel         | `frankenphp-mac-x86_64`         | `dacae5e6cab284475c33afe5ab6f5b37e0b119215d2ce462ca149ea497d0448a` |
 
-After the macOS runtime is staged, the build removes FrankenPHP's residual `/usr/local/lib` search path **only after proving that the executable has no `@rpath` dependency that could use it**, then executes `frankenphp php-cli --version`. It identifies **every Mach-O file** in the runtime and later in the completed Tauri application, runs `otool -L`, inspects each `LC_RPATH`, and resolves every `@loader_path`, `@executable_path`, and `@rpath` reference to an existing file contained by the payload. It rejects absolute build-machine paths and any relative reference that escapes or fails to resolve inside the payload. The CI then builds PKG payloads with recommended system ownership, verifies their file lists, installs each macOS PKG on the runner, checks the root-owned agent and LaunchDaemon, waits for public `ready` status, repeats installation to prove that the protected configuration and data remain, and finally cleans the runner. The build tools may be present on CI, but their libraries must never become an undeclared end-user dependency.
+The verification remains **fail-closed**: any later digest mismatch rejects the asset before extraction and cannot be accepted automatically. A future replacement requires a new explicit review and a deliberate pin change; changing a digest merely to make a build pass remains prohibited. Linux uses the upstream FrankenPHP binary and MariaDB systemd binary tarball. macOS uses the upstream FrankenPHP binary and builds MariaDB 11.4.9 from the verified source archive in a fresh out-of-source CMake directory.
+
+The macOS MariaDB build uses the bundled TLS, PCRE, and zlib implementations, keeps `INSTALL_MYSQLTESTDIR=mariadb-test` relative during CMake installation, and removes that test tree after staging. It disables both `PLUGIN_AUTH_PAM` variants, RocksDB with `PLUGIN_ROCKSDB=NO`, optional engines, and components not needed by ACCORE ERP. The shared final payload guard removes and rejects MariaDB test directories, test executables and fixtures, plus known upstream test, QA, debug, and example plugins. This retains the required InnoDB, Aria, MyISAM, and `auth_ed25519` runtime capabilities while avoiding known non-production payload. MariaDB plugin options use the `PLUGIN_<name>=NO` form; `WITH_ROCKSDB=OFF` is not a valid substitute for disabling the RocksDB storage engine.[3] [4]
+
+After the macOS runtime is staged, the build removes FrankenPHP's residual `/usr/local/lib` search path **only after proving that the executable has no `@rpath` dependency that could use it**, then executes the non-interactive binary contract `frankenphp --version`. It identifies **every Mach-O file** in the runtime and later in the completed Tauri application, runs `otool -L`, inspects each `LC_RPATH`, and resolves every `@loader_path`, `@executable_path`, and `@rpath` reference to an existing file contained by the payload. It rejects absolute build-machine paths and any relative reference that escapes or fails to resolve inside the payload. The CI then builds PKG payloads with recommended system ownership, verifies their file lists, installs each macOS PKG on the runner, checks the root-owned agent and LaunchDaemon, waits for public `ready` status, repeats installation to prove that the protected configuration and data remain, and finally cleans the runner. The build tools may be present on CI, but their libraries must never become an undeclared end-user dependency.[8]
 
 ## macOS artifact verification
 
@@ -68,3 +77,7 @@ Windows release signing and Tauri updater signing use release secrets when they 
 [6] [Apple — Packaging Mac software for distribution](https://developer.apple.com/documentation/xcode/packaging-mac-software-for-distribution)
 
 [7] [`pkgbuild(1)` — root payload and ownership behavior](https://keith.github.io/xcode-man-pages/pkgbuild.1.html)
+
+[8] [FrankenPHP — standalone binary usage](https://frankenphp.dev/docs/)
+
+[9] [FrankenPHP v1.12.7 — official release assets](https://github.com/dunglas/frankenphp/releases/tag/v1.12.7)

@@ -60,14 +60,14 @@ struct RuntimeConfig {
     server_id: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ComponentStatus {
     state: String,
     detail: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RuntimeStatus {
     state: String,
@@ -494,7 +494,8 @@ fn transition_embedded_service(
         )?;
         let manifest = write_server_instance(&config, to, &config_path, Some(existing))?;
         windows_service_host::reconcile_service(config_path.display().to_string())?;
-        write_public_instance_receipt(&config, &manifest, operation_id)
+        write_public_instance_receipt(&config, &manifest, operation_id)?;
+        refresh_public_status_identity(&config)
     }
 
     #[cfg(not(windows))]
@@ -1104,7 +1105,22 @@ fn print_status(config: &RuntimeConfig) -> Result<(), String> {
 }
 
 fn write_status(config: &RuntimeConfig, status: &RuntimeStatus) -> Result<(), String> {
-    write_public_json_atomically(&status_path(config), status, "runtime status")
+    let mut public_status = status.clone();
+    apply_public_instance_identity(config, &mut public_status);
+    write_public_json_atomically(&status_path(config), &public_status, "runtime status")
+}
+
+#[cfg(any(windows, test))]
+fn refresh_public_status_identity(config: &RuntimeConfig) -> Result<(), String> {
+    let path = status_path(config);
+    let bytes = match fs::read(&path) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(format!("read runtime status for owner refresh: {error}")),
+    };
+    let status: RuntimeStatus = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("parse runtime status for owner refresh: {error}"))?;
+    write_status(config, &status)
 }
 
 fn request_stop(config: &RuntimeConfig) -> Result<(), String> {
@@ -1824,5 +1840,58 @@ mod tests {
     #[test]
     fn guarded_seed_recovery_rejects_a_non_numeric_user_count() {
         assert!(parse_database_count("not-a-count\n").is_err());
+    }
+
+    #[test]
+    fn active_receipt_refreshes_and_controls_public_runtime_owner() {
+        let temporary_root =
+            env::temp_dir().join(format!("accore-owner-status-{}", random_secret("")));
+        let mut config = config();
+        config.data_root = temporary_root.join("Server");
+        config.runtime_root = temporary_root.join("runtime");
+        fs::create_dir_all(public_status_root(&config))
+            .expect("create isolated public status root");
+
+        let mut stale_status = RuntimeStatus::bootstrapping(&config, "stale owner status");
+        stale_status.owner_product = "server-desktop".into();
+        stale_status.server_instance_id = "stale-instance".into();
+        write_public_json_atomically(
+            &status_path(&config),
+            &stale_status,
+            "isolated stale runtime status",
+        )
+        .expect("write isolated stale runtime status");
+
+        let manifest = ServerInstanceManifest {
+            schema_version: SERVER_INSTANCE_SCHEMA_VERSION,
+            instance_id: "durable-instance".into(),
+            server_id: config.server_id.clone(),
+            owner_product: ServerProductFlavor::ServerHeadless,
+            active_runtime_root: config.runtime_root.clone(),
+            service_executable: temporary_root.join("agent"),
+            service_config_path: temporary_root.join("agent-config.json"),
+            updated_at: now(),
+        };
+        write_public_instance_receipt(&config, &manifest, "transition-test".into())
+            .expect("publish active receipt");
+        refresh_public_status_identity(&config).expect("refresh status from active receipt");
+
+        let refreshed: RuntimeStatus = serde_json::from_slice(
+            &fs::read(status_path(&config)).expect("read refreshed runtime status"),
+        )
+        .expect("parse refreshed runtime status");
+        assert_eq!(refreshed.owner_product, "server-headless");
+        assert_eq!(refreshed.server_instance_id, "durable-instance");
+
+        stale_status.owner_product = "server-desktop".into();
+        write_status(&config, &stale_status).expect("write runtime status under active receipt");
+        let rewritten: RuntimeStatus = serde_json::from_slice(
+            &fs::read(status_path(&config)).expect("read rewritten runtime status"),
+        )
+        .expect("parse rewritten runtime status");
+        assert_eq!(rewritten.owner_product, "server-headless");
+        assert_eq!(rewritten.server_instance_id, "durable-instance");
+
+        fs::remove_dir_all(temporary_root).expect("remove isolated status fixture");
     }
 }

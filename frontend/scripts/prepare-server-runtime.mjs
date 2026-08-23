@@ -1,11 +1,12 @@
 import { spawn } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { createReadStream, createWriteStream } from 'node:fs';
-import { chmod, cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
 import { removeInertFrankenPhpRpath, verifyMachOPayload } from './macos-macho.mjs';
+import {
+  productionMariaDbCmakeFlags,
+  pruneMariaDbNonRuntimePayload,
+} from './mariadb-runtime-policy.mjs';
+import { downloadVerifiedArchive } from './verified-download.mjs';
 
 const [target = hostTarget(), destinationArgument] = process.argv.slice(2);
 const definition = getTargets()[target];
@@ -76,15 +77,9 @@ async function stageMariaDb() {
 }
 
 async function removeMariaDbNonRuntimePayload() {
-  const mariadbRoot = join(destinationRoot, definition.layout.mariadbRoot);
-  // MariaDB binary archives carry test suites and SQL benchmarks for upstream
-  // validation. Neither is required to initialise, run, or back up ACCORE.
-  // Keep the scripts, clients, libraries, plugins, and share data intact.
-  await Promise.all(
-    ['mariadb-test', 'sql-bench'].map((entry) =>
-      rm(join(mariadbRoot, entry), { recursive: true, force: true })
-    )
-  );
+  // MariaDB binary archives and source builds can expose upstream tests and
+  // examples. The shared policy retains only runtime-relevant payload.
+  await pruneMariaDbNonRuntimePayload(join(destinationRoot, definition.layout.mariadbRoot));
 }
 
 async function buildMariaDbFromSource(source) {
@@ -118,27 +113,10 @@ async function buildMariaDbFromSource(source) {
     buildRoot,
     '-DCMAKE_BUILD_TYPE=Release',
     `-DCMAKE_INSTALL_PREFIX=${installRoot}`,
-    // Keep the shipped database deliberately small and remove engines that
-    // introduce optional native dependencies. InnoDB, Aria and MyISAM remain.
-    '-DPLUGIN_ROCKSDB=NO',
-    '-DPLUGIN_ARCHIVE=NO',
-    '-DPLUGIN_MROONGA=NO',
-    '-DPLUGIN_CONNECT=NO',
-    '-DPLUGIN_SPIDER=NO',
-    '-DPLUGIN_OQGRAPH=NO',
-    '-DPLUGIN_SPHINX=NO',
-    '-DWITH_WSREP=OFF',
-    '-DWITH_MARIABACKUP=OFF',
-    '-DWITH_EMBEDDED_SERVER=OFF',
-    '-DWITH_UNIT_TESTS=OFF',
-    // These source-tree implementations keep runtime TLS, regex and zlib
-    // dependencies out of Homebrew and outside the installed client package.
-    '-DWITH_SSL=bundled',
-    '-DWITH_PCRE=bundled',
-    '-DWITH_ZLIB=bundled',
-    // MariaDB's test suite executes from the build tree; do not ship its
-    // mariadb-test payload in the production runtime.
-    '-DINSTALL_MYSQLTESTDIR=',
+    // Keep the shipped database deliberately small and self-contained.
+    // InnoDB, Aria and MyISAM remain; the shared policy also blocks PAM test
+    // installation and production payload retains no test/example artifacts.
+    ...productionMariaDbCmakeFlags,
   ];
   const buildEnvironment = {};
   if (process.platform === 'darwin') {
@@ -234,7 +212,18 @@ async function verifyRuntime() {
   await assertFile(
     join(destinationRoot, definition.layout.mariadbRoot, definition.layout.mariadbInstallDb)
   );
+  await verifyFrankenPhpRuntime();
   if (process.platform === 'darwin') await verifyMacosRuntimeLinkage();
+}
+
+async function verifyFrankenPhpRuntime() {
+  const frankenPhp = join(destinationRoot, definition.layout.frankenPhp);
+  const version = await runCapture(frankenPhp, ['--version']);
+  if (!version.includes(definition.frankenPhp.version)) {
+    throw new Error(
+      `unexpected FrankenPHP runtime identity for ${target}: expected ${definition.frankenPhp.version}, received ${version.trim()}`
+    );
+  }
 }
 
 async function verifyMacosRuntimeLinkage() {
@@ -245,90 +234,10 @@ async function verifyMacosRuntimeLinkage() {
     // tree is expensive and they cannot be Mach-O dependencies.
     skipDirectory: (relativePath) => relativePath === 'app',
   });
-  await runCapture(frankenPhp, ['php-cli', '--version']);
 }
 
 async function downloadVerified(source) {
-  const archivePath = join(cacheRoot, source.archive);
-  if (await hasExpectedDigest(archivePath, source.sha256)) return archivePath;
-
-  const temporaryPath = `${archivePath}.partial`;
-  await downloadWithRetries(source, temporaryPath);
-  if (!(await hasExpectedDigest(temporaryPath, source.sha256))) {
-    await rm(temporaryPath, { force: true });
-    throw new Error(`SHA-256 mismatch for ${source.id}`);
-  }
-  await rename(temporaryPath, archivePath);
-  return archivePath;
-}
-
-async function downloadWithRetries(source, temporaryPath) {
-  const maximumAttempts = 4;
-  const attemptTimeoutMilliseconds = 120_000;
-  let lastError;
-  for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
-    const controller = new AbortController();
-    let timedOut = false;
-    const timeout = setTimeout(() => {
-      timedOut = true;
-      controller.abort();
-    }, attemptTimeoutMilliseconds);
-    try {
-      await rm(temporaryPath, { force: true });
-      const response = await fetch(source.url, { redirect: 'follow', signal: controller.signal });
-      if (!response.ok || !response.body) {
-        await response.body?.cancel();
-        if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-          const error = new Error(`failed to download ${source.id}: HTTP ${response.status}`);
-          error.permanent = true;
-          throw error;
-        }
-        throw new Error(`failed to download ${source.id}: HTTP ${response.status}`);
-      }
-      await pipeline(Readable.fromWeb(response.body), createWriteStream(temporaryPath));
-      return;
-    } catch (error) {
-      await rm(temporaryPath, { force: true }).catch(() => {});
-      if (error?.permanent) throw error;
-      lastError = timedOut
-        ? new Error(
-            `download attempt timed out after ${attemptTimeoutMilliseconds}ms for ${source.id}`,
-            {
-              cause: error,
-            }
-          )
-        : error;
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (attempt < maximumAttempts) {
-      const delayMilliseconds = attempt * 5_000;
-      console.warn(
-        `download attempt ${attempt}/${maximumAttempts} failed for ${source.id}; retrying in ${delayMilliseconds}ms`
-      );
-      await new Promise((resolveDelay) => setTimeout(resolveDelay, delayMilliseconds));
-    }
-  }
-
-  throw new Error(`failed to download ${source.id} after ${maximumAttempts} attempts`, {
-    cause: lastError,
-  });
-}
-
-async function hasExpectedDigest(path, expected) {
-  try {
-    const digest = await new Promise((resolveDigest, rejectDigest) => {
-      const hash = createHash('sha256');
-      const stream = createReadStream(path);
-      stream.once('error', rejectDigest);
-      stream.on('data', (chunk) => hash.update(chunk));
-      stream.once('end', () => resolveDigest(hash.digest('hex')));
-    });
-    return digest === expected;
-  } catch {
-    return false;
-  }
+  return downloadVerifiedArchive(source, cacheRoot);
 }
 
 async function extractArchive(archivePath, destination, format) {
@@ -411,6 +320,7 @@ function getTargets() {
     'windows-x86_64': {
       frankenPhp: {
         id: 'frankenphp',
+        version: 'FrankenPHP v1.12.7',
         url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-windows-x86_64.zip',
         sha256: 'c382cf6169d5175c30d918ba7a09d6eb8601c6c339470e7fbb87f0b40d9bf254',
         archive: 'frankenphp-windows-x86_64.zip',
@@ -437,8 +347,9 @@ function getTargets() {
     'linux-x86_64': {
       frankenPhp: {
         id: 'frankenphp',
+        version: 'FrankenPHP v1.12.7',
         url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-linux-x86_64',
-        sha256: '3cbe9c51815182892aa625e40e8b83440b1d8c62cb39bf8d76538ece75449552',
+        sha256: '207f65229637ae698e816ef7cbac31dd2bb57322a95d280789cea93e32cdd4f9',
         archive: 'frankenphp-linux-x86_64',
       },
       mariadb: {
@@ -460,7 +371,7 @@ function getTargets() {
     },
     'macos-aarch64': macDefinition(
       'arm64',
-      'd5ac0ab9f7796ae1b55a244064c25d56e3a3bfdec266d08c9bf2c7d18a7ffcf2'
+      'a44f6bcb1da73e09abfbadfbf3126f0454d9821c5576f89465ed060d8f9a5c50'
     ),
     'macos-x86_64': macDefinition(
       'x86_64',
@@ -473,6 +384,7 @@ function macDefinition(architecture, sha256) {
   return {
     frankenPhp: {
       id: 'frankenphp',
+      version: 'FrankenPHP v1.12.7',
       url: `https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-mac-${architecture}`,
       sha256,
       archive: `frankenphp-mac-${architecture}`,

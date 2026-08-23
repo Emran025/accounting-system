@@ -120,6 +120,8 @@ try {
   Assert-Contract -Condition ($headlessReceipt.instanceId -eq $desktopReceipt.instanceId) -Message 'Explicit transition changed the durable instance identity'
   $ready = Wait-ForPublicState -ExpectedState 'ready'
   Assert-Contract -Condition ($ready.ownerProduct -eq 'server-headless') -Message 'Runtime status did not publish the Headless owner after transition'
+  $service = Get-ServiceMetadata
+  Assert-Contract -Condition ($null -ne $service -and $service.State -eq 'Running') -Message 'Explicit owner transition did not leave the SCM service Running'
 
   Invoke-AgentOperation -Arguments @('attach', '--owner', 'server-desktop')
   Assert-Contract -Condition ($null -ne (Get-ServiceMetadata)) -Message 'Desktop attach removed the Headless-owned SCM service'

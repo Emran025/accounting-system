@@ -109,6 +109,13 @@ jobs:
         working-directory: frontend
         run: npm run desktop:verify-flavor-icons -- ${{ matrix.flavor }}
 
+      - name: Test resilient Server runtime preparation policies
+        if: matrix.flavor == 'server'
+        working-directory: frontend
+        run: >-
+          node --test scripts/verified-download.test.mjs
+          scripts/mariadb-runtime-policy.test.mjs
+
       - name: Set up PHP build tooling for Server Desktop
         if: matrix.flavor == 'server'
         uses: shivammathur/setup-php@v2
@@ -303,6 +310,12 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Test resilient Server runtime preparation policies
+        working-directory: frontend
+        run: >-
+          node --test scripts/verified-download.test.mjs
+          scripts/mariadb-runtime-policy.test.mjs
+
       - name: Set up PHP build tooling for Server Headless
         uses: shivammathur/setup-php@v2
         with:
@@ -423,6 +436,12 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Test resilient Server runtime preparation policies
+        working-directory: frontend
+        run: >-
+          node --test scripts/verified-download.test.mjs
+          scripts/mariadb-runtime-policy.test.mjs
 
       - name: Set up PHP build tooling
         uses: shivammathur/setup-php@v2

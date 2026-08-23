@@ -128,7 +128,7 @@ assert_runtime_operable() {
   require_root_owned_executable "$runtime/mariadb/bin/mariadbd"
   require_root_owned_executable "$runtime/mariadb/scripts/mariadb-install-db"
   require_root_owned_executable "$runtime/mariadb/bin/mariadb-dump"
-  "$runtime/frankenphp" php-cli --version >/dev/null
+  "$runtime/frankenphp" --version >/dev/null
   "$runtime/mariadb/bin/mariadbd" --no-defaults --verbose --help >/dev/null
   "$runtime/mariadb/scripts/mariadb-install-db" --help >/dev/null
   "$runtime/mariadb/bin/mariadb-dump" --help >/dev/null
