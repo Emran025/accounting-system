@@ -18,6 +18,7 @@ jobs:
   build-desktop:
     name: Build desktop (${{ matrix.flavor }} / ${{ matrix.platform }})
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: ${{ matrix.flavor == 'server' && matrix.platform == 'ubuntu-22.04' && 120 || 60 }}
     strategy:
       fail-fast: false
       matrix:
@@ -32,6 +33,32 @@ jobs:
             feature: server-product
             args: ""
             artifact: server-windows-x64
+            runtime_target: windows-x86_64
+            agent_target: x86_64-pc-windows-msvc
+          - platform: ubuntu-22.04
+            flavor: server
+            feature: server-product
+            # Server Desktop can claim a system service only from a native,
+            # administrator-installed package. Avoid packaging its embedded
+            # runtime as an unsupported portable AppImage.
+            args: "--bundles deb,rpm"
+            artifact: server-linux-x64
+            runtime_target: linux-x86_64
+            agent_target: x86_64-unknown-linux-gnu
+          - platform: macos-15
+            flavor: server
+            feature: server-product
+            args: ""
+            artifact: server-macos-arm64
+            runtime_target: macos-aarch64
+            agent_target: aarch64-apple-darwin
+          - platform: macos-15-intel
+            flavor: server
+            feature: server-product
+            args: ""
+            artifact: server-macos-x64
+            runtime_target: macos-x86_64
+            agent_target: x86_64-apple-darwin
           - platform: windows-latest
             flavor: client
             feature: client-product
@@ -63,14 +90,14 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 26.7.0
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ startsWith(matrix.platform, 'macos-') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Cache Rust build artifacts
         uses: swatinem/rust-cache@v2
@@ -85,6 +112,17 @@ jobs:
         working-directory: frontend
         run: npm run desktop:verify-flavor-icons -- ${{ matrix.flavor }}
 
+      - name: Test resilient Server runtime preparation policies
+        if: matrix.flavor == 'server'
+        working-directory: frontend
+        run: >-
+          node --test scripts/verified-download.test.mjs
+          scripts/mariadb-runtime-policy.test.mjs
+          scripts/frankenphp-runtime-policy.test.mjs
+          scripts/macos-macho.test.mjs
+          scripts/macos-app-bundle-policy.test.mjs
+          scripts/laravel-runtime-payload-policy.test.mjs
+
       - name: Set up PHP build tooling for Server Desktop
         if: matrix.flavor == 'server'
         uses: shivammathur/setup-php@v2
@@ -98,20 +136,57 @@ jobs:
         working-directory: backend
         run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
+      - name: Install macOS runtime build dependencies
+        if: matrix.flavor == 'server' && startsWith(matrix.platform, 'macos-')
+        shell: bash
+        run: |
+          brew update
+          brew install bison byacc cmake libxml2 m4 openssl@3
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          openssl_root="$(brew --prefix openssl@3)"
+          test -f "$openssl_root/lib/libssl.a"
+          test -f "$openssl_root/lib/libcrypto.a"
+          developer_dir="$(xcode-select -p)"
+          sdk_root="$(DEVELOPER_DIR="$developer_dir" xcrun --sdk macosx --show-sdk-path)"
+          toolchain_bin="$developer_dir/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          test -x "$toolchain_bin/clang"
+          test -x "$toolchain_bin/clang++"
+          {
+            echo "DEVELOPER_DIR=$developer_dir"
+            echo "SDKROOT=$sdk_root"
+            echo "ACCORE_MACOS_DEVELOPER_DIR=$developer_dir"
+            echo "ACCORE_MACOS_SDKROOT=$sdk_root"
+            echo "ACCORE_MACOS_OPENSSL_ROOT=$openssl_root"
+            echo "CC=$toolchain_bin/clang"
+            echo "CXX=$toolchain_bin/clang++"
+          } >> "$GITHUB_ENV"
+
+      - name: Lock Xcode SDK for MariaDB source build
+        if: matrix.flavor == 'server' && startsWith(matrix.platform, 'macos-')
+        shell: bash
+        run: |
+          sudo xcode-select --switch "$ACCORE_MACOS_DEVELOPER_DIR"
+          test "$(xcode-select -p)" = "$ACCORE_MACOS_DEVELOPER_DIR"
+          printf '#include <cstddef>\n#include <cstdlib>\nint main() { return 0; }\n' |
+            "$CXX" -isysroot "$ACCORE_MACOS_SDKROOT" -x c++ -std=c++17 -fsyntax-only -
+
       - name: Prepare verified Server Desktop runtime
         if: matrix.flavor == 'server'
         working-directory: frontend
         env:
           ACCORE_RUNTIME_DOWNLOAD_CACHE: ${{ runner.temp }}/accore-runtime-cache
-        run: npm run desktop:prepare-server-runtime
+        run: npm run desktop:prepare-server-runtime -- ${{ matrix.runtime_target }}
 
       - name: Build ACCORE Server Agent sidecar
         if: matrix.flavor == 'server'
         shell: pwsh
         run: |
-          cargo build --manifest-path distribution/crates/accore-server-agent/Cargo.toml --release
+          cargo build --manifest-path distribution/crates/accore-server-agent/Cargo.toml --release --target ${{ matrix.agent_target }}
           New-Item -ItemType Directory -Force -Path frontend/src-tauri/binaries | Out-Null
-          Copy-Item distribution/crates/accore-server-agent/target/release/accore-server-agent.exe frontend/src-tauri/binaries/accore-server-agent-x86_64-pc-windows-msvc.exe
+          $suffix = if ('${{ matrix.platform }}' -eq 'windows-latest') { '.exe' } else { '' }
+          $source = "distribution/crates/accore-server-agent/target/${{ matrix.agent_target }}/release/accore-server-agent$suffix"
+          $destination = "frontend/src-tauri/binaries/accore-server-agent-${{ matrix.agent_target }}$suffix"
+          Copy-Item $source $destination
 
       - name: Test Server Agent decision and data-policy contracts
         if: matrix.flavor == 'server'
@@ -124,7 +199,7 @@ jobs:
         run: node scripts/verify-server-runtime-package.mjs
 
       - name: Validate Server Agent lifecycle public contract
-        if: matrix.flavor == 'server'
+        if: matrix.flavor == 'server' && matrix.platform == 'windows-latest'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -168,6 +243,28 @@ jobs:
           args: --config src-tauri/tauri.${{ matrix.flavor }}.conf.json --features ${{ matrix.feature }} ${{ matrix.args }} ${{ startsWith(github.ref, 'refs/tags/desktop-v') && '--config src-tauri/tauri.release.generated.conf.json' || '' }}
           uploadWorkflowArtifacts: false
 
+      - name: Build and verify macOS Server Desktop PKG
+        if: matrix.flavor == 'server' && startsWith(matrix.platform, 'macos-')
+        working-directory: frontend
+        run: npm run desktop:build-server-desktop-macos-package -- ${{ matrix.runtime_target }}
+
+      - name: Validate macOS Server Desktop installation contract
+        if: matrix.flavor == 'server' && startsWith(matrix.platform, 'macos-')
+        shell: bash
+        run: >-
+          distribution/tests/macos/server-package-contract.sh
+          --package "$(find frontend/src-tauri/target/server-desktop/${{ matrix.runtime_target }} -name '*.pkg' -type f -print -quit)"
+          --product server-desktop
+          --runtime-target ${{ matrix.runtime_target }}
+
+      - name: Upload macOS Server Desktop PKG for pull request verification
+        if: matrix.flavor == 'server' && startsWith(matrix.platform, 'macos-') && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: accore-${{ matrix.artifact }}-verification-package
+          if-no-files-found: error
+          path: frontend/src-tauri/target/server-desktop/${{ matrix.runtime_target }}/*.pkg
+
       - name: Upload desktop installers and updater signatures
         if: startsWith(github.ref, 'refs/tags/desktop-v')
         uses: actions/upload-artifact@v4
@@ -183,6 +280,7 @@ jobs:
             frontend/src-tauri/target/**/bundle/**/*.dmg
             frontend/src-tauri/target/**/bundle/**/*.tar.gz
             frontend/src-tauri/target/**/bundle/**/*.sig
+            frontend/src-tauri/target/server-desktop/**/*.pkg
 
   build-server-headless:
     name: Build server headless (windows-latest)
@@ -195,7 +293,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 26.7.0
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -222,6 +320,16 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Test resilient Server runtime preparation policies
+        working-directory: frontend
+        run: >-
+          node --test scripts/verified-download.test.mjs
+          scripts/mariadb-runtime-policy.test.mjs
+          scripts/frankenphp-runtime-policy.test.mjs
+          scripts/macos-macho.test.mjs
+          scripts/macos-app-bundle-policy.test.mjs
+          scripts/laravel-runtime-payload-policy.test.mjs
 
       - name: Set up PHP build tooling for Server Headless
         uses: shivammathur/setup-php@v2
@@ -272,10 +380,163 @@ jobs:
           if-no-files-found: error
           path: frontend/src-tauri/target/server-headless/*.exe
 
+  build-server-headless-unix:
+    name: Build server headless (${{ matrix.platform }})
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            runtime_target: linux-x86_64
+            agent_target: x86_64-unknown-linux-gnu
+            artifact: server-headless-linux-x64
+          - platform: macos-15
+            runtime_target: macos-aarch64
+            agent_target: aarch64-apple-darwin
+            artifact: server-headless-macos-arm64
+          - platform: macos-15-intel
+            runtime_target: macos-x86_64
+            agent_target: x86_64-apple-darwin
+            artifact: server-headless-macos-x64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26.7.0
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Linux package tooling
+        if: matrix.platform == 'ubuntu-22.04'
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+
+      - name: Install macOS runtime build dependencies
+        if: startsWith(matrix.platform, 'macos-')
+        shell: bash
+        run: |
+          brew update
+          brew install bison byacc cmake libxml2 m4 openssl@3
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          openssl_root="$(brew --prefix openssl@3)"
+          test -f "$openssl_root/lib/libssl.a"
+          test -f "$openssl_root/lib/libcrypto.a"
+          developer_dir="$(xcode-select -p)"
+          sdk_root="$(DEVELOPER_DIR="$developer_dir" xcrun --sdk macosx --show-sdk-path)"
+          toolchain_bin="$developer_dir/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          test -x "$toolchain_bin/clang"
+          test -x "$toolchain_bin/clang++"
+          {
+            echo "DEVELOPER_DIR=$developer_dir"
+            echo "SDKROOT=$sdk_root"
+            echo "ACCORE_MACOS_DEVELOPER_DIR=$developer_dir"
+            echo "ACCORE_MACOS_SDKROOT=$sdk_root"
+            echo "ACCORE_MACOS_OPENSSL_ROOT=$openssl_root"
+            echo "CC=$toolchain_bin/clang"
+            echo "CXX=$toolchain_bin/clang++"
+          } >> "$GITHUB_ENV"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: frontend/src-tauri -> target
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Test resilient Server runtime preparation policies
+        working-directory: frontend
+        run: >-
+          node --test scripts/verified-download.test.mjs
+          scripts/mariadb-runtime-policy.test.mjs
+          scripts/frankenphp-runtime-policy.test.mjs
+          scripts/macos-macho.test.mjs
+          scripts/macos-app-bundle-policy.test.mjs
+          scripts/laravel-runtime-payload-policy.test.mjs
+
+      - name: Set up PHP build tooling
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          tools: composer
+          extensions: fileinfo
+
+      - name: Install production Laravel dependencies
+        working-directory: backend
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+
+      - name: Lock Xcode SDK for MariaDB source build
+        if: startsWith(matrix.platform, 'macos-')
+        shell: bash
+        run: |
+          sudo xcode-select --switch "$ACCORE_MACOS_DEVELOPER_DIR"
+          test "$(xcode-select -p)" = "$ACCORE_MACOS_DEVELOPER_DIR"
+          printf '#include <cstddef>\n#include <cstdlib>\nint main() { return 0; }\n' |
+            "$CXX" -isysroot "$ACCORE_MACOS_SDKROOT" -x c++ -std=c++17 -fsyntax-only -
+
+      - name: Prepare verified Server Headless runtime
+        working-directory: frontend
+        env:
+          ACCORE_RUNTIME_DOWNLOAD_CACHE: ${{ runner.temp }}/accore-runtime-cache
+        run: npm run desktop:prepare-server-runtime -- ${{ matrix.runtime_target }}
+
+      - name: Build ACCORE Server Agent sidecar
+        shell: pwsh
+        run: |
+          cargo build --manifest-path distribution/crates/accore-server-agent/Cargo.toml --release --target ${{ matrix.agent_target }}
+          New-Item -ItemType Directory -Force -Path frontend/src-tauri/binaries | Out-Null
+          $source = "distribution/crates/accore-server-agent/target/${{ matrix.agent_target }}/release/accore-server-agent"
+          Copy-Item $source "frontend/src-tauri/binaries/accore-server-agent-${{ matrix.agent_target }}"
+
+      - name: Build native Server Headless package
+        working-directory: frontend
+        run: npm run desktop:build-server-headless-package -- ${{ matrix.runtime_target }}
+
+      - name: Validate macOS Server Headless installation contract
+        if: startsWith(matrix.platform, 'macos-')
+        shell: bash
+        run: >-
+          distribution/tests/macos/server-package-contract.sh
+          --package "$(find frontend/src-tauri/target/server-headless/${{ matrix.runtime_target }} -name '*.pkg' -type f -print -quit)"
+          --product server-headless
+          --runtime-target ${{ matrix.runtime_target }}
+
+      - name: Upload macOS Server Headless PKG for pull request verification
+        if: startsWith(matrix.platform, 'macos-') && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: accore-${{ matrix.artifact }}-verification-package
+          if-no-files-found: error
+          path: frontend/src-tauri/target/server-headless/${{ matrix.runtime_target }}/*.pkg
+
+      - name: Upload Server Headless packages
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: accore-${{ matrix.artifact }}-assets
+          if-no-files-found: error
+          path: |
+            frontend/src-tauri/target/server-headless/${{ matrix.runtime_target }}/*.deb
+            frontend/src-tauri/target/server-headless/${{ matrix.runtime_target }}/*.rpm
+            frontend/src-tauri/target/server-headless/${{ matrix.runtime_target }}/*.pkg
+            frontend/src-tauri/target/server-headless/${{ matrix.runtime_target }}/*.tar.gz
+
   release-desktop:
     name: Create desktop release
     if: startsWith(github.ref, 'refs/tags/desktop-v')
-    needs: [build-desktop, build-server-headless]
+    needs: [build-desktop, build-server-headless, build-server-headless-unix]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -287,7 +548,7 @@ jobs:
       - name: Set up Node.js for manifest generation
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 26.7.0
 
       - name: Download desktop artifacts
         uses: actions/download-artifact@v4

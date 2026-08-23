@@ -54,7 +54,11 @@ function isPublishableReleaseAsset(file) {
     name.endsWith('.dmg') ||
     name.endsWith('.dmg.sig') ||
     name.endsWith('.app.tar.gz') ||
-    name.endsWith('.app.tar.gz.sig')
+    name.endsWith('.app.tar.gz.sig') ||
+    name.endsWith('.pkg') ||
+    name.endsWith('.pkg.sig') ||
+    name.endsWith('.tar.gz') ||
+    name.endsWith('.tar.gz.sig')
   );
 }
 
@@ -71,20 +75,25 @@ function normalizeAssetName(sourceFile) {
   const target = releaseTargetFromAssetName(name, sourceFile);
   if (!target) return name;
 
-  const architecturePattern = /[_.-](aarch64|arm64|x86_64|x64|amd64)(?=[_.-])/i;
-  if (architecturePattern.test(name)) {
-    return name.replace(architecturePattern, `_${target.platform}_${target.architecture}`);
-  }
-
   if (
     name.toLowerCase().endsWith('.app.tar.gz') ||
     name.toLowerCase().endsWith('.app.tar.gz.sig')
   ) {
     return name.replace(
       /\.app\.tar\.gz(\.sig)?$/i,
-      `_${target.platform}_${target.architecture}.app.tar.gz$1`
+      `_${target.architecture}.app.tar.gz$1`
     );
   }
+
+  const normalizedTarget = `_${target.platform}_${target.architecture}`.toLowerCase();
+  if (name.toLowerCase().includes(normalizedTarget)) return name;
+
+  const architecturePattern = /[_.-](aarch64|arm64|x86_64|x64)(?=[_.-])/i;
+  if (architecturePattern.test(name)) {
+    return name.replace(architecturePattern, `_${target.platform}_${target.architecture}`);
+  }
+
+  if (/\.(deb|rpm|pkg|appimage)$/i.test(name)) return name;
 
   throw new Error(`could not determine architecture placement for desktop release asset ${name}`);
 }
@@ -100,14 +109,19 @@ function releaseTargetFromAssetName(name, sourceFile) {
   if (
     installerName.endsWith('.appimage') ||
     installerName.endsWith('.deb') ||
-    installerName.endsWith('.rpm')
+    installerName.endsWith('.rpm') ||
+    installerName.includes('_linux_')
   ) {
     return { platform: 'linux', architecture };
   }
   if (installerName.endsWith('.exe') || installerName.endsWith('.msi')) {
     return { platform: 'windows', architecture };
   }
-  if (installerName.endsWith('.dmg') || installerName.endsWith('.app.tar.gz')) {
+  if (
+    installerName.endsWith('.dmg') ||
+    installerName.endsWith('.app.tar.gz') ||
+    installerName.endsWith('.pkg')
+  ) {
     return { platform: 'macos', architecture };
   }
   return null;

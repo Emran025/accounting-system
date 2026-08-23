@@ -9,25 +9,24 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-#[cfg(windows)]
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-#[cfg(windows)]
 use rand::{rngs::OsRng, RngCore};
-#[cfg(windows)]
-use windows_sys::Win32::{
-    Foundation::{CloseHandle, HANDLE},
-    Security::{GetTokenInformation, TokenElevation, TOKEN_ELEVATION, TOKEN_QUERY},
-    System::Threading::{GetCurrentProcess, OpenProcessToken},
-};
 use serde::{Deserialize, Serialize};
 use server_instance::{
     decide_installation, decide_transition, decide_uninstall, InstallationDecision,
     PublicServerInstanceReceipt, ServerInstanceManifest, ServerProductFlavor, TransitionDecision,
     UninstallDecision, SERVER_INSTANCE_SCHEMA_VERSION,
 };
+#[cfg(windows)]
+use windows_sys::Win32::{
+    Foundation::{CloseHandle, HANDLE},
+    Security::{GetTokenInformation, TokenElevation, TOKEN_ELEVATION, TOKEN_QUERY},
+    System::Threading::{GetCurrentProcess, OpenProcessToken},
+};
 
 mod backup;
 mod server_instance;
+mod unix_service_host;
 mod windows_service_host;
 
 const DATABASE_PORT: u16 = 3307;
@@ -61,14 +60,14 @@ struct RuntimeConfig {
     server_id: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ComponentStatus {
     state: String,
     detail: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RuntimeStatus {
     state: String,
@@ -145,10 +144,13 @@ fn execute() -> Result<(), String> {
     )?;
 
     match command.as_str() {
-        "claim" | "install" => install_embedded_service(read_owner_argument(
-            &mut arguments,
-            ServerProductFlavor::ServerDesktop,
-        )?),
+        "claim" | "install" => {
+            let (owner, runtime_root) = read_owner_and_runtime_argument(
+                &mut arguments,
+                ServerProductFlavor::ServerDesktop,
+            )?;
+            install_embedded_service(owner, runtime_root.as_deref())
+        }
         "uninstall" => uninstall_embedded_service(read_owner_argument(
             &mut arguments,
             ServerProductFlavor::ServerDesktop,
@@ -166,7 +168,7 @@ fn execute() -> Result<(), String> {
             let config_path = read_config_argument(&mut arguments)?;
             match command.as_str() {
                 "run" => execute_with_config(Path::new(&config_path)),
-                "service" => windows_service_host::run_service(config_path),
+                "service" => run_platform_service(config_path),
                 "status" => print_status(&load_config(Path::new(&config_path))?),
                 "request-backup" => request_backup_for_config(Path::new(&config_path)),
                 "seed-baseline" => recover_baseline_seed_for_config(Path::new(&config_path)),
@@ -181,8 +183,119 @@ fn stop_embedded_service() -> Result<(), String> {
     #[cfg(windows)]
     {
         require_elevated_lifecycle()?;
+        return windows_service_host::stop_service();
     }
-    windows_service_host::stop_service()
+
+    #[cfg(not(windows))]
+    {
+        unix_service_host::stop_service()
+    }
+}
+
+fn run_platform_service(config_path: String) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        return windows_service_host::run_service(config_path);
+    }
+
+    #[cfg(not(windows))]
+    {
+        execute_with_config(Path::new(&config_path))
+    }
+}
+
+#[cfg(not(windows))]
+fn install_unix_embedded_service(
+    owner: ServerProductFlavor,
+    runtime_root: Option<&Path>,
+) -> Result<(), String> {
+    let config_path = default_config_path()?;
+    let has_existing_config = config_path.is_file();
+    let existing_manifest = load_server_instance(&config_path)?;
+    if has_existing_config
+        && existing_manifest.is_none()
+        && owner == ServerProductFlavor::ServerHeadless
+    {
+        return Err("a legacy Server Desktop instance exists without a server-instance manifest; migrate or transition it explicitly before installing Server Headless".into());
+    }
+    match decide_installation(existing_manifest.as_ref(), owner)? {
+        InstallationDecision::AttachAsDesktopManager => return Err(
+            "a Server Headless-owned instance must be attached with the explicit attach operation"
+                .into(),
+        ),
+        InstallationDecision::ClaimOrUpdate => {}
+    }
+
+    let mut config = embedded_runtime_config(runtime_root)?;
+    if has_existing_config {
+        carry_durable_configuration(&mut config, load_config(&config_path)?);
+    }
+    ensure_layout(&config)?;
+    if needs_initial_runtime_hardening(has_existing_config) {
+        harden_runtime_data_access(&config)?;
+    }
+    write_config(&config_path, &config)?;
+    let manifest = write_server_instance(&config, owner, &config_path, existing_manifest)?;
+    let operation_id = new_operation_id();
+    write_public_receipt(
+        &config,
+        &PublicServerInstanceReceipt::transitioning(&manifest, owner, operation_id.clone(), now()),
+    )?;
+    unix_service_host::reconcile_service(
+        &config_path,
+        &config.data_root,
+        &public_status_root(&config),
+    )?;
+    write_public_instance_receipt(&config, &manifest, operation_id)
+}
+
+#[cfg(not(windows))]
+fn transition_unix_embedded_service(
+    from: ServerProductFlavor,
+    to: ServerProductFlavor,
+) -> Result<(), String> {
+    let config_path = default_config_path()?;
+    let existing = load_server_instance(&config_path)?
+        .ok_or("cannot transition a server instance without a server-instance manifest")?;
+    match decide_transition(Some(&existing), from, to)? {
+        TransitionDecision::UpdateOwner => {}
+    }
+    let config = load_config(&config_path)?;
+    ensure_layout(&config)?;
+    // A running service owns the hardened tree. Re-traversing it here races
+    // its isolated restore-validation cleanup; startup performs hardening
+    // before workers run, and transition changes only ownership metadata.
+    let operation_id = new_operation_id();
+    write_public_receipt(
+        &config,
+        &PublicServerInstanceReceipt::transitioning(&existing, to, operation_id.clone(), now()),
+    )?;
+    let manifest = write_server_instance(&config, to, &config_path, Some(existing))?;
+    unix_service_host::reconcile_service(
+        &config_path,
+        &config.data_root,
+        &public_status_root(&config),
+    )?;
+    write_public_instance_receipt(&config, &manifest, operation_id)
+}
+
+#[cfg(not(windows))]
+fn uninstall_unix_embedded_service(owner: ServerProductFlavor) -> Result<(), String> {
+    let config_path = default_config_path()?;
+    let manifest = load_server_instance(&config_path)?
+        .ok_or("cannot remove a server instance without a server-instance manifest")?;
+    match decide_uninstall(Some(&manifest), owner)? {
+        UninstallDecision::PassivePackageRemoval => Ok(()),
+        UninstallDecision::ActiveRemoval => {
+            let config = load_config(&config_path)?;
+            request_stop(&config)?;
+            unix_service_host::uninstall_service()?;
+            write_public_receipt(
+                &config,
+                &PublicServerInstanceReceipt::removed(&manifest, new_operation_id()),
+            )
+        }
+    }
 }
 
 #[cfg(windows)]
@@ -213,6 +326,10 @@ fn require_elevated_lifecycle() -> Result<(), String> {
     require_elevated_lifecycle_status(elevation.TokenIsElevated != 0)
 }
 
+fn needs_initial_runtime_hardening(has_existing_config: bool) -> bool {
+    !has_existing_config
+}
+
 fn require_elevated_lifecycle_status(is_elevated: bool) -> Result<(), String> {
     if is_elevated {
         return Ok(());
@@ -226,17 +343,40 @@ fn read_owner_argument(
     arguments: &mut impl Iterator<Item = String>,
     default_owner: ServerProductFlavor,
 ) -> Result<ServerProductFlavor, String> {
-    let owner = match arguments.next() {
-        None => Ok(default_owner),
-        Some(flag) if flag == "--owner" => {
-            ServerProductFlavor::parse(&arguments.next().ok_or("missing owner")?)
-        }
-        Some(flag) => Err(format!("expected --owner, received {flag}")),
-    }?;
-    if let Some(argument) = arguments.next() {
-        return Err(format!("unexpected argument after owner: {argument}"));
+    let (owner, runtime_root) = read_owner_and_runtime_argument(arguments, default_owner)?;
+    if runtime_root.is_some() {
+        return Err("--runtime-root is permitted only with claim or install".into());
     }
     Ok(owner)
+}
+
+fn read_owner_and_runtime_argument(
+    arguments: &mut impl Iterator<Item = String>,
+    default_owner: ServerProductFlavor,
+) -> Result<(ServerProductFlavor, Option<PathBuf>), String> {
+    let mut owner = default_owner;
+    let mut owner_supplied = false;
+    let mut runtime_root = None;
+    while let Some(flag) = arguments.next() {
+        match flag.as_str() {
+            "--owner" if !owner_supplied => {
+                owner = ServerProductFlavor::parse(&arguments.next().ok_or("missing owner")?)?;
+                owner_supplied = true;
+            }
+            "--runtime-root" if runtime_root.is_none() => {
+                let value = arguments.next().ok_or("missing runtime root")?;
+                let path = PathBuf::from(value);
+                if !path.is_absolute() {
+                    return Err("--runtime-root must be an absolute path".into());
+                }
+                runtime_root = Some(path);
+            }
+            "--owner" => return Err("--owner may be supplied only once".into()),
+            "--runtime-root" => return Err("--runtime-root may be supplied only once".into()),
+            _ => return Err(format!("unexpected lifecycle argument: {flag}")),
+        }
+    }
+    Ok((owner, runtime_root))
 }
 
 fn read_config_argument(arguments: &mut impl Iterator<Item = String>) -> Result<String, String> {
@@ -254,20 +394,29 @@ fn read_transition_arguments(
     let from_flag = arguments.next().ok_or("missing --from")?;
     let from = arguments.next().ok_or("missing transition source owner")?;
     let to_flag = arguments.next().ok_or("missing --to")?;
-    let to = arguments.next().ok_or("missing transition destination owner")?;
+    let to = arguments
+        .next()
+        .ok_or("missing transition destination owner")?;
     if from_flag != "--from" || to_flag != "--to" || arguments.next().is_some() {
         return Err("usage: accore-server-agent transition --from <owner> --to <owner>".into());
     }
-    Ok((ServerProductFlavor::parse(&from)?, ServerProductFlavor::parse(&to)?))
+    Ok((
+        ServerProductFlavor::parse(&from)?,
+        ServerProductFlavor::parse(&to)?,
+    ))
 }
 
-fn install_embedded_service(owner: ServerProductFlavor) -> Result<(), String> {
+fn install_embedded_service(
+    owner: ServerProductFlavor,
+    runtime_root: Option<&Path>,
+) -> Result<(), String> {
     #[cfg(windows)]
     {
         require_elevated_lifecycle()?;
         let config_path = default_config_path()?;
+        let has_existing_config = config_path.is_file();
         let existing_manifest = load_server_instance(&config_path)?;
-        if config_path.is_file()
+        if has_existing_config
             && existing_manifest.is_none()
             && owner == ServerProductFlavor::ServerHeadless
         {
@@ -279,19 +428,26 @@ fn install_embedded_service(owner: ServerProductFlavor) -> Result<(), String> {
             }
             InstallationDecision::ClaimOrUpdate => {}
         }
-        let mut config = embedded_runtime_config()?;
-        if config_path.is_file() {
+        let mut config = embedded_runtime_config(runtime_root)?;
+        if has_existing_config {
             let existing = load_config(&config_path)?;
             carry_durable_configuration(&mut config, existing);
         }
         ensure_layout(&config)?;
-        harden_runtime_data_access(&config)?;
+        if needs_initial_runtime_hardening(has_existing_config) {
+            harden_runtime_data_access(&config)?;
+        }
         write_config(&config_path, &config)?;
         let manifest = write_server_instance(&config, owner, &config_path, existing_manifest)?;
         let operation_id = new_operation_id();
         write_public_receipt(
             &config,
-            &PublicServerInstanceReceipt::transitioning(&manifest, owner, operation_id.clone(), now()),
+            &PublicServerInstanceReceipt::transitioning(
+                &manifest,
+                owner,
+                operation_id.clone(),
+                now(),
+            ),
         )?;
         windows_service_host::reconcile_service(config_path.display().to_string())?;
         write_public_instance_receipt(&config, &manifest, operation_id)
@@ -299,7 +455,7 @@ fn install_embedded_service(owner: ServerProductFlavor) -> Result<(), String> {
 
     #[cfg(not(windows))]
     {
-        Err("self-contained Server Desktop installation is supported only on Windows x64".into())
+        install_unix_embedded_service(owner, runtime_root)
     }
 }
 
@@ -318,8 +474,12 @@ fn attach_embedded_service(owner: ServerProductFlavor) -> Result<(), String> {
 
     #[cfg(not(windows))]
     {
-        let _ = owner;
-        Err("self-contained Server Desktop attachment is supported only on Windows x64".into())
+        match decide_installation(load_server_instance(&default_config_path()?)?.as_ref(), owner)? {
+            InstallationDecision::AttachAsDesktopManager => unix_service_host::start_service(),
+            InstallationDecision::ClaimOrUpdate => Err(
+                "attach is permitted only for Server Desktop against an active Server Headless-owned instance".into(),
+            ),
+        }
     }
 }
 
@@ -338,7 +498,9 @@ fn transition_embedded_service(
         }
         let config = load_config(&config_path)?;
         ensure_layout(&config)?;
-        harden_runtime_data_access(&config)?;
+        // The running service owns the hardened tree. Re-traversing it here
+        // races isolated restore-validation cleanup; startup performs
+        // hardening before workers run, while transition changes metadata.
         let operation_id = new_operation_id();
         write_public_receipt(
             &config,
@@ -346,13 +508,13 @@ fn transition_embedded_service(
         )?;
         let manifest = write_server_instance(&config, to, &config_path, Some(existing))?;
         windows_service_host::reconcile_service(config_path.display().to_string())?;
-        write_public_instance_receipt(&config, &manifest, operation_id)
+        write_public_instance_receipt(&config, &manifest, operation_id)?;
+        refresh_public_status_identity(&config)
     }
 
     #[cfg(not(windows))]
     {
-        let _ = (from, to);
-        Err("self-contained Server Desktop transition is supported only on Windows x64".into())
+        transition_unix_embedded_service(from, to)
     }
 }
 
@@ -371,10 +533,7 @@ fn uninstall_embedded_service(owner: ServerProductFlavor) -> Result<(), String> 
                 windows_service_host::uninstall_service()?;
                 write_public_receipt(
                     &config,
-                    &PublicServerInstanceReceipt::removed(
-                        &manifest,
-                        new_operation_id(),
-                    ),
+                    &PublicServerInstanceReceipt::removed(&manifest, new_operation_id()),
                 )
             }
         }
@@ -382,8 +541,7 @@ fn uninstall_embedded_service(owner: ServerProductFlavor) -> Result<(), String> 
 
     #[cfg(not(windows))]
     {
-        let _ = owner;
-        Err("self-contained Server Desktop removal is supported only on Windows x64".into())
+        uninstall_unix_embedded_service(owner)
     }
 }
 
@@ -446,7 +604,10 @@ fn run_components(
     let mut api = None;
     let mut queue = None;
     let result = (|| {
-        status.entering("database_initialization", "preparing embedded MariaDB data files");
+        status.entering(
+            "database_initialization",
+            "preparing embedded MariaDB data files",
+        );
         write_status(config, status)?;
         initialise_database(config)?;
         ensure_port_is_free(DATABASE_PORT, "MariaDB")?;
@@ -460,13 +621,20 @@ fn run_components(
         status.database = component("ready", "MariaDB is ready on 127.0.0.1:3307");
         write_status(config, status)?;
 
-        status.entering("application_provisioning", "applying database migrations and seed revisions");
+        status.entering(
+            "application_provisioning",
+            "applying database migrations and seed revisions",
+        );
         provision_application(config, status)?;
         ensure_port_is_free(API_PORT, "ACCORE API")?;
         status.entering("api_configuration", "validating FrankenPHP configuration");
         let api_config_path = prepare_api_configuration(config)?;
         if let Err(error) = validate_api_configuration(config, &api_config_path) {
-            status.failed_at("api_configuration", "api_configuration_invalid", error.clone());
+            status.failed_at(
+                "api_configuration",
+                "api_configuration_invalid",
+                error.clone(),
+            );
             let _ = write_status(config, status);
             Err(error)?;
         }
@@ -550,14 +718,9 @@ fn initialise_database(config: &RuntimeConfig) -> Result<(), String> {
     if marker.exists() {
         return Ok(());
     }
-    let installer = mariadb_bin(config, "mariadb-install-db.exe");
-    run_checked(
-        Command::new(installer)
-            .arg(format!("--datadir={}", database_data(config).display()))
-            .arg(format!("--password={}", config.database_root_password))
-            .arg(format!("--port={DATABASE_PORT}")),
-        "initialize MariaDB data directory",
-    )?;
+    let data_directory = database_data(config);
+    let mut command = mariadb_install_db_command(config, &data_directory);
+    run_checked(&mut command, "initialize MariaDB data directory")?;
     File::create(marker)
         .map_err(|error| format!("write MariaDB initialization marker: {error}"))?;
     Ok(())
@@ -578,9 +741,14 @@ fn provision_database_principal(config: &RuntimeConfig) -> Result<(), String> {
     if !root_marker.exists() {
         statements.push(format!(
             "ALTER USER 'root'@'localhost' IDENTIFIED BY '{}'; \
+             CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED BY '{}'; \
+             ALTER USER 'root'@'127.0.0.1' IDENTIFIED BY '{}'; \
+             GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' WITH GRANT OPTION; \
              DELETE FROM mysql.global_priv WHERE User = ''; \
              DROP DATABASE IF EXISTS test;",
-            config.database_root_password
+            config.database_root_password,
+            config.database_root_password,
+            config.database_root_password,
         ));
     }
     statements.push(format!(
@@ -593,20 +761,40 @@ fn provision_database_principal(config: &RuntimeConfig) -> Result<(), String> {
          GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP, REFERENCES, CREATE TEMPORARY TABLES, LOCK TABLES, CREATE VIEW, SHOW VIEW ON `{database}`.* TO 'accore_app'@'127.0.0.1';"
     ));
     statements.push("FLUSH PRIVILEGES;".into());
-    let source_root_password = if config.database_root_password_legacy_blank {
-        ""
+    // mariadb-install-db bootstraps with grant tables disabled, so the root
+    // credential is set only after the controlled server starts. An absent
+    // marker is therefore the authoritative first-connection signal.
+    let root_credential_is_provisioned = root_marker.exists();
+    let mut command = Command::new(mariadb_bin(config, mariadb_name()));
+    command.args(["--no-defaults", "--user=root"]);
+
+    #[cfg(windows)]
+    let source_root_password = &config.database_root_password;
+
+    #[cfg(windows)]
+    command
+        .args(["--protocol=tcp", "--host=127.0.0.1"])
+        .arg(format!("--port={DATABASE_PORT}"));
+
+    #[cfg(not(windows))]
+    let source_root_password =
+        database_root_password_for_provisioning(config, root_credential_is_provisioned);
+
+    #[cfg(not(windows))]
+    if root_credential_is_provisioned && !config.database_root_password_legacy_blank {
+        command
+            .args(["--protocol=tcp", "--host=127.0.0.1"])
+            .arg(format!("--port={DATABASE_PORT}"));
     } else {
-        &config.database_root_password
-    };
-    run_checked(
-        Command::new(mariadb_bin(config, "mariadb.exe"))
-            .args(["--no-defaults", "--protocol=tcp", "--host=127.0.0.1"])
-            .arg(format!("--port={DATABASE_PORT}"))
-            .arg("--user=root")
-            .arg(format!("--password={source_root_password}"))
-            .arg(format!("--execute={}", statements.join(" "))),
-        "provision ACCORE database principal",
-    )?;
+        command
+            .args(["--protocol=socket"])
+            .arg(format!("--socket={}", database_socket(config).display()));
+    }
+
+    command
+        .arg(format!("--password={source_root_password}"))
+        .arg(format!("--execute={}", statements.join(" ")));
+    run_checked(&mut command, "provision ACCORE database principal")?;
     if !marker.exists() {
         File::create(marker)
             .map_err(|error| format!("write database principal marker: {error}"))?;
@@ -621,13 +809,17 @@ fn provision_database_principal(config: &RuntimeConfig) -> Result<(), String> {
 fn start_database(config: &RuntimeConfig) -> Result<Child, String> {
     let log = File::create(log_path(config, "mariadb.log"))
         .map_err(|error| format!("open MariaDB log: {error}"))?;
-    Command::new(mariadb_bin(config, "mariadbd.exe"))
+    let mut command = Command::new(mariadb_bin(config, mariadbd_name()));
+    command
         .arg("--no-defaults")
         .arg(format!(
             "--basedir={}",
-            config.runtime_root.join("mariadb-11.4.9-winx64").display()
+            config.runtime_root.join(mariadb_root_name()).display()
         ))
-        .arg(format!("--datadir={}", database_data(config).display()))
+        .arg(format!("--datadir={}", database_data(config).display()));
+    #[cfg(not(windows))]
+    command.arg(format!("--socket={}", database_socket(config).display()));
+    command
         .arg("--bind-address=127.0.0.1")
         .arg(format!("--port={DATABASE_PORT}"))
         .arg("--skip-name-resolve")
@@ -676,7 +868,10 @@ fn provision_application(config: &RuntimeConfig, status: &mut RuntimeStatus) -> 
     run_desktop_seed_revisions(config, &provisioning_log)
 }
 
-fn run_desktop_seed_revisions(config: &RuntimeConfig, provisioning_log: &Path) -> Result<(), String> {
+fn run_desktop_seed_revisions(
+    config: &RuntimeConfig,
+    provisioning_log: &Path,
+) -> Result<(), String> {
     let seed_state_path = config.data_root.join("desktop-seed-state.json");
     let mut seed = application_command(config, ["php-cli", "artisan", "accore:desktop:seed"]);
     seed.arg("--state-path").arg(seed_state_path);
@@ -692,7 +887,10 @@ fn runtime_caddyfile_path(config: &RuntimeConfig) -> PathBuf {
 }
 
 fn caddy_path_literal(path: &Path) -> String {
-    path.display().to_string().replace('\\', "/").replace('"', "\\\"")
+    path.display()
+        .to_string()
+        .replace('\\', "/")
+        .replace('"', "\\\"")
 }
 
 fn prepare_api_configuration(config: &RuntimeConfig) -> Result<PathBuf, String> {
@@ -724,7 +922,11 @@ fn validate_api_configuration(config: &RuntimeConfig, path: &Path) -> Result<(),
     Err(format!(
         "FrankenPHP configuration validation exited with {}{}",
         output.status,
-        if diagnostic.is_empty() { String::new() } else { format!(": {diagnostic}") }
+        if diagnostic.is_empty() {
+            String::new()
+        } else {
+            format!(": {diagnostic}")
+        }
     ))
 }
 
@@ -941,16 +1143,29 @@ fn print_status(config: &RuntimeConfig) -> Result<(), String> {
 }
 
 fn write_status(config: &RuntimeConfig, status: &RuntimeStatus) -> Result<(), String> {
-    write_public_json_atomically(&status_path(config), status, "runtime status")
+    let mut public_status = status.clone();
+    apply_public_instance_identity(config, &mut public_status);
+    write_public_json_atomically(&status_path(config), &public_status, "runtime status")
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, test))]
+fn refresh_public_status_identity(config: &RuntimeConfig) -> Result<(), String> {
+    let path = status_path(config);
+    let bytes = match fs::read(&path) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(format!("read runtime status for owner refresh: {error}")),
+    };
+    let status: RuntimeStatus = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("parse runtime status for owner refresh: {error}"))?;
+    write_status(config, &status)
+}
+
 fn request_stop(config: &RuntimeConfig) -> Result<(), String> {
     fs::write(config.data_root.join("control.stop"), "requested\n")
         .map_err(|error| format!("request runtime stop: {error}"))
 }
 
-#[cfg(windows)]
 fn request_stop_for_config(path: &Path) -> Result<(), String> {
     request_stop(&load_config(path)?)
 }
@@ -977,7 +1192,9 @@ fn recover_baseline_seed_for_config(path: &Path) -> Result<(), String> {
         "SELECT COUNT(*) FROM users WHERE username = 'admin' AND is_active = 1;",
     )?;
     if active_admin_count != 1 {
-        return Err("guarded baseline seed completed without creating one active administrator".into());
+        return Err(
+            "guarded baseline seed completed without creating one active administrator".into(),
+        );
     }
 
     println!("baseline seed recovery completed: active administrator account is ready");
@@ -985,7 +1202,7 @@ fn recover_baseline_seed_for_config(path: &Path) -> Result<(), String> {
 }
 
 fn database_scalar_count(config: &RuntimeConfig, query: &str) -> Result<u64, String> {
-    let output = Command::new(mariadb_bin(config, "mariadb.exe"))
+    let output = Command::new(mariadb_bin(config, mariadb_name()))
         .args(["--no-defaults", "--protocol=tcp", "--host=127.0.0.1"])
         .arg(format!("--port={DATABASE_PORT}"))
         .arg("--user=accore_app")
@@ -1052,15 +1269,144 @@ fn app_root(config: &RuntimeConfig) -> PathBuf {
 fn database_data(config: &RuntimeConfig) -> PathBuf {
     config.data_root.join("accoredb").join("data")
 }
+#[cfg(not(windows))]
+fn database_socket(config: &RuntimeConfig) -> PathBuf {
+    config.data_root.join("accoredb").join("mariadb.sock")
+}
 fn mariadb_bin(config: &RuntimeConfig, name: &str) -> PathBuf {
     config
         .runtime_root
-        .join("mariadb-11.4.9-winx64")
+        .join(mariadb_root_name())
         .join("bin")
         .join(name)
 }
 fn frankenphp(config: &RuntimeConfig) -> PathBuf {
-    config.runtime_root.join("frankenphp.exe")
+    config.runtime_root.join(frankenphp_name())
+}
+fn frankenphp_name() -> &'static str {
+    #[cfg(windows)]
+    {
+        "frankenphp.exe"
+    }
+    #[cfg(not(windows))]
+    {
+        "frankenphp"
+    }
+}
+fn mariadb_root_name() -> &'static str {
+    #[cfg(windows)]
+    {
+        "mariadb-11.4.9-winx64"
+    }
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    {
+        "mariadb-11.4.9-linux-systemd-x86_64"
+    }
+    #[cfg(target_os = "macos")]
+    {
+        "mariadb"
+    }
+    #[cfg(not(any(
+        windows,
+        all(target_os = "linux", target_arch = "x86_64"),
+        target_os = "macos"
+    )))]
+    {
+        compile_error!("unsupported ACCORE Server MariaDB target")
+    }
+}
+fn mariadbd_name() -> &'static str {
+    #[cfg(windows)]
+    {
+        "mariadbd.exe"
+    }
+    #[cfg(not(windows))]
+    {
+        "mariadbd"
+    }
+}
+fn mariadb_name() -> &'static str {
+    #[cfg(windows)]
+    {
+        "mariadb.exe"
+    }
+    #[cfg(not(windows))]
+    {
+        "mariadb"
+    }
+}
+fn mariadb_dump_name() -> &'static str {
+    #[cfg(windows)]
+    {
+        "mariadb-dump.exe"
+    }
+    #[cfg(not(windows))]
+    {
+        "mariadb-dump"
+    }
+}
+fn mariadb_install_db(config: &RuntimeConfig) -> PathBuf {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        return config
+            .runtime_root
+            .join(mariadb_root_name())
+            .join("scripts")
+            .join("mariadb-install-db");
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    mariadb_bin(
+        config,
+        if cfg!(windows) {
+            "mariadb-install-db.exe"
+        } else {
+            "mariadb-install-db"
+        },
+    )
+}
+
+fn mariadb_install_db_command(config: &RuntimeConfig, data_directory: &Path) -> Command {
+    let mut command = Command::new(mariadb_install_db(config));
+
+    #[cfg(windows)]
+    {
+        command
+            .arg(format!("--datadir={}", data_directory.display()))
+            .arg(format!("--password={}", config.database_root_password))
+            .arg(format!("--port={DATABASE_PORT}"));
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        // mariadb-install-db is a Unix shell script. Its `--no-defaults`
+        // option must be first; an explicit basedir makes a staged runtime
+        // independent from the build machine and its global MariaDB files.
+        // It bootstraps with grant tables disabled; root is configured only
+        // after the Agent opens its first controlled local connection.
+        command
+            .arg("--no-defaults")
+            .arg(format!(
+                "--basedir={}",
+                config.runtime_root.join(mariadb_root_name()).display()
+            ))
+            .arg(format!("--datadir={}", data_directory.display()))
+            .arg("--auth-root-authentication-method=normal")
+            .arg("--skip-test-db");
+    }
+
+    command
+}
+
+fn database_root_password_for_provisioning<'a>(
+    config: &'a RuntimeConfig,
+    root_credential_is_provisioned: bool,
+) -> &'a str {
+    if !root_credential_is_provisioned || config.database_root_password_legacy_blank {
+        ""
+    } else {
+        &config.database_root_password
+    }
 }
 fn status_path(config: &RuntimeConfig) -> PathBuf {
     public_status_root(config).join("runtime-status.json")
@@ -1101,7 +1447,11 @@ fn load_server_instance(config_path: &Path) -> Result<Option<ServerInstanceManif
     .map_err(|error| format!("parse server instance manifest: {error}"))
 }
 
-fn write_json_atomically<T: Serialize>(path: &Path, value: &T, description: &str) -> Result<(), String> {
+fn write_json_atomically<T: Serialize>(
+    path: &Path,
+    value: &T,
+    description: &str,
+) -> Result<(), String> {
     let temporary = path.with_extension("json.partial");
     let payload = serde_json::to_vec_pretty(value)
         .map_err(|error| format!("serialize {description}: {error}"))?;
@@ -1117,18 +1467,20 @@ fn write_public_json_atomically<T: Serialize>(
     write_json_atomically(path, value, description)?;
     #[cfg(windows)]
     apply_windows_public_file_acl(path)?;
+    #[cfg(not(windows))]
+    unix_service_host::make_public_status_file(path)?;
     Ok(())
 }
 
-#[cfg(windows)]
 fn write_server_instance(
     config: &RuntimeConfig,
     owner: ServerProductFlavor,
     config_path: &Path,
     existing: Option<ServerInstanceManifest>,
 ) -> Result<ServerInstanceManifest, String> {
-    let executable = env::current_exe()
-        .map_err(|error| format!("resolve Server Agent executable for instance manifest: {error}"))?;
+    let executable = env::current_exe().map_err(|error| {
+        format!("resolve Server Agent executable for instance manifest: {error}")
+    })?;
     let manifest = ServerInstanceManifest {
         schema_version: SERVER_INSTANCE_SCHEMA_VERSION,
         instance_id: existing
@@ -1184,7 +1536,6 @@ fn apply_public_instance_identity(config: &RuntimeConfig, status: &mut RuntimeSt
     }
 }
 
-#[cfg(windows)]
 fn new_operation_id() -> String {
     format!("operation-{}", random_secret(""))
 }
@@ -1202,33 +1553,50 @@ fn carry_durable_configuration(target: &mut RuntimeConfig, existing: RuntimeConf
     }
 }
 
-#[cfg(windows)]
 fn default_config_path() -> Result<PathBuf, String> {
-    let program_data = env::var_os("PROGRAMDATA")
-        .map(PathBuf::from)
-        .ok_or("PROGRAMDATA is not available")?;
-    Ok(program_data
-        .join("ACCORE ERP")
-        .join("Server")
-        .join("agent-config.json"))
+    #[cfg(windows)]
+    {
+        let program_data = env::var_os("PROGRAMDATA")
+            .map(PathBuf::from)
+            .ok_or("PROGRAMDATA is not available")?;
+        return Ok(program_data
+            .join("ACCORE ERP")
+            .join("Server")
+            .join("agent-config.json"));
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        return Ok(PathBuf::from(
+            "/var/lib/accore-erp/server/agent-config.json",
+        ));
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        return Ok(PathBuf::from(
+            "/Library/Application Support/ACCORE ERP/Server/agent-config.json",
+        ));
+    }
+
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
+    Err("this platform is not supported by the embedded ACCORE Server runtime".into())
 }
 
-#[cfg(windows)]
-fn embedded_runtime_config() -> Result<RuntimeConfig, String> {
+fn embedded_runtime_config(explicit_runtime_root: Option<&Path>) -> Result<RuntimeConfig, String> {
     let executable =
         env::current_exe().map_err(|error| format!("resolve Agent executable: {error}"))?;
     let installation_root = executable
         .parent()
         .ok_or("resolve Server Desktop installation root from Agent executable")?;
-    let runtime_root = packaged_runtime_root(installation_root);
-    if !runtime_root.join("frankenphp.exe").is_file()
-        || !runtime_root
-            .join("mariadb-11.4.9-winx64/bin/mariadbd.exe")
-            .is_file()
-    {
-        return Err(
-            "verified Server Desktop runtime resources are missing beside the Agent".into(),
-        );
+    let runtime_root = explicit_runtime_root
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| packaged_runtime_root(installation_root));
+    if !required_runtime_files_exist(&runtime_root) {
+        return Err(format!(
+            "verified Server Desktop runtime resources are missing at {}",
+            runtime_root.display()
+        ));
     }
     let config_path = default_config_path()?;
     let data_root = config_path
@@ -1247,10 +1615,17 @@ fn embedded_runtime_config() -> Result<RuntimeConfig, String> {
     })
 }
 
-#[cfg(windows)]
 fn harden_runtime_data_access(config: &RuntimeConfig) -> Result<(), String> {
-    apply_windows_acl(&config.data_root, false)?;
-    apply_windows_acl(&public_status_root(config), true)
+    #[cfg(windows)]
+    {
+        apply_windows_acl(&config.data_root, false)?;
+        return apply_windows_acl(&public_status_root(config), true);
+    }
+
+    #[cfg(not(windows))]
+    {
+        unix_service_host::harden_runtime_data(&config.data_root, &public_status_root(config))
+    }
 }
 
 #[cfg(windows)]
@@ -1291,7 +1666,15 @@ fn harden_windows_acl_entry_tree(
         ));
     }
     let is_directory = metadata.is_dir();
-    apply_windows_acl_entry(path, permit_users_read, is_directory)?;
+    match apply_windows_acl_entry(path, permit_users_read, is_directory) {
+        Ok(()) => {}
+        // The restore-validation worker may remove a descendant after this
+        // traversal observed it but before icacls opens it. Re-check the path
+        // rather than trusting icacls text or exit codes; roots and surviving
+        // entries still fail closed on every ACL error.
+        Err(_) if may_disappear && path_is_missing(path) => return Ok(()),
+        Err(error) => return Err(error),
+    }
     if is_directory {
         let entries = match fs::read_dir(path) {
             Ok(entries) => entries,
@@ -1318,6 +1701,14 @@ fn harden_windows_acl_entry_tree(
         }
     }
     Ok(())
+}
+
+#[cfg(windows)]
+fn path_is_missing(path: &Path) -> bool {
+    matches!(
+        fs::symlink_metadata(path),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound
+    )
 }
 
 #[cfg(windows)]
@@ -1353,7 +1744,10 @@ fn apply_windows_acl_entry(
         command.args(["/grant:r", public_read_principal]);
     }
     command.arg("/q");
-    run_checked(&mut command, "harden Server Desktop runtime data permissions")
+    run_checked(
+        &mut command,
+        "harden Server Desktop runtime data permissions",
+    )
 }
 
 #[cfg(windows)]
@@ -1361,7 +1755,6 @@ fn apply_windows_public_file_acl(path: &Path) -> Result<(), String> {
     apply_windows_acl_entry(path, true, false)
 }
 
-#[cfg(windows)]
 fn random_secret(prefix: &str) -> String {
     let mut bytes = [0u8; 32];
     OsRng.fill_bytes(&mut bytes);
@@ -1378,10 +1771,68 @@ fn public_status_root(config: &RuntimeConfig) -> PathBuf {
 }
 
 fn packaged_runtime_root(installation_root: &Path) -> PathBuf {
-    installation_root.join("resources/server-runtime/windows-x86_64")
+    let target = runtime_target();
+    let candidates = [
+        installation_root
+            .join("resources/server-runtime")
+            .join(target),
+        installation_root.join("server-runtime").join(target),
+        installation_root
+            .parent()
+            .map(|contents_root| {
+                contents_root
+                    .join("Resources/resources/server-runtime")
+                    .join(target)
+            })
+            .unwrap_or_default(),
+    ];
+    candidates
+        .into_iter()
+        .find(|candidate| required_runtime_files_exist(candidate))
+        .unwrap_or_else(|| {
+            installation_root
+                .join("resources/server-runtime")
+                .join(target)
+        })
 }
 
-#[cfg(windows)]
+fn runtime_target() -> &'static str {
+    #[cfg(windows)]
+    {
+        "windows-x86_64"
+    }
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    {
+        "linux-x86_64"
+    }
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    {
+        "macos-aarch64"
+    }
+    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+    {
+        "macos-x86_64"
+    }
+    #[cfg(not(any(
+        windows,
+        all(target_os = "linux", target_arch = "x86_64"),
+        all(target_os = "macos", target_arch = "aarch64"),
+        all(target_os = "macos", target_arch = "x86_64")
+    )))]
+    {
+        compile_error!("unsupported ACCORE Server runtime target")
+    }
+}
+
+fn required_runtime_files_exist(runtime_root: &Path) -> bool {
+    runtime_root.join(frankenphp_name()).is_file()
+        && runtime_root
+            .join(mariadb_root_name())
+            .join("bin")
+            .join(mariadbd_name())
+            .is_file()
+}
+
 fn write_config(path: &Path, config: &RuntimeConfig) -> Result<(), String> {
     let temporary = path.with_extension("json.partial");
     let payload = serde_json::to_vec_pretty(config)
@@ -1426,9 +1877,8 @@ mod tests {
     #[test]
     fn generated_caddyfile_quotes_a_program_files_public_root() {
         let rendered = api_configuration_content(&config());
-        assert!(rendered.contains(
-            "root * \"C:/Program Files/ACCORE ERP Server Desktop/runtime/app/public\""
-        ));
+        assert!(rendered
+            .contains("root * \"C:/Program Files/ACCORE ERP Server Desktop/runtime/app/public\""));
     }
 
     #[test]
@@ -1446,6 +1896,28 @@ mod tests {
             "*S-1-5-32-544:(OI)(CI)F"
         );
         assert_eq!(ADMINISTRATORS_FILE_FULL_PRINCIPAL, "*S-1-5-32-544:F");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn vanished_transient_acl_entry_is_distinguished_from_a_present_path() {
+        let root = std::env::temp_dir().join(format!(
+            "accore-agent-acl-race-{}-{}",
+            std::process::id(),
+            now()
+        ));
+        let vanished = root.join("vanished");
+        assert!(path_is_missing(&vanished));
+        fs::create_dir_all(&root).expect("create ACL race test directory");
+        fs::write(&vanished, "present").expect("create ACL race test file");
+        assert!(!path_is_missing(&vanished));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn existing_lifecycle_config_is_not_recursively_hardened_during_reconciliation() {
+        assert!(needs_initial_runtime_hardening(false));
+        assert!(!needs_initial_runtime_hardening(true));
     }
 
     #[test]
@@ -1469,22 +1941,118 @@ mod tests {
     }
 
     #[test]
-    fn packaged_runtime_root_matches_the_msi_resource_layout() {
-        let installation_root = PathBuf::from("C:/Program Files/ACCORE ERP Server Desktop");
+    fn mariadb_install_bootstrap_is_relocatable_and_does_not_forward_a_password_option() {
+        let config = config();
+        let data_directory = PathBuf::from("/private/accore/data");
+        let command = mariadb_install_db_command(&config, &data_directory);
+        let arguments = command
+            .get_args()
+            .map(|argument| argument.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        {
+            assert_eq!(arguments.first().map(String::as_str), Some("--no-defaults"));
+            assert!(arguments
+                .iter()
+                .any(|argument| argument == "--skip-test-db"));
+            assert!(arguments
+                .iter()
+                .any(|argument| argument.starts_with("--basedir=")));
+            assert!(!arguments
+                .iter()
+                .any(|argument| argument.starts_with("--password=")));
+            assert!(!arguments
+                .iter()
+                .any(|argument| argument.starts_with("--extra-file=")));
+        }
+    }
+
+    #[test]
+    fn first_database_provisioning_uses_the_blank_bootstrap_root_credential() {
+        let config = config();
+        assert_eq!(database_root_password_for_provisioning(&config, false), "");
+        assert_eq!(
+            database_root_password_for_provisioning(&config, true),
+            "root-password"
+        );
+    }
+
+    #[test]
+    fn packaged_runtime_root_matches_the_current_platform_resource_layout() {
+        let installation_root = PathBuf::from("/opt/accore-erp/server");
         assert_eq!(
             packaged_runtime_root(&installation_root),
-            installation_root.join("resources/server-runtime/windows-x86_64")
+            installation_root
+                .join("resources/server-runtime")
+                .join(runtime_target())
         );
     }
 
     #[test]
     fn guarded_seed_recovery_accepts_a_numeric_user_count() {
         assert_eq!(parse_database_count("0\n").expect("zero users parses"), 0);
-        assert_eq!(parse_database_count("12\n").expect("existing users parse"), 12);
+        assert_eq!(
+            parse_database_count("12\n").expect("existing users parse"),
+            12
+        );
     }
 
     #[test]
     fn guarded_seed_recovery_rejects_a_non_numeric_user_count() {
         assert!(parse_database_count("not-a-count\n").is_err());
+    }
+
+    #[test]
+    fn active_receipt_refreshes_and_controls_public_runtime_owner() {
+        let temporary_root =
+            env::temp_dir().join(format!("accore-owner-status-{}", random_secret("")));
+        let mut config = config();
+        config.data_root = temporary_root.join("Server");
+        config.runtime_root = temporary_root.join("runtime");
+        fs::create_dir_all(public_status_root(&config))
+            .expect("create isolated public status root");
+
+        let mut stale_status = RuntimeStatus::bootstrapping(&config, "stale owner status");
+        stale_status.owner_product = "server-desktop".into();
+        stale_status.server_instance_id = "stale-instance".into();
+        write_public_json_atomically(
+            &status_path(&config),
+            &stale_status,
+            "isolated stale runtime status",
+        )
+        .expect("write isolated stale runtime status");
+
+        let manifest = ServerInstanceManifest {
+            schema_version: SERVER_INSTANCE_SCHEMA_VERSION,
+            instance_id: "durable-instance".into(),
+            server_id: config.server_id.clone(),
+            owner_product: ServerProductFlavor::ServerHeadless,
+            active_runtime_root: config.runtime_root.clone(),
+            service_executable: temporary_root.join("agent"),
+            service_config_path: temporary_root.join("agent-config.json"),
+            updated_at: now(),
+        };
+        write_public_instance_receipt(&config, &manifest, "transition-test".into())
+            .expect("publish active receipt");
+        refresh_public_status_identity(&config).expect("refresh status from active receipt");
+
+        let refreshed: RuntimeStatus = serde_json::from_slice(
+            &fs::read(status_path(&config)).expect("read refreshed runtime status"),
+        )
+        .expect("parse refreshed runtime status");
+        assert_eq!(refreshed.owner_product, "server-headless");
+        assert_eq!(refreshed.server_instance_id, "durable-instance");
+
+        stale_status.owner_product = "server-desktop".into();
+        write_status(&config, &stale_status).expect("write runtime status under active receipt");
+        let rewritten: RuntimeStatus = serde_json::from_slice(
+            &fs::read(status_path(&config)).expect("read rewritten runtime status"),
+        )
+        .expect("parse rewritten runtime status");
+        assert_eq!(rewritten.owner_product, "server-headless");
+        assert_eq!(rewritten.server_instance_id, "durable-instance");
+
+        fs::remove_dir_all(temporary_root).expect("remove isolated status fixture");
     }
 }
