@@ -29,6 +29,42 @@ export type Onboarding = {
   };
 };
 
+export type OrganizationSize = "micro" | "small" | "medium" | "enterprise";
+
+export type OrganizationProfile = {
+  template_key: string;
+  industry: string;
+  organization_size: OrganizationSize;
+  company_name: string;
+  company_code: string;
+  country_code: string;
+  currency_id: number;
+  primary_site_name?: string;
+  primary_site_code?: string;
+  factory_calendar_id?: number | null;
+  language?: "ar-SA" | "en-US";
+  inventory_enabled: boolean;
+  applied_at?: string | null;
+  created_nodes?: Record<string, string>;
+};
+
+export type OrganizationTemplate = {
+  key: string;
+  industry: string;
+  requires_inventory: boolean;
+  label_ar: string;
+  label_en: string;
+  description_ar: string;
+  generated_types: string[];
+};
+
+export type OrganizationTemplateState = {
+  profile: OrganizationProfile | null;
+  templates: OrganizationTemplate[];
+  is_applied: boolean;
+  can_apply: boolean;
+};
+
 export type Readiness = {
   ready: boolean;
   context?: {
@@ -79,6 +115,7 @@ export type SetupState = {
   active_module_keys: string[];
   pending_module_keys: string[];
   modules: SetupModule[];
+  organization_template?: OrganizationTemplateState;
 };
 
 export type SelectOption = {

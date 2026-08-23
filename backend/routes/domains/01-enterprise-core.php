@@ -96,6 +96,9 @@ use App\Http\Controllers\Api\V2\EnterpriseCore\Automation\SystemTemplateControll
         // ── 04. Setup lifecycle (OrganizationGovernance)
         Route::group(['prefix' => 'setup', 'middleware' => 'can:settings,view'], function () {
             Route::get('/state', [SetupStateController::class, 'show'])->name('v2.setup.state');
+            Route::get('/organization-templates', [SetupStateController::class, 'organizationTemplates'])->name('v2.setup.organization_templates');
+            Route::middleware(['can:settings,edit', 'throttle:api-write'])->post('/organization-profile', [SetupStateController::class, 'saveOrganizationProfile'])->name('v2.setup.organization_profile.save');
+            Route::middleware(['can:settings,create', 'throttle:api-critical'])->post('/apply-organization-template', [SetupStateController::class, 'applyOrganizationTemplate'])->name('v2.setup.organization_template.apply');
             Route::middleware(['can:settings,edit', 'throttle:api-write'])->post('/modules', [SetupStateController::class, 'selectModules'])->name('v2.setup.modules.select');
             Route::middleware(['can:settings,edit', 'throttle:api-critical'])->post('/activate-selected', [SetupStateController::class, 'activateSelected'])->name('v2.setup.modules.activate_selected');
         });

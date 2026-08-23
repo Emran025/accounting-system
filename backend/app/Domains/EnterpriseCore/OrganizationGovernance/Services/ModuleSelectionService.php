@@ -33,8 +33,10 @@ final class ModuleSelectionService
      */
     public const CORE_STARTER_MODULES = ['sales', 'products', 'purchases', 'general_ledger'];
 
-    public function __construct(private readonly ModuleReadinessService $readiness)
-    {
+    public function __construct(
+        private readonly ModuleReadinessService $readiness,
+        private readonly OrganizationTemplateService $templates,
+    ) {
     }
 
     /** @return list<string> */
@@ -204,6 +206,7 @@ final class ModuleSelectionService
             'active_module_keys' => $activeBusiness->pluck('module_key')->all(),
             'pending_module_keys' => $pendingBusiness->pluck('module_key')->all(),
             'modules' => $modules->all(),
+            'organization_template' => $this->templates->state(),
         ];
     }
 

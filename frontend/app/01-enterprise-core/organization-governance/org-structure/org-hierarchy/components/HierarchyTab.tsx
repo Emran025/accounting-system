@@ -58,7 +58,6 @@ export function getDomainColor(domain: string): string {
 export function HierarchyTab() {
     const { t: i18n } = useI18n();
     const [nodes, setNodes] = useState<StructureNode[]>([]);
-    const [links, setLinks] = useState<StructureLink[]>([]);
     const [metaTypes, setMetaTypes] = useState<MetaType[]>([]);
     const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
     const [selectedNode, setSelectedNode] = useState<StructureNode | null>(null);
@@ -80,26 +79,12 @@ export function HierarchyTab() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [i18n.catalog]);
 
     useEffect(() => {
         loadData();
     }, [loadData]);
 
-    useEffect(() => {
-        if (!selectedNode) return;
-        const loadLinks = async () => {
-            try {
-                const res = await fetchAPI(API_ENDPOINTS.ENTERPRISE_CORE.ORG.NODE(selectedNode.node_uuid));
-                const n = res.node as StructureNode & {
-                    outgoing_links?: StructureLink[];
-                    incoming_links?: StructureLink[];
-                };
-                setLinks([...(n.outgoing_links || []), ...(n.incoming_links || [])]);
-            } catch { /* ignore */ }
-        };
-        loadLinks();
-    }, [selectedNode]);
 
     const buildTree = useCallback((): TreeNode[] => {
         if (!nodes.length) return [];
@@ -143,7 +128,11 @@ export function HierarchyTab() {
     const toggleExpand = (uuid: string) => {
         setExpandedNodes((prev) => {
             const next = new Set(prev);
-            next.has(uuid) ? next.delete(uuid) : next.add(uuid);
+            if (next.has(uuid)) {
+                next.delete(uuid);
+            } else {
+                next.add(uuid);
+            }
             return next;
         });
     };
