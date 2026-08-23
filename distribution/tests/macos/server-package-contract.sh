@@ -151,12 +151,15 @@ install_and_assert() {
 
 install_and_assert
 sudo touch "$sentinel"
-[[ -f "$sentinel" ]] || { echo 'could not create upgrade persistence sentinel' >&2; exit 1; }
+sudo test -f "$sentinel" || { echo 'could not create upgrade persistence sentinel' >&2; exit 1; }
 
 # Same-version reinstall exercises preinstall/postinstall behavior on the runner
 # and proves that replacing the package does not delete protected server data.
 install_and_assert
-[[ -f "$sentinel" ]] || { echo 'package reinstall erased protected server data' >&2; exit 1; }
-[[ -f "$config" && -f "$manifest" ]] || { echo 'package reinstall lost the server configuration or manifest' >&2; exit 1; }
+sudo test -f "$sentinel" || { echo 'package reinstall erased protected server data' >&2; exit 1; }
+sudo test -f "$config" && sudo test -f "$manifest" || {
+  echo 'package reinstall lost the server configuration or manifest' >&2
+  exit 1
+}
 
 echo "Verified ${product} macOS install, runtime, ownership, and reinstall contract."
