@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, posix, win32 } from 'node:path';
 import test from 'node:test';
 import {
   assertMariaDbProductionPayload,
@@ -31,11 +31,19 @@ test('production CMake policy disables nonruntime features and keeps testdir rel
 });
 
 test('macOS MariaDB policy requires an explicit OpenSSL root and preserves static TLS flags', () => {
+  const openSslRoot = '/opt/homebrew/opt/openssl@3';
   assert.throws(() => macosMariaDbCmakeFlags(''), /ACCORE_MACOS_OPENSSL_ROOT/);
-  const flags = macosMariaDbCmakeFlags('/opt/homebrew/opt/openssl@3');
-  assert.ok(flags.includes('-DOPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3'));
-  assert.ok(flags.includes('-DCONC_WITH_SSL=OPENSSL'));
-  assert.ok(flags.includes('-DOPENSSL_USE_STATIC_LIBS=TRUE'));
+
+  const posixFlags = macosMariaDbCmakeFlags(openSslRoot, posix.resolve);
+  assert.ok(posixFlags.includes(`-DOPENSSL_ROOT_DIR=${posix.resolve(openSslRoot)}`));
+
+  // The production helper uses the host resolver on macOS. Explicitly testing
+  // win32 here prevents a Windows runner from silently assuming POSIX output.
+  const windowsFlags = macosMariaDbCmakeFlags(openSslRoot, win32.resolve);
+  assert.ok(windowsFlags.includes(`-DOPENSSL_ROOT_DIR=${win32.resolve(openSslRoot)}`));
+
+  assert.ok(posixFlags.includes('-DCONC_WITH_SSL=OPENSSL'));
+  assert.ok(posixFlags.includes('-DOPENSSL_USE_STATIC_LIBS=TRUE'));
 });
 
 test('pruning removes test suites, disabled engines, PAM, WSREP, and backup payload', async () => {

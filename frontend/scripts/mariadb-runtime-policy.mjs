@@ -33,14 +33,14 @@ export const productionMariaDbCmakeFlags = Object.freeze([
   '-DINSTALL_MYSQLTESTDIR=mariadb-test',
 ]);
 
-export function macosMariaDbCmakeFlags(openSslRoot) {
+export function macosMariaDbCmakeFlags(openSslRoot, resolvePath = resolve) {
   const configuredRoot = openSslRoot?.trim();
   if (!configuredRoot) {
     throw new Error(
       'ACCORE_MACOS_OPENSSL_ROOT must point to a static openssl@3 installation for macOS MariaDB builds'
     );
   }
-  return [...productionMariaDbCmakeFlags, `-DOPENSSL_ROOT_DIR=${resolve(configuredRoot)}`];
+  return [...productionMariaDbCmakeFlags, `-DOPENSSL_ROOT_DIR=${resolvePath(configuredRoot)}`];
 }
 
 const nonRuntimeDirectories = [

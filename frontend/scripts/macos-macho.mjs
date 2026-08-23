@@ -73,7 +73,8 @@ async function verifyMachOFile(candidate, payloadRoot, executablePaths, descript
     );
   }
 
-  for (const installName of await dynamicInstallNames(candidate)) {
+  const installNameId = await dynamicLibraryId(candidate);
+  for (const installName of await dynamicInstallNames(candidate, installNameId)) {
     await assertInstallNameResolves(
       installName,
       candidate,
@@ -84,7 +85,6 @@ async function verifyMachOFile(candidate, payloadRoot, executablePaths, descript
     );
   }
 
-  const installNameId = await dynamicLibraryId(candidate);
   if (installNameId) assertDynamicLibraryIdIsPortable(installNameId, candidate, description);
 
   if (rpaths.some((rpath) => isExternalBuildPath(rpath))) {
@@ -279,12 +279,25 @@ async function collect(root, directory, skipDirectory, candidates) {
   }
 }
 
-async function dynamicInstallNames(candidate) {
-  return (await runCapture('otool', ['-L', candidate]))
+async function dynamicInstallNames(candidate, installNameId) {
+  return dynamicDependencyInstallNames(await runCapture('otool', ['-L', candidate]), installNameId);
+}
+
+/**
+ * `otool -L` prints LC_ID_DYLIB as the first install name for a dynamic
+ * library. It is its advertised identity, not an LC_LOAD_DYLIB dependency;
+ * `assertDynamicLibraryIdIsPortable` validates it separately. Filtering only
+ * the exact ID preserves validation of every real dependency, including any
+ * other @rpath reference.
+ */
+export function dynamicDependencyInstallNames(otoolOutput, installNameId) {
+  return otoolOutput
     .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
     .slice(1)
-    .map((line) => line.trim().split(' (')[0])
-    .filter(Boolean);
+    .map((line) => line.split(' (')[0])
+    .filter((installName) => installName !== installNameId);
 }
 
 async function dynamicLibraryId(candidate) {

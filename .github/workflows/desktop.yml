@@ -116,6 +116,7 @@ jobs:
           node --test scripts/verified-download.test.mjs
           scripts/mariadb-runtime-policy.test.mjs
           scripts/frankenphp-runtime-policy.test.mjs
+          scripts/macos-macho.test.mjs
 
       - name: Set up PHP build tooling for Server Desktop
         if: matrix.flavor == 'server'
@@ -321,6 +322,7 @@ jobs:
           node --test scripts/verified-download.test.mjs
           scripts/mariadb-runtime-policy.test.mjs
           scripts/frankenphp-runtime-policy.test.mjs
+          scripts/macos-macho.test.mjs
 
       - name: Set up PHP build tooling for Server Headless
         uses: shivammathur/setup-php@v2
@@ -453,6 +455,7 @@ jobs:
           node --test scripts/verified-download.test.mjs
           scripts/mariadb-runtime-policy.test.mjs
           scripts/frankenphp-runtime-policy.test.mjs
+          scripts/macos-macho.test.mjs
 
       - name: Set up PHP build tooling
         uses: shivammathur/setup-php@v2
