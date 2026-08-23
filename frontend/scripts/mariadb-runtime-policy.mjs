@@ -1,5 +1,5 @@
-import { rm, stat } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { lstat, readdir, realpath, rm, stat } from 'node:fs/promises';
+import { basename, join, relative } from 'node:path';
 
 export const productionMariaDbCmakeFlags = Object.freeze([
   '-DPLUGIN_ROCKSDB=NO',
@@ -29,6 +29,16 @@ const nonRuntimeDirectories = ['mariadb-test', 'sql-bench'];
 const nonRuntimeFiles = [
   'bin/mariadb-client-test',
   'bin/mariadb-test',
+  'bin/mariadb-test-run.pl',
+  // MariaDB keeps compatibility aliases for these test executables. Removing
+  // their targets alone leaves dangling symlinks that must never ship.
+  'bin/mysql_client_test',
+  'bin/mysql_client_test_embedded',
+  'bin/mysqltest',
+  'bin/mysqltest_embedded',
+  'bin/mysql-stress-test',
+  'bin/mysql-stress-test.pl',
+  'bin/mysql-test-run.pl',
   'include/mysql/server/private/sql_test.h',
   'man/man1/mariadb-client-test-embedded.1',
   'man/man1/mariadb-client-test.1',
@@ -95,9 +105,47 @@ export async function assertMariaDbProductionPayload(mariadbRoot) {
       await assertAbsent(candidate, basename(candidate));
     }
   }
+  await assertPayloadSymlinksAreContained(mariadbRoot);
 }
 
 async function assertAbsent(path, label) {
   const details = await stat(path).catch(() => null);
   if (details) throw new Error(`production MariaDB payload still contains ${label}`);
+}
+
+async function assertPayloadSymlinksAreContained(mariadbRoot) {
+  const root = await realpath(mariadbRoot).catch(() => null);
+  if (!root) return;
+  await visitDirectory(root, root);
+}
+
+async function visitDirectory(root, directory) {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      await visitDirectory(root, path);
+      continue;
+    }
+    if (!entry.isSymbolicLink()) continue;
+
+    const target = await realpath(path).catch(() => null);
+    if (!target) {
+      throw new Error(`production MariaDB payload contains dangling symbolic link: ${path}`);
+    }
+    if (!isWithin(root, target)) {
+      throw new Error(
+        `production MariaDB payload contains symbolic link outside its root: ${path}`
+      );
+    }
+    // Confirm the resolved object still exists and is inspectable. This makes
+    // symlink safety an explicit packaging contract rather than a side effect
+    // of the later macOS Mach-O traversal.
+    await lstat(path);
+    await stat(target);
+  }
+}
+
+function isWithin(root, candidate) {
+  const difference = relative(root, candidate);
+  return difference === '' || (!difference.startsWith('..') && !difference.startsWith('/'));
 }

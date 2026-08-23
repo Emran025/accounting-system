@@ -7,6 +7,7 @@ import {
   pruneMariaDbNonRuntimePayload,
 } from './mariadb-runtime-policy.mjs';
 import { downloadVerifiedArchive } from './verified-download.mjs';
+import { assertFrankenPhpRuntimeVersion } from './frankenphp-runtime-policy.mjs';
 
 const [target = hostTarget(), destinationArgument] = process.argv.slice(2);
 const definition = getTargets()[target];
@@ -219,11 +220,7 @@ async function verifyRuntime() {
 async function verifyFrankenPhpRuntime() {
   const frankenPhp = join(destinationRoot, definition.layout.frankenPhp);
   const version = await runCapture(frankenPhp, ['--version']);
-  if (!version.includes(definition.frankenPhp.version)) {
-    throw new Error(
-      `unexpected FrankenPHP runtime identity for ${target}: expected ${definition.frankenPhp.version}, received ${version.trim()}`
-    );
-  }
+  assertFrankenPhpRuntimeVersion(version, definition.frankenPhp.version, target);
 }
 
 async function verifyMacosRuntimeLinkage() {
@@ -320,7 +317,7 @@ function getTargets() {
     'windows-x86_64': {
       frankenPhp: {
         id: 'frankenphp',
-        version: 'FrankenPHP v1.12.7',
+        version: '1.12.7',
         url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-windows-x86_64.zip',
         sha256: 'c382cf6169d5175c30d918ba7a09d6eb8601c6c339470e7fbb87f0b40d9bf254',
         archive: 'frankenphp-windows-x86_64.zip',
@@ -347,7 +344,7 @@ function getTargets() {
     'linux-x86_64': {
       frankenPhp: {
         id: 'frankenphp',
-        version: 'FrankenPHP v1.12.7',
+        version: '1.12.7',
         url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-linux-x86_64',
         sha256: '207f65229637ae698e816ef7cbac31dd2bb57322a95d280789cea93e32cdd4f9',
         archive: 'frankenphp-linux-x86_64',
@@ -375,7 +372,7 @@ function getTargets() {
     ),
     'macos-x86_64': macDefinition(
       'x86_64',
-      'dacae5e6cab284475c33afe5ab6f5b37e0b119215d2ce462ca149ea497d0448a'
+      '283dc2821190e46703b7f67c1ed8955ec9f315f7a089473cad306288f2354281'
     ),
   };
 }
@@ -384,7 +381,7 @@ function macDefinition(architecture, sha256) {
   return {
     frankenPhp: {
       id: 'frankenphp',
-      version: 'FrankenPHP v1.12.7',
+      version: '1.12.7',
       url: `https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-mac-${architecture}`,
       sha256,
       archive: `frankenphp-mac-${architecture}`,

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -16,7 +16,7 @@ test('production CMake policy disables both PAM variants and keeps testdir relat
   assert.ok(!productionMariaDbCmakeFlags.includes('-DINSTALL_MYSQLTESTDIR='));
 });
 
-test('pruning removes test suites, benchmarks, test files, and known test/example plugins', async () => {
+test('pruning removes test suites, test aliases, benchmarks, and known test/example plugins', async () => {
   const root = await mkdtemp(join(tmpdir(), 'accore-mariadb-policy-'));
   try {
     const pluginRoot = join(root, 'lib', 'plugin');
@@ -30,6 +30,8 @@ test('pruning removes test suites, benchmarks, test files, and known test/exampl
       writeFile(join(root, 'sql-bench', 'fixture'), 'benchmark'),
       writeFile(join(root, 'bin', 'mariadb-test'), 'test binary'),
       writeFile(join(root, 'bin', 'mariadb-client-test'), 'test binary'),
+      writeFile(join(root, 'bin', 'mysql_client_test'), 'test compatibility alias'),
+      writeFile(join(root, 'bin', 'mysqltest'), 'test compatibility alias'),
       writeFile(join(root, 'share', 'mariadb_test_db.sql'), 'test SQL'),
       writeFile(join(pluginRoot, 'qa_auth_client.so'), 'test plugin'),
       writeFile(join(pluginRoot, 'daemon_example.ini'), 'example plugin configuration'),
@@ -46,6 +48,8 @@ test('pruning removes test suites, benchmarks, test files, and known test/exampl
         'sql-bench',
         'bin/mariadb-test',
         'bin/mariadb-client-test',
+        'bin/mysql_client_test',
+        'bin/mysqltest',
         'share/mariadb_test_db.sql',
         'lib/plugin/daemon_example.ini',
         'lib/plugin/ha_example.so',
@@ -62,6 +66,26 @@ test('pruning removes test suites, benchmarks, test files, and known test/exampl
   }
 });
 
+test('pruning removes the macOS mysql_client_test compatibility symlink with its test target', async (t) => {
+  if (process.platform === 'win32') {
+    t.skip('symlink creation is privilege-dependent on Windows; aliases are covered above');
+    return;
+  }
+
+  const root = await mkdtemp(join(tmpdir(), 'accore-mariadb-policy-'));
+  try {
+    const bin = join(root, 'bin');
+    await mkdir(bin, { recursive: true });
+    await writeFile(join(bin, 'mariadb-client-test'), 'test binary');
+    await symlink('mariadb-client-test', join(bin, 'mysql_client_test'));
+
+    await pruneMariaDbNonRuntimePayload(root);
+    await assert.rejects(lstat(join(bin, 'mysql_client_test')));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('production payload guard rejects a residual nonproduction plugin or test binary', async () => {
   const root = await mkdtemp(join(tmpdir(), 'accore-mariadb-policy-'));
   try {
@@ -73,6 +97,23 @@ test('production payload guard rejects a residual nonproduction plugin or test b
     await mkdir(join(root, 'bin'), { recursive: true });
     await writeFile(join(root, 'bin', 'mariadb-test'), 'residual test binary');
     await assert.rejects(assertMariaDbProductionPayload(root), /bin\/mariadb-test/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('production payload guard rejects a dangling symlink on Unix', async (t) => {
+  if (process.platform === 'win32') {
+    t.skip('symlink creation is privilege-dependent on Windows');
+    return;
+  }
+
+  const root = await mkdtemp(join(tmpdir(), 'accore-mariadb-policy-'));
+  try {
+    const bin = join(root, 'bin');
+    await mkdir(bin, { recursive: true });
+    await symlink('missing-test-target', join(bin, 'unrelated-alias'));
+    await assert.rejects(assertMariaDbProductionPayload(root), /dangling symbolic link/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
