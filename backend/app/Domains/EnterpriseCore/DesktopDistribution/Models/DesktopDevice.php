@@ -40,6 +40,11 @@ class DesktopDevice extends Model
         return $this->hasMany(DesktopDistributionAuditEvent::class);
     }
 
+    public function transportKeys(): HasMany
+    {
+        return $this->hasMany(DesktopDeviceTransportKey::class);
+    }
+
     public function isRevoked(): bool
     {
         return $this->revoked_at !== null;

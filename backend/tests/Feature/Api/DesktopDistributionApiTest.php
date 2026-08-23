@@ -105,6 +105,47 @@ class DesktopDistributionApiTest extends TestCase
         );
     }
 
+    public function test_enrollment_registers_a_validated_transport_public_key_without_storing_private_material(): void
+    {
+        $publicKey = rtrim(strtr(base64_encode(str_repeat(chr(1), SODIUM_CRYPTO_BOX_PUBLICKEYBYTES)), '+/', '-_'), '=');
+        $payload = $this->payload($this->desktopDistribution->issueEnrollmentEvidence(), [
+            'transport_key_id' => 'device-key-2026-08-24',
+            'transport_key_algorithm' => 'x25519-xsalsa20poly1305',
+            'transport_public_key' => $publicKey,
+        ]);
+
+        $response = $this->postJson('/api/v1/desktop/enroll', $payload);
+        $response->assertCreated();
+
+        $device = DesktopDevice::query()->where('device_id', $payload['device_id'])->firstOrFail();
+        $this->assertDatabaseHas('desktop_device_transport_keys', [
+            'desktop_device_id' => $device->id,
+            'key_id' => 'device-key-2026-08-24',
+            'algorithm' => 'x25519-xsalsa20poly1305',
+            'public_key_fingerprint' => hash('sha256', str_repeat(chr(1), SODIUM_CRYPTO_BOX_PUBLICKEYBYTES)),
+            'state' => 'active',
+        ]);
+        $this->assertDatabaseMissing('desktop_device_transport_keys', [
+            'public_key' => 'private-key-material',
+        ]);
+    }
+
+    public function test_invalid_transport_public_key_is_rejected_before_enrollment(): void
+    {
+        $response = $this->postJson('/api/v1/desktop/enroll', $this->payload(
+            $this->desktopDistribution->issueEnrollmentEvidence(),
+            [
+                'transport_key_id' => 'device-key-2026-08-24',
+                'transport_key_algorithm' => 'x25519-xsalsa20poly1305',
+                'transport_public_key' => 'not-a-32-byte-public-key',
+            ],
+        ));
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['transport_public_key']);
+        $this->assertDatabaseCount('desktop_devices', 0);
+    }
+
     public function test_revoked_evidence_is_rejected_without_creating_a_device(): void
     {
         $evidence = $this->desktopDistribution->issueEnrollmentEvidence();
