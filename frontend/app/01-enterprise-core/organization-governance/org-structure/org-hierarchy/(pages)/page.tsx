@@ -39,10 +39,38 @@ const initialSetupForm: SetupForm = {
   pos_terminal_id: null,
 };
 
-function listFromResponse(response: any): any[] {
+type ListResponse = { data?: unknown } | null | undefined;
+
+type OrganizationNode = {
+  node_uuid: string;
+  node_type_id: string;
+  code: string;
+  status?: string;
+};
+
+type CostCenter = {
+  id: number;
+  code: string;
+  name: string;
+  name_en?: string;
+  is_active?: boolean;
+};
+
+type PosTerminal = {
+  id: number;
+  code: string;
+  name: string;
+  name_en?: string;
+  is_active?: boolean;
+};
+
+function listFromResponse<T>(response: ListResponse): T[] {
   const raw = response?.data;
-  if (Array.isArray(raw)) return raw;
-  if (Array.isArray(raw?.data)) return raw.data;
+  if (Array.isArray(raw)) return raw as T[];
+  if (raw && typeof raw === "object" && "data" in raw) {
+    const nested = (raw as { data?: unknown }).data;
+    if (Array.isArray(nested)) return nested as T[];
+  }
   return [];
 }
 
@@ -52,9 +80,9 @@ export default function OrganizationalStructurePage() {
   const [setupOpen, setSetupOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [setupForm, setSetupForm] = useState<SetupForm>(initialSetupForm);
-  const [nodes, setNodes] = useState<any[]>([]);
-  const [costCenters, setCostCenters] = useState<any[]>([]);
-  const [posTerminals, setPosTerminals] = useState<any[]>([]);
+  const [nodes, setNodes] = useState<OrganizationNode[]>([]);
+  const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
+  const [posTerminals, setPosTerminals] = useState<PosTerminal[]>([]);
   const { readiness, loadReadiness } = useOperatingContextStore();
   const readinessLabels: Record<string, string> = {
     warehouse: i18n.catalog["enterpriseCore.orgHierarchy.readinessWarehouse"],
@@ -85,9 +113,9 @@ export default function OrganizationalStructurePage() {
         fetchAPI(API_ENDPOINTS.FINANCE.COST_CENTERS.BASE),
         fetchAPI(API_ENDPOINTS.ENTERPRISE_CORE.OPERATING_CONTEXT.POS_TERMINALS),
       ]);
-      setNodes(listFromResponse(nodeResponse));
-      setCostCenters(listFromResponse(costResponse).filter((center) => center.is_active !== false));
-      setPosTerminals(listFromResponse(posResponse).filter((terminal) => terminal.is_active !== false));
+      setNodes(listFromResponse<OrganizationNode>(nodeResponse));
+      setCostCenters(listFromResponse<CostCenter>(costResponse).filter((center) => center.is_active !== false));
+      setPosTerminals(listFromResponse<PosTerminal>(posResponse).filter((terminal) => terminal.is_active !== false));
       await loadReadiness();
     };
     loadSetupData();
@@ -109,7 +137,7 @@ export default function OrganizationalStructurePage() {
         label: catalogText(i18n, "common.general.notAvailable.alternative10", { value0: center.code, value1: center.name }),
         subtitle: center.name_en || '',
       })),
-    [costCenters]
+    [costCenters, i18n]
   );
   const posTerminalOptions = useMemo<SelectOption[]>(
     () =>
@@ -118,7 +146,7 @@ export default function OrganizationalStructurePage() {
         label: catalogText(i18n, "common.general.notAvailable.alternative10", { value0: terminal.code, value1: terminal.name }),
         subtitle: terminal.name_en || '',
       })),
-    [posTerminals]
+    [posTerminals, i18n]
   );
 
   const updateSetupField = <K extends keyof SetupForm>(key: K, value: SetupForm[K]) => {

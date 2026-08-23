@@ -33,6 +33,11 @@ test('generates manifests and updater URLs from normalized GitHub asset names', 
     await writeFixture(assets, `Accore.${product}_x86_64.app.tar.gz.sig`, 'intel-signature');
   }
   await writeFixture(assets, `Accore.Server.Headless_${releaseVersion}_x86_64-setup.exe`);
+  await writeFixture(assets, `accore-erp-server-headless_${releaseVersion}_amd64.deb`);
+  await writeFixture(assets, `accore-erp-server-headless-${releaseVersion}-1.x86_64.rpm`);
+  await writeFixture(assets, `accore-erp-server-headless_${releaseVersion}_linux_x86_64.tar.gz`);
+  await writeFixture(assets, `ACCORE.ERP.Server.Headless_${releaseVersion}_macos_aarch64.pkg`);
+  await writeFixture(assets, `ACCORE.ERP.Server.Headless_${releaseVersion}_macos_x86_64.pkg`);
 
   execFileSync(process.execPath, [script, assets, output], {
     stdio: 'pipe',
@@ -68,8 +73,15 @@ test('generates manifests and updater URLs from normalized GitHub asset names', 
 
   const headlessManifest = await readJson(join(output, 'accore-server-headless-manifest.json'));
   assert.equal(headlessManifest.product, 'server-headless');
-  assert.equal(headlessManifest.artifacts.length, 1);
-  assert.equal(headlessManifest.artifacts[0].kind, 'server_headless_installer');
+  assert.equal(headlessManifest.artifacts.length, 6);
+  assert.equal(
+    headlessManifest.artifacts.every((artifact) => artifact.kind === 'server_headless_installer'),
+    true
+  );
+  assert.deepEqual(
+    new Set(headlessManifest.artifacts.map((artifact) => `${artifact.os}:${artifact.bundleFormat ?? artifact.id.split('-').at(-1)}`)),
+    new Set(['windows:nsis', 'linux:deb', 'linux:rpm', 'linux:tar.gz', 'macos:pkg'])
+  );
   await assert.rejects(readFile(join(output, 'accore-server-headless-updater.json'), 'utf8'));
 });
 

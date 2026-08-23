@@ -77,14 +77,14 @@ export function NodesTab() {
             setInitialDataLoaded(true);
         } catch { showToast(i18n.catalog["enterpriseCore.nodes.errorLoadingOrganizationalUnits"], "error"); }
         finally { setIsLoading(false); }
-    }, [searchTerm, filterType, filterStatus, filterDomain]);
+    }, [searchTerm, filterType, filterStatus, filterDomain, i18n.catalog]);
 
     const loadMetaTypes = useCallback(async () => {
         try {
             const response = await fetchAPI(API_ENDPOINTS.ENTERPRISE_CORE.ORG.META_TYPES);
             setMetaTypes((response.data as MetaType[]) || []);
         } catch { showToast(i18n.catalog["common.general.errorLoadingUnitTypes"], "error"); }
-    }, []);
+    }, [i18n.catalog]);
 
     const loadTopologyRules = useCallback(async () => {
         try {
@@ -177,7 +177,11 @@ export function NodesTab() {
     const toggleSelect = (uuid: string) => {
         setSelectedUuids(prev => {
             const next = new Set(prev);
-            next.has(uuid) ? next.delete(uuid) : next.add(uuid);
+            if (next.has(uuid)) {
+                next.delete(uuid);
+            } else {
+                next.add(uuid);
+            }
             return next;
         });
     };
@@ -317,7 +321,7 @@ export function NodesTab() {
                             value={null}
                             options={nodes.map(n => ({
                                 value: n.node_uuid,
-                                label: catalogText(i18n, "common.general.notAvailable", { value0: n.code, value1: (n.attributes_json as any)?.name || '' }),
+                                label: catalogText(i18n, "common.general.notAvailable", { value0: n.code, value1: String(n.attributes_json?.name ?? "") }),
                                 subtitle: getTypeLabel(n.node_type_id)
                             }))}
                             onChange={(val) => {

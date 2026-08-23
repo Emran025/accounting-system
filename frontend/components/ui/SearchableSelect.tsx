@@ -28,7 +28,6 @@ interface SearchableSelectProps {
     renderOption?: (option: SelectOption) => React.ReactNode;
     filterOption?: (option: SelectOption, searchTerm: string) => boolean;
     /** Automatically focus this input on mount */
-    /** Automatically focus this input on mount */
     autoFocus?: boolean;
     /** Called after a barcode exact-match or Enter-key auto-select so the parent can advance focus */
     onAutoSelect?: () => void;
@@ -191,7 +190,7 @@ export function SearchableSelect({
     const textDirection = getTextDirection(displayValue);
 
     return (
-        <div className={`searchable-select ${className}`} ref={containerRef}>
+        <div className={`searchable-select ${className}`} ref={containerRef} dir={textDirection}>
             <input
                 ref={inputRef}
                 type="text"

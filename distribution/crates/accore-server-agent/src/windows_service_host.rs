@@ -18,6 +18,29 @@ const SERVICE_NAME: &str = "ACCOREServerAgent";
 #[cfg(windows)]
 const SERVICE_DISPLAY_NAME: &str = "ACCORE ERP Server Agent";
 
+#[cfg(any(windows, test))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ReconciliationAction {
+    KeepRunning,
+    UpdateThenStart,
+}
+
+#[cfg(any(windows, test))]
+fn reconciliation_action(service_state: &str) -> Result<ReconciliationAction, String> {
+    match service_state {
+        "Running" => Ok(ReconciliationAction::KeepRunning),
+        "Stopped" => Ok(ReconciliationAction::UpdateThenStart),
+        "StartPending" | "StopPending" | "ContinuePending" | "PausePending" | "Paused" => Err(
+            format!(
+                "ACCORE Server Agent is transitioning ({service_state}); retry reconciliation after the current lifecycle operation completes"
+            ),
+        ),
+        state => Err(format!(
+            "ACCORE Server Agent reported unsupported SCM state ({state}); retry reconciliation after it becomes Running or Stopped"
+        )),
+    }
+}
+
 #[cfg(windows)]
 fn service_info(config_path: String) -> Result<ServiceInfo, String> {
     let executable =
@@ -42,11 +65,7 @@ fn service_info(config_path: String) -> Result<ServiceInfo, String> {
 
 #[cfg(windows)]
 fn reconcile_access() -> ServiceAccess {
-    ServiceAccess::QUERY_STATUS
-        | ServiceAccess::START
-        | ServiceAccess::STOP
-        | ServiceAccess::DELETE
-        | ServiceAccess::CHANGE_CONFIG
+    ServiceAccess::QUERY_STATUS | ServiceAccess::START | ServiceAccess::CHANGE_CONFIG
 }
 
 #[cfg(windows)]
@@ -76,19 +95,22 @@ pub fn reconcile_service(config_path: String) -> Result<(), String> {
     let info = service_info(config_path)?;
     match manager.open_service(SERVICE_NAME, reconcile_access()) {
         Ok(service) => {
-            let status = service
-                .query_status()
-                .map_err(|error| format!("query ACCORE Server Agent before reconciliation: {error}"))?;
-            if status.current_state != ServiceState::Stopped {
-                let _ = service.stop();
-                wait_for_stopped(&service)?;
+            let status = service.query_status().map_err(|error| {
+                format!("query ACCORE Server Agent before reconciliation: {error}")
+            })?;
+            let action = reconciliation_action(&format!("{:?}", status.current_state))?;
+            service.change_config(&info).map_err(|error| {
+                format!("reconcile ACCORE Server Agent service configuration: {error}")
+            })?;
+
+            match action {
+                ReconciliationAction::KeepRunning => Ok(()),
+                ReconciliationAction::UpdateThenStart => {
+                    service.start::<&str>(&[]).map_err(|error| {
+                        format!("start reconciled ACCORE Server Agent service: {error}")
+                    })
+                }
             }
-            service
-                .change_config(&info)
-                .map_err(|error| format!("reconcile ACCORE Server Agent service configuration: {error}"))?;
-            service
-                .start::<&str>(&[])
-                .map_err(|error| format!("start reconciled ACCORE Server Agent service: {error}"))
         }
         Err(_) => manager
             .create_service(&info, reconcile_access())
@@ -103,17 +125,20 @@ pub fn start_service() -> Result<(), String> {
     let manager = ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT)
         .map_err(|error| format!("open Windows Service Control Manager: {error}"))?;
     let service = manager
-        .open_service(SERVICE_NAME, ServiceAccess::QUERY_STATUS | ServiceAccess::START)
+        .open_service(
+            SERVICE_NAME,
+            ServiceAccess::QUERY_STATUS | ServiceAccess::START,
+        )
         .map_err(|error| format!("open ACCORE Server Agent service: {error}"))?;
     let status = service
         .query_status()
         .map_err(|error| format!("query ACCORE Server Agent service: {error}"))?;
-    if status.current_state != ServiceState::Running {
-        service
+    match reconciliation_action(&format!("{:?}", status.current_state))? {
+        ReconciliationAction::KeepRunning => Ok(()),
+        ReconciliationAction::UpdateThenStart => service
             .start::<&str>(&[])
-            .map_err(|error| format!("start ACCORE Server Agent service: {error}"))?;
+            .map_err(|error| format!("start ACCORE Server Agent service: {error}")),
     }
-    Ok(())
 }
 
 #[cfg(windows)]
@@ -259,4 +284,50 @@ pub fn run_service(_config_path: String) -> Result<(), String> {
 #[cfg(not(windows))]
 pub fn stop_service() -> Result<(), String> {
     Err("Windows Service control is supported only on Windows".into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn running_service_is_reconciled_without_restart() {
+        assert_eq!(
+            reconciliation_action("Running"),
+            Ok(ReconciliationAction::KeepRunning)
+        );
+    }
+
+    #[test]
+    fn stopped_service_is_reconfigured_then_started() {
+        assert_eq!(
+            reconciliation_action("Stopped"),
+            Ok(ReconciliationAction::UpdateThenStart)
+        );
+    }
+
+    #[test]
+    fn transitional_services_are_retryable_and_never_reconfigured() {
+        for state in [
+            "StartPending",
+            "StopPending",
+            "ContinuePending",
+            "PausePending",
+            "Paused",
+        ] {
+            let error =
+                reconciliation_action(state).expect_err("transition must not be reconciled");
+            assert!(
+                error.contains("retry reconciliation"),
+                "unexpected error for {state}: {error}"
+            );
+        }
+    }
+
+    #[test]
+    fn unknown_service_state_requires_operator_retry() {
+        let error =
+            reconciliation_action("Unknown").expect_err("unknown state must not be reconciled");
+        assert!(error.contains("unsupported SCM state"));
+    }
 }

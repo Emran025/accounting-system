@@ -10,6 +10,8 @@ import { getIcon } from "@/lib/icons";
 import { formatDate } from "@/lib/utils";
 import { useCallback, useEffect, useState } from "react";
 
+const ITEMS_PER_PAGE = 20;
+
 interface Batch {
   id: number;
   batch_name: string;
@@ -42,10 +44,8 @@ export default function BatchProcessingPage() {
   const [confirmDialog, setConfirmDialog] = useState(false);
   const [deleteBatchId, setDeleteBatchId] = useState<number | null>(null);
   const [executeBatchId, setExecuteBatchId] = useState<number | null>(null);
-  const [executeBatchType, setExecuteBatchType] = useState<string>("");
 
   // Selected batch for items view
-  const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
 
@@ -54,16 +54,14 @@ export default function BatchProcessingPage() {
   const [batchType, setBatchType] = useState("");
   const [batchDescription, setBatchDescription] = useState("");
 
-  const itemsPerPage = 20;
-
   const loadBatches = useCallback(async (page: number = 1) => {
     try {
       setIsLoading(true);
-      const response = await fetchAPI(`${API_ENDPOINTS.ENTERPRISE_CORE.BATCH}?page=${page}&limit=${itemsPerPage}`);
+      const response = await fetchAPI(`${API_ENDPOINTS.ENTERPRISE_CORE.BATCH}?page=${page}&limit=${ITEMS_PER_PAGE}`);
       if (response.success && response.data) {
         setBatches(response.data as Batch[]);
         const total = Number(response.total) || 0;
-        setTotalPages(Math.ceil(total / itemsPerPage));
+        setTotalPages(Math.ceil(total / ITEMS_PER_PAGE));
         setCurrentPage(page);
       } else {
         showToast(response.message || i18n.catalog["enterpriseCore.batchProcessing.failedLoadBatches"], "error");
@@ -73,25 +71,26 @@ export default function BatchProcessingPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [i18n.catalog]);
 
   useEffect(() => {
+    let refreshInterval: ReturnType<typeof setInterval> | null = null;
+
     const init = async () => {
       const authenticated = await checkAuth();
       if (!authenticated) return;
 
-      const storedUser = getStoredUser();
-      setUser(storedUser);
+      setUser(getStoredUser());
       await loadBatches();
-
-      // Auto-refresh every 30 seconds
-      const interval = setInterval(() => {
-        loadBatches(currentPage);
+      refreshInterval = setInterval(() => {
+        void loadBatches(currentPage);
       }, 30000);
-
-      return () => clearInterval(interval);
     };
-    init();
+
+    void init();
+    return () => {
+      if (refreshInterval) clearInterval(refreshInterval);
+    };
   }, [loadBatches, currentPage]);
 
   const getBatchTypeLabel = (type: string) => {
@@ -130,7 +129,6 @@ export default function BatchProcessingPage() {
 
   const closeItemsDialog = () => {
     setItemsDialog(false);
-    setSelectedBatchId(null);
     setBatchItems([]);
   };
 
@@ -173,7 +171,6 @@ export default function BatchProcessingPage() {
   };
 
   const viewBatchItems = async (batchId: number) => {
-    setSelectedBatchId(batchId);
     setIsLoadingItems(true);
     setItemsDialog(true);
 
@@ -194,9 +191,8 @@ export default function BatchProcessingPage() {
     }
   };
 
-  const confirmExecuteBatch = (batchId: number, batchType: string) => {
+  const confirmExecuteBatch = (batchId: number) => {
     setExecuteBatchId(batchId);
-    setExecuteBatchType(batchType);
     setConfirmDialog(true);
   };
 
@@ -331,7 +327,7 @@ export default function BatchProcessingPage() {
               <>
                 <button
                   className="icon-btn edit"
-                  onClick={() => confirmExecuteBatch(item.id, item.batch_type)}
+                  onClick={() => confirmExecuteBatch(item.id)}
                   title={i18n.catalog["common.general.execute"]}
                 >
                   {getIcon("check")}

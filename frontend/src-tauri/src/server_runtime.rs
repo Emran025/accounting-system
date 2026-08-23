@@ -1,25 +1,23 @@
-use std::{env, fs, path::PathBuf, thread, time::Duration};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+    process::Command,
+    thread,
+    time::Duration,
+};
 
 use serde::{Deserialize, Serialize};
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt;
 #[cfg(windows)]
-use std::{
-    ffi::OsStr,
-    os::windows::ffi::OsStrExt,
-    path::Path,
-    ptr,
-};
+use std::{ffi::OsStr, os::windows::ffi::OsStrExt, ptr};
 use tauri::{AppHandle, Manager};
 #[cfg(windows)]
-use windows_sys::Win32::{
-    UI::{
-        Shell::ShellExecuteW,
-        WindowsAndMessaging::SW_HIDE,
-    },
-};
+use windows_sys::Win32::UI::{Shell::ShellExecuteW, WindowsAndMessaging::SW_HIDE};
 
-const AGENT_BINARY: &str = "accore-server-agent.exe";
-const RUNTIME_RELATIVE_PATH: &str = "server-runtime/windows-x86_64";
-const SERVER_DESKTOP_CLAIM_ARGUMENTS: &str = "claim --owner server-desktop";
+const SERVER_DESKTOP_OWNER: &str = "server-desktop";
+const LINUX_HEADLESS_AGENT: &str = "/opt/accore-erp/server/accore-server-agent";
+const MACOS_HEADLESS_AGENT: &str = "/Library/ACCORE ERP/Server/accore-server-agent";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -103,7 +101,7 @@ pub fn server_runtime_start(app: AppHandle) -> Result<ServerRuntimeSnapshot, Str
         return Ok(current);
     }
 
-    start_windows_service_agent(&paths.agent_binary)?;
+    start_service_agent(&paths)?;
 
     for _ in 0..10 {
         thread::sleep(Duration::from_millis(250));
@@ -118,26 +116,6 @@ pub fn server_runtime_start(app: AppHandle) -> Result<ServerRuntimeSnapshot, Str
     ))
 }
 
-fn start_windows_service_agent(agent_binary: &std::path::Path) -> Result<(), String> {
-    #[cfg(windows)]
-    {
-        return launch_elevated_agent(
-            agent_binary,
-            SERVER_DESKTOP_CLAIM_ARGUMENTS,
-            "claim or update the Server Desktop Agent",
-        );
-    }
-
-    #[cfg(not(windows))]
-    {
-        let _ = agent_binary;
-        Err(
-            "self-contained Server Desktop service installation is supported only on Windows x64"
-                .into(),
-        )
-    }
-}
-
 #[tauri::command]
 pub fn server_runtime_stop(app: AppHandle) -> Result<ServerRuntimeSnapshot, String> {
     let paths = RuntimePaths::resolve(&app)?;
@@ -147,7 +125,7 @@ pub fn server_runtime_stop(app: AppHandle) -> Result<ServerRuntimeSnapshot, Stri
             paths.runtime_root.exists(),
         ));
     }
-    stop_windows_service_agent(&paths.agent_binary)?;
+    run_service_agent(&paths, &["stop"], "stop the Server Agent")?;
     Ok(server_runtime_status(app)?)
 }
 
@@ -166,7 +144,15 @@ pub fn trigger_server_backup(app: AppHandle) -> Result<ServerBackupSnapshot, Str
             "a protected backup can be requested only when the local server is ready".into(),
         );
     }
-    request_windows_service_backup(&paths.agent_binary, &paths.config_path)?;
+    run_service_agent(
+        &paths,
+        &[
+            "request-backup",
+            "--config",
+            paths.config_path.to_string_lossy().as_ref(),
+        ],
+        "request a protected backup",
+    )?;
     server_backup_status_from_paths(&paths)
 }
 
@@ -179,7 +165,7 @@ pub fn prepare_server_desktop_update(app: AppHandle) -> Result<ServerRuntimeSnap
             "signed update installation is blocked until the local server reports ready".into(),
         );
     }
-    stop_windows_service_agent(&paths.agent_binary)?;
+    run_service_agent(&paths, &["stop"], "stop the Server Agent")?;
     for _ in 0..180 {
         thread::sleep(Duration::from_millis(500));
         let status = server_runtime_status(app.clone())?;
@@ -208,32 +194,28 @@ impl RuntimePaths {
             .parent()
             .map(PathBuf::from)
             .ok_or("resolve Server Desktop installation root from executable")?;
-        let executable_resource_root = executable_root.join("resources");
-        let executable_runtime_root = executable_resource_root.join(RUNTIME_RELATIVE_PATH);
-        let tauri_runtime_root = tauri_resource_root.join(RUNTIME_RELATIVE_PATH);
-        let runtime_root = if required_runtime_files_exist(&executable_runtime_root) {
-            executable_runtime_root
-        } else {
-            tauri_runtime_root
-        };
-        let executable_agent = executable_root.join(AGENT_BINARY);
-        let agent_binary = if executable_agent.is_file() {
-            executable_agent
-        } else {
-            tauri_resource_root
-                .parent()
-                .ok_or("resolve Server Desktop installation root from resource directory")?
-                .join(AGENT_BINARY)
-        };
-        let data_root = env::var_os("PROGRAMDATA")
-            .map(PathBuf::from)
-            .unwrap_or(
-                app.path()
-                    .app_local_data_dir()
-                    .map_err(|error| format!("resolve application data directory: {error}"))?,
-            )
-            .join("ACCORE ERP")
-            .join("Server");
+
+        let runtime_root = runtime_candidates(&tauri_resource_root, &executable_root)
+            .into_iter()
+            .find(|candidate| required_runtime_files_exist(candidate))
+            .ok_or_else(|| {
+                format!(
+                    "resolve verified Server Desktop runtime for {}; checked resource layouts: {}",
+                    runtime_target(),
+                    runtime_candidates(&tauri_resource_root, &executable_root)
+                        .iter()
+                        .map(|candidate| candidate.display().to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            })?;
+
+        let agent_binary = agent_candidates(&tauri_resource_root, &executable_root)
+            .into_iter()
+            .find(|candidate| candidate.is_file())
+            .ok_or("resolve bundled ACCORE Server Agent beside the Server Desktop executable")?;
+
+        let data_root = platform_data_root(app)?;
         let status_root = data_root
             .parent()
             .map(PathBuf::from)
@@ -249,15 +231,34 @@ impl RuntimePaths {
 
     fn missing_resources(&self) -> Vec<&'static str> {
         let mut missing = Vec::new();
-        if !self.runtime_root.join("frankenphp.exe").is_file() {
+        if !self.runtime_root.join(frankenphp_name()).is_file() {
             missing.push("embedded FrankenPHP runtime");
         }
         if !self
             .runtime_root
-            .join("mariadb-11.4.9-winx64/bin/mariadbd.exe")
+            .join(mariadb_root_name())
+            .join("bin")
+            .join(mariadbd_name())
             .is_file()
         {
             missing.push("embedded MariaDB runtime");
+        }
+        if !self
+            .runtime_root
+            .join(mariadb_root_name())
+            .join(mariadb_install_db_relative_path())
+            .is_file()
+        {
+            missing.push("embedded MariaDB initializer");
+        }
+        if !self
+            .runtime_root
+            .join(mariadb_root_name())
+            .join("bin")
+            .join(mariadb_dump_name())
+            .is_file()
+        {
+            missing.push("embedded MariaDB backup client");
         }
         if !self.agent_binary.is_file() {
             missing.push("ACCORE Server Agent");
@@ -266,10 +267,363 @@ impl RuntimePaths {
     }
 }
 
-fn required_runtime_files_exist(runtime_root: &std::path::Path) -> bool {
-    runtime_root.join("frankenphp.exe").is_file()
+fn runtime_candidates(resource_root: &Path, executable_root: &Path) -> Vec<PathBuf> {
+    let target = runtime_target();
+    vec![
+        resource_root.join("resources/server-runtime").join(target),
+        resource_root.join("server-runtime").join(target),
+        executable_root
+            .join("resources/server-runtime")
+            .join(target),
+        executable_root.join("server-runtime").join(target),
+        executable_root
+            .parent()
+            .map(|contents_root| {
+                contents_root
+                    .join("Resources/resources/server-runtime")
+                    .join(target)
+            })
+            .unwrap_or_default(),
+    ]
+}
+
+fn agent_candidates(resource_root: &Path, executable_root: &Path) -> Vec<PathBuf> {
+    let agent = agent_binary_name();
+    vec![
+        executable_root.join(agent),
+        resource_root.join(agent),
+        resource_root
+            .parent()
+            .map(|contents_root| contents_root.join("MacOS").join(agent))
+            .unwrap_or_default(),
+        resource_root
+            .parent()
+            .map(|installation_root| installation_root.join(agent))
+            .unwrap_or_default(),
+    ]
+}
+
+fn platform_data_root(app: &AppHandle) -> Result<PathBuf, String> {
+    #[cfg(windows)]
+    {
+        return Ok(env::var_os("PROGRAMDATA")
+            .map(PathBuf::from)
+            .unwrap_or(
+                app.path()
+                    .app_local_data_dir()
+                    .map_err(|error| format!("resolve application data directory: {error}"))?,
+            )
+            .join("ACCORE ERP")
+            .join("Server"));
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let _ = app;
+        return Ok(PathBuf::from("/var/lib/accore-erp/server"));
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let _ = app;
+        return Ok(PathBuf::from(
+            "/Library/Application Support/ACCORE ERP/Server",
+        ));
+    }
+
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
+    {
+        let _ = app;
+        Err("this platform is not supported by the embedded ACCORE Server runtime".into())
+    }
+}
+
+fn start_service_agent(paths: &RuntimePaths) -> Result<(), String> {
+    let (agent, managed_headless_agent) = lifecycle_agent(paths);
+    if managed_headless_agent {
+        return run_agent_with_elevation(
+            &agent,
+            &["attach", "--owner", SERVER_DESKTOP_OWNER],
+            "attach the Server Desktop control surface to the protected Headless service",
+        );
+    }
+
+    run_agent_with_elevation(
+        &agent,
+        &[
+            "claim",
+            "--owner",
+            SERVER_DESKTOP_OWNER,
+            "--runtime-root",
+            paths.runtime_root.to_string_lossy().as_ref(),
+        ],
+        "claim or update the Server Desktop Agent",
+    )
+}
+
+fn run_service_agent(
+    paths: &RuntimePaths,
+    arguments: &[&str],
+    operation: &str,
+) -> Result<(), String> {
+    let (agent, _) = lifecycle_agent(paths);
+    run_agent_with_elevation(&agent, arguments, operation)
+}
+
+fn lifecycle_agent(paths: &RuntimePaths) -> (PathBuf, bool) {
+    #[cfg(target_os = "linux")]
+    {
+        let headless = PathBuf::from(LINUX_HEADLESS_AGENT);
+        if headless.is_file() {
+            return (headless, true);
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let headless = PathBuf::from(MACOS_HEADLESS_AGENT);
+        if headless.is_file() {
+            return (headless, true);
+        }
+    }
+
+    (paths.agent_binary.clone(), false)
+}
+
+fn run_agent_with_elevation(
+    agent_binary: &Path,
+    arguments: &[&str],
+    operation: &str,
+) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        return launch_windows_elevated_agent(agent_binary, arguments, operation);
+    }
+
+    #[cfg(unix)]
+    {
+        require_trusted_unix_agent(agent_binary)?;
+        return launch_unix_elevated_agent(agent_binary, arguments, operation);
+    }
+
+    #[cfg(not(any(windows, unix)))]
+    {
+        let _ = (agent_binary, arguments, operation);
+        Err("this platform is not supported by the embedded ACCORE Server runtime".into())
+    }
+}
+
+#[cfg(unix)]
+fn require_trusted_unix_agent(agent_binary: &Path) -> Result<(), String> {
+    let metadata = fs::symlink_metadata(agent_binary)
+        .map_err(|error| format!("inspect Server Agent ownership before elevation: {error}"))?;
+    if metadata.file_type().is_symlink() {
+        return Err(format!(
+            "refuse to elevate a Server Agent through symbolic link {}",
+            agent_binary.display()
+        ));
+    }
+    if metadata.uid() != 0 || metadata.mode() & 0o022 != 0 {
+        return Err(format!(
+            "refuse to elevate untrusted Server Agent {}; install the native Headless package or a root-owned Desktop system package first",
+            agent_binary.display()
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn launch_unix_elevated_agent(
+    agent_binary: &Path,
+    arguments: &[&str],
+    operation: &str,
+) -> Result<(), String> {
+    let status = Command::new("pkexec")
+        .arg(agent_binary)
+        .args(arguments)
+        .status()
+        .map_err(|error| {
+            format!(
+                "start Linux authorization for {operation}: {error}; install polkit or use the Headless system package"
+            )
+        })?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!(
+            "administrator authorization did not complete {operation} ({status})"
+        ))
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn launch_unix_elevated_agent(
+    agent_binary: &Path,
+    arguments: &[&str],
+    operation: &str,
+) -> Result<(), String> {
+    const SCRIPT: &str = r#"on run argv
+set commandLine to ""
+repeat with argumentValue in argv
+  set commandLine to commandLine & quoted form of (contents of argumentValue) & " "
+end repeat
+do shell script commandLine with administrator privileges
+end run"#;
+
+    let status = Command::new("osascript")
+        .args(["-e", SCRIPT, "--"])
+        .arg(agent_binary)
+        .args(arguments)
+        .status()
+        .map_err(|error| format!("start macOS authorization for {operation}: {error}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!(
+            "administrator authorization did not complete {operation} ({status})"
+        ))
+    }
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+fn launch_unix_elevated_agent(
+    agent_binary: &Path,
+    arguments: &[&str],
+    operation: &str,
+) -> Result<(), String> {
+    let _ = (agent_binary, arguments, operation);
+    Err("this Unix target is not supported by the embedded ACCORE Server runtime".into())
+}
+
+fn runtime_target() -> &'static str {
+    #[cfg(windows)]
+    {
+        "windows-x86_64"
+    }
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    {
+        "linux-x86_64"
+    }
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    {
+        "macos-aarch64"
+    }
+    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+    {
+        "macos-x86_64"
+    }
+    #[cfg(not(any(
+        windows,
+        all(target_os = "linux", target_arch = "x86_64"),
+        all(target_os = "macos", target_arch = "aarch64"),
+        all(target_os = "macos", target_arch = "x86_64")
+    )))]
+    {
+        compile_error!("unsupported ACCORE Server Desktop runtime target")
+    }
+}
+
+fn agent_binary_name() -> &'static str {
+    #[cfg(windows)]
+    {
+        "accore-server-agent.exe"
+    }
+    #[cfg(not(windows))]
+    {
+        "accore-server-agent"
+    }
+}
+
+fn frankenphp_name() -> &'static str {
+    #[cfg(windows)]
+    {
+        "frankenphp.exe"
+    }
+    #[cfg(not(windows))]
+    {
+        "frankenphp"
+    }
+}
+
+fn mariadb_root_name() -> &'static str {
+    #[cfg(windows)]
+    {
+        "mariadb-11.4.9-winx64"
+    }
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    {
+        "mariadb-11.4.9-linux-systemd-x86_64"
+    }
+    #[cfg(target_os = "macos")]
+    {
+        "mariadb"
+    }
+    #[cfg(not(any(
+        windows,
+        all(target_os = "linux", target_arch = "x86_64"),
+        target_os = "macos"
+    )))]
+    {
+        compile_error!("unsupported ACCORE Server MariaDB target")
+    }
+}
+
+fn mariadbd_name() -> &'static str {
+    #[cfg(windows)]
+    {
+        "mariadbd.exe"
+    }
+    #[cfg(not(windows))]
+    {
+        "mariadbd"
+    }
+}
+
+fn mariadb_dump_name() -> &'static str {
+    #[cfg(windows)]
+    {
+        "mariadb-dump.exe"
+    }
+    #[cfg(not(windows))]
+    {
+        "mariadb-dump"
+    }
+}
+
+fn mariadb_install_db_relative_path() -> &'static str {
+    #[cfg(windows)]
+    {
+        "bin/mariadb-install-db.exe"
+    }
+    #[cfg(target_os = "linux")]
+    {
+        "scripts/mariadb-install-db"
+    }
+    #[cfg(target_os = "macos")]
+    {
+        "scripts/mariadb-install-db"
+    }
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
+    {
+        compile_error!("unsupported ACCORE Server MariaDB target")
+    }
+}
+
+fn required_runtime_files_exist(runtime_root: &Path) -> bool {
+    runtime_root.join(frankenphp_name()).is_file()
         && runtime_root
-            .join("mariadb-11.4.9-winx64/bin/mariadbd.exe")
+            .join(mariadb_root_name())
+            .join("bin")
+            .join(mariadbd_name())
+            .is_file()
+        && runtime_root
+            .join(mariadb_root_name())
+            .join(mariadb_install_db_relative_path())
+            .is_file()
+        && runtime_root
+            .join(mariadb_root_name())
+            .join("bin")
+            .join(mariadb_dump_name())
             .is_file()
 }
 
@@ -297,6 +651,7 @@ fn unavailable(detail: impl Into<String>, runtime_present: bool) -> ServerRuntim
         updated_at: None,
     }
 }
+
 fn server_backup_status_from_paths(paths: &RuntimePaths) -> Result<ServerBackupSnapshot, String> {
     let path = paths.status_root.join("backup-status.json");
     if !path.is_file() {
@@ -315,50 +670,10 @@ fn server_backup_status_from_paths(paths: &RuntimePaths) -> Result<ServerBackupS
     .map_err(|error| format!("parse server backup status: {error}"))
 }
 
-fn request_windows_service_backup(
-    agent_binary: &std::path::Path,
-    config_path: &std::path::Path,
-) -> Result<(), String> {
-    #[cfg(windows)]
-    {
-        let arguments = agent_arguments("request-backup", Some(config_path));
-        return launch_elevated_agent(agent_binary, &arguments, "request a protected backup");
-    }
-
-    #[cfg(not(windows))]
-    {
-        let _ = (agent_binary, config_path);
-        Err("self-contained Server Desktop backup is supported only on Windows x64".into())
-    }
-}
-
-fn stop_windows_service_agent(agent_binary: &std::path::Path) -> Result<(), String> {
-    #[cfg(windows)]
-    {
-        launch_elevated_agent(agent_binary, "stop", "stop the Server Agent")
-    }
-
-    #[cfg(not(windows))]
-    {
-        let _ = agent_binary;
-        Err("self-contained Server Desktop service control is supported only on Windows x64".into())
-    }
-}
-
-fn agent_arguments(command: &str, config_path: Option<&std::path::Path>) -> String {
-    let Some(config_path) = config_path else {
-        return command.into();
-    };
-    format!(
-        "{command} --config \"{}\"",
-        config_path.display().to_string().replace('"', "\\\"")
-    )
-}
-
 #[cfg(windows)]
-fn launch_elevated_agent(
+fn launch_windows_elevated_agent(
     agent_binary: &Path,
-    arguments: &str,
+    arguments: &[&str],
     operation: &str,
 ) -> Result<(), String> {
     fn wide(value: &OsStr) -> Vec<u16> {
@@ -367,7 +682,7 @@ fn launch_elevated_agent(
 
     let verb = wide(OsStr::new("runas"));
     let executable = wide(agent_binary.as_os_str());
-    let arguments = wide(OsStr::new(arguments));
+    let arguments = wide(OsStr::new(&windows_command_line(arguments)));
     let result = unsafe {
         ShellExecuteW(
             ptr::null_mut(),
@@ -378,9 +693,6 @@ fn launch_elevated_agent(
             SW_HIDE,
         )
     };
-    // ShellExecuteW returns an HINSTANCE (a raw pointer in windows-sys). Its
-    // documented error contract uses the numeric range 0..=32, so convert the
-    // opaque handle to its integer representation before inspecting it.
     let result_code = result as usize;
     if result_code <= 32 {
         return Err(format!(
@@ -388,6 +700,15 @@ fn launch_elevated_agent(
         ));
     }
     Ok(())
+}
+
+#[cfg(windows)]
+fn windows_command_line(arguments: &[&str]) -> String {
+    arguments
+        .iter()
+        .map(|argument| format!("\"{}\"", argument.replace('"', "\\\"")))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 #[cfg(test)]
@@ -415,21 +736,37 @@ mod tests {
     }
 
     #[test]
-    fn backup_agent_arguments_quote_the_private_configuration_path() {
-        let arguments = agent_arguments(
-            "request-backup",
-            Some(std::path::Path::new(
-                "C:/ProgramData/ACCORE ERP/Server/agent-config.json",
-            )),
+    fn platform_runtime_candidate_preserves_tauri_resource_layout() {
+        let candidates = runtime_candidates(
+            Path::new("/Application.app/Contents/Resources"),
+            Path::new("/Application.app/Contents/MacOS"),
         );
-        assert_eq!(
-            arguments,
-            "request-backup --config \"C:/ProgramData/ACCORE ERP/Server/agent-config.json\""
-        );
+        assert!(candidates.iter().any(|candidate| {
+            candidate.ends_with(format!(
+                "Resources/resources/server-runtime/{}",
+                runtime_target()
+            ))
+        }));
     }
 
     #[test]
-    fn server_desktop_claims_the_agent_with_an_explicit_owner() {
-        assert_eq!(SERVER_DESKTOP_CLAIM_ARGUMENTS, "claim --owner server-desktop");
+    fn platform_specific_runtime_contract_has_a_backup_client() {
+        assert!(!frankenphp_name().is_empty());
+        assert!(!mariadb_root_name().is_empty());
+        assert!(!mariadb_dump_name().is_empty());
+        assert!(!mariadb_install_db_relative_path().is_empty());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_agent_arguments_quote_runtime_paths() {
+        assert_eq!(
+            windows_command_line(&[
+                "claim",
+                "--runtime-root",
+                "C:/Program Files/ACCORE ERP/resources/server-runtime/windows-x86_64",
+            ]),
+            "\"claim\" \"--runtime-root\" \"C:/Program Files/ACCORE ERP/resources/server-runtime/windows-x86_64\""
+        );
     }
 }

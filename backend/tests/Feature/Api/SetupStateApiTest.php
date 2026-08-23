@@ -40,6 +40,16 @@ class SetupStateApiTest extends TestCase
             ->assertJsonPath('data.onboarding.starter_bundle_active', false);
     }
 
+    public function test_organization_template_catalog_is_available_before_the_profile_is_saved(): void
+    {
+        $response = $this->authGet(route('v2.setup.organization_templates'));
+
+        $this->assertSuccessResponse($response);
+        $response->assertJsonPath('data.is_applied', false)
+            ->assertJsonPath('data.can_apply', false)
+            ->assertJsonPath('data.templates.0.key', 'single_store_retail');
+    }
+
     public function test_optional_reporting_module_cannot_bypass_the_mandatory_baseline(): void
     {
         $selected = $this->authPost(route('v2.setup.modules.select'), [
@@ -59,13 +69,13 @@ class SetupStateApiTest extends TestCase
         $this->assertDatabaseHas('modules', ['module_key' => 'reports', 'is_active' => false]);
     }
 
-    public function test_technology_commerce_configuration_activates_the_mandatory_bundle_and_keeps_optional_projects_scoped(): void
+    public function test_guided_setup_baseline_activates_the_starter_bundle_and_keeps_optional_projects_scoped(): void
     {
         $this->configureTechnologyCommerceBaseline();
 
         $state = $this->authGet(route('v2.setup.state'));
         $this->assertSuccessResponse($state);
-        $state->assertJsonPath('data.onboarding.profile', 'technology_commerce')
+        $state->assertJsonPath('data.onboarding.profile', 'guided_setup')
             ->assertJsonPath('data.onboarding.phases.foundation.ready', true)
             ->assertJsonPath('data.onboarding.phases.core_operations.ready', true)
             ->assertJsonPath('data.onboarding.next_phase', 'module_activation');

@@ -1,9 +1,9 @@
 "use client";
 
 import { catalogMessage } from "@/lib/i18n";
-import { useState, useRef, forwardRef } from "react";
+import { forwardRef, useState } from "react";
 import { Icon, IconName } from "@/lib/icons";
-import { isArabic as checkIsArabic } from "@/lib/utils";
+import { getTextDirection } from "@/lib/utils";
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
     label?: string;
@@ -11,6 +11,10 @@ export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextArea
     icon?: IconName;
     onClear?: () => void;
     containerClassName?: string;
+}
+
+function valueAsText(value: React.TextareaHTMLAttributes<HTMLTextAreaElement>["value"]): string {
+    return typeof value === "string" || typeof value === "number" ? String(value) : "";
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({
@@ -23,87 +27,56 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({
     onClear,
     value,
     onChange,
+    dir,
+    style,
     ...props
 }, ref) => {
-    const [isArabic, setIsArabic] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const [uncontrolledValue, setUncontrolledValue] = useState("");
+    const explicitDirection = dir === "rtl" || dir === "ltr" ? dir : null;
+    const textValue = value === undefined ? uncontrolledValue : valueAsText(value);
+    const textDirection = explicitDirection ?? getTextDirection(textValue);
 
-    // Detect text direction based on input
-    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const val = e.target.value;
-        setIsArabic(checkIsArabic(val));
-
-        if (onChange) {
-            onChange(e);
+    const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        if (value === undefined) {
+            setUncontrolledValue(event.target.value);
         }
+        onChange?.(event);
     };
 
     return (
-        <div className={`form-group ${containerClassName}`} style={{ width: "100%" }}>
-            {label && <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>}
-
-            <div className="input-wrapper" ref={containerRef} style={{ position: "relative", width: "100%" }}>
+        <div className={`form-group ${containerClassName}`.trim()}>
+            {label ? <label htmlFor={id} className="form-label">{label}</label> : null}
+            <div className="input-wrapper" dir={textDirection}>
                 <textarea
                     ref={ref}
                     id={id}
-                    className={`searchable-select ${className} ${error ? "border-red-500 focus:border-red-500" : ""}`}
-                    style={{
-                        minHeight: "80px",
-                        resize: "vertical",
-                        width: "100%",
-                        padding: "0.75rem 1rem",
-                        paddingLeft: icon ? "3rem" : "1rem",
-                        borderRadius: "var(--radius-md)",
-                        border: "1px solid var(--border-color)",
-                        backgroundColor: "#fff",
-                        direction: isArabic ? "rtl" : "ltr",
-                        textAlign: isArabic ? "right" : "left",
-                    }}
+                    className={`input-direction-aware app-textarea ${icon ? "has-input-icon" : ""} ${className} ${error ? "has-error" : ""}`.trim()}
+                    dir={textDirection}
+                    style={style}
                     value={value}
                     onChange={handleInputChange}
                     {...props}
                 />
-
-                {icon && (
-                    <div className="input-icon" style={{
-                        position: "absolute",
-                        left: "10px",
-                        top: "1rem",
-                        color: "var(--text-light)",
-                        pointerEvents: "none",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
-                    }}>
+                {icon ? (
+                    <span className="input-icon input-icon-top" aria-hidden="true">
                         <Icon name={icon} size={18} />
-                    </div>
-                )}
-
-                {value && onClear && (
+                    </span>
+                ) : null}
+                {valueAsText(value) && onClear ? (
                     <button
                         type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
+                        onClick={(event) => {
+                            event.stopPropagation();
                             onClear();
                         }}
-                        className="clear-btn"
+                        className="clear-btn clear-btn-top"
                         title={catalogMessage("common.general.clear")}
-                        style={{
-                            position: "absolute",
-                            right: "10px",
-                            top: "1rem",
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            color: "var(--text-light)"
-                        }}
                     >
                         <Icon name="x" size={16} />
                     </button>
-                )}
+                ) : null}
             </div>
-
-            {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+            {error ? <p className="input-error-message">{error}</p> : null}
         </div>
     );
 });
