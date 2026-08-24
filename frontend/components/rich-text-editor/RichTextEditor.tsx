@@ -17,6 +17,8 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Placeholder from "@tiptap/extension-placeholder";
 import DOMPurify from "dompurify";
+import { useI18n } from "@/lib/i18n";
+import { EMPTY_RICH_TEXT_DOCUMENT, getRichTextEditorCopy } from "@/lib/i18n/richTextEditor";
 import {
   AlignCenter,
   AlignJustify,
@@ -74,16 +76,6 @@ const SANITIZE_OPTIONS = {
   ALLOW_DATA_ATTR: false,
 };
 
-const TEXT_COLORS = [
-  { value: "#111827", label: "أسود" },
-  { value: "#556681", label: "رمادي أزرق" },
-  { value: "#2563eb", label: "أزرق" },
-  { value: "#059669", label: "أخضر" },
-  { value: "#dc2626", label: "أحمر" },
-  { value: "#7c3aed", label: "بنفسجي" },
-  { value: "#d97706", label: "برتقالي" },
-];
-
 function ToolbarButton({
   label,
   active = false,
@@ -116,11 +108,24 @@ function ToolbarButton({
 export function RichTextEditor({
   value,
   onChange,
-  label = "المحتوى",
-  placeholder = "اكتب محتوى المقالة هنا…",
+  label,
+  placeholder,
   minHeight = 330,
   disabled = false,
 }: RichTextEditorProps) {
+  const { locale } = useI18n();
+  const copy = getRichTextEditorCopy(locale);
+  const resolvedLabel = label ?? copy.content;
+  const resolvedPlaceholder = placeholder ?? copy.placeholder;
+  const textColors = [
+    { value: "#111827", label: copy.black },
+    { value: "#556681", label: copy.slateBlue },
+    { value: "#2563eb", label: copy.blue },
+    { value: "#059669", label: copy.green },
+    { value: "#dc2626", label: copy.red },
+    { value: "#7c3aed", label: copy.purple },
+    { value: "#d97706", label: copy.orange },
+  ];
   const [sourceMode, setSourceMode] = useState(false);
   const [sourceValue, setSourceValue] = useState(value);
 
@@ -158,9 +163,9 @@ export function RichTextEditor({
       TableCell,
       TaskList,
       TaskItem.configure({ nested: true }),
-      Placeholder.configure({ placeholder }),
+      Placeholder.configure({ placeholder: resolvedPlaceholder }),
     ],
-    content: value || "<p></p>",
+    content: value || EMPTY_RICH_TEXT_DOCUMENT,
     editorProps: {
       attributes: {
         class: "rte-prosemirror",
@@ -174,7 +179,7 @@ export function RichTextEditor({
     if (!editor || sourceMode) return;
     const currentValue = editor.getHTML();
     if (value !== currentValue) {
-      editor.commands.setContent(value || "<p></p>", { emitUpdate: false });
+      editor.commands.setContent(value || EMPTY_RICH_TEXT_DOCUMENT, { emitUpdate: false });
     }
   }, [editor, sourceMode, value]);
 
@@ -192,24 +197,24 @@ export function RichTextEditor({
 
   const addLink = () => {
     const previousUrl = editor.getAttributes("link").href as string | undefined;
-    const url = window.prompt("أدخل رابطاً آمناً يبدأ بـ https:// أو http:// أو mailto:", previousUrl || "https://");
+    const url = window.prompt(copy.linkPrompt, previousUrl || "https://");
     if (url === null) return;
     if (!url.trim()) {
       editor.chain().focus().unsetLink().run();
       return;
     }
     if (!/^(https?:|mailto:)/i.test(url.trim())) {
-      window.alert("يُسمح بروابط HTTP وHTTPS والبريد الإلكتروني فقط.");
+      window.alert(copy.invalidLink);
       return;
     }
     editor.chain().focus().extendMarkRange("link").setLink({ href: url.trim() }).run();
   };
 
   const addImage = () => {
-    const url = window.prompt("أدخل رابط الصورة (HTTPS أو HTTP):", "https://");
+    const url = window.prompt(copy.imagePrompt, "https://");
     if (!url) return;
     if (!/^https?:\/\//i.test(url.trim())) {
-      window.alert("يُسمح بروابط الصور عبر HTTP أو HTTPS فقط.");
+      window.alert(copy.invalidImage);
       return;
     }
     editor.chain().focus().setImage({ src: url.trim() }).run();
@@ -218,7 +223,7 @@ export function RichTextEditor({
   const toggleSourceMode = () => {
     if (sourceMode) {
       const cleanHtml = DOMPurify.sanitize(sourceValue, SANITIZE_OPTIONS);
-      editor.commands.setContent(cleanHtml || "<p></p>", { emitUpdate: false });
+      editor.commands.setContent(cleanHtml || EMPTY_RICH_TEXT_DOCUMENT, { emitUpdate: false });
       onChange(editor.getHTML());
       setSourceMode(false);
       return;
@@ -230,20 +235,20 @@ export function RichTextEditor({
   return (
     <section className={`rich-text-editor${disabled ? " is-disabled" : ""}`}>
       <div className="rte-label-row">
-        <label className="rte-label">{label}</label>
-        <span className="rte-hint">يُحفظ المحتوى بتنسيق HTML آمن</span>
+        <label className="rte-label">{resolvedLabel}</label>
+        <span className="rte-hint">{copy.safeHtmlHint}</span>
       </div>
 
-      <div className="rte-toolbar" role="toolbar" aria-label="أدوات تنسيق المقال">
+      <div className="rte-toolbar" role="toolbar" aria-label={copy.formattingTools}>
         <div className="rte-toolbar-group">
-          <ToolbarButton label="تراجع" disabled={!editor.can().undo() || disabled} onClick={invoke(() => editor.chain().focus().undo().run())}><Undo2 size={17} /></ToolbarButton>
-          <ToolbarButton label="إعادة" disabled={!editor.can().redo() || disabled} onClick={invoke(() => editor.chain().focus().redo().run())}><Redo2 size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.undo} disabled={!editor.can().undo() || disabled} onClick={invoke(() => editor.chain().focus().undo().run())}><Undo2 size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.redo} disabled={!editor.can().redo() || disabled} onClick={invoke(() => editor.chain().focus().redo().run())}><Redo2 size={17} /></ToolbarButton>
         </div>
 
         <div className="rte-toolbar-group">
           <select
             className="rte-select"
-            aria-label="مستوى العنوان"
+            aria-label={copy.headingLevel}
             disabled={disabled || sourceMode}
             value={editor.isActive("heading", { level: 1 }) ? "h1" : editor.isActive("heading", { level: 2 }) ? "h2" : editor.isActive("heading", { level: 3 }) ? "h3" : "paragraph"}
             onChange={(event) => {
@@ -252,77 +257,77 @@ export function RichTextEditor({
               else editor.chain().focus().toggleHeading({ level: Number(level.slice(1)) as 1 | 2 | 3 }).run();
             }}
           >
-            <option value="paragraph">نص عادي</option>
-            <option value="h1">عنوان رئيسي</option>
-            <option value="h2">عنوان فرعي</option>
-            <option value="h3">عنوان صغير</option>
+            <option value="paragraph">{copy.normalText}</option>
+            <option value="h1">{copy.heading1}</option>
+            <option value="h2">{copy.heading2}</option>
+            <option value="h3">{copy.heading3}</option>
           </select>
-          <ToolbarButton label="عنوان رئيسي" active={editor.isActive("heading", { level: 1 })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleHeading({ level: 1 }).run())}><Heading1 size={17} /></ToolbarButton>
-          <ToolbarButton label="عنوان فرعي" active={editor.isActive("heading", { level: 2 })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleHeading({ level: 2 }).run())}><Heading2 size={17} /></ToolbarButton>
-          <ToolbarButton label="عنوان صغير" active={editor.isActive("heading", { level: 3 })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleHeading({ level: 3 }).run())}><Heading3 size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.heading1} active={editor.isActive("heading", { level: 1 })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleHeading({ level: 1 }).run())}><Heading1 size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.heading2} active={editor.isActive("heading", { level: 2 })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleHeading({ level: 2 }).run())}><Heading2 size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.heading3} active={editor.isActive("heading", { level: 3 })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleHeading({ level: 3 }).run())}><Heading3 size={17} /></ToolbarButton>
         </div>
 
         <div className="rte-toolbar-group">
-          <ToolbarButton label="عريض" active={editor.isActive("bold")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleBold().run())}><Bold size={17} /></ToolbarButton>
-          <ToolbarButton label="مائل" active={editor.isActive("italic")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleItalic().run())}><Italic size={17} /></ToolbarButton>
-          <ToolbarButton label="تحته خط" active={editor.isActive("underline")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleUnderline().run())}><UnderlineIcon size={17} /></ToolbarButton>
-          <ToolbarButton label="يتوسطه خط" active={editor.isActive("strike")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleStrike().run())}><Strikethrough size={17} /></ToolbarButton>
-          <ToolbarButton label="تمييز" active={editor.isActive("highlight")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleHighlight({ color: "#fef08a" }).run())}><Highlighter size={17} /></ToolbarButton>
-          <ToolbarButton label="إزالة التنسيق" disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().unsetAllMarks().clearNodes().run())}><RemoveFormatting size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.bold} active={editor.isActive("bold")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleBold().run())}><Bold size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.italic} active={editor.isActive("italic")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleItalic().run())}><Italic size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.underline} active={editor.isActive("underline")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleUnderline().run())}><UnderlineIcon size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.strike} active={editor.isActive("strike")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleStrike().run())}><Strikethrough size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.highlight} active={editor.isActive("highlight")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleHighlight({ color: "#fef08a" }).run())}><Highlighter size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.removeFormatting} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().unsetAllMarks().clearNodes().run())}><RemoveFormatting size={17} /></ToolbarButton>
         </div>
 
         <div className="rte-toolbar-group">
-          <label className="rte-color-control" title="لون النص">
-            <span className="sr-only">لون النص</span>
+          <label className="rte-color-control" title={copy.textColor}>
+            <span className="sr-only">{copy.textColor}</span>
             <SpellCheck2 size={17} />
             <select
-              aria-label="لون النص"
+              aria-label={copy.textColor}
               disabled={disabled || sourceMode}
               value={editor.getAttributes("textStyle").color || "#111827"}
               onChange={(event) => editor.chain().focus().setColor(event.target.value).run()}
             >
-              {TEXT_COLORS.map((color) => <option key={color.value} value={color.value}>{color.label}</option>)}
+              {textColors.map((color) => <option key={color.value} value={color.value}>{color.label}</option>)}
             </select>
           </label>
-          <ToolbarButton label="محاذاة يمين" active={editor.isActive({ textAlign: "right" })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().setTextAlign("right").run())}><AlignRight size={17} /></ToolbarButton>
-          <ToolbarButton label="توسيط" active={editor.isActive({ textAlign: "center" })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().setTextAlign("center").run())}><AlignCenter size={17} /></ToolbarButton>
-          <ToolbarButton label="محاذاة يسار" active={editor.isActive({ textAlign: "left" })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().setTextAlign("left").run())}><AlignLeft size={17} /></ToolbarButton>
-          <ToolbarButton label="ضبط" active={editor.isActive({ textAlign: "justify" })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().setTextAlign("justify").run())}><AlignJustify size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.alignRight} active={editor.isActive({ textAlign: "right" })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().setTextAlign("right").run())}><AlignRight size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.alignCenter} active={editor.isActive({ textAlign: "center" })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().setTextAlign("center").run())}><AlignCenter size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.alignLeft} active={editor.isActive({ textAlign: "left" })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().setTextAlign("left").run())}><AlignLeft size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.justify} active={editor.isActive({ textAlign: "justify" })} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().setTextAlign("justify").run())}><AlignJustify size={17} /></ToolbarButton>
         </div>
 
         <div className="rte-toolbar-group">
-          <ToolbarButton label="قائمة نقطية" active={editor.isActive("bulletList")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleBulletList().run())}><List size={17} /></ToolbarButton>
-          <ToolbarButton label="قائمة مرقمة" active={editor.isActive("orderedList")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleOrderedList().run())}><ListOrdered size={17} /></ToolbarButton>
-          <ToolbarButton label="قائمة مهام" active={editor.isActive("taskList")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleTaskList().run())}><ListChecks size={17} /></ToolbarButton>
-          <ToolbarButton label="اقتباس" active={editor.isActive("blockquote")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleBlockquote().run())}><Quote size={17} /></ToolbarButton>
-          <ToolbarButton label="كتلة كود" active={editor.isActive("codeBlock")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleCodeBlock().run())}><Code2 size={17} /></ToolbarButton>
-          <ToolbarButton label="فاصل" disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().setHorizontalRule().run())}><Minus size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.bulletList} active={editor.isActive("bulletList")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleBulletList().run())}><List size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.orderedList} active={editor.isActive("orderedList")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleOrderedList().run())}><ListOrdered size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.taskList} active={editor.isActive("taskList")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleTaskList().run())}><ListChecks size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.quote} active={editor.isActive("blockquote")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleBlockquote().run())}><Quote size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.codeBlock} active={editor.isActive("codeBlock")} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().toggleCodeBlock().run())}><Code2 size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.divider} disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().setHorizontalRule().run())}><Minus size={17} /></ToolbarButton>
         </div>
 
         <div className="rte-toolbar-group">
-          <ToolbarButton label="إضافة رابط" active={editor.isActive("link")} disabled={disabled || sourceMode} onClick={addLink}><Link2 size={17} /></ToolbarButton>
-          <ToolbarButton label="إزالة الرابط" disabled={disabled || sourceMode || !editor.isActive("link")} onClick={invoke(() => editor.chain().focus().unsetLink().run())}><Unlink size={17} /></ToolbarButton>
-          <ToolbarButton label="إدراج صورة من رابط" disabled={disabled || sourceMode} onClick={addImage}><ImagePlus size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.addLink} active={editor.isActive("link")} disabled={disabled || sourceMode} onClick={addLink}><Link2 size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.removeLink} disabled={disabled || sourceMode || !editor.isActive("link")} onClick={invoke(() => editor.chain().focus().unsetLink().run())}><Unlink size={17} /></ToolbarButton>
+          <ToolbarButton label={copy.insertImage} disabled={disabled || sourceMode} onClick={addImage}><ImagePlus size={17} /></ToolbarButton>
         </div>
 
         <div className="rte-toolbar-group rte-table-actions">
           <details>
-            <summary className="rte-table-summary" title="أدوات الجداول"><Table2 size={17} /><span>جدول</span></summary>
+            <summary className="rte-table-summary" title={copy.tableTools}><Table2 size={17} /><span>{copy.table}</span></summary>
             <div className="rte-table-menu">
-              <button type="button" disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run())}><ListPlus size={15} /> إدراج 3×3</button>
-              <button type="button" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().addRowAfter().run())}><Rows3 size={15} /> إضافة صف</button>
-              <button type="button" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().addColumnAfter().run())}><TableColumnsSplit size={15} /> إضافة عمود</button>
-              <button type="button" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().deleteRow().run())}><Trash2 size={15} /> حذف صف</button>
-              <button type="button" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().deleteColumn().run())}><Trash2 size={15} /> حذف عمود</button>
-              <button type="button" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().mergeOrSplit().run())}><TableCellsMerge size={15} /> دمج/تقسيم خلية</button>
-              <button type="button" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().toggleHeaderRow().run())}><TableProperties size={15} /> صف العناوين</button>
-              <button type="button" className="rte-danger-action" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().deleteTable().run())}><Trash2 size={15} /> حذف الجدول</button>
+              <button type="button" disabled={disabled || sourceMode} onClick={invoke(() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run())}><ListPlus size={15} /> {copy.insertTable}</button>
+              <button type="button" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().addRowAfter().run())}><Rows3 size={15} /> {copy.addRow}</button>
+              <button type="button" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().addColumnAfter().run())}><TableColumnsSplit size={15} /> {copy.addColumn}</button>
+              <button type="button" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().deleteRow().run())}><Trash2 size={15} /> {copy.deleteRow}</button>
+              <button type="button" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().deleteColumn().run())}><Trash2 size={15} /> {copy.deleteColumn}</button>
+              <button type="button" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().mergeOrSplit().run())}><TableCellsMerge size={15} /> {copy.mergeOrSplitCell}</button>
+              <button type="button" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().toggleHeaderRow().run())}><TableProperties size={15} /> {copy.headerRow}</button>
+              <button type="button" className="rte-danger-action" disabled={disabled || sourceMode || !editor.isActive("table")} onClick={invoke(() => editor.chain().focus().deleteTable().run())}><Trash2 size={15} /> {copy.deleteTable}</button>
             </div>
           </details>
         </div>
 
         <div className="rte-toolbar-group rte-toolbar-end">
-          <ToolbarButton label={sourceMode ? "العودة إلى المحرر" : "تحرير HTML"} active={sourceMode} disabled={disabled} onClick={toggleSourceMode}><FileCode2 size={17} /></ToolbarButton>
+          <ToolbarButton label={sourceMode ? copy.returnToEditor : copy.editHtml} active={sourceMode} disabled={disabled} onClick={toggleSourceMode}><FileCode2 size={17} /></ToolbarButton>
         </div>
       </div>
 
@@ -334,24 +339,26 @@ export function RichTextEditor({
           style={{ minHeight }}
           spellCheck={false}
           onChange={(event) => setSourceValue(event.target.value)}
-          aria-label="محرر HTML"
+          aria-label={copy.htmlEditor}
         />
       ) : (
         <EditorContent editor={editor} className="rte-content-editor" style={{ minHeight }} />
       )}
 
       <div className="rte-footer">
-        <span>اختصارات: Ctrl/Cmd+B للعريض، Ctrl/Cmd+I للمائل، Ctrl/Cmd+K للرابط</span>
-        <span>{editor.getText().length} حرفاً</span>
+        <span>{copy.keyboardShortcuts}</span>
+        <span>{editor.getText().length} {copy.characters}</span>
       </div>
     </section>
   );
 }
 
 export function RichTextContent({ html, className = "" }: { html?: string; className?: string }) {
+  const { locale } = useI18n();
+  const copy = getRichTextEditorCopy(locale);
   const sanitizedHtml = DOMPurify.sanitize(html || "", SANITIZE_OPTIONS);
-  if (!sanitizedHtml || sanitizedHtml === "<p></p>") {
-    return <p className="rte-empty-content">لا يوجد محتوى لهذه المقالة.</p>;
+  if (!sanitizedHtml || sanitizedHtml === EMPTY_RICH_TEXT_DOCUMENT) {
+    return <p className="rte-empty-content">{copy.emptyContent}</p>;
   }
 
   return <div className={`rte-rendered-content ${className}`.trim()} dir="auto" dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />;

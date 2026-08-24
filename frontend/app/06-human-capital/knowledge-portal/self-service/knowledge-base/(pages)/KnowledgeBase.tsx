@@ -252,7 +252,6 @@ export function KnowledgeBase() {
             label={i18n.catalog["common.general.content"]}
             value={articleForm.content}
             onChange={(content) => setArticleForm({ ...articleForm, content })}
-            placeholder="اكتب المقالة، وأضف العناوين والجداول والتنسيقات التي تحتاجها…"
             minHeight={360}
           />
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
