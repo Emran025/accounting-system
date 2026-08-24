@@ -21,3 +21,25 @@ export function assertFrankenPhpRuntimeVersion(output, expectedVersion, target) 
     `unexpected FrankenPHP runtime identity for ${target}: expected FrankenPHP ${expectedVersion}, received ${received}`
   );
 }
+
+/**
+ * The encrypted transport remains disabled until its runtime preconditions are
+ * proved on every distributed server platform. The input must be a line-based
+ * `get_loaded_extensions()` result emitted by the embedded FrankenPHP binary.
+ */
+export function assertFrankenPhpRuntimeExtensions(output, requiredExtensions, target) {
+  const loadedExtensions = new Set(
+    output
+      .split(/\r?\n/)
+      .map((extension) => extension.trim().toLowerCase())
+      .filter(Boolean)
+  );
+  const missingExtensions = requiredExtensions.filter(
+    (extension) => !loadedExtensions.has(extension.toLowerCase())
+  );
+  if (missingExtensions.length === 0) return;
+
+  throw new Error(
+    `embedded FrankenPHP runtime for ${target} is missing required PHP extensions: ${missingExtensions.join(', ')}`
+  );
+}

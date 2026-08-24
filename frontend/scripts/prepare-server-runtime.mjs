@@ -1,7 +1,10 @@
 import { spawn } from 'node:child_process';
 import { chmod, cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
-import { assertFrankenPhpRuntimeVersion } from './frankenphp-runtime-policy.mjs';
+import {
+  assertFrankenPhpRuntimeExtensions,
+  assertFrankenPhpRuntimeVersion,
+} from './frankenphp-runtime-policy.mjs';
 import { removeInertFrankenPhpRpath, verifyMachOPayload } from './macos-macho.mjs';
 import {
   macosMariaDbCmakeFlags,
@@ -26,6 +29,7 @@ const destinationRoot = resolve(
 const cacheRoot = resolve(
   process.env.ACCORE_RUNTIME_DOWNLOAD_CACHE ?? join(repositoryRoot, '.runtime-cache', target)
 );
+const sealedTransportRuntimeExtensions = ['sodium', 'openssl', 'gmp'];
 
 await mkdir(cacheRoot, { recursive: true });
 await rm(destinationRoot, { recursive: true, force: true });
@@ -236,6 +240,13 @@ async function verifyFrankenPhpRuntime() {
   const frankenPhp = join(destinationRoot, definition.layout.frankenPhp);
   const version = await runCapture(frankenPhp, ['--version']);
   assertFrankenPhpRuntimeVersion(version, definition.frankenPhp.version, target);
+
+  const extensions = await runCapture(
+    frankenPhp,
+    ['php-cli', '-r', 'echo implode(PHP_EOL, get_loaded_extensions()), PHP_EOL;'],
+    { cwd: destinationRoot }
+  );
+  assertFrankenPhpRuntimeExtensions(extensions, sealedTransportRuntimeExtensions, target);
 }
 
 async function verifyMacosRuntimeLinkage() {
@@ -294,9 +305,9 @@ async function run(command, args, additionalEnvironment = {}) {
   });
 }
 
-async function runCapture(command, args) {
+async function runCapture(command, args, options = {}) {
   return new Promise((resolveCommand, rejectCommand) => {
-    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'], ...options });
     let stdout = '';
     let stderr = '';
     child.stdout.setEncoding('utf8');
