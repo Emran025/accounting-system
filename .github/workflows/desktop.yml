@@ -129,7 +129,7 @@ jobs:
         with:
           php-version: "8.3"
           tools: composer
-          extensions: fileinfo, sodium
+          extensions: fileinfo, sodium, dom, xml
 
       - name: Install production Laravel dependencies for Server Desktop
         if: matrix.flavor == 'server'
@@ -336,7 +336,7 @@ jobs:
         with:
           php-version: "8.3"
           tools: composer
-          extensions: fileinfo, sodium
+          extensions: fileinfo, sodium, dom, xml
 
       - name: Install production Laravel dependencies for Server Headless
         working-directory: backend
@@ -471,7 +471,7 @@ jobs:
         with:
           php-version: "8.3"
           tools: composer
-          extensions: fileinfo, sodium
+          extensions: fileinfo, sodium, dom, xml
 
       - name: Install production Laravel dependencies
         working-directory: backend
