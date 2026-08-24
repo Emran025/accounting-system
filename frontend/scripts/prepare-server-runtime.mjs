@@ -382,7 +382,7 @@ function getTargets() {
         id: 'frankenphp',
         version: '1.12.7',
         url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-linux-x86_64',
-        sha256: '207f65229637ae698e816ef7cbac31dd2bb57322a95d280789cea93e32cdd4f9',
+        sha256: '3cab775741335fd220cf53b6c3bea0bbb2244563837b7ad587bd41238370e049',
         archive: 'frankenphp-linux-x86_64',
       },
       mariadb: {
