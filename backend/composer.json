@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "ext-sodium": "*",
+        "ezyang/htmlpurifier": "^4.19",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1"
     },
