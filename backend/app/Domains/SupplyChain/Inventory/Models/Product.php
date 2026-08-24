@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Builder;
 use App\Domains\EnterpriseCore\IdentityAccess\Models\User;
 use App\Domains\Finance\ForeignExchange\Models\Currency;
 use App\Domains\Commercial\SalesLifecycle\Models\InvoiceItem;
+use App\Domains\Commercial\Marketplace\Models\MarketplaceCatalogPublication;
 use App\Domains\SupplyChain\Procurement\Models\Purchase;
 use App\Support\Localization\LocalizedValue;
 
@@ -147,6 +149,11 @@ class Product extends Model
     public function purchases(): HasMany
     {
         return $this->hasMany(Purchase::class);
+    }
+
+    public function marketplacePublication(): HasOne
+    {
+        return $this->hasOne(MarketplaceCatalogPublication::class, 'product_id');
     }
 
     public function invoiceItems(): HasMany

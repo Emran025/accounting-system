@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V2\Commercial\SalesLifecycle\{SalesController, Sale
 use App\Http\Controllers\Api\V2\Commercial\RevenueReceivables\ArTransactionsController;
 use App\Http\Controllers\Api\V2\Commercial\MarketingDistribution\SalesRepresentativeController;
 use App\Http\Controllers\Api\V2\Commercial\CRM\ArController;
+use App\Http\Controllers\Api\V2\Commercial\Marketplace\MarketplaceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -132,7 +133,35 @@ Route::group(['prefix' => 'crm', 'middleware' => 'can:ar_customers,view'], funct
     });
 });
 
-// ── 08. Services Catalogue (Sales & Services Engine)
+// ── 08. Marketplace Catalog & Offers (Commercial/Marketplace)
+Route::group(['prefix' => 'marketplace', 'middleware' => 'can:marketplace,view'], function () {
+    Route::get('/merchants', [MarketplaceController::class, 'merchants'])->name('v2.marketplace.merchants.index');
+    Route::get('/merchants/{merchant}', [MarketplaceController::class, 'showMerchant'])->name('v2.marketplace.merchants.show');
+    Route::middleware(['can:marketplace,create', 'throttle:api-write'])->post('/merchants', [MarketplaceController::class, 'storeMerchant'])->name('v2.marketplace.merchants.store');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-write'])->put('/merchants/{merchant}', [MarketplaceController::class, 'updateMerchant'])->name('v2.marketplace.merchants.update');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-sensitive'])->post('/merchants/{merchant}/verify', [MarketplaceController::class, 'verifyMerchant'])->name('v2.marketplace.merchants.verify');
+
+    Route::get('/publications', [MarketplaceController::class, 'publications'])->name('v2.marketplace.publications.index');
+    Route::get('/publications/{publication}', [MarketplaceController::class, 'showPublication'])->name('v2.marketplace.publications.show');
+    Route::middleware(['can:marketplace,create', 'throttle:api-write'])->post('/publications', [MarketplaceController::class, 'storePublication'])->name('v2.marketplace.publications.store');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-write'])->put('/publications/{publication}', [MarketplaceController::class, 'updatePublication'])->name('v2.marketplace.publications.update');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-sensitive'])->post('/publications/{publication}/publish', [MarketplaceController::class, 'publishPublication'])->name('v2.marketplace.publications.publish');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-sensitive'])->post('/publications/{publication}/withdraw', [MarketplaceController::class, 'withdrawPublication'])->name('v2.marketplace.publications.withdraw');
+
+    Route::get('/offers', [MarketplaceController::class, 'offers'])->name('v2.marketplace.offers.index');
+    Route::get('/offers/{offer}', [MarketplaceController::class, 'showOffer'])->name('v2.marketplace.offers.show');
+    Route::middleware(['can:marketplace,create', 'throttle:api-write'])->post('/offers', [MarketplaceController::class, 'storeOffer'])->name('v2.marketplace.offers.store');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-write'])->put('/offers/{offer}', [MarketplaceController::class, 'updateOffer'])->name('v2.marketplace.offers.update');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-sensitive'])->post('/offers/{offer}/publish', [MarketplaceController::class, 'publishOffer'])->name('v2.marketplace.offers.publish');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-sensitive'])->post('/offers/{offer}/withdraw', [MarketplaceController::class, 'withdrawOffer'])->name('v2.marketplace.offers.withdraw');
+
+    Route::middleware('can:marketplace,edit')->group(function () {
+        Route::get('/outbox', [MarketplaceController::class, 'outbox'])->name('v2.marketplace.outbox.index');
+        Route::middleware('throttle:api-sensitive')->post('/outbox/dispatch', [MarketplaceController::class, 'dispatchOutbox'])->name('v2.marketplace.outbox.dispatch');
+    });
+});
+
+// ── 09. Services Catalogue (Sales & Services Engine)
 Route::group(['prefix' => 'services', 'middleware' => 'can:sales,view'], function () {
     Route::get('/', [ServiceController::class, 'index'])->name('v2.services.index');
     Route::middleware(['can:sales,create', 'throttle:api-write'])->post('/', [ServiceController::class, 'store'])->name('v2.services.store');

@@ -286,6 +286,34 @@ export const CommercialDomain: Domain = {
             ],
         },
         // ─────────────────────────────────────────────────────────────
+        // Capability: Marketplace Catalog & Offers
+        // ─────────────────────────────────────────────────────────────
+        {
+            id: "marketplace",
+            title: catalogMessage("navigation.commercialConfig.marketplace"),
+            icon: "box",
+            description: catalogMessage("navigation.commercialConfig.marketplaceDescription"),
+            groups: [
+                {
+                    id: "catalog-offers",
+                    title: catalogMessage("navigation.commercialConfig.marketplaceOperations"),
+                    description: catalogMessage("navigation.commercialConfig.marketplaceDescription"),
+                    screens: [
+                        {
+                            id: "marketplace-dashboard",
+                            title: catalogMessage("navigation.commercialConfig.marketplace"),
+                            icon: "box",
+                            description: catalogMessage("navigation.commercialConfig.marketplaceDescription"),
+                            href: "/02-commercial/marketplace/catalog-offers/marketplace-dashboard",
+                            permissions: [],
+                            module: "marketplace",
+                        },
+                    ],
+                },
+            ],
+        },
+
+        // ─────────────────────────────────────────────────────────────
         // Capability: Managing and monitoring sales of in-stock 
         // and non-in-stock products (Instant Services)
         // ─────────────────────────────────────────────────────────────

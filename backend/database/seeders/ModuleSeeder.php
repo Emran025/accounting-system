@@ -26,6 +26,7 @@ class ModuleSeeder extends Seeder
             ['module_key' => 'deferred_sales', 'module_name_ar' => 'المبيعات الآجلة', 'module_name_en' => 'Deferred Sales', 'category' => 'sales', 'icon' => 'dollar', 'sort_order' => 12],
             ['module_key' => 'returns', 'module_name_ar' => 'مرتجعات المبيعات', 'module_name_en' => 'Sales Returns', 'category' => 'sales', 'icon' => 'history', 'sort_order' => 13],
             ['module_key' => 'representatives', 'module_name_ar' => 'المناديب والمسوقين', 'module_name_en' => 'Sales Reps', 'category' => 'sales', 'icon' => 'users', 'sort_order' => 14],
+            ['module_key' => 'marketplace', 'module_name_ar' => 'منصة المنتجات والعروض', 'module_name_en' => 'Marketplace Catalog & Offers', 'category' => 'sales', 'icon' => 'store', 'sort_order' => 15],
             ['module_key' => 'products', 'module_name_ar' => 'المنتجات', 'module_name_en' => 'Products', 'category' => 'inventory', 'icon' => 'box', 'sort_order' => 20],
             ['module_key' => 'purchases', 'module_name_ar' => 'المشتريات', 'module_name_en' => 'Purchases', 'category' => 'purchases', 'icon' => 'download', 'sort_order' => 30],
             ['module_key' => 'expenses', 'module_name_ar' => 'المصروفات', 'module_name_en' => 'Expenses', 'category' => 'purchases', 'icon' => 'dollar', 'sort_order' => 31],
