@@ -409,7 +409,7 @@ function getTargets() {
     ),
     'macos-x86_64': macDefinition(
       'x86_64',
-      '283dc2821190e46703b7f67c1ed8955ec9f315f7a089473cad306288f2354281'
+      'd3b5734892f6d0d637b8ddb23b8efd52403a19c360d1d7f71a65d07de5b09a9a'
     ),
   };
 }
