@@ -7,6 +7,7 @@ import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { TextInput } from "@/components/ui/TextInput";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/select";
+import { RichTextContent, RichTextEditor } from "@/components/rich-text-editor/RichTextEditor";
 import { fetchAPI } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { getIcon } from "@/lib/icons";
@@ -79,7 +80,8 @@ export function KnowledgeBase() {
   };
 
   const handleSaveArticle = async () => {
-    if (!articleForm.title || !articleForm.content) { showToast(i18n.catalog["common.general.pleaseFillRequiredFields.alternative2"], "error"); return; }
+    const articleText = articleForm.content.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+    if (!articleForm.title || !articleText) { showToast(i18n.catalog["common.general.pleaseFillRequiredFields.alternative2"], "error"); return; }
     try {
       await fetchAPI(API_ENDPOINTS.HUMAN_CAPITAL.KNOWLEDGE.BASE, {
         method: "POST", body: JSON.stringify({
@@ -246,7 +248,13 @@ export function KnowledgeBase() {
             />
             <TextInput label={i18n.catalog["common.general.tags"]} value={articleForm.tags} onChange={(e) => setArticleForm({ ...articleForm, tags: e.target.value })} placeholder={i18n.catalog["common.general.tag1Tag2"]} />
           </div>
-          <Textarea label={i18n.catalog["common.general.content"]} value={articleForm.content} onChange={(e) => setArticleForm({ ...articleForm, content: e.target.value })} rows={8} />
+          <RichTextEditor
+            label={i18n.catalog["common.general.content"]}
+            value={articleForm.content}
+            onChange={(content) => setArticleForm({ ...articleForm, content })}
+            placeholder="اكتب المقالة، وأضف العناوين والجداول والتنسيقات التي تحتاجها…"
+            minHeight={360}
+          />
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <input type="checkbox" checked={articleForm.is_published} onChange={(e) => setArticleForm({ ...articleForm, is_published: e.target.checked })} id="is_published" />
             <Label htmlFor="is_published" className="text-secondary">{i18n.catalog["common.general.publishArticleImmediately"]}</Label>
@@ -269,7 +277,9 @@ export function KnowledgeBase() {
           {selectedArticle.tags && selectedArticle.tags.length > 0 && <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             {selectedArticle.tags.map((t, i) => <span key={i} className="badge badge-info">{t}</span>)}
           </div>}
-          <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.8, padding: "1rem", background: "var(--bg-secondary)", borderRadius: "8px" }}>{selectedArticle.content}</div>
+          <div style={{ padding: "1rem", background: "var(--bg-secondary)", borderRadius: "8px" }}>
+            <RichTextContent html={selectedArticle.content} />
+          </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Button variant="secondary" onClick={() => handleMarkHelpful(selectedArticle.id)} icon="thumbs-up">{i18n.catalog["common.general.helpful"]}</Button>
           </div>
