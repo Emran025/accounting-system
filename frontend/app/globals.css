@@ -7568,3 +7568,132 @@ body.nav-sidebar-is-collapsed .sidebar-toggle-btn {
 .setup-actions-primary { position: sticky; bottom: 0.75rem; z-index: 3; justify-content: flex-end; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: color-mix(in srgb, var(--surface-white) 92%, transparent); box-shadow: var(--shadow-sm); backdrop-filter: blur(8px); }
 @media (max-width: 1023px) { .settings-wrapper.setup-workflow { width: 100%; } .setup-template-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 639px) { .setup-profile-heading { gap: 0.6rem; } .setup-template-grid { grid-template-columns: 1fr; } .setup-template-card { min-height: 0; } .setup-actions-primary { position: static; flex-direction: column; } .setup-actions-primary .btn { width: 100%; } }
+
+/* Marketplace workspace --------------------------------------------------- */
+.marketplace-workspace {
+  display: grid;
+  gap: 1rem;
+}
+
+.marketplace-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.marketplace-controls {
+  align-items: end;
+  background: var(--surface-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  padding: 0.9rem 1rem;
+}
+
+.marketplace-controls .filter-group {
+  min-width: min(100%, 210px);
+}
+
+.marketplace-analytics {
+  display: grid;
+  gap: 1rem;
+}
+
+.marketplace-funnel {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  gap: 0.75rem;
+  background: var(--surface-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  padding: 1rem;
+}
+
+.marketplace-funnel > div {
+  border-inline-start: 3px solid var(--primary-color);
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  padding-inline-start: 0.7rem;
+}
+
+.marketplace-funnel strong {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.marketplace-funnel span {
+  color: var(--text-primary);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.marketplace-form-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.marketplace-status {
+  align-items: center;
+  background: color-mix(in srgb, var(--info-color) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--info-color) 28%, transparent);
+  border-radius: 999px;
+  color: var(--info-color);
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.35rem 0.6rem;
+  text-transform: capitalize;
+}
+
+.marketplace-status--published,
+.marketplace-status--verified,
+.marketplace-status--processed,
+.marketplace-status--converted,
+.marketplace-status--delivered,
+.marketplace-status--qualified {
+  background: color-mix(in srgb, var(--success-color) 12%, transparent);
+  border-color: color-mix(in srgb, var(--success-color) 28%, transparent);
+  color: var(--success-color);
+}
+
+.marketplace-status--failed,
+.marketplace-status--lost,
+.marketplace-status--rejected,
+.marketplace-status--cancelled {
+  background: color-mix(in srgb, var(--danger-color) 11%, transparent);
+  border-color: color-mix(in srgb, var(--danger-color) 28%, transparent);
+  color: var(--danger-color);
+}
+
+.marketplace-status--scheduled,
+.marketplace-status--assigned,
+.marketplace-status--quoted {
+  background: color-mix(in srgb, var(--warning-color) 13%, transparent);
+  border-color: color-mix(in srgb, var(--warning-color) 28%, transparent);
+  color: var(--accent-color);
+}
+
+@media (max-width: 860px) {
+  .marketplace-funnel,
+  .marketplace-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .marketplace-header-actions {
+    justify-content: stretch;
+  }
+}
+
+.marketplace-tabs {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding-inline: 0.25rem;
+}

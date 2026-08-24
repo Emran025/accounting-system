@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\V2\Commercial\RevenueReceivables\ArTransactionsCont
 use App\Http\Controllers\Api\V2\Commercial\MarketingDistribution\SalesRepresentativeController;
 use App\Http\Controllers\Api\V2\Commercial\CRM\ArController;
 use App\Http\Controllers\Api\V2\Commercial\Marketplace\MarketplaceController;
+use App\Http\Controllers\Api\V2\Commercial\Marketplace\MarketplaceInquiryController;
+use App\Http\Controllers\Api\V2\Commercial\Marketplace\MarketplaceAnalyticsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -135,11 +137,21 @@ Route::group(['prefix' => 'crm', 'middleware' => 'can:ar_customers,view'], funct
 
 // ── 08. Marketplace Catalog & Offers (Commercial/Marketplace)
 Route::group(['prefix' => 'marketplace', 'middleware' => 'can:marketplace,view'], function () {
+    Route::get('/analytics/overview', [MarketplaceAnalyticsController::class, 'overview'])->name('v2.marketplace.analytics.overview');
+
     Route::get('/merchants', [MarketplaceController::class, 'merchants'])->name('v2.marketplace.merchants.index');
     Route::get('/merchants/{merchant}', [MarketplaceController::class, 'showMerchant'])->name('v2.marketplace.merchants.show');
     Route::middleware(['can:marketplace,create', 'throttle:api-write'])->post('/merchants', [MarketplaceController::class, 'storeMerchant'])->name('v2.marketplace.merchants.store');
     Route::middleware(['can:marketplace,edit', 'throttle:api-write'])->put('/merchants/{merchant}', [MarketplaceController::class, 'updateMerchant'])->name('v2.marketplace.merchants.update');
     Route::middleware(['can:marketplace,edit', 'throttle:api-sensitive'])->post('/merchants/{merchant}/verify', [MarketplaceController::class, 'verifyMerchant'])->name('v2.marketplace.merchants.verify');
+
+    Route::get('/inquiries', [MarketplaceInquiryController::class, 'index'])->name('v2.marketplace.inquiries.index');
+    Route::get('/inquiries/{inquiry}', [MarketplaceInquiryController::class, 'show'])->name('v2.marketplace.inquiries.show');
+    Route::middleware(['can:marketplace,create', 'throttle:api-write'])->post('/inquiries', [MarketplaceInquiryController::class, 'store'])->name('v2.marketplace.inquiries.store');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-write'])->post('/inquiries/{inquiry}/assign', [MarketplaceInquiryController::class, 'assign'])->name('v2.marketplace.inquiries.assign');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-write'])->post('/inquiries/{inquiry}/qualify', [MarketplaceInquiryController::class, 'qualify'])->name('v2.marketplace.inquiries.qualify');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-write'])->post('/inquiries/{inquiry}/lost', [MarketplaceInquiryController::class, 'markLost'])->name('v2.marketplace.inquiries.lost');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-sensitive'])->post('/inquiries/{inquiry}/convert', [MarketplaceInquiryController::class, 'convert'])->name('v2.marketplace.inquiries.convert');
 
     Route::get('/publications', [MarketplaceController::class, 'publications'])->name('v2.marketplace.publications.index');
     Route::get('/publications/{publication}', [MarketplaceController::class, 'showPublication'])->name('v2.marketplace.publications.show');

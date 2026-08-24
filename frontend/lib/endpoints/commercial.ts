@@ -68,6 +68,8 @@ export interface CommercialEndpoints {
         MERCHANTS: { BASE: string; verify: (id: string) => string };
         PUBLICATIONS: { BASE: string; publish: (id: string) => string; withdraw: (id: string) => string };
         OFFERS: { BASE: string; publish: (id: string) => string; withdraw: (id: string) => string };
+        INQUIRIES: { BASE: string; byId: (id: string) => string; assign: (id: string) => string; qualify: (id: string) => string; lost: (id: string) => string; convert: (id: string) => string };
+        ANALYTICS: { OVERVIEW: string };
         OUTBOX: { BASE: string; dispatch: string };
     };
 }
@@ -142,6 +144,15 @@ export const COMMERCIAL: CommercialEndpoints = {
         MERCHANTS: { BASE: "/v2/marketplace/merchants", verify: (id: string) => `/v2/marketplace/merchants/${id}/verify` },
         PUBLICATIONS: { BASE: "/v2/marketplace/publications", publish: (id: string) => `/v2/marketplace/publications/${id}/publish`, withdraw: (id: string) => `/v2/marketplace/publications/${id}/withdraw` },
         OFFERS: { BASE: "/v2/marketplace/offers", publish: (id: string) => `/v2/marketplace/offers/${id}/publish`, withdraw: (id: string) => `/v2/marketplace/offers/${id}/withdraw` },
+        INQUIRIES: {
+            BASE: "/v2/marketplace/inquiries",
+            byId: (id: string) => `/v2/marketplace/inquiries/${id}`,
+            assign: (id: string) => `/v2/marketplace/inquiries/${id}/assign`,
+            qualify: (id: string) => `/v2/marketplace/inquiries/${id}/qualify`,
+            lost: (id: string) => `/v2/marketplace/inquiries/${id}/lost`,
+            convert: (id: string) => `/v2/marketplace/inquiries/${id}/convert`,
+        },
+        ANALYTICS: { OVERVIEW: "/v2/marketplace/analytics/overview" },
         OUTBOX: { BASE: "/v2/marketplace/outbox", dispatch: "/v2/marketplace/outbox/dispatch" },
     },
 };

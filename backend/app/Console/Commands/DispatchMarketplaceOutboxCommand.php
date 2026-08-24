@@ -13,6 +13,12 @@ class DispatchMarketplaceOutboxCommand extends Command
 
     public function handle(MarketplaceOperationalClient $client): int
     {
+        if (! config('marketplace.enabled')) {
+            $this->line('Marketplace synchronization is disabled for this environment.');
+
+            return self::SUCCESS;
+        }
+
         $limit = max(1, min(500, (int) $this->option('limit')));
         $result = $client->dispatchPending($limit);
 

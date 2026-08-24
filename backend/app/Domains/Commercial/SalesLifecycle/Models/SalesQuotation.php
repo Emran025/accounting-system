@@ -3,6 +3,7 @@
 namespace App\Domains\Commercial\SalesLifecycle\Models;
 
 use App\Domains\Commercial\CRM\Models\ArCustomer;
+use App\Domains\Commercial\Marketplace\Models\MarketplaceInquiry;
 use App\Domains\SupplyChain\Inventory\Models\Warehouse;
 use App\Domains\EnterpriseCore\IdentityAccess\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,6 +20,7 @@ class SalesQuotation extends Model
     protected $fillable = [
         'quote_number',
         'customer_id',
+        'marketplace_inquiry_id',
         'customer_name',
         'customer_contact',
         'customer_email',
@@ -60,6 +62,11 @@ class SalesQuotation extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(ArCustomer::class, 'customer_id')->withoutGlobalScopes();
+    }
+
+    public function marketplaceInquiry(): BelongsTo
+    {
+        return $this->belongsTo(MarketplaceInquiry::class, 'marketplace_inquiry_id');
     }
 
     public function warehouse(): BelongsTo
