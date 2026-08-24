@@ -224,6 +224,9 @@ http://127.0.0.1:8765 {
 }
 
 async function verifyRuntime() {
+  for (const applicationFile of ['artisan', 'public/index.php', 'vendor/autoload.php']) {
+    await assertFile(join(destinationRoot, 'app', applicationFile));
+  }
   await assertFile(join(destinationRoot, definition.layout.frankenPhp));
   await assertFile(
     join(destinationRoot, definition.layout.mariadbRoot, 'bin', definition.layout.mariadbd)

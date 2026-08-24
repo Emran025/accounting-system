@@ -887,10 +887,29 @@ fn runtime_caddyfile_path(config: &RuntimeConfig) -> PathBuf {
 }
 
 fn caddy_path_literal(path: &Path) -> String {
-    path.display()
-        .to_string()
-        .replace('\\', "/")
-        .replace('"', "\\\"")
+    caddy_path_literal_from_display(&path.display().to_string())
+}
+
+fn caddy_path_literal_from_display(path: &str) -> String {
+    #[cfg(windows)]
+    let normalized = windows_caddy_path(path);
+    #[cfg(not(windows))]
+    let normalized = path.to_owned();
+
+    normalized.replace('\\', "/").replace('"', "\\\"")
+}
+
+#[cfg(any(windows, test))]
+fn windows_caddy_path(path: &str) -> String {
+    // Tauri can resolve Windows packaged resources through the verbatim
+    // `\\?\` namespace. Rust and process spawning accept that namespace, but
+    // FrankenPHP/PHP treats it as a literal include path and cannot open the
+    // Laravel front controller. This conversion is compiled only for Windows.
+    if let Some(unc_path) = path.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{unc_path}")
+    } else {
+        path.strip_prefix(r"\\?\").unwrap_or(path).to_owned()
+    }
 }
 
 fn prepare_api_configuration(config: &RuntimeConfig) -> Result<PathBuf, String> {
@@ -1879,6 +1898,25 @@ mod tests {
         let rendered = api_configuration_content(&config());
         assert!(rendered
             .contains("root * \"C:/Program Files/ACCORE ERP Server Desktop/runtime/app/public\""));
+    }
+
+    #[test]
+    fn windows_caddy_path_removes_verbatim_prefix_for_php() {
+        assert_eq!(
+            windows_caddy_path(
+                r"\\?\C:\Users\Thinkpad\AppData\Local\ACCORE ERP Server Desktop\resources\server-runtime\windows-x86_64\app\public"
+            ),
+            r"C:\Users\Thinkpad\AppData\Local\ACCORE ERP Server Desktop\resources\server-runtime\windows-x86_64\app\public"
+        );
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn caddy_path_literal_preserves_unix_runtime_paths() {
+        assert_eq!(
+            caddy_path_literal_from_display("/opt/accore-erp/server/runtime/app/public"),
+            "/opt/accore-erp/server/runtime/app/public"
+        );
     }
 
     #[test]

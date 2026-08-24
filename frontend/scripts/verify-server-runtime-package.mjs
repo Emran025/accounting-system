@@ -7,9 +7,11 @@ const runtimeRoot = resolve(`src-tauri/resources/server-runtime/${runtimeTarget}
 const caddyfile = resolve(runtimeRoot, 'Caddyfile');
 const packagedEnvironment = resolve(runtimeRoot, 'app/.env');
 const databaseLayout = mariaDbLayout(runtimeTarget);
+const requiredApplicationFiles = ['app/artisan', 'app/public/index.php', 'app/vendor/autoload.php'];
 
 await access(caddyfile, constants.R_OK);
 for (const requiredPath of [
+  ...requiredApplicationFiles,
   databaseLayout.frankenphp,
   join(databaseLayout.root, 'bin', databaseLayout.mariadbd),
   join(databaseLayout.root, 'bin', databaseLayout.client),
