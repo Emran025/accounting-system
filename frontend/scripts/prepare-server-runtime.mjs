@@ -405,7 +405,7 @@ function getTargets() {
     },
     'macos-aarch64': macDefinition(
       'arm64',
-      'a44f6bcb1da73e09abfbadfbf3126f0454d9821c5576f89465ed060d8f9a5c50'
+      'ef49d6b0ad3ca2a1ec611de7304def4d67d6efa3507a7c1adfc9ae9c9845e5e9'
     ),
     'macos-x86_64': macDefinition(
       'x86_64',
