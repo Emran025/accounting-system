@@ -12,7 +12,10 @@ use Illuminate\Support\Str;
 
 class DesktopDistributionService
 {
-    public function __construct(private readonly TransportKeyLifecycleService $transportKeys) {}
+    public function __construct(
+        private readonly TransportKeyLifecycleService $transportKeys,
+        private readonly TransportSecurityPolicy $transportSecurity,
+    ) {}
 
     public function bootstrap(string $clientVersion, ?string $ipAddress): array
     {
@@ -40,11 +43,7 @@ class DesktopDistributionService
                 'server_certificate_fingerprint' => config('desktop_distribution.certificate_fingerprint'),
             ],
             'compatibility' => $compatibility,
-            'transport_security' => [
-                'protocol' => (string) config('transport_security.protocol'),
-                'mode' => (string) config('transport_security.mode'),
-                'key_algorithm' => (string) config('transport_security.key_algorithm'),
-            ],
+            'transport_security' => $this->transportSecurity->publicCapability(),
         ];
     }
 
