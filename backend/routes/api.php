@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Desktop\DesktopDistributionController;
+use App\Http\Controllers\Api\V2\Platform\Documentation\DocumentationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -35,6 +36,12 @@ Route::prefix('v1/desktop')->group(function (): void {
 Route::group(['prefix' => 'v2'], function () {
     require __DIR__.'/domains/00-auth.php';
     require __DIR__.'/domains/10-platform.php';
+
+    // Public, read-only documentation. The controller excludes internal trees.
+    Route::get('/documentation/{path?}', [DocumentationController::class, 'show'])
+        ->where('path', '.*')
+        ->middleware('throttle:api')
+        ->name('v2.documentation.show');
 
     Route::group(['middleware' => ['api.auth', 'throttle:api']], function () {
         /*
