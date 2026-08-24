@@ -1,7 +1,10 @@
 import { spawn } from 'node:child_process';
 import { chmod, cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
-import { assertFrankenPhpRuntimeVersion } from './frankenphp-runtime-policy.mjs';
+import {
+  assertFrankenPhpRuntimeExtensions,
+  assertFrankenPhpRuntimeVersion,
+} from './frankenphp-runtime-policy.mjs';
 import { removeInertFrankenPhpRpath, verifyMachOPayload } from './macos-macho.mjs';
 import {
   macosMariaDbCmakeFlags,
@@ -26,6 +29,7 @@ const destinationRoot = resolve(
 const cacheRoot = resolve(
   process.env.ACCORE_RUNTIME_DOWNLOAD_CACHE ?? join(repositoryRoot, '.runtime-cache', target)
 );
+const sealedTransportRuntimeExtensions = ['sodium', 'openssl', 'gmp'];
 
 await mkdir(cacheRoot, { recursive: true });
 await rm(destinationRoot, { recursive: true, force: true });
@@ -195,7 +199,17 @@ http://127.0.0.1:8765 {
   await writeFile(join(destinationRoot, 'Caddyfile'), caddyfile);
 
   if (definition.layout.phpExtensionsDirectory) {
-    const phpExtensions = ['curl', 'fileinfo', 'mbstring', 'mysqli', 'openssl', 'pdo_mysql', 'zip'];
+    const phpExtensions = [
+      'curl',
+      'fileinfo',
+      'gmp',
+      'mbstring',
+      'mysqli',
+      'openssl',
+      'pdo_mysql',
+      'sodium',
+      'zip',
+    ];
     for (const extension of phpExtensions) {
       await assertFile(
         join(destinationRoot, definition.layout.phpExtensionsDirectory, `php_${extension}.dll`)
@@ -236,6 +250,13 @@ async function verifyFrankenPhpRuntime() {
   const frankenPhp = join(destinationRoot, definition.layout.frankenPhp);
   const version = await runCapture(frankenPhp, ['--version']);
   assertFrankenPhpRuntimeVersion(version, definition.frankenPhp.version, target);
+
+  const extensions = await runCapture(
+    frankenPhp,
+    ['php-cli', '-r', 'echo implode(PHP_EOL, get_loaded_extensions()), PHP_EOL;'],
+    { cwd: destinationRoot }
+  );
+  assertFrankenPhpRuntimeExtensions(extensions, sealedTransportRuntimeExtensions, target);
 }
 
 async function verifyMacosRuntimeLinkage() {
@@ -294,9 +315,9 @@ async function run(command, args, additionalEnvironment = {}) {
   });
 }
 
-async function runCapture(command, args) {
+async function runCapture(command, args, options = {}) {
   return new Promise((resolveCommand, rejectCommand) => {
-    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'], ...options });
     let stdout = '';
     let stderr = '';
     child.stdout.setEncoding('utf8');
@@ -361,7 +382,7 @@ function getTargets() {
         id: 'frankenphp',
         version: '1.12.7',
         url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-linux-x86_64',
-        sha256: '207f65229637ae698e816ef7cbac31dd2bb57322a95d280789cea93e32cdd4f9',
+        sha256: '3cab775741335fd220cf53b6c3bea0bbb2244563837b7ad587bd41238370e049',
         archive: 'frankenphp-linux-x86_64',
       },
       mariadb: {
@@ -384,11 +405,11 @@ function getTargets() {
     },
     'macos-aarch64': macDefinition(
       'arm64',
-      'a44f6bcb1da73e09abfbadfbf3126f0454d9821c5576f89465ed060d8f9a5c50'
+      'ef49d6b0ad3ca2a1ec611de7304def4d67d6efa3507a7c1adfc9ae9c9845e5e9'
     ),
     'macos-x86_64': macDefinition(
       'x86_64',
-      '283dc2821190e46703b7f67c1ed8955ec9f315f7a089473cad306288f2354281'
+      'd3b5734892f6d0d637b8ddb23b8efd52403a19c360d1d7f71a65d07de5b09a9a'
     ),
   };
 }

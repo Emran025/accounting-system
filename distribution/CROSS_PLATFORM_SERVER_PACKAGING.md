@@ -43,10 +43,10 @@ All downloaded source and binary archives are version-pinned and verified agains
 
 | Target              | Audited filename                | Accepted SHA-256                                                   |
 | ------------------- | ------------------------------- | ------------------------------------------------------------------ |
-| Linux x64           | `frankenphp-linux-x86_64`       | `207f65229637ae698e816ef7cbac31dd2bb57322a95d280789cea93e32cdd4f9` |
+| Linux x64           | `frankenphp-linux-x86_64`       | `3cab775741335fd220cf53b6c3bea0bbb2244563837b7ad587bd41238370e049` |
 | Windows x64         | `frankenphp-windows-x86_64.zip` | `52fb7d1d8ca785599189789f813dd5cd2c29892ed2eaa3fdaab07e938e551870` |
-| macOS Apple Silicon | `frankenphp-mac-arm64`          | `a44f6bcb1da73e09abfbadfbf3126f0454d9821c5576f89465ed060d8f9a5c50` |
-| macOS Intel         | `frankenphp-mac-x86_64`         | `283dc2821190e46703b7f67c1ed8955ec9f315f7a089473cad306288f2354281` |
+| macOS Apple Silicon | `frankenphp-mac-arm64`          | `ef49d6b0ad3ca2a1ec611de7304def4d67d6efa3507a7c1adfc9ae9c9845e5e9` |
+| macOS Intel         | `frankenphp-mac-x86_64`         | `d3b5734892f6d0d637b8ddb23b8efd52403a19c360d1d7f71a65d07de5b09a9a` |
 
 The verification remains **fail-closed**: any later digest mismatch rejects the asset before extraction and cannot be accepted automatically. A future replacement requires a new explicit review and a deliberate pin change; changing a digest merely to make a build pass remains prohibited. The post-extraction executable contract requires the exact semantic version `1.12.7`. It deliberately accepts both official renderings, `FrankenPHP v1.12.7 …` and `FrankenPHP 1.12.7 …`, but rejects prefixes, suffix versions, and unrelated output. Linux uses the upstream FrankenPHP binary and MariaDB systemd binary tarball. macOS uses the upstream FrankenPHP binary and builds MariaDB 11.4.9 from the verified source archive in a fresh out-of-source CMake directory.
 

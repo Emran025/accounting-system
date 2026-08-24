@@ -12,6 +12,11 @@ use Illuminate\Support\Str;
 
 class DesktopDistributionService
 {
+    public function __construct(
+        private readonly TransportKeyLifecycleService $transportKeys,
+        private readonly TransportSecurityPolicy $transportSecurity,
+    ) {}
+
     public function bootstrap(string $clientVersion, ?string $ipAddress): array
     {
         $compatibility = $this->compatibilityFor($clientVersion);
@@ -38,6 +43,7 @@ class DesktopDistributionService
                 'server_certificate_fingerprint' => config('desktop_distribution.certificate_fingerprint'),
             ],
             'compatibility' => $compatibility,
+            'transport_security' => $this->transportSecurity->publicCapability(),
         ];
     }
 
@@ -154,6 +160,15 @@ class DesktopDistributionService
                 'enrolled_at' => now(),
                 'last_seen_at' => now(),
             ]);
+
+            if (isset($payload['transport_key_id'], $payload['transport_key_algorithm'], $payload['transport_public_key'])) {
+                $this->transportKeys->registerDeviceKey(
+                    $device,
+                    $payload['transport_key_id'],
+                    $payload['transport_key_algorithm'],
+                    $payload['transport_public_key'],
+                );
+            }
 
             $this->audit('desktop.enrollment', 'success', $ipAddress, $device, [
                 'device_id' => $device->device_id,
