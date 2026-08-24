@@ -199,7 +199,17 @@ http://127.0.0.1:8765 {
   await writeFile(join(destinationRoot, 'Caddyfile'), caddyfile);
 
   if (definition.layout.phpExtensionsDirectory) {
-    const phpExtensions = ['curl', 'fileinfo', 'mbstring', 'mysqli', 'openssl', 'pdo_mysql', 'zip'];
+    const phpExtensions = [
+      'curl',
+      'fileinfo',
+      'gmp',
+      'mbstring',
+      'mysqli',
+      'openssl',
+      'pdo_mysql',
+      'sodium',
+      'zip',
+    ];
     for (const extension of phpExtensions) {
       await assertFile(
         join(destinationRoot, definition.layout.phpExtensionsDirectory, `php_${extension}.dll`)
