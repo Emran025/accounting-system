@@ -7,6 +7,7 @@ use App\Domains\SupplyChain\Inventory\Models\Product;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class MarketplaceCatalogPublication extends Model
 {
@@ -66,6 +67,12 @@ class MarketplaceCatalogPublication extends Model
     public function publisher(): BelongsTo
     {
         return $this->belongsTo(User::class, 'published_by');
+    }
+
+    public function media(): MorphToMany
+    {
+        return $this->morphToMany(MarketplaceMediaAsset::class, 'assignable', 'marketplace_media_assignments')
+            ->withPivot(['id', 'role', 'sort_order'])->withTimestamps()->orderByPivot('sort_order');
     }
 
     public function isPubliclyListed(): bool

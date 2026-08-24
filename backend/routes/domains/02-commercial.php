@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V2\Commercial\CRM\ArController;
 use App\Http\Controllers\Api\V2\Commercial\Marketplace\MarketplaceController;
 use App\Http\Controllers\Api\V2\Commercial\Marketplace\MarketplaceInquiryController;
 use App\Http\Controllers\Api\V2\Commercial\Marketplace\MarketplaceAnalyticsController;
+use App\Http\Controllers\Api\V2\Commercial\Marketplace\MarketplaceMediaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -152,6 +153,11 @@ Route::group(['prefix' => 'marketplace', 'middleware' => 'can:marketplace,view']
     Route::middleware(['can:marketplace,edit', 'throttle:api-write'])->post('/inquiries/{inquiry}/qualify', [MarketplaceInquiryController::class, 'qualify'])->name('v2.marketplace.inquiries.qualify');
     Route::middleware(['can:marketplace,edit', 'throttle:api-write'])->post('/inquiries/{inquiry}/lost', [MarketplaceInquiryController::class, 'markLost'])->name('v2.marketplace.inquiries.lost');
     Route::middleware(['can:marketplace,edit', 'throttle:api-sensitive'])->post('/inquiries/{inquiry}/convert', [MarketplaceInquiryController::class, 'convert'])->name('v2.marketplace.inquiries.convert');
+
+    Route::get('/media', [MarketplaceMediaController::class, 'index'])->name('v2.marketplace.media.index');
+    Route::middleware(['can:marketplace,create', 'throttle:api-write'])->post('/media', [MarketplaceMediaController::class, 'store'])->name('v2.marketplace.media.store');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-write'])->put('/media/{asset}', [MarketplaceMediaController::class, 'update'])->name('v2.marketplace.media.update');
+    Route::middleware(['can:marketplace,edit', 'throttle:api-write'])->post('/media/{asset}/assign', [MarketplaceMediaController::class, 'assign'])->name('v2.marketplace.media.assign');
 
     Route::get('/publications', [MarketplaceController::class, 'publications'])->name('v2.marketplace.publications.index');
     Route::get('/publications/{publication}', [MarketplaceController::class, 'showPublication'])->name('v2.marketplace.publications.show');

@@ -55,8 +55,8 @@ export interface APIResponse<T = any> {
 export interface FetchOptions {
   /** HTTP method to use */
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-  /** JSON string for the request body */
-  body?: string;
+  /** JSON string or browser multipart body for the request. */
+  body?: BodyInit;
   /** Custom headers to include */
   headers?: Record<string, string>;
   /** Prevent session-recovery recursion for auth lifecycle endpoints. */
@@ -83,6 +83,10 @@ export function createApiRequestHeaders(options?: FetchOptions): Record<string, 
 
   const token = getInMemoryAccessToken();
   if (token) headers['X-Session-Token'] = token;
+
+  if (typeof FormData !== 'undefined' && options?.body instanceof FormData) {
+    delete headers['Content-Type'];
+  }
 
   return headers;
 }

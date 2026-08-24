@@ -70,6 +70,7 @@ export interface CommercialEndpoints {
         OFFERS: { BASE: string; publish: (id: string) => string; withdraw: (id: string) => string };
         INQUIRIES: { BASE: string; byId: (id: string) => string; assign: (id: string) => string; qualify: (id: string) => string; lost: (id: string) => string; convert: (id: string) => string };
         ANALYTICS: { OVERVIEW: string };
+        MEDIA: { BASE: string; byId: (id: string) => string; assign: (id: string) => string };
         OUTBOX: { BASE: string; dispatch: string };
     };
 }
@@ -153,6 +154,7 @@ export const COMMERCIAL: CommercialEndpoints = {
             convert: (id: string) => `/v2/marketplace/inquiries/${id}/convert`,
         },
         ANALYTICS: { OVERVIEW: "/v2/marketplace/analytics/overview" },
+        MEDIA: { BASE: "/v2/marketplace/media", byId: (id: string) => `/v2/marketplace/media/${id}`, assign: (id: string) => `/v2/marketplace/media/${id}/assign` },
         OUTBOX: { BASE: "/v2/marketplace/outbox", dispatch: "/v2/marketplace/outbox/dispatch" },
     },
 };
