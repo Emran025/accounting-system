@@ -35,7 +35,7 @@ HPKE supports associated data, which is required to bind each message to the ver
 
 The PHP candidate is `paragonie/hpke`, whose documented API exposes RFC 9180 ciphersuites and sender/receiver contexts. The Rust candidate is `hpke` from `rozbb/rust-hpke`, which documents the selected X25519, HKDF-SHA256 and ChaCha20-Poly1305 components. The Rust project explicitly states that it has not had a paid formal audit; this is a review input, not an approval.
 
-Neither library is added by this document. A separate dependency commit must include locked versions, minimal features, reproducible vectors and the full test results before it can be considered for merge.
+Neither library is added by this document. The currently published PHP candidate release also declares runtime requirements beyond the existing Sodium extension, including GMP, OpenSSL and ECC-related packages; this must be validated against every supported server runtime before any dependency change. A separate dependency commit must include locked versions, minimal features, reproducible vectors and the full test results before it can be considered for merge.
 
 ## References
 
