@@ -30,7 +30,12 @@ return new class extends Migration
         Schema::create('marketplace_media_assignments', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('media_asset_id')->constrained('marketplace_media_assets')->cascadeOnDelete();
-            $table->uuidMorphs('assignable');
+            // uuidMorphs() derives an index name longer than MySQL's 64-byte
+            // identifier limit for this table. Keep its schema semantics while
+            // naming the lookup index explicitly and portably.
+            $table->string('assignable_type');
+            $table->uuid('assignable_id');
+            $table->index(['assignable_type', 'assignable_id'], 'marketplace_media_assignment_assignable_idx');
             $table->string('role', 30)->default('gallery');
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
