@@ -44,7 +44,7 @@ All downloaded source and binary archives are version-pinned and verified agains
 | Target              | Audited filename                | Accepted SHA-256                                                   |
 | ------------------- | ------------------------------- | ------------------------------------------------------------------ |
 | Linux x64           | `frankenphp-linux-x86_64`       | `53fdfab33d7464ccdc9a2fa9cc39de6811c8da8ff5e592dd800f233eb5313e5d` |
-| Windows x64         | `frankenphp-windows-x86_64.zip` | `52fb7d1d8ca785599189789f813dd5cd2c29892ed2eaa3fdaab07e938e551870` |
+| Windows x64         | `frankenphp-windows-x86_64.zip` | `edec8d3c43508f98b498af911f47aa93ebc51f7e46f1d26a9d41adb7ccbaa828` |
 | macOS Apple Silicon | `frankenphp-mac-arm64`          | `90e2f86a23154f48738453c2235f9289ea4e34e0b67f306336cb2a8d93fe787a` |
 | macOS Intel         | `frankenphp-mac-x86_64`         | `ec0adfa9ad7bbe6c11d9a70eb6f357340d9d63b720e2c971781d1fcd0e183acb` |
 
