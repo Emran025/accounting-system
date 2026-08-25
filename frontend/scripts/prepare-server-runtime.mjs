@@ -358,7 +358,7 @@ function getTargets() {
         id: 'frankenphp',
         version: '1.12.7',
         url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-windows-x86_64.zip',
-        sha256: 'edec8d3c43508f98b498af911f47aa93ebc51f7e46f1d26a9d41adb7ccbaa828',
+        sha256: '257c9b689c2cc2918534e8b9986a31f9d1579514c91abc5bd0c1c02b0ed7c25d',
         archive: 'frankenphp-windows-x86_64.zip',
         format: 'zip',
       },

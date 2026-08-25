@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "ACCORE ERP Desktop",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "identifier": "com.accore.erp",
   "build": {
     "frontendDist": "../out",
