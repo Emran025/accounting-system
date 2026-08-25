@@ -58,7 +58,9 @@ jobs:
           - platform: macos-15-intel
             flavor: server
             feature: server-product
-            args: ""
+            # Diagnostic-only: exposes bundle_dmg.sh stderr if the Intel DMG
+            # fails; it does not alter runtime code, package contents, or other jobs.
+            args: "--verbose"
             artifact: server-macos-x64
             runtime_target: macos-x86_64
             agent_target: x86_64-apple-darwin
