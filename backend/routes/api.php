@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Desktop\DesktopDistributionController;
 use App\Http\Controllers\Api\V2\Platform\Documentation\DocumentationController;
+use App\Http\Controllers\Api\Integration\Marketplace\MarketplaceIngressController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,6 +14,12 @@ use Illuminate\Support\Facades\Route;
 | bootstrap, enrollment, and device-policy data required by Accore Client.
 |
 */
+Route::prefix('integration/marketplace/v1')->middleware('throttle:api-sensitive')->group(function (): void {
+    Route::post('/events', [MarketplaceIngressController::class, 'store'])
+        ->middleware('marketplace.inbound.signature')
+        ->name('integration.marketplace.events.store');
+});
+
 Route::prefix('v1/desktop')->group(function (): void {
     Route::get('/bootstrap', [DesktopDistributionController::class, 'bootstrap'])
         ->middleware('throttle:desktop-bootstrap')

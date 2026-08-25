@@ -16,4 +16,14 @@ describe("API locale propagation", () => {
             "X-Accore-Locale": "en-US",
         });
     });
+
+    it("lets the browser supply a multipart boundary for media uploads", () => {
+        const headers = createApiRequestHeaders({ body: new FormData() });
+
+        expect(headers).not.toHaveProperty("Content-Type");
+        expect(headers).toMatchObject({
+            "Accept-Language": "en-US",
+            "X-Accore-Locale": "en-US",
+        });
+    });
 });

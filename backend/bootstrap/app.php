@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.auth' => \App\Http\Middleware\ApiAuth::class,
             'can' => \App\Http\Middleware\CheckPermission::class,
             'module.operational' => \App\Http\Middleware\EnsureModuleOperational::class,
+            'marketplace.inbound.signature' => \App\Http\Middleware\VerifyMarketplaceInboundSignature::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

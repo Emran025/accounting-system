@@ -46,8 +46,8 @@ class PermissionSeeder extends Seeder
         $accountant = Role::where('role_key', 'accountant')->first();
         if ($accountant) {
             Module::whereNotIn('module_key', ['users', 'settings', 'batch_processing', 'roles_permissions'])->each(function ($module) use ($accountant) {
-                $canCreate = !in_array($module->module_key, ['products', 'fiscal_periods', 'general_ledger', 'reports', 'audit_trail', 'recurring_transactions']);
-                $canEdit = !in_array($module->module_key, ['sales', 'products', 'purchases', 'fiscal_periods', 'general_ledger', 'journal_vouchers', 'reports', 'audit_trail', 'recurring_transactions']);
+                $canCreate = !in_array($module->module_key, ['products', 'marketplace', 'fiscal_periods', 'general_ledger', 'reports', 'audit_trail', 'recurring_transactions']);
+                $canEdit = !in_array($module->module_key, ['sales', 'products', 'marketplace', 'purchases', 'fiscal_periods', 'general_ledger', 'journal_vouchers', 'reports', 'audit_trail', 'recurring_transactions']);
 
                 RolePermission::updateOrCreate(
                     ['role_id' => $accountant->id, 'module_id' => $module->id],

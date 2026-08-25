@@ -385,7 +385,7 @@ function getTargets() {
         id: 'frankenphp',
         version: '1.12.7',
         url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-linux-x86_64',
-        sha256: '3cab775741335fd220cf53b6c3bea0bbb2244563837b7ad587bd41238370e049',
+        sha256: '53fdfab33d7464ccdc9a2fa9cc39de6811c8da8ff5e592dd800f233eb5313e5d',
         archive: 'frankenphp-linux-x86_64',
       },
       mariadb: {
@@ -408,11 +408,11 @@ function getTargets() {
     },
     'macos-aarch64': macDefinition(
       'arm64',
-      'ef49d6b0ad3ca2a1ec611de7304def4d67d6efa3507a7c1adfc9ae9c9845e5e9'
+      '90e2f86a23154f48738453c2235f9289ea4e34e0b67f306336cb2a8d93fe787a'
     ),
     'macos-x86_64': macDefinition(
       'x86_64',
-      'd3b5734892f6d0d637b8ddb23b8efd52403a19c360d1d7f71a65d07de5b09a9a'
+      'ec0adfa9ad7bbe6c11d9a70eb6f357340d9d63b720e2c971781d1fcd0e183acb'
     ),
   };
 }
