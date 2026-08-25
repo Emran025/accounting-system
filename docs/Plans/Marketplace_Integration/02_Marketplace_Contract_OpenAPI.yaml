@@ -1,0 +1,453 @@
+openapi: 3.1.0
+info:
+  title: ACCSYSTEM Marketplace Integration Contract
+  version: 1.0.0-draft
+  license:
+    name: Proprietary — ACCSYSTEM review draft
+    url: https://github.com/Emran025/accore-erp
+  description: >-
+    Draft, review-only contract for Accore institutional servers to publish
+    safe merchant, product, offer, and media projections to the central public
+    discovery platform. This file does not authorize implementation until the
+    waterfall approval gates in 01_Marketplace_Architecture_and_Integration_Design.md are signed.
+servers:
+  - url: https://operational.accsystem.example/api/integration/marketplace/v1
+    description: Proposed central platform ingress
+security:
+  - ServiceSignature: []
+paths:
+  /events:
+    post:
+      tags: [Accore to Operational]
+      summary: Accept an idempotent marketplace publication event
+      operationId: acceptMarketplaceEvent
+      parameters:
+        - $ref: '#/components/parameters/ContractVersion'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/MerchantId'
+        - $ref: '#/components/parameters/Signature'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicationEvent'
+      responses:
+        '202':
+          description: Event accepted for composition and indexing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptanceReceipt'
+        '400': { $ref: '#/components/responses/InvalidPayload' }
+        '401': { $ref: '#/components/responses/InvalidSignature' }
+        '406': { $ref: '#/components/responses/ContractMismatch' }
+        '409': { $ref: '#/components/responses/StaleRevision' }
+        '422': { $ref: '#/components/responses/PublicationRejected' }
+  /merchants/{merchant_id}/snapshot:
+    put:
+      tags: [Accore to Operational]
+      summary: Reconcile the complete public state of one merchant
+      operationId: reconcileMerchantSnapshot
+      parameters:
+        - $ref: '#/components/parameters/ContractVersion'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/MerchantId'
+        - $ref: '#/components/parameters/Signature'
+        - name: merchant_id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/UUID' }
+        - name: If-Match
+          in: header
+          required: true
+          description: Current accepted merchant catalog revision, or `0` for first publication.
+          schema: { type: string, maxLength: 64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MerchantCatalogSnapshot'
+      responses:
+        '202':
+          description: Snapshot accepted for asynchronous reconciliation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AcceptanceReceipt' }
+        '409': { $ref: '#/components/responses/StaleRevision' }
+        '422': { $ref: '#/components/responses/PublicationRejected' }
+  /merchants/{merchant_id}/cursor:
+    get:
+      tags: [Accore to Operational]
+      summary: Read the last accepted event and revision for recovery
+      operationId: getMerchantCursor
+      parameters:
+        - $ref: '#/components/parameters/ContractVersion'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/MerchantId'
+        - $ref: '#/components/parameters/Signature'
+        - name: merchant_id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/UUID' }
+      responses:
+        '200':
+          description: Accepted cursor
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [merchant_id, accepted_revision, accepted_event_id, accepted_at]
+                properties:
+                  merchant_id: { $ref: '#/components/schemas/UUID' }
+                  accepted_revision: { type: integer, minimum: 0 }
+                  accepted_event_id: { $ref: '#/components/schemas/UUID' }
+                  accepted_at: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/InvalidSignature' }
+        '406': { $ref: '#/components/responses/ContractMismatch' }
+  /media/upload-sessions:
+    post:
+      tags: [Accore to Operational]
+      summary: Create a short-lived direct upload session for a public asset
+      operationId: createMediaUploadSession
+      parameters:
+        - $ref: '#/components/parameters/ContractVersion'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/MerchantId'
+        - $ref: '#/components/parameters/Signature'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaUploadRequest'
+      responses:
+        '201':
+          description: Direct upload session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaUploadSession'
+        '413':
+          description: Asset exceeds configured upload policy
+        '415':
+          description: MIME type is not accepted
+  /media/{asset_id}/complete:
+    post:
+      tags: [Accore to Operational]
+      summary: Verify uploaded media and request processing
+      operationId: completeMediaUpload
+      parameters:
+        - $ref: '#/components/parameters/ContractVersion'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/MerchantId'
+        - $ref: '#/components/parameters/Signature'
+        - name: asset_id
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/UUID' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sha256, bytes, mime_type]
+              properties:
+                sha256: { type: string, pattern: '^[A-Fa-f0-9]{64}$' }
+                bytes: { type: integer, minimum: 1, maximum: 5242880 }
+                mime_type: { $ref: '#/components/schemas/PublicImageMimeType' }
+      responses:
+        '202':
+          description: Asset accepted for validation and derivative generation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MediaProcessingReceipt' }
+        '400': { $ref: '#/components/responses/InvalidPayload' }
+        '401': { $ref: '#/components/responses/InvalidSignature' }
+        '406': { $ref: '#/components/responses/ContractMismatch' }
+components:
+  securitySchemes:
+    ServiceSignature:
+      type: apiKey
+      in: header
+      name: X-ACCSYSTEM-Signature
+      description: >-
+        Draft only. Production must use mTLS or OAuth 2.1 client credentials
+        plus a canonical signed request with key rotation. The signature covers
+        method, path, timestamp, request ID and SHA-256 of the body.
+  parameters:
+    ContractVersion:
+      name: X-Contract-Version
+      in: header
+      required: true
+      schema: { type: string, const: marketplace_contract@1.0 }
+    RequestId:
+      name: X-Request-ID
+      in: header
+      required: true
+      schema: { $ref: '#/components/schemas/UUID' }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 16, maxLength: 200 }
+    MerchantId:
+      name: X-Merchant-ID
+      in: header
+      required: true
+      schema: { $ref: '#/components/schemas/UUID' }
+    Signature:
+      name: X-ACCSYSTEM-Signature
+      in: header
+      required: true
+      schema: { type: string, minLength: 32, maxLength: 4096 }
+  responses:
+    ContractMismatch:
+      description: The sender used an unsupported contract version
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ContractError' }
+          example:
+            error: { code: CONTRACT_MISMATCH, message: 'Required: marketplace_contract@1.0' }
+            request_id: 0199c5bd-6b32-7fe7-b1e8-7504f2c3d7fb
+    InvalidPayload:
+      description: Validation failed before event acceptance
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ContractError' }
+    InvalidSignature:
+      description: Service identity, timestamp, scope, or signature is invalid
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ContractError' }
+    StaleRevision:
+      description: The incoming revision is older than the accepted revision
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ContractError'
+              - type: object
+                properties:
+                  error:
+                    properties:
+                      accepted_revision: { type: integer }
+    PublicationRejected:
+      description: The public projection violates publication or media policy
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ContractError' }
+  schemas:
+    UUID: { type: string, format: uuid }
+    LocalizedText:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        ar: { type: string, minLength: 1, maxLength: 20000 }
+        en: { type: string, minLength: 1, maxLength: 20000 }
+    PublicImageMimeType:
+      type: string
+      enum: [image/jpeg, image/png, image/webp, image/avif]
+    PublicAvailability:
+      type: string
+      enum: [available, limited, unavailable, preorder]
+    PublicationEvent:
+      type: object
+      additionalProperties: false
+      required: [contract_version, event_id, event_type, occurred_at, producer, idempotency_key, payload]
+      properties:
+        contract_version: { type: string, const: marketplace_contract@1.0 }
+        event_id: { $ref: '#/components/schemas/UUID' }
+        event_type:
+          type: string
+          enum:
+            - merchant.verified
+            - merchant.suspended
+            - catalog.product.published
+            - catalog.product.withdrawn
+            - catalog.product.availability_changed
+            - offer.published
+            - offer.withdrawn
+            - offer.expired
+            - media.ready
+            - media.revoked
+        occurred_at: { type: string, format: date-time }
+        producer:
+          type: object
+          additionalProperties: false
+          required: [system, tenant_id, merchant_id]
+          properties:
+            system: { type: string, const: accore }
+            tenant_id: { type: string, minLength: 1, maxLength: 100 }
+            merchant_id: { $ref: '#/components/schemas/UUID' }
+        idempotency_key: { type: string, minLength: 16, maxLength: 200 }
+        payload:
+          oneOf:
+            - $ref: '#/components/schemas/MerchantProfileSnapshot'
+            - $ref: '#/components/schemas/MarketplaceProductSnapshot'
+            - $ref: '#/components/schemas/OfferCampaignSnapshot'
+            - $ref: '#/components/schemas/PublicMediaAsset'
+    MerchantProfileSnapshot:
+      type: object
+      additionalProperties: false
+      required: [kind, merchant_id, revision, slug, display_name, status]
+      properties:
+        kind: { type: string, const: merchant }
+        merchant_id: { $ref: '#/components/schemas/UUID' }
+        revision: { type: integer, minimum: 1 }
+        slug: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' }
+        display_name: { $ref: '#/components/schemas/LocalizedText' }
+        short_description: { $ref: '#/components/schemas/LocalizedText' }
+        logo_asset_id: { $ref: '#/components/schemas/UUID' }
+        status: { type: string, enum: [verified, suspended, retired] }
+        public_url: { type: string, format: uri }
+    MarketplaceProductSnapshot:
+      type: object
+      additionalProperties: false
+      required: [kind, public_product_id, merchant_id, revision, slug, name, list_price, availability, visibility]
+      properties:
+        kind: { type: string, const: product }
+        public_product_id: { $ref: '#/components/schemas/UUID' }
+        merchant_id: { $ref: '#/components/schemas/UUID' }
+        source_product_id: { type: string, maxLength: 100, writeOnly: true }
+        revision: { type: integer, minimum: 1 }
+        slug: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' }
+        catalog_code: { type: string, maxLength: 100 }
+        name: { $ref: '#/components/schemas/LocalizedText' }
+        short_description: { $ref: '#/components/schemas/LocalizedText' }
+        description: { $ref: '#/components/schemas/LocalizedText' }
+        category_id: { type: string, maxLength: 100 }
+        category_path: { type: array, items: { type: string, maxLength: 100 }, maxItems: 12 }
+        tags: { type: array, items: { type: string, maxLength: 64 }, maxItems: 30 }
+        list_price:
+          type: object
+          additionalProperties: false
+          required: [amount, currency]
+          properties:
+            amount: { type: number, minimum: 0, multipleOf: 0.01 }
+            currency: { type: string, pattern: '^[A-Z]{3}$' }
+        unit_label: { $ref: '#/components/schemas/LocalizedText' }
+        availability: { $ref: '#/components/schemas/PublicAvailability' }
+        cover_asset_id: { $ref: '#/components/schemas/UUID' }
+        gallery_asset_ids:
+          type: array
+          items: { $ref: '#/components/schemas/UUID' }
+          maxItems: 12
+        visibility: { type: string, enum: [listed, unlisted, withdrawn] }
+        published_at: { type: string, format: date-time }
+        data_freshness_at: { type: string, format: date-time }
+    OfferCampaignSnapshot:
+      type: object
+      additionalProperties: false
+      required: [kind, offer_id, merchant_id, revision, slug, title, benefit, starts_at, ends_at, status, targets]
+      properties:
+        kind: { type: string, const: offer }
+        offer_id: { $ref: '#/components/schemas/UUID' }
+        merchant_id: { $ref: '#/components/schemas/UUID' }
+        revision: { type: integer, minimum: 1 }
+        slug: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' }
+        title: { $ref: '#/components/schemas/LocalizedText' }
+        summary: { $ref: '#/components/schemas/LocalizedText' }
+        disclosure: { $ref: '#/components/schemas/LocalizedText' }
+        hero_asset_id: { $ref: '#/components/schemas/UUID' }
+        benefit:
+          type: object
+          additionalProperties: false
+          required: [type, value]
+          properties:
+            type: { type: string, enum: [percentage, fixed_amount, fixed_price, bundle, gift] }
+            value: { type: number, minimum: 0 }
+            currency: { type: string, pattern: '^[A-Z]{3}$' }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        timezone: { type: string, maxLength: 64 }
+        status: { type: string, enum: [published, withdrawn, expired] }
+        targets:
+          type: array
+          minItems: 1
+          maxItems: 2000
+          items:
+            type: object
+            required: [type, id]
+            properties:
+              type: { type: string, enum: [product, category, collection] }
+              id: { type: string, maxLength: 100 }
+    PublicMediaAsset:
+      type: object
+      additionalProperties: false
+      required: [kind, asset_id, merchant_id, revision, role, sha256, mime_type, status]
+      properties:
+        kind: { type: string, const: media }
+        asset_id: { $ref: '#/components/schemas/UUID' }
+        merchant_id: { $ref: '#/components/schemas/UUID' }
+        revision: { type: integer, minimum: 1 }
+        role: { type: string, enum: [cover, gallery, offer_hero, merchant_logo] }
+        sha256: { type: string, pattern: '^[A-Fa-f0-9]{64}$' }
+        mime_type: { $ref: '#/components/schemas/PublicImageMimeType' }
+        width: { type: integer, minimum: 1, maximum: 12000 }
+        height: { type: integer, minimum: 1, maximum: 12000 }
+        alt_text: { $ref: '#/components/schemas/LocalizedText' }
+        status: { type: string, enum: [ready, revoked] }
+    MerchantCatalogSnapshot:
+      type: object
+      required: [merchant, products, offers, snapshot_revision]
+      properties:
+        merchant: { $ref: '#/components/schemas/MerchantProfileSnapshot' }
+        products:
+          type: array
+          maxItems: 10000
+          items: { $ref: '#/components/schemas/MarketplaceProductSnapshot' }
+        offers:
+          type: array
+          maxItems: 10000
+          items: { $ref: '#/components/schemas/OfferCampaignSnapshot' }
+        snapshot_revision: { type: integer, minimum: 1 }
+    MediaUploadRequest:
+      type: object
+      required: [role, filename, bytes, mime_type, sha256]
+      properties:
+        role: { type: string, enum: [cover, gallery, offer_hero, merchant_logo] }
+        filename: { type: string, maxLength: 255 }
+        bytes: { type: integer, minimum: 1, maximum: 5242880 }
+        mime_type: { $ref: '#/components/schemas/PublicImageMimeType' }
+        sha256: { type: string, pattern: '^[A-Fa-f0-9]{64}$' }
+    MediaUploadSession:
+      type: object
+      required: [asset_id, upload_url, expires_at]
+      properties:
+        asset_id: { $ref: '#/components/schemas/UUID' }
+        upload_url: { type: string, format: uri }
+        expires_at: { type: string, format: date-time }
+        required_headers: { type: object, additionalProperties: { type: string } }
+    MediaProcessingReceipt:
+      type: object
+      required: [asset_id, status, receipt_id]
+      properties:
+        asset_id: { $ref: '#/components/schemas/UUID' }
+        status: { type: string, const: processing }
+        receipt_id: { $ref: '#/components/schemas/UUID' }
+    AcceptanceReceipt:
+      type: object
+      required: [receipt_id, event_id, status, accepted_at]
+      properties:
+        receipt_id: { $ref: '#/components/schemas/UUID' }
+        event_id: { $ref: '#/components/schemas/UUID' }
+        status: { type: string, enum: [accepted, duplicate, queued] }
+        accepted_at: { type: string, format: date-time }
+    ContractError:
+      type: object
+      required: [error, request_id]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            accepted_revision: { type: integer }
+        request_id: { $ref: '#/components/schemas/UUID' }
