@@ -224,6 +224,9 @@ http://127.0.0.1:8765 {
 }
 
 async function verifyRuntime() {
+  for (const applicationFile of ['artisan', 'public/index.php', 'vendor/autoload.php']) {
+    await assertFile(join(destinationRoot, 'app', applicationFile));
+  }
   await assertFile(join(destinationRoot, definition.layout.frankenPhp));
   await assertFile(
     join(destinationRoot, definition.layout.mariadbRoot, 'bin', definition.layout.mariadbd)
@@ -355,7 +358,7 @@ function getTargets() {
         id: 'frankenphp',
         version: '1.12.7',
         url: 'https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-windows-x86_64.zip',
-        sha256: '52fb7d1d8ca785599189789f813dd5cd2c29892ed2eaa3fdaab07e938e551870',
+        sha256: 'edec8d3c43508f98b498af911f47aa93ebc51f7e46f1d26a9d41adb7ccbaa828',
         archive: 'frankenphp-windows-x86_64.zip',
         format: 'zip',
       },
