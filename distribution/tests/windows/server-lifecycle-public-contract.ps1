@@ -87,7 +87,10 @@ try {
   Assert-Contract -Condition (-not (Test-Path -LiteralPath $PublicStatusRoot)) -Message 'Worker is not fresh: public Server Status directory already exists'
 
   Invoke-AgentOperation -Arguments @('claim', '--owner', 'server-desktop')
-  $ready = Wait-ForPublicState -ExpectedState 'ready'
+  # A fresh server applies the complete Laravel schema before starting the API.
+  # Marketplace adds migrations, so keep the first readiness assertion bounded
+  # but allow the slower Windows filesystem/database bootstrap to complete.
+  $ready = Wait-ForPublicState -ExpectedState 'ready' -TimeoutSeconds 600
   Assert-Contract -Condition ($ready.phase -eq 'ready') -Message "Ready agent published unexpected phase '$($ready.phase)'"
   Assert-Contract -Condition (-not [string]::IsNullOrWhiteSpace($ready.serverId)) -Message 'Ready agent did not publish serverId'
 
