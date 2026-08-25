@@ -1,6 +1,6 @@
 {
   "name": "accore",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack -p 5000 -H 0.0.0.0",
