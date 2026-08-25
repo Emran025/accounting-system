@@ -18,7 +18,10 @@ jobs:
   build-desktop:
     name: Build desktop (${{ matrix.flavor }} / ${{ matrix.platform }})
     runs-on: ${{ matrix.platform }}
-    timeout-minutes: ${{ matrix.flavor == 'server' && matrix.platform == 'ubuntu-22.04' && 120 || 60 }}
+    # macOS source builds and Linux Server Desktop packaging can legitimately take
+    # much longer than the ordinary desktop job. Use GitHub's six-hour maximum
+    # only for those server targets; keep Windows and every client target at 60m.
+    timeout-minutes: ${{ matrix.flavor == 'server' && matrix.platform != 'windows-latest' && 360 || 60 }}
     strategy:
       fail-fast: false
       matrix:
