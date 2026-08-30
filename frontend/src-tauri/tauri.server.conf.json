@@ -18,6 +18,12 @@
       "csp": "default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' asset: data: https:; connect-src 'self' http://127.0.0.1:8765 https://127.0.0.1:8765"
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "mniWn6BqS8H3ps4NdI9tjTMzIugK7Mxx4Qbgig47WAI=",
+      "endpoints": []
+    }
+  },
   "bundle": {
     "resources": ["resources/server-runtime"],
     "externalBin": ["binaries/accore-server-agent"],

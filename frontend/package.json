@@ -12,6 +12,7 @@
     "i18n:inventory": "tsx scripts/i18n-inventory.ts",
     "i18n:check": "tsx scripts/i18n-inventory.ts --check",
     "i18n:coverage": "tsx scripts/i18n-verify-coverage.ts --check",
+    "desktop:sync-runtime-upstream": "node scripts/sync-server-runtime-upstream.mjs",
     "desktop:prepare-server-runtime": "node scripts/prepare-server-runtime.mjs",
     "desktop:build-server-headless-installer": "node scripts/build-server-headless-installer.mjs",
     "desktop:build-server-headless-package": "node scripts/build-server-headless-package.mjs",
